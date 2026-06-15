@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # AxonProject
 =======
 # ARENA.ENG
