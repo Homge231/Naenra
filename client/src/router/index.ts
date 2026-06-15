@@ -19,6 +19,7 @@ const router = createRouter({
     { path: '/game', component: () => import('../views/GameplayView.vue'), meta: { requiresAuth: true } },
     { path: '/shop', component: () => import('../views/ShopView.vue'), meta: { requiresAuth: true } },
     { path: '/end', component: () => import('../views/MatchEndView.vue'), meta: { requiresAuth: true } },
+    { path: '/error', name: 'error', component: () => import('../views/ErrorView.vue') },
     {
       path: '/:pathMatch(.*)*',
       redirect: '/' 

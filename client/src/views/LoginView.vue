@@ -26,12 +26,13 @@
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1">Email</label>
           <input 
-            v-model="email" 
+            :value="email" 
+            @input="e => onEmailInput((e.target as HTMLInputElement).value)"
             type="email" 
-            required
             placeholder="player@naenra.com"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            :class="['w-full bg-darkNavy/50 border rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors', emailError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-blue focus:ring-1 focus:ring-blue']"
           />
+          <p v-if="emailError" class="text-red-400 text-xs mt-1">{{ emailError }}</p>
         </div>
 
         <div>
@@ -40,20 +41,21 @@
             <a href="#" class="text-xs text-lightBlue hover:text-blue transition-colors">Forgot?</a>
           </div>
           <input 
-            v-model="password" 
+            :value="password" 
+            @input="e => onPasswordInput((e.target as HTMLInputElement).value)"
             type="password" 
-            required
             placeholder="••••••••"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            :class="['w-full bg-darkNavy/50 border rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors', passwordError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-blue focus:ring-1 focus:ring-blue']"
           />
+          <p v-if="passwordError" class="text-red-400 text-xs mt-1">{{ passwordError }}</p>
         </div>
 
         <button 
           type="submit"
-          :disabled="isLoading"
+          :disabled="isLoading || !isFormValid"
           class="w-full bg-gradient-to-r from-orange to-hexred text-white font-bold py-3.5 px-4 rounded-xl mt-4 hover:shadow-[0_0_20px_rgba(230,57,70,0.4)] transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
-          Login to Arena
+          {{ isLoading ? 'Logging in...' : 'Login to Arena' }}
         </button>
       </form>
 
@@ -86,32 +88,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useErrorStore } from '../stores/errorStore'
 
 const router = useRouter()
 const auth = useAuthStore()
+const errorStore = useErrorStore()
 const isLoading = ref<boolean>(false)
 
 const email = ref<string>('')
 const password = ref<string>('')
+const emailError = ref<string>('')
+const passwordError = ref<string>('')
 
-const handleTraditionalLogin = () => {
-  isLoading.value = true
-  console.log('Logging in with:', email.value, password.value)
-  setTimeout(() => {
-    isLoading.value = false
-    router.push('/lobby')
-  }, 1000)
+const isFormValid = computed(() => {
+  return email.value.length > 0 && password.value.length > 0 && !emailError.value && !passwordError.value
+})
+
+function validateEmail(value: string): string {
+  if (!value) return 'Email is required'
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(value)) return 'Please enter a valid email'
+  return ''
 }
 
-const handleGoogleLogin = async () => {
+function validatePassword(value: string): string {
+  if (!value) return 'Password is required'
+  if (value.length < 6) return 'Password must be at least 6 characters'
+  return ''
+}
+
+function onEmailInput(value: string) {
+  email.value = value
+  emailError.value = validateEmail(value)
+}
+
+function onPasswordInput(value: string) {
+  password.value = value
+  passwordError.value = validatePassword(value)
+}
+
+async function handleTraditionalLogin() {
+  // Validate form
+  emailError.value = validateEmail(email.value)
+  passwordError.value = validatePassword(password.value)
+
+  if (!isFormValid.value) return
+
+  isLoading.value = true
+  try {
+    const result = await auth.loginWithEmail(email.value, password.value)
+    if (result.success) {
+      errorStore.addError({
+        type: 'success',
+        message: 'Login successful',
+        duration: 2000
+      })
+      router.push('/lobby')
+    }
+  } catch (error) {
+    console.error('Login error:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleGoogleLogin() {
   isLoading.value = true
   try {
     await auth.loginWithGoogle()
-  } catch (error) {
-    console.error('Failed to sign in with Google:', error)
+    // OAuth redirect will handle navigation
+  } finally {
     isLoading.value = false
   }
 }
