@@ -1,167 +1,261 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-darkNavy text-white relative overflow-hidden">
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue rounded-full mix-blend-multiply filter blur-[128px] opacity-20 pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-orange rounded-full mix-blend-multiply filter blur-[128px] opacity-20 pointer-events-none"></div>
+  <div class="flex items-center justify-center min-h-screen bg-background px-4">
+    <div class="w-full max-w-sm">
 
-    <div class="relative z-10 w-full max-w-md p-10 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] transform transition-all hover:border-white/20">
-      
-      <div class="mb-8 text-center">
-        <h1 class="text-6xl font-black mb-2 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-lg">
-          NAENRA
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-primary-fixed tracking-widest uppercase">
+          ARENA.ENG
         </h1>
-        <p class="text-lightBlue font-semibold tracking-[0.2em] text-sm">
-          TYPING ESPORTS ARENA
+        <p class="text-on-surface-variant text-sm mt-2">
+          English battle. Real-time. Two players.
         </p>
       </div>
 
-      <div v-if="isLoading" class="mb-6 flex items-center justify-center space-x-2 text-lightOrange">
-        <svg class="animate-spin h-5 w-5 text-lightOrange" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span>Processing...</span>
-      </div>
-
-      <form @submit.prevent="handleTraditionalLogin" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">Email</label>
-          <input 
-            :value="email" 
-            @input="e => onEmailInput((e.target as HTMLInputElement).value)"
-            type="email" 
-            placeholder="player@naenra.com"
-            :class="['w-full bg-darkNavy/50 border rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors', emailError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-blue focus:ring-1 focus:ring-blue']"
-          />
-          <p v-if="emailError" class="text-red-400 text-xs mt-1">{{ emailError }}</p>
-        </div>
-
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <label class="block text-sm font-medium text-gray-400">Password</label>
-            <a href="#" class="text-xs text-lightBlue hover:text-blue transition-colors">Forgot?</a>
-          </div>
-          <input 
-            :value="password" 
-            @input="e => onPasswordInput((e.target as HTMLInputElement).value)"
-            type="password" 
-            placeholder="••••••••"
-            :class="['w-full bg-darkNavy/50 border rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none transition-colors', passwordError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500' : 'border-white/10 focus:border-blue focus:ring-1 focus:ring-blue']"
-          />
-          <p v-if="passwordError" class="text-red-400 text-xs mt-1">{{ passwordError }}</p>
-        </div>
-
-        <button 
-          type="submit"
-          :disabled="isLoading || !isFormValid"
-          class="w-full bg-gradient-to-r from-orange to-hexred text-white font-bold py-3.5 px-4 rounded-xl mt-4 hover:shadow-[0_0_20px_rgba(230,57,70,0.4)] transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-        >
-          {{ isLoading ? 'Logging in...' : 'Login to Arena' }}
-        </button>
-      </form>
-
-      <div class="relative flex py-6 items-center">
-        <div class="flex-grow border-t border-white/10"></div>
-        <span class="flex-shrink-0 mx-4 text-gray-500 text-xs font-semibold tracking-wider uppercase">OR</span>
-        <div class="flex-grow border-t border-white/10"></div>
-      </div>
-
-      <button 
-        @click="handleGoogleLogin"
-        :disabled="isLoading"
-        class="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 text-white font-semibold py-3 px-4 rounded-xl hover:bg-white/10 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+      <!-- Success Message -->
+      <div
+        v-if="successMessage"
+        class="bg-tertiary/10 border border-tertiary-fixed rounded-lg px-4 py-3 mb-4 text-tertiary-fixed text-sm text-center"
       >
-        <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        Continue with Google
-      </button>
+        {{ successMessage }}
+      </div>
 
-      <p class="mt-6 text-center text-sm text-gray-400">
-        New to Naenra? 
-        <a href="#" class="text-lightOrange hover:text-orange font-semibold transition-colors">Create account</a>
-      </p>
+      <div class="bg-surface-container rounded-xl border border-outline-variant p-8">
+
+        <!-- Tabs -->
+        <div class="flex mb-6 bg-surface-container-high rounded-lg p-1">
+          <button
+            @click="switchMode('login')"
+            :class="mode === 'login'
+              ? 'bg-primary-fixed text-on-primary'
+              : 'text-on-surface-variant hover:text-on-surface'"
+            class="flex-1 py-2 rounded-md font-bold text-sm uppercase tracking-widest transition-all duration-200"
+          >
+            Login
+          </button>
+          <button
+            @click="switchMode('register')"
+            :class="mode === 'register'
+              ? 'bg-primary-fixed text-on-primary'
+              : 'text-on-surface-variant hover:text-on-surface'"
+            class="flex-1 py-2 rounded-md font-bold text-sm uppercase tracking-widest transition-all duration-200"
+          >
+            Register
+          </button>
+        </div>
+
+        <!-- Register Form -->
+        <div v-if="mode === 'register'" class="space-y-4">
+          <div>
+            <label class="text-on-surface-variant text-xs uppercase tracking-widest mb-1 block">Username</label>
+            <input
+              v-model="form.username"
+              type="text"
+              placeholder="Enter username..."
+              class="w-full bg-surface-container-high border border-outline-variant rounded-lg px-4 py-3 text-on-surface text-sm focus:border-primary-fixed focus:outline-none transition-colors"
+            />
+            <p v-if="errors.username" class="text-error text-xs mt-1">{{ errors.username }}</p>
+          </div>
+
+          <div>
+            <label class="text-on-surface-variant text-xs uppercase tracking-widest mb-1 block">Email</label>
+            <input
+              v-model="form.email"
+              type="email"
+              placeholder="Enter email..."
+              class="w-full bg-surface-container-high border border-outline-variant rounded-lg px-4 py-3 text-on-surface text-sm focus:border-primary-fixed focus:outline-none transition-colors"
+            />
+            <p v-if="errors.email" class="text-error text-xs mt-1">{{ errors.email }}</p>
+          </div>
+
+          <div>
+            <label class="text-on-surface-variant text-xs uppercase tracking-widest mb-1 block">Password</label>
+            <input
+              v-model="form.password"
+              type="password"
+              placeholder="Min 6 characters..."
+              class="w-full bg-surface-container-high border border-outline-variant rounded-lg px-4 py-3 text-on-surface text-sm focus:border-primary-fixed focus:outline-none transition-colors"
+            />
+            <p v-if="errors.password" class="text-error text-xs mt-1">{{ errors.password }}</p>
+          </div>
+
+          <button
+            @click="handleRegister"
+            :disabled="loading"
+            class="w-full py-3 bg-primary-fixed text-on-primary font-bold rounded-lg hover:opacity-90 transition uppercase tracking-widest disabled:opacity-50"
+          >
+            {{ loading ? 'Registering...' : 'Register' }}
+          </button>
+        </div>
+
+        <!-- Login Form -->
+        <div v-if="mode === 'login'" class="space-y-4">
+          <div>
+            <label class="text-on-surface-variant text-xs uppercase tracking-widest mb-1 block">Email</label>
+            <input
+              v-model="form.email"
+              type="email"
+              placeholder="Enter email..."
+              class="w-full bg-surface-container-high border border-outline-variant rounded-lg px-4 py-3 text-on-surface text-sm focus:border-primary-fixed focus:outline-none transition-colors"
+            />
+            <p v-if="errors.email" class="text-error text-xs mt-1">{{ errors.email }}</p>
+          </div>
+
+          <div>
+            <label class="text-on-surface-variant text-xs uppercase tracking-widest mb-1 block">Password</label>
+            <input
+              v-model="form.password"
+              type="password"
+              placeholder="Enter password..."
+              class="w-full bg-surface-container-high border border-outline-variant rounded-lg px-4 py-3 text-on-surface text-sm focus:border-primary-fixed focus:outline-none transition-colors"
+            />
+            <p v-if="errors.password" class="text-error text-xs mt-1">{{ errors.password }}</p>
+          </div>
+
+          <button
+            @click="handleLogin"
+            :disabled="loading"
+            class="w-full py-3 bg-primary-fixed text-on-primary font-bold rounded-lg hover:opacity-90 transition uppercase tracking-widest disabled:opacity-50"
+          >
+            {{ loading ? 'Logging in...' : 'Login' }}
+          </button>
+        </div>
+
+        <!-- Divider -->
+        <div class="flex items-center gap-3 my-5">
+          <div class="flex-1 h-px bg-outline-variant"></div>
+          <span class="text-on-surface-variant text-xs uppercase tracking-widest">or</span>
+          <div class="flex-1 h-px bg-outline-variant"></div>
+        </div>
+
+        <!-- Google — user must click manually -->
+        <button
+          @click="handleGoogle"
+          :disabled="loading"
+          class="w-full flex items-center justify-center gap-3 py-3 bg-surface-container-high border border-outline-variant rounded-lg hover:border-primary-fixed transition-all duration-200 text-on-surface font-bold disabled:opacity-50"
+        >
+          <svg width="18" height="18" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <p v-if="errors.general" class="text-error text-sm text-center mt-4">{{ errors.general }}</p>
+
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
-import { useErrorStore } from '../stores/errorStore'
 
 const router = useRouter()
 const auth = useAuthStore()
-const errorStore = useErrorStore()
-const isLoading = ref<boolean>(false)
+const mode = ref<'login' | 'register'>('login')
+const loading = ref(false)
+const successMessage = ref('')
 
-const email = ref<string>('')
-const password = ref<string>('')
-const emailError = ref<string>('')
-const passwordError = ref<string>('')
+const form = reactive({ username: '', email: '', password: '' })
+const errors = reactive({ username: '', email: '', password: '', general: '' })
 
-const isFormValid = computed(() => {
-  return email.value.length > 0 && password.value.length > 0 && !emailError.value && !passwordError.value
-})
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
-function validateEmail(value: string): string {
-  if (!value) return 'Email is required'
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(value)) return 'Please enter a valid email'
-  return ''
+function switchMode(newMode: 'login' | 'register') {
+  mode.value = newMode
+  clearErrors()
+  successMessage.value = ''
+  form.username = ''
+  form.email = ''
+  form.password = ''
 }
 
-function validatePassword(value: string): string {
-  if (!value) return 'Password is required'
-  if (value.length < 6) return 'Password must be at least 6 characters'
-  return ''
+function clearErrors() {
+  errors.username = ''
+  errors.email = ''
+  errors.password = ''
+  errors.general = ''
 }
 
-function onEmailInput(value: string) {
-  email.value = value
-  emailError.value = validateEmail(value)
+function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-function onPasswordInput(value: string) {
-  password.value = value
-  passwordError.value = validatePassword(value)
+function validateForm(): boolean {
+  clearErrors()
+  let valid = true
+  if (mode.value === 'register' && !form.username.trim()) {
+    errors.username = 'Username is required'
+    valid = false
+  }
+  if (!form.email || !validateEmail(form.email)) {
+    errors.email = 'Invalid email format'
+    valid = false
+  }
+  if (!form.password || form.password.length < 6) {
+    errors.password = 'Password must be at least 6 characters'
+    valid = false
+  }
+  return valid
 }
 
-async function handleTraditionalLogin() {
-  // Validate form
-  emailError.value = validateEmail(email.value)
-  passwordError.value = validatePassword(password.value)
-
-  if (!isFormValid.value) return
-
-  isLoading.value = true
+async function handleRegister() {
+  if (!validateForm()) return
+  loading.value = true
   try {
-    const result = await auth.loginWithEmail(email.value, password.value)
-    if (result.success) {
-      errorStore.addError({
-        type: 'success',
-        message: 'Login successful',
-        duration: 2000
+    const res = await fetch(`${SERVER_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+        username: form.username
       })
-      router.push('/lobby')
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      errors.general = data.error || 'Registration failed'
+      return
     }
-  } catch (error) {
-    console.error('Login error:', error)
+    // Redirect to OTP page
+    router.push(`/verify-otp?email=${encodeURIComponent(form.email)}`)
+  } catch {
+    errors.general = 'Server error. Please try again.'
   } finally {
-    isLoading.value = false
+    loading.value = false
   }
 }
 
-async function handleGoogleLogin() {
-  isLoading.value = true
+async function handleLogin() {
+  if (!validateForm()) return
+  loading.value = true
   try {
-    await auth.loginWithGoogle()
-    // OAuth redirect will handle navigation
+    const res = await fetch(`${SERVER_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: form.email, password: form.password })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      errors.general = data.error || 'Login failed'
+      return
+    }
+    localStorage.setItem('arena_token', data.token)
+    auth.user = data.user
+    router.push('/lobby')
+  } catch {
+    errors.general = 'Server error. Please try again.'
   } finally {
-    isLoading.value = false
+    loading.value = false
   }
+}
+
+async function handleGoogle() {
+  loading.value = true
+  await auth.loginWithGoogle()
 }
 </script>

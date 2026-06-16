@@ -1,37 +1,22 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { supabase } from '../lib/supabase'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
-    {
-      path: '/', 
-      name: 'login',
-      component: () => import('../views/LoginView.vue')
-    },
-    {
-      path: '/lobby',
-      name: 'lobby',
-      component: () => import('../views/LobbyView.vue'),
-      meta: { requiresAuth: true }
-    },
-    { path: '/core', component: () => import('../views/CoreSelectionView.vue'), meta: { requiresAuth: true } },
-    { path: '/game', component: () => import('../views/GameplayView.vue'), meta: { requiresAuth: true } },
-    { path: '/shop', component: () => import('../views/ShopView.vue'), meta: { requiresAuth: true } },
-    { path: '/end', component: () => import('../views/MatchEndView.vue'), meta: { requiresAuth: true } },
-    { path: '/error', name: 'error', component: () => import('../views/ErrorView.vue') },
-    {
-      path: '/:pathMatch(.*)*',
-      redirect: '/' 
-    }
+    { path: '/',           component: () => import('../views/LoginView.vue') },
+    { path: '/verify-otp', component: () => import('../views/VerifyOTPView.vue') },
+    { path: '/lobby',      component: () => import('../views/LobbyView.vue'),         meta: { requiresAuth: true } },
+    { path: '/core',       component: () => import('../views/CoreSelectionView.vue'),  meta: { requiresAuth: true } },
+    { path: '/game',       component: () => import('../views/GameplayView.vue'),       meta: { requiresAuth: true } },
+    { path: '/shop',       component: () => import('../views/ShopView.vue'),           meta: { requiresAuth: true } },
+    { path: '/end',        component: () => import('../views/MatchEndView.vue'),       meta: { requiresAuth: true } },
   ]
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach((to) => {
   if (!to.meta.requiresAuth) return true
-
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return '/'
+  const token = localStorage.getItem('arena_token')
+  if (!token) return '/'
   return true
 })
 
