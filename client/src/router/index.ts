@@ -10,15 +10,37 @@ const router = createRouter({
       component: () => import('../views/LoginView.vue')
     },
     {
+      path: '/signup', 
+      name: 'signup',
+      component: () => import('../views/SignupView.vue')
+    },
+    {
       path: '/lobby',
       name: 'lobby',
       component: () => import('../views/LobbyView.vue'),
       meta: { requiresAuth: true }
     },
-    { path: '/core', component: () => import('../views/CoreSelectionView.vue'), meta: { requiresAuth: true } },
-    { path: '/game', component: () => import('../views/GameplayView.vue'), meta: { requiresAuth: true } },
-    { path: '/shop', component: () => import('../views/ShopView.vue'), meta: { requiresAuth: true } },
-    { path: '/end', component: () => import('../views/MatchEndView.vue'), meta: { requiresAuth: true } },
+    
+    { 
+      path: '/core', 
+      component: () => import('../views/CoreSelectionView.vue'), 
+      meta: { requiresAuth: true } 
+    },
+    { 
+      path: '/game', 
+      component: () => import('../views/GameplayView.vue'), 
+      meta: { requiresAuth: true } 
+    },
+    { 
+      path: '/shop', 
+      component: () => import('../views/ShopView.vue'), 
+      meta: { requiresAuth: true } 
+    },
+    { 
+      path: '/end', 
+      component: () => import('../views/MatchEndView.vue'), 
+      meta: { requiresAuth: true } 
+    },
     { path: '/error', name: 'error', component: () => import('../views/ErrorView.vue') },
     {
       path: '/:pathMatch(.*)*',
