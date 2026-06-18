@@ -43,6 +43,7 @@
         </button>
       </div>
 
+      <!-- Register Form -->
       <div v-if="mode === 'register'" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Username</label>
@@ -101,6 +102,7 @@
         </button>
       </div>
 
+      <!-- Login Form -->
       <div v-if="mode === 'login'" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
@@ -116,7 +118,13 @@
         <div>
           <div class="flex justify-between items-center mb-1.5 px-1">
             <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Password</label>
-            <a href="#" class="text-xs text-lightBlue hover:text-blue transition-colors font-semibold">Forgot?</a>
+            <button
+              type="button"
+              @click="router.push('/forgot-password')"
+              class="text-xs text-lightBlue hover:text-blue transition-colors font-semibold"
+            >
+              Forgot?
+            </button>
           </div>
           <input
             v-model="form.password"
@@ -209,7 +217,6 @@ function validateEmail(email: string): boolean {
 function validateForm(): boolean {
   clearErrors()
   let valid = true
-  
   if (mode.value === 'register') {
     if (!form.username.trim()) {
       errors.username = 'Username is required'
@@ -220,7 +227,6 @@ function validateForm(): boolean {
       valid = false
     }
   }
-  
   if (!form.email || !validateEmail(form.email)) {
     errors.email = 'Invalid email format'
     valid = false
@@ -267,19 +273,14 @@ async function handleLogin() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: form.email, password: form.password })
     })
-    
     const data = await res.json()
-    
     if (!res.ok) {
       errors.general = data.error || 'Login failed'
       return
     }
-
     localStorage.setItem('arena_token', data.token)
     auth.user = data.user
-    
     router.push('/home')
-    
   } catch {
     errors.general = 'Server error. Please try again.'
   } finally {

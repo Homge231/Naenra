@@ -51,29 +51,36 @@ const router = createRouter({
       component: () => import('../views/VerifyOTPView.vue')
     },
     {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: () => import('../views/ForgotPasswordView.vue')
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('../views/ResetPasswordView.vue')
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/' 
-    },
+    }
   ]
 })
 
-router.beforeEach(async (to, _from, next) => {
-  // 1. Kiểm tra route có yêu cầu auth không
+// Navigation guard đã sửa: dùng return thay vì next()
+router.beforeEach(async (to) => {
   if (!to.meta.requiresAuth) {
-    return next()
+    return true
   }
 
-  // 2. Kiểm tra cả 2 nguồn: Token custom (LocalStorage) và Session (Supabase)
   const token = localStorage.getItem('arena_token')
   const { data: { session } } = await supabase.auth.getSession()
 
-  // 3. Nếu không có cả hai -> Chặn truy cập, về login
   if (!token && !session) {
-    return next({ name: 'login' }) 
+    return { name: 'login' }
   }
 
-  // 4. Nếu có một trong hai -> Cho phép vào
-  return next()
+  return true
 })
 
 export default router
