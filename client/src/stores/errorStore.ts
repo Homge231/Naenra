@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-interface AppError {
+export interface AppError {
   id: number
   type: 'error' | 'success' | 'warning'
   message: string
   duration?: number
+  description?: string
+  action?: { label: string; callback: () => void }
 }
 
 export const useErrorStore = defineStore('error', () => {
@@ -24,5 +26,14 @@ export const useErrorStore = defineStore('error', () => {
     errors.value = errors.value.filter(e => e.id !== id)
   }
 
-  return { errors, addError, removeError }
+  function clearErrors() {
+    errors.value = []
+  }
+
+  function handleError(error: unknown, context = 'An error occurred') {
+    const message = error instanceof Error ? error.message : context
+    addError({ type: 'error', message, duration: 5000 })
+  }
+
+  return { errors, addError, removeError, clearErrors, handleError }
 })

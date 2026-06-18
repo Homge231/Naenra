@@ -5,7 +5,7 @@ export function useErrorBoundary() {
 
   function handleError(error: unknown, context = 'An error occurred') {
     console.error(context, error)
-    return errorStore.handleError(error, context)
+    errorStore.handleError(error, context)
   }
 
   function captureError(callback: () => void, context = 'An error occurred') {
@@ -28,9 +28,5 @@ export function useErrorBoundary() {
     }
   }
 
-  return {
-    handleError,
-    captureError,
-    captureAsyncError
-  }
+  return { handleError, captureError, captureAsyncError }
 }

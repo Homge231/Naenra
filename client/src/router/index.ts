@@ -57,7 +57,7 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   // 1. Kiểm tra route có yêu cầu auth không
   if (!to.meta.requiresAuth) {
     return next()

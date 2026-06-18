@@ -42,7 +42,7 @@ const errorStore = useErrorStore()
 
 const errors = computed(() => errorStore.errors)
 
-function removeError(id: string) {
+function removeError(id: number) {
   errorStore.removeError(id)
 }
 
