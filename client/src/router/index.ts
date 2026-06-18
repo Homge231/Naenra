@@ -69,10 +69,19 @@ const router = createRouter({
 
 // Navigation guard đã sửa: dùng return thay vì next()
 router.beforeEach(async (to) => {
-  if (to.name === 'forgot-password' || to.name === 'reset-password') {
+  // 1. Kiểm tra xem URL có chứa token phục hồi của Supabase không
+  // Dấu hiệu: URL có #access_token hoặc type=recovery
+  const hash = window.location.hash;
+  if (hash.includes('access_token') || hash.includes('type=recovery')) {
+    return true; // Cho phép tải trang reset-password để Supabase xử lý token
+  }
+
+  // 2. Các route ngoại lệ đã định nghĩa
+  if (to.name === 'reset-password' || to.name === 'forgot-password') {
     return true
   }
 
+  // 3. Logic Auth của bạn
   if (!to.meta.requiresAuth) {
     return true
   }
@@ -81,7 +90,7 @@ router.beforeEach(async (to) => {
   const { data: { session } } = await supabase.auth.getSession()
 
   if (!token && !session) {
-    return { name: 'login' }
+    return { name: 'login' } 
   }
 
   return true
