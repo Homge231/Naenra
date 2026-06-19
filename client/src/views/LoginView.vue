@@ -135,10 +135,34 @@
           <p v-if="errors.password" class="text-red-400 text-xs mt-1.5 ml-1 font-semibold">{{ errors.password }}</p>
         </div>
 
+        <!-- Remember Me -->
+        <label class="flex items-center gap-3 cursor-pointer group mt-1 px-1">
+          <div class="relative">
+            <input
+              v-model="rememberMe"
+              type="checkbox"
+              class="sr-only"
+            />
+            <div
+              class="w-5 h-5 rounded border-2 transition-all duration-200 flex items-center justify-center"
+              :class="rememberMe
+                ? 'bg-gradient-to-br from-orange to-hexred border-transparent'
+                : 'bg-darkNavy/50 border-white/20 group-hover:border-white/40'"
+            >
+              <svg v-if="rememberMe" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+          </div>
+          <span class="text-xs font-semibold text-gray-400 group-hover:text-white transition-colors uppercase tracking-widest">
+            Remember me
+          </span>
+        </label>
+
         <button
           @click="handleLogin"
           :disabled="loading"
-          class="w-full mt-6 bg-white/5 border border-white/10 text-white font-black py-4 rounded-xl hover:bg-white/10 hover:border-hexred transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+          class="w-full mt-2 bg-white/5 border border-white/10 text-white font-black py-4 rounded-xl hover:bg-white/10 hover:border-hexred transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
         >
           <div class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
           <span class="relative z-10 flex items-center justify-center gap-2">
@@ -177,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 
@@ -186,11 +210,25 @@ const auth = useAuthStore()
 const mode = ref<'login' | 'register'>('login')
 const loading = ref(false)
 const successMessage = ref('')
+const rememberMe = ref(false)
+
+const REMEMBER_ME_KEY = 'arena_remember_me'
+const SAVED_EMAIL_KEY = 'arena_saved_email'
 
 const form = reactive({ username: '', email: '', password: '', confirmPassword: '' })
 const errors = reactive({ username: '', email: '', password: '', confirmPassword: '', general: '' })
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+
+onMounted(() => {
+  // Restore remembered email if present
+  const remembered = localStorage.getItem(REMEMBER_ME_KEY)
+  const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY)
+  if (remembered === 'true' && savedEmail) {
+    form.email = savedEmail
+    rememberMe.value = true
+  }
+})
 
 function switchMode(newMode: 'login' | 'register') {
   mode.value = newMode
@@ -268,18 +306,21 @@ async function handleLogin() {
   if (!validateForm()) return
   loading.value = true
   try {
-    const res = await fetch(`${SERVER_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: form.email, password: form.password })
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      errors.general = data.error || 'Login failed'
+    const result = await auth.loginWithEmail(form.email, form.password)
+    if (!result.success) {
+      errors.general = result.error || 'Login failed'
       return
     }
-    localStorage.setItem('arena_token', data.token)
-    auth.user = data.user
+
+    // Handle remember me
+    if (rememberMe.value) {
+      localStorage.setItem(REMEMBER_ME_KEY, 'true')
+      localStorage.setItem(SAVED_EMAIL_KEY, form.email)
+    } else {
+      localStorage.removeItem(REMEMBER_ME_KEY)
+      localStorage.removeItem(SAVED_EMAIL_KEY)
+    }
+
     router.push('/home')
   } catch {
     errors.general = 'Server error. Please try again.'
@@ -291,6 +332,7 @@ async function handleLogin() {
 async function handleGoogle() {
   loading.value = true
   await auth.loginWithGoogle()
+  // Note: page will redirect; loading state doesn't need to be reset
 }
 </script>
 

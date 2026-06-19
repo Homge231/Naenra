@@ -52,14 +52,24 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 
   try {
-    const { data: existing } = await supabase
-      .from('players')
-      .select('id')
-      .eq('email', email)
-      .single()
+    // Check both the players table AND Supabase auth for existing email.
+    // A Google OAuth user will exist in auth.users but may or may not have
+    // a players row; we block re-registration either way.
+    const { data: { users: existingAuthUsers } } = await supabase.auth.admin.listUsers()
+    const existingAuthUser = existingAuthUsers?.find(u => u.email === email)
 
-    if (existing) {
-      res.status(409).json({ error: 'Email already registered' })
+    if (existingAuthUser) {
+      // Check if they signed up via Google (no password set)
+      const isOAuthOnly = !existingAuthUser.identities?.some(
+        (id: any) => id.provider === 'email'
+      )
+      if (isOAuthOnly) {
+        res.status(409).json({
+          error: 'This email is linked to a Google account. Please sign in with Google.'
+        })
+      } else {
+        res.status(409).json({ error: 'Email already registered' })
+      }
       return
     }
 
@@ -141,13 +151,18 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
         return
       }
     } else {
+      // Explicitly set elo to 1000 (don't rely on DB default alone)
       const { error: insertError } = await supabase
         .from('players')
         .insert({
           id: authData.user.id,
           email: pending.email,
           username: pending.username,
-          hashed_password: pending.hashedPassword
+          hashed_password: pending.hashedPassword,
+          elo: 1000,
+          wins: 0,
+          losses: 0,
+          total_matches: 0
         })
 
       if (insertError) {
@@ -176,6 +191,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
     })
 
   } catch (error) {
+    console.error('verify-otp error:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -220,6 +236,21 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
+    // Check if the email belongs to a Google-only account before attempting password login
+    const { data: { users: authUsers } } = await supabase.auth.admin.listUsers()
+    const authUser = authUsers?.find(u => u.email === email)
+    if (authUser) {
+      const isOAuthOnly = !authUser.identities?.some(
+        (id: any) => id.provider === 'email'
+      )
+      if (isOAuthOnly) {
+        res.status(401).json({
+          error: 'This account uses Google sign-in. Please use the Google button to log in.'
+        })
+        return
+      }
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -250,7 +281,7 @@ router.post('/login', async (req: Request, res: Response) => {
         email: authData.user.email,
         username: profile?.username,
         avatar_url: profile?.avatar_url,
-        elo: profile?.elo || 1000
+        elo: profile?.elo ?? 1000
       }
     })
 
@@ -259,7 +290,7 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 })
 
-// POST /auth/token
+// POST /auth/token — exchange Supabase OAuth token for arena JWT
 router.post('/token', async (req: Request, res: Response) => {
   const { supabase_token } = req.body
   if (!supabase_token) {
@@ -280,22 +311,37 @@ router.post('/token', async (req: Request, res: Response) => {
       .single()
 
     if (!profile) {
-    await supabase.from('players').insert({
-      id: user.id,
-      email: user.email,
-      username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player',
-      hashed_password: '',
-      avatar_url: user.user_metadata?.avatar_url || null  
-    })
-  }
+      // First time Google sign-in: create the players row with proper defaults
+      const { error: insertError } = await supabase.from('players').insert({
+        id: user.id,
+        email: user.email,
+        username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player',
+        hashed_password: '',
+        avatar_url: user.user_metadata?.avatar_url || null,
+        elo: 1000,
+        wins: 0,
+        losses: 0,
+        total_matches: 0
+      })
+      if (insertError) {
+        console.error('players insert error in /auth/token:', insertError)
+      }
+    }
+
+    // Re-fetch after potential insert to return fresh data
+    const { data: freshProfile } = await supabase
+      .from('players')
+      .select('*')
+      .eq('id', user.id)
+      .single()
 
     const token = generateToken({
       id: user.id,
       email: user.email || '',
-      username: profile?.username || user.user_metadata?.full_name || ''
+      username: freshProfile?.username || user.user_metadata?.full_name || ''
     })
 
-    res.json({ token, user: profile })
+    res.json({ token, user: freshProfile })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }

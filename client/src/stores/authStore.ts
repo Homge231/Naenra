@@ -29,10 +29,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function loginWithGoogle() {
+    // Use 'select_account' only when explicitly logging in so the user can
+    // choose which account; subsequent visits will use the existing session.
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/home`
+        redirectTo: `${window.location.origin}/home`,
+        queryParams: {
+          prompt: 'select_account'
+        }
       }
     })
   }
@@ -40,6 +45,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function exchangeTokenAfterOAuth() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) return
+    // Only exchange if we don't already have an arena token, or if it might
+    // belong to a different session (e.g. after Google sign-in).
     try {
       const res = await fetch(`${SERVER_URL}/auth/token`, {
         method: 'POST',
@@ -47,8 +54,10 @@ export const useAuthStore = defineStore('auth', () => {
         body: JSON.stringify({ supabase_token: session.access_token })
       })
       const data = await res.json()
-      if (res.ok) {
+      if (res.ok && data.token) {
         localStorage.setItem('arena_token', data.token)
+        // Refresh profile after token exchange so we get server-side data
+        await fetchProfile()
       }
     } catch (err) {
       console.error('exchangeTokenAfterOAuth failed', err)
@@ -70,7 +79,10 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function loginWithEmail(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+  async function loginWithEmail(
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       const res = await fetch(`${SERVER_URL}/auth/login`, {
         method: 'POST',
@@ -80,7 +92,10 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
       if (!res.ok) return { success: false, error: data.error }
       localStorage.setItem('arena_token', data.token)
-      user.value = data.user
+      // Store a minimal user object; full profile is fetched via fetchProfile()
+      user.value = { id: data.user.id, email: data.user.email }
+      // Fetch profile from the server using the arena JWT (bypasses RLS)
+      await fetchProfile()
       return { success: true }
     } catch {
       return { success: false, error: 'Server error' }
@@ -94,14 +109,22 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
   }
 
+  // Fetch profile using the arena JWT so we bypass Supabase RLS and get
+  // server-computed fields like rank.
   async function fetchProfile() {
-    if (!user.value) return
-    const { data } = await supabase
-      .from('players')
-      .select('*')
-      .eq('id', user.value.id)
-      .single()
-    profile.value = data
+    const token = localStorage.getItem('arena_token')
+    if (!token) return
+
+    try {
+      const res = await fetch(`${SERVER_URL}/api/user/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      profile.value = data
+    } catch (err) {
+      console.error('fetchProfile error:', err)
+    }
   }
 
   return {
