@@ -63,7 +63,14 @@ const router = createRouter({
     {
       path: '/:pathMatch(.*)*',
       redirect: '/' 
-    }
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true }
+    },
+    
   ]
 })
 

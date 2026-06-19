@@ -280,13 +280,14 @@ router.post('/token', async (req: Request, res: Response) => {
       .single()
 
     if (!profile) {
-      await supabase.from('players').insert({
-        id: user.id,
-        email: user.email,
-        username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player',
-        hashed_password: ''
-      })
-    }
+    await supabase.from('players').insert({
+      id: user.id,
+      email: user.email,
+      username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player',
+      hashed_password: '',
+      avatar_url: user.user_metadata?.avatar_url || null  
+    })
+  }
 
     const token = generateToken({
       id: user.id,

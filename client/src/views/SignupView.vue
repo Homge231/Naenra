@@ -1,5 +1,21 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-darkNavy text-white relative overflow-hidden">
+    
+    <div class="absolute top-6 right-6 flex items-center gap-3 z-20">
+      <div class="transform skew-x-12 text-right hidden md:block">
+        <p class="font-bold text-sm text-white tracking-wider">{{ username }}</p>
+        <p class="text-[10px] text-lightOrange font-mono font-bold">ELO: {{ elo }}</p>
+      </div>
+      <div class="w-10 h-10 bg-gradient-to-br from-blue to-lightBlue p-0.5">
+        <img
+          :src="avatarUrl"
+          :alt="username"
+          class="w-full h-full bg-darkNavy object-cover"
+          @error="(e) => (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`"
+        />
+      </div>
+    </div>
+
     <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue rounded-full mix-blend-multiply filter blur-[128px] opacity-20 pointer-events-none"></div>
     <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-orange rounded-full mix-blend-multiply filter blur-[128px] opacity-20 pointer-events-none"></div>
 
@@ -109,6 +125,19 @@ import { useErrorStore } from '../stores/errorStore'
 const router = useRouter()
 const auth = useAuthStore()
 const errorStore = useErrorStore()
+
+// --- Integrated Props for Profile Widget ---
+interface Props {
+  username?: string
+  elo?: number
+  avatarUrl?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  username: 'Guest_Player',
+  elo: 1000,
+  avatarUrl: ''
+})
 
 // --- State ---
 const isLoading = ref<boolean>(false)
