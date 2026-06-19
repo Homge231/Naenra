@@ -111,7 +111,7 @@ const isSearching = ref(false)
  
 function handleLogout() {
   authStore.logout()
-  router.push('/login')
+  router.push('/')
 }
  
 function startMatchmaking() {

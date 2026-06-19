@@ -47,5 +47,13 @@ This repository contains a multiplayer game prototype built as a full-stack appl
    npm run dev
    ```
 
-3. Open the frontend in your browser via Vite and verify the backend at `http://localhost:3000/health`.
->>>>>>> d3afa7fb45e22d1f6234c2e379ffd821955514c6
+3. Open the frontend in your browser via Vite and verify the backend at http://localhost:3000/health.
+
+## Deployment (Railway)
+To deploy the client on Railway as a Single Page Application (SPA):
+
+1. Set the Root Directory to `/client`
+2. Set the Pre-deploy Command: `npm install && npm run build`
+3. Set the Custom Start Command: `npx serve -s dist -l $PORT`
+   - The `-s` flag is crucial to prevent 404 errors on direct navigation
+4. Configure Supabase Redirect URLs to allow your domain (e.g., `https://naenra.up.railway.app/`)
