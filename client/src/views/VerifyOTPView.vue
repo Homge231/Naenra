@@ -159,6 +159,7 @@ async function handleVerify() {
 
     localStorage.setItem('arena_token', data.token)
     auth.user = data.user
+    await auth.fetchProfile()
     router.push('/home')
 
   } catch {
