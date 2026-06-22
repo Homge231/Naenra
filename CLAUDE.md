@@ -35,7 +35,7 @@
 
 | Path | Role |
 |---|---|
-| `src/index.ts` | Express + HTTP server on port 3000; mounts `/auth` and `/api/user`; body limit 10mb |
+| `src/index.ts` | Express + HTTP server on port 3000; mounts `/auth` and `/api/user`; body limit 10mb; CORS configured for naenra.xyz, www.naenra.xyz, axonproject.onrender.com, localhost:5173
 | `src/routes/authRoutes.ts` | All auth endpoints |
 | `src/routes/userRoutes.ts` | Profile endpoints: GET/PATCH `/api/user/profile` |
 | `src/controllers/userController.ts` | getUserProfile, updateUserProfile; rank computed from elo |
@@ -212,21 +212,29 @@ success: '#22C55E'
 
 ## Run Locally
 
-```bash
-# Client
-cd client && npm install && npm run dev
-
-# Server
-cd server && npm install && npm run dev
-```
-
-Client: http://localhost:5173
-Server: http://localhost:3000/health
+## CORS Origins (server)
+- https://naenra.xyz
+- https://www.naenra.xyz  
+- https://axonproject.onrender.com
+- http://localhost:5173 (local dev)
 
 ## Deployment (Railway)
 
-Client SPA deployment:
-1. Root Directory: `/client`
-2. Pre-deploy: `npm install && npm run build`
-3. Start: `npx serve -s dist -l $PORT`
-4. Add Railway domain to Supabase redirect URLs
+## Deployment (Render)
+
+**Server (Web Service):**
+- Root Directory: `/server`
+- Build Command: `npm install && npm run build`
+- Start Command: `npm start`
+- URL: https://axonproject-1.onrender.com
+
+**Client (Static Site):**
+- Root Directory: `/client`
+- Build Command: `npm install && npm run build`
+- Publish Directory: `dist`
+- URL: https://axonproject.onrender.com
+- Custom Domain: https://naenra.xyz
+
+**Environment Variables:**
+- Client: VITE_SERVER_URL=https://axonproject-1.onrender.com
+- Client: VITE_SITE_URL=https://naenra.xyz
