@@ -299,7 +299,7 @@ router.post('/token', async (req: Request, res: Response) => {
       return
     }
 
-    const { data: profile } = await supabase
+      const { data: profile } = await supabase
       .from('players')
       .select('*')
       .eq('id', user.id)
@@ -320,6 +320,12 @@ router.post('/token', async (req: Request, res: Response) => {
       if (insertError) {
         console.error('players insert error in /auth/token:', insertError)
       }
+    } else if (profile.elo === 1000 && profile.wins === 0 && profile.losses === 0 && profile.total_matches === 0) {
+      // Likely created by DB trigger with default elo=1000, reset to 0
+      await supabase
+        .from('players')
+        .update({ elo: 0 })
+        .eq('id', user.id)
     }
 
     const { data: freshProfile } = await supabase
