@@ -10,13 +10,23 @@ const supabase = createClient(
 )
 
 function getRankFromElo(elo: number): string {
-  if (elo >= 6500) return 'Grandmaster'
-  if (elo >= 5500) return 'Master'
-  if (elo >= 4500) return 'Diamond'
-  if (elo >= 3500) return 'Platinum'
-  if (elo >= 2500) return 'Gold'
-  if (elo >= 1500) return 'Silver'
-  return 'Bronze'
+  if (elo >= 8000) return 'Grandmaster'
+  if (elo >= 7500) return 'Master'
+  if (elo >= 7000) return 'Diamond III'
+  if (elo >= 6500) return 'Diamond II'
+  if (elo >= 6000) return 'Diamond I'
+  if (elo >= 5500) return 'Platinum III'
+  if (elo >= 5000) return 'Platinum II'
+  if (elo >= 4500) return 'Platinum I'
+  if (elo >= 4000) return 'Gold III'
+  if (elo >= 3500) return 'Gold II'
+  if (elo >= 3000) return 'Gold I'
+  if (elo >= 2500) return 'Silver III'
+  if (elo >= 2000) return 'Silver II'
+  if (elo >= 1500) return 'Silver I'
+  if (elo >= 1000) return 'Bronze III'
+  if (elo >= 500) return 'Bronze II'
+  return 'Bronze I'
 }
 
 export const getUserProfile = async (req: AuthRequest, res: Response): Promise<any> => {
