@@ -28,19 +28,17 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  async function loginWithGoogle() {
-    // Use 'select_account' only when explicitly logging in so the user can
-    // choose which account; subsequent visits will use the existing session.
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/home`,
-        queryParams: {
-          prompt: 'select_account'
-        }
+ async function loginWithGoogle() {
+  await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/home`,
+      queryParams: {
+        prompt: 'select_account'
       }
-    })
-  }
+    }
+  })
+}
 
   async function exchangeTokenAfterOAuth() {
     const { data: { session } } = await supabase.auth.getSession()
