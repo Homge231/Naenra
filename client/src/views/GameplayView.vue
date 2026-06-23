@@ -382,12 +382,12 @@ onUnmounted(() => {
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
 .fade-enter-from, .fade-leave-to       { opacity: 0; transform: translateY(6px); }
 
-/* Hide from visual flow but keep accessible/focusable */
+/* Hide from visual flow but keep accessibsle/focusable */
 .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
-  padding: 0;
+  padding: 0; 
   overflow: hidden;
   clip: rect(0,0,0,0);
   white-space: nowrap;
