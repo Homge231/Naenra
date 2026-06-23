@@ -143,7 +143,7 @@ function startMatchmaking() {
   isSearching.value = true
   setTimeout(() => {
     isSearching.value = false
-    alert('>> MATCH SECURED. TRANSFERRING TO ARENA... <<')
+    router.push('/game')
   }, 3000)
 }
 </script>
