@@ -44,3 +44,81 @@ export async function getQuestion(_req: Request, res: Response): Promise<void> {
     res.status(500).json({ error: 'Failed to fetch question.' })
   }
 }
+ 
+// ── POST /api/game/session ─────────────────────────────────────────────────
+// Called by the client when a match starts to create an active session row.
+// Returns { session_id } which the client stores and sends on timeout/quit.
+export async function createSession(req: Request, res: Response): Promise<void> {
+  try {
+    const playerId = (req as any).user?.id
+    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
+ 
+    const { data, error } = await supabase
+      .from('game_sessions')
+      .insert({ player_id: playerId, status: 'active' })
+      .select('id')
+      .single()
+ 
+    if (error) throw error
+    res.status(201).json({ session_id: data.id })
+  } catch (err) {
+    console.error('createSession error:', err)
+    res.status(500).json({ error: 'Failed to create session.' })
+  }
+}
+ 
+// ── POST /api/game/timeout ─────────────────────────────────────────────────
+// US-04 [BE] — locks the session on timeout.
+// Body: { session_id: string, score: number, questions_answered: number }
+export async function timeoutSession(req: Request, res: Response): Promise<void> {
+  try {
+    const playerId = (req as any).user?.id
+    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
+ 
+    const { session_id, score, questions_answered } = req.body
+ 
+    if (!session_id) {
+      res.status(400).json({ error: 'session_id is required.' })
+      return
+    }
+ 
+    // Fetch the session — must belong to this player and still be active
+    const { data: session, error: fetchError } = await supabase
+      .from('game_sessions')
+      .select('id, status, player_id')
+      .eq('id', session_id)
+      .single()
+ 
+    if (fetchError || !session) {
+      res.status(404).json({ error: 'Session not found.' })
+      return
+    }
+    if (session.player_id !== playerId) {
+      res.status(403).json({ error: 'Forbidden.' })
+      return
+    }
+    if (session.status !== 'active') {
+      // Already locked — reject silently so duplicate calls don't error
+      res.status(409).json({ error: 'Session already ended.', status: session.status })
+      return
+    }
+ 
+    // Lock the session
+    const { error: updateError } = await supabase
+      .from('game_sessions')
+      .update({
+        status:              'timeout',
+        score:               score            ?? 0,
+        questions_answered:  questions_answered ?? 0,
+        ended_at:            new Date().toISOString(),
+      })
+      .eq('id', session_id)
+ 
+    if (updateError) throw updateError
+ 
+    res.status(200).json({ message: 'Session locked as timeout.', session_id })
+  } catch (err) {
+    console.error('timeoutSession error:', err)
+    res.status(500).json({ error: 'Failed to lock session.' })
+  }
+}

@@ -1,6 +1,8 @@
 <template>
-  <div class="h-screen w-full bg-darkNavy text-white overflow-hidden relative font-sans flex flex-col select-none" @click="refocusInput">
-
+  <div
+    class="h-screen w-full bg-darkNavy text-white overflow-hidden relative font-sans flex flex-col select-none"
+    @click="refocusInput"
+  >
     <!-- Ambient blobs -->
     <div class="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue rounded-full mix-blend-screen filter blur-[200px] opacity-10 pointer-events-none z-0"></div>
     <div class="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-orange rounded-full mix-blend-screen filter blur-[200px] opacity-10 pointer-events-none z-0"></div>
@@ -11,47 +13,29 @@
 
       <!-- Logo + Dropdown -->
       <div class="relative" ref="menuRef">
-        <button
-          @click.stop="menuOpen = !menuOpen"
-          class="flex items-center gap-3 group focus:outline-none"
-        >
+        <button @click.stop="menuOpen = !menuOpen" class="flex items-center gap-3 focus:outline-none">
           <svg class="w-8 h-8 text-orange fill-current" viewBox="0 0 24 24">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
           <span class="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase">NAENRA</span>
-          <!-- chevron -->
-          <svg
-            class="w-4 h-4 text-gray-500 transition-transform duration-200"
-            :class="menuOpen ? 'rotate-180' : ''"
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
+          <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" :class="menuOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
           </svg>
         </button>
 
-        <!-- Dropdown panel -->
         <transition name="dropdown">
-          <div
-            v-if="menuOpen"
-            class="absolute top-full left-0 mt-2 w-52 bg-darkNavy border border-white/10 shadow-2xl z-50 overflow-hidden"
-          >
+          <div v-if="menuOpen" class="absolute top-full left-0 mt-2 w-52 bg-darkNavy border border-white/10 shadow-2xl z-50">
             <div class="px-4 py-2 border-b border-white/5">
               <p class="text-[9px] text-gray-600 uppercase tracking-widest font-bold">Match in progress</p>
               <p class="text-xs text-gray-400 font-mono mt-0.5">Score: <span class="text-white font-bold">{{ score }}</span> · Q: <span class="text-white font-bold">{{ questionsAnswered }}</span></p>
             </div>
-            <button
-              @click.stop="goHome"
-              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors text-left"
-            >
+            <button @click.stop="goHome" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors text-left">
               <svg class="w-4 h-4 text-orange flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
               </svg>
               Back to Home
             </button>
-            <button
-              @click.stop="confirmQuit = true; menuOpen = false"
-              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-hexred hover:bg-hexred/10 transition-colors text-left"
-            >
+            <button @click.stop="confirmQuit = true; menuOpen = false" class="w-full flex items-center gap-3 px-4 py-3 text-sm text-hexred hover:bg-hexred/10 transition-colors text-left">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
               </svg>
@@ -63,20 +47,23 @@
 
       <!-- Match meta -->
       <div class="flex items-center gap-6">
-        <!-- Questions answered counter -->
+        <!-- Questions answered -->
         <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 -skew-x-6">
           <span class="text-[10px] font-bold text-lightBlue tracking-[0.2em] uppercase skew-x-6">Q</span>
           <span class="text-lg font-black text-white skew-x-6">{{ questionsAnswered }}</span>
         </div>
-        <!-- Countdown timer (45s, shared) -->
+
+        <!-- Countdown timer — turns red + pulses at ≤10s -->
         <div class="flex items-center gap-2" :class="timeLeft <= 10 ? 'text-hexred' : 'text-lightOrange'">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          <span class="font-mono font-black text-2xl tabular-nums" :class="timeLeft <= 10 ? 'animate-pulse' : ''">
-            {{ String(timeLeft).padStart(2, '0') }}
-          </span>
+          <span
+            class="font-mono font-black text-2xl tabular-nums"
+            :class="timeLeft <= 10 ? 'animate-pulse' : ''"
+          >{{ String(timeLeft).padStart(2, '0') }}</span>
         </div>
+
         <!-- Score -->
         <div class="text-right hidden md:block">
           <p class="text-[10px] text-gray-500 uppercase tracking-widest">Score</p>
@@ -88,7 +75,7 @@
     <!-- ── Main ── -->
     <main class="relative z-20 flex-1 flex flex-col px-6 lg:px-16 py-8 gap-8 max-w-4xl mx-auto w-full">
 
-      <!-- SECTION 1: Question -->
+      <!-- Question -->
       <section class="flex-1 flex flex-col justify-center">
         <p class="text-[10px] font-bold text-lightBlue tracking-[0.3em] uppercase mb-4 flex items-center gap-2">
           <span class="inline-block w-4 h-px bg-lightBlue"></span>
@@ -100,7 +87,6 @@
         >
           <span class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-orange"></span>
           <span class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-orange"></span>
-
           <div v-if="gameState === 'loading'" class="space-y-3 animate-pulse">
             <div class="h-5 bg-white/10 rounded w-full"></div>
             <div class="h-5 bg-white/10 rounded w-5/6"></div>
@@ -119,7 +105,7 @@
         <div class="flex-1 h-px bg-white/10"></div>
       </div>
 
-      <!-- SECTION 2: Answer slots -->
+      <!-- Answer slots -->
       <section class="flex flex-col items-center gap-6 pb-4">
         <div class="flex items-end justify-center gap-2 flex-wrap">
           <template v-if="gameState === 'loading'">
@@ -189,7 +175,7 @@
       </section>
     </main>
 
-    <!-- ── Bottom timer bar (45s progress) ── -->
+    <!-- ── Bottom timer bar ── -->
     <div class="relative z-20 h-1.5 w-full flex">
       <div
         class="h-full transition-all duration-1000 ease-linear"
@@ -199,21 +185,60 @@
       <div class="flex-1 h-full bg-white/5"></div>
     </div>
 
-    <!-- ── Time's up overlay ── -->
-    <transition name="overlay">
-      <div v-if="gameState === 'finished'" class="absolute inset-0 z-40 flex items-center justify-center bg-darkNavy/90 backdrop-blur-sm">
-        <div class="text-center px-8">
-          <p class="text-[10px] text-lightBlue tracking-[0.3em] uppercase mb-4">Match Complete</p>
-          <p class="text-7xl font-black text-white mb-2">{{ score }}</p>
-          <p class="text-gray-500 text-sm mb-2">pts · {{ questionsAnswered }} questions answered</p>
-          <div class="flex gap-4 mt-8 justify-center">
+    <!-- ══════════════════════════════════════════════════════
+         US-04: TIME OUT popup
+         Shown when timer hits 00:00. Keyboard is blocked.
+         ══════════════════════════════════════════════════════ -->
+    <transition name="timeout-overlay">
+      <div
+        v-if="gameState === 'timeout'"
+        class="absolute inset-0 z-50 flex items-center justify-center"
+      >
+        <!-- Blurred backdrop -->
+        <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-md"></div>
+
+        <!-- Panel -->
+        <div class="relative border border-hexred/40 bg-darkNavy px-10 py-12 max-w-md w-full mx-4 text-center timeout-panel">
+          <!-- Corner accents -->
+          <span class="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-hexred"></span>
+          <span class="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-hexred"></span>
+          <span class="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-hexred"></span>
+          <span class="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-hexred"></span>
+
+          <!-- TIME OUT heading -->
+          <p class="text-[11px] font-bold text-hexred tracking-[0.4em] uppercase mb-3">Match Ended</p>
+          <h2 class="text-6xl font-black italic tracking-tighter text-hexred drop-shadow-[0_0_30px_rgba(230,57,70,0.6)] mb-1 timeout-glitch">
+            TIME OUT
+          </h2>
+          <div class="w-16 h-0.5 bg-hexred mx-auto mb-8 mt-4"></div>
+
+          <!-- Stats -->
+          <div class="flex justify-center gap-10 mb-8">
+            <div>
+              <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Final Score</p>
+              <p class="text-4xl font-black text-white">{{ score }}</p>
+            </div>
+            <div class="w-px bg-white/10"></div>
+            <div>
+              <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Questions</p>
+              <p class="text-4xl font-black text-white">{{ questionsAnswered }}</p>
+            </div>
+          </div>
+
+          <!-- Sending indicator -->
+          <p v-if="savingSession" class="text-[10px] text-gray-600 uppercase tracking-widest mb-6 animate-pulse">
+            Saving result...
+          </p>
+
+          <!-- Actions -->
+          <div class="flex gap-3 justify-center">
             <button
               @click="router.push('/home')"
-              class="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors"
+              class="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors"
             >Home</button>
             <button
               @click="restartMatch"
-              class="group relative px-8 py-3 bg-darkNavy border border-white/10 overflow-hidden font-bold text-sm tracking-widest uppercase"
+              class="group relative px-6 py-3 bg-darkNavy border border-white/10 overflow-hidden font-bold text-sm tracking-widest uppercase"
             >
               <div class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-300 z-0"></div>
               <span class="relative z-10 text-gray-300 group-hover:text-white transition-colors">Play Again</span>
@@ -226,10 +251,10 @@
     <!-- ── Quit confirm overlay ── -->
     <transition name="overlay">
       <div v-if="confirmQuit" class="absolute inset-0 z-50 flex items-center justify-center bg-darkNavy/90 backdrop-blur-sm">
-        <div class="border border-white/10 bg-darkNavy p-8 max-w-sm w-full mx-4">
+        <div class="relative border border-white/10 bg-darkNavy p-8 max-w-sm w-full mx-4">
           <span class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-hexred"></span>
           <p class="text-[10px] text-hexred tracking-[0.3em] uppercase mb-3 font-bold">Abandon Match?</p>
-          <p class="text-gray-400 text-sm mb-6">Your current score of <span class="text-white font-bold">{{ score }} pts</span> will be lost.</p>
+          <p class="text-gray-400 text-sm mb-6">Your score of <span class="text-white font-bold">{{ score }} pts</span> will be lost.</p>
           <div class="flex gap-3">
             <button
               @click="confirmQuit = false; refocusInput()"
@@ -244,7 +269,7 @@
       </div>
     </transition>
 
-    <!-- Hidden keyboard trap -->
+    <!-- Hidden keyboard trap — disabled when game is over -->
     <input
       ref="inputRef"
       class="sr-only"
@@ -253,6 +278,7 @@
       autocorrect="off"
       autocapitalize="off"
       spellcheck="false"
+      :disabled="gameState === 'timeout'"
       @keydown="handleKeydown"
     />
   </div>
@@ -270,37 +296,41 @@ interface QuestionPayload {
   target_word: string
 }
 
-type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'finished'
+// 'timeout' is the new terminal state for US-04
+type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout'
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const SERVER_URL    = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
-const MATCH_DURATION = 45   // shared 45-second countdown
-const FEEDBACK_MS    = 1000 // ms to show correct/wrong before next question
+const SERVER_URL     = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+const MATCH_DURATION = 45
+const FEEDBACK_MS    = 1000
 
 // ── State ──────────────────────────────────────────────────────────────────
-const gameState        = ref<GameState>('loading')
-const timeLeft         = ref(MATCH_DURATION)
-const score            = ref(0)
+const gameState         = ref<GameState>('loading')
+const timeLeft          = ref(MATCH_DURATION)
+const score             = ref(0)
 const questionsAnswered = ref(0)
-const pointsEarned     = ref(0)
-const typedLetters     = ref<string[]>([])
-const inputRef         = ref<HTMLInputElement | null>(null)
-const menuRef          = ref<HTMLElement | null>(null)
-const menuOpen         = ref(false)
-const confirmQuit      = ref(false)
+const pointsEarned      = ref(0)
+const typedLetters      = ref<string[]>([])
+const inputRef          = ref<HTMLInputElement | null>(null)
+const menuRef           = ref<HTMLElement | null>(null)
+const menuOpen          = ref(false)
+const confirmQuit       = ref(false)
+const savingSession     = ref(false)
+const sessionId         = ref<string | null>(null)
 
 const currentQuestion = ref<QuestionPayload>({ question_text: '', target_word: '' })
 
-// ── Match timer (counts down from 45, shared across all questions) ─────────
+// ── Match timer ────────────────────────────────────────────────────────────
 let matchTimer: ReturnType<typeof setInterval> | null = null
 
 function startMatchTimer() {
-  if (matchTimer) return // already running
+  if (matchTimer) return
   matchTimer = setInterval(() => {
     if (timeLeft.value <= 1) {
+      timeLeft.value = 0
       clearInterval(matchTimer!)
       matchTimer = null
-      endMatch()
+      triggerTimeout()
     } else {
       timeLeft.value--
     }
@@ -311,7 +341,51 @@ function stopMatchTimer() {
   if (matchTimer) { clearInterval(matchTimer); matchTimer = null }
 }
 
-// ── API ────────────────────────────────────────────────────────────────────
+// ── API: create session on match start ─────────────────────────────────────
+async function createSession() {
+  try {
+    const token = localStorage.getItem('arena_token')
+    const res = await fetch(`${SERVER_URL}/api/game/session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    })
+    if (!res.ok) return
+    const data = await res.json()
+    sessionId.value = data.session_id
+  } catch (err) {
+    console.error('createSession failed:', err)
+  }
+}
+
+// ── API: lock session on timeout (US-04 [BE]) ──────────────────────────────
+async function callTimeoutEndpoint() {
+  if (!sessionId.value) return
+  savingSession.value = true
+  try {
+    const token = localStorage.getItem('arena_token')
+    await fetch(`${SERVER_URL}/api/game/timeout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        session_id:          sessionId.value,
+        score:               score.value,
+        questions_answered:  questionsAnswered.value,
+      })
+    })
+  } catch (err) {
+    console.error('timeout endpoint failed:', err)
+  } finally {
+    savingSession.value = false
+  }
+}
+
+// ── API: fetch question ────────────────────────────────────────────────────
 async function fetchQuestion(): Promise<QuestionPayload> {
   try {
     const token = localStorage.getItem('arena_token')
@@ -326,10 +400,10 @@ async function fetchQuestion(): Promise<QuestionPayload> {
   } catch {
     const mocks: QuestionPayload[] = [
       { question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_word: 'discovery' },
-      { question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_word: 'confidence' },
+      { question_text: 'She spoke with great ________ when addressing the crowd at the stadium.',  target_word: 'confidence' },
       { question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_word: 'analyze' },
-      { question_text: 'The committee reached a unanimous ________ after hours of debate.', target_word: 'decision' },
-      { question_text: 'The old map revealed a hidden ________ deep inside the mountain range.', target_word: 'treasure' },
+      { question_text: 'The committee reached a unanimous ________ after hours of debate.',         target_word: 'decision' },
+      { question_text: 'The old map revealed a hidden ________ deep inside the mountain range.',    target_word: 'treasure' },
     ]
     return mocks[Math.floor(Math.random() * mocks.length)]
   }
@@ -346,6 +420,8 @@ async function loadQuestion() {
 }
 
 function handleKeydown(e: KeyboardEvent) {
+  // US-04: block all input when timed out
+  if (gameState.value === 'timeout') return
   if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
 
@@ -359,7 +435,6 @@ function handleKeydown(e: KeyboardEvent) {
   if (typedLetters.value.length >= maxLen) return
 
   typedLetters.value = [...typedLetters.value, e.key.toLowerCase()]
-
   if (typedLetters.value.length === maxLen) checkAnswer()
 }
 
@@ -368,7 +443,6 @@ function checkAnswer() {
   questionsAnswered.value++
 
   if (typed === currentQuestion.value.target_word) {
-    // Bonus points scale with remaining time
     pointsEarned.value = 100 + Math.floor(timeLeft.value * 3)
     score.value += pointsEarned.value
     gameState.value = 'correct'
@@ -376,23 +450,27 @@ function checkAnswer() {
     gameState.value = 'wrong'
   }
 
-  // After brief feedback, load next question (timer keeps running)
   setTimeout(() => {
-    if (gameState.value !== 'finished') loadQuestion()
+    if (gameState.value !== 'timeout') loadQuestion()
   }, FEEDBACK_MS)
 }
 
-function endMatch() {
-  gameState.value = 'finished'
-  stopMatchTimer()
+// US-04: triggered when timer hits 00
+function triggerTimeout() {
+  gameState.value = 'timeout'
+  // Disable keyboard input (also enforced in handleKeydown + :disabled on input)
+  inputRef.value?.blur()
+  // POST to backend to lock the session
+  callTimeoutEndpoint()
 }
 
-function restartMatch() {
+async function restartMatch() {
   score.value             = 0
   questionsAnswered.value = 0
   timeLeft.value          = MATCH_DURATION
   stopMatchTimer()
-  loadQuestion()
+  await createSession()
+  await loadQuestion()
   startMatchTimer()
 }
 
@@ -401,7 +479,7 @@ function goHome() {
   router.push('/home')
 }
 
-// ── Dropdown: close on outside click ──────────────────────────────────────
+// ── Outside click closes dropdown ──────────────────────────────────────────
 function handleOutsideClick(e: MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
     menuOpen.value = false
@@ -409,13 +487,13 @@ function handleOutsideClick(e: MouseEvent) {
 }
 
 function refocusInput() {
-  if (!menuOpen.value && !confirmQuit.value) {
-    inputRef.value?.focus()
-  }
+  if (gameState.value === 'timeout') return
+  if (!menuOpen.value && !confirmQuit.value) inputRef.value?.focus()
 }
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
 onMounted(async () => {
+  await createSession()
   await loadQuestion()
   startMatchTimer()
   document.addEventListener('click', handleOutsideClick)
@@ -450,14 +528,37 @@ onUnmounted(() => {
   75%       { transform: translateX(4px); }
 }
 
+/* TIME OUT glitch effect */
+.timeout-glitch {
+  animation: glitch 0.6s ease forwards;
+}
+@keyframes glitch {
+  0%   { clip-path: inset(0 0 100% 0); opacity: 0; transform: skewX(-5deg) scale(1.05); }
+  30%  { clip-path: inset(0 0 0% 0);   opacity: 1; transform: skewX(2deg); }
+  60%  { transform: skewX(-1deg); }
+  100% { transform: skewX(0); }
+}
+
+/* TIME OUT panel entrance */
+.timeout-panel {
+  animation: panel-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes panel-in {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
 .fade-enter-active, .fade-leave-active { transition: opacity 0.15s, transform 0.15s; }
-.fade-enter-from, .fade-leave-to       { opacity: 0; transform: translateY(6px); }
+.fade-enter-from,   .fade-leave-to     { opacity: 0; transform: translateY(6px); }
 
 .dropdown-enter-active, .dropdown-leave-active { transition: opacity 0.15s, transform 0.15s; }
-.dropdown-enter-from, .dropdown-leave-to       { opacity: 0; transform: translateY(-6px); }
+.dropdown-enter-from,   .dropdown-leave-to     { opacity: 0; transform: translateY(-6px); }
+
+.timeout-overlay-enter-active, .timeout-overlay-leave-active { transition: opacity 0.25s; }
+.timeout-overlay-enter-from,   .timeout-overlay-leave-to     { opacity: 0; }
 
 .overlay-enter-active, .overlay-leave-active { transition: opacity 0.2s; }
-.overlay-enter-from, .overlay-leave-to       { opacity: 0; }
+.overlay-enter-from,   .overlay-leave-to     { opacity: 0; }
 
 .sr-only {
   position: absolute; width: 1px; height: 1px;

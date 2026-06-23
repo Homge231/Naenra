@@ -1,15 +1,16 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/authMiddleware'
-import { getQuestion } from '../controllers/gameController'
+import { getQuestion, createSession, timeoutSession } from '../controllers/gameController'
 
 const router = Router()
 
-/**
- * All /api/game routes require a valid arena JWT.
- * The authMiddleware pattern matches authRoutes.ts / userRoutes.ts.
- */
-
-// GET /api/game/question  →  standardized { question_text, target_word }
+// GET  /api/game/question  → random question from DB
 router.get('/question', authMiddleware, getQuestion)
+
+// POST /api/game/session   → create active session, returns session_id
+router.post('/session', authMiddleware, createSession)
+
+// POST /api/game/timeout   → lock session on timeout (US-04 [BE])
+router.post('/timeout', authMiddleware, timeoutSession)
 
 export default router
