@@ -1,0 +1,24 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main # Đổi thành master nếu nhánh chính của bạn tên là master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trigger Render Deploy & Update GitHub Sidebar
+        uses: JorgeLNJunior/render-deploy@v1.5.0
+        with:
+          service_id: ${{ secrets.RENDER_SERVICE_ID }}
+          api_key: ${{ secrets.RENDER_API_KEY }}
+          github_deployment: true
+          deployment_environment: 'production'
+          github_token: ${{ secrets.GITHUB_TOKEN }}

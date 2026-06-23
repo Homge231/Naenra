@@ -387,38 +387,33 @@ async function callTimeoutEndpoint() {
 
 // ── API: fetch question ────────────────────────────────────────────────────
 async function fetchQuestion(): Promise<QuestionPayload> {
-  try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/question`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      }
-    })
-    if (!res.ok) throw new Error('fetch failed')
-    return await res.json()
-  } catch {
-    const mocks: QuestionPayload[] = [
-      { question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_word: 'discovery' },
-      { question_text: 'She spoke with great ________ when addressing the crowd at the stadium.',  target_word: 'confidence' },
-      { question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_word: 'analyze' },
-      { question_text: 'The committee reached a unanimous ________ after hours of debate.',         target_word: 'decision' },
-      { question_text: 'The old map revealed a hidden ________ deep inside the mountain range.',    target_word: 'treasure' },
-    ]
-    return mocks[Math.floor(Math.random() * mocks.length)]
-  }
+  const token = localStorage.getItem('arena_token')
+  const res = await fetch(`${SERVER_URL}/api/game/question`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  })
+  if (!res.ok) throw new Error('Failed to fetch question')
+  return await res.json()
 }
 
 // ── Game flow ──────────────────────────────────────────────────────────────
 async function loadQuestion() {
-  gameState.value    = 'loading'
+  gameState.value = 'loading'
   typedLetters.value = []
-  currentQuestion.value = await fetchQuestion()
-  gameState.value = 'playing'
-  await nextTick()
-  inputRef.value?.focus()
+  try {
+    currentQuestion.value = await fetchQuestion()
+    gameState.value = 'playing'
+    await nextTick()
+    inputRef.value?.focus()
+  } catch (err) {
+    console.error('Failed to load question:', err)
+    // Stop the timer and show a safe state
+    stopMatchTimer()
+    gameState.value = 'loading'
+  }
 }
-
 function handleKeydown(e: KeyboardEvent) {
   // US-04: block all input when timed out
   if (gameState.value === 'timeout') return
@@ -541,7 +536,7 @@ onUnmounted(() => {
 
 /* TIME OUT panel entrance */
 .timeout-panel {
-  animation: panel-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: panelå-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 @keyframes panel-in {
   from { transform: scale(0.92); opacity: 0; }
