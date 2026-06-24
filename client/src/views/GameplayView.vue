@@ -69,84 +69,75 @@
 
         <div class="text-right hidden md:block">
           <p class="text-[10px] text-gray-400 uppercase tracking-widest drop-shadow-sm">Score</p>
-          <p class="font-black text-xl text-white drop-shadow-md">{{ score }}</p>
+          <p class="font-black text-xl text-white drop-shadow-md inline-block transition-colors duration-200"
+            :class="{ 'score-pop text-orange': isScoreAnimating }">
+            {{ score }}
+          </p>
         </div>
       </div>
     </header>
 
-    <main class="relative z-20 flex-1 flex flex-col items-center justify-center gap-16 px-8">
+    <main
+      class="relative z-20 flex-1 flex flex-col items-center justify-center px-6 lg:px-16 py-10 max-w-5xl mx-auto w-full">
 
-      <!-- TOP SECTION: Question Box -->
       <section class="w-full max-w-4xl">
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-10 shadow-2xl"
+        <div
+          class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-14 shadow-2xl transition-all duration-300"
           :class="gameState === 'loading' ? 'animate-pulse' : ''">
 
-          <!-- Loading -->
-          <div v-if="gameState === 'loading'" class="space-y-3">
-            <div class="h-5 bg-white/20 rounded w-full"></div>
-            <div class="h-5 bg-white/20 rounded w-4/5 mx-auto"></div>
+          <div v-if="gameState === 'loading'" class="space-y-8 w-full text-center">
+            <div class="h-12 bg-white/20 rounded w-1/3 mx-auto mb-6"></div>
+            <div class="h-8 bg-white/20 rounded w-3/4 mx-auto"></div>
           </div>
 
-          <!-- Question -->
-          <div v-else>
+          <div v-else class="flex flex-col items-center text-center w-full">
 
-            <!-- Hint -->
-            <p v-if="currentQuestion.hint" class="text-sm italic text-[#60A5FA] mb-3 tracking-wide">
-              {{ currentQuestion.hint }}
+            <div v-if="currentQuestion.hint" class="mb-8 w-full">
+              <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-wider drop-shadow-md">
+                {{ currentQuestion.hint }}
+              </h1>
+            </div>
+
+            <p class="text-xl md:text-3xl font-medium text-gray-300 leading-relaxed max-w-3xl">
+
+              <span v-if="currentQuestion.question_text.split(/_+/)[0]">
+                {{ currentQuestion.question_text.split(/_+/)[0] }}
+              </span>
+
+              <span class="inline-flex items-baseline mx-1">
+                <span v-for="(char, idx) in currentQuestion.target_word.split('')" :key="idx"
+                  class="inline-block text-center transition-colors duration-150 min-w-[1ch]" :class="{
+                    'text-orange animate-pulse': idx === typedLetters.length && gameState === 'playing',
+                    'text-gray-100': typedLetters[idx] !== undefined && gameState === 'playing',
+                    'text-success font-semibold': gameState === 'correct',
+                    'text-hexred font-semibold': gameState === 'wrong',
+                    'text-gray-400 opacity-60': typedLetters[idx] === undefined && idx !== typedLetters.length
+                  }">
+                  {{ typedLetters[idx] ?? '_' }}
+                </span>
+              </span>
+
+              <span v-if="currentQuestion.question_text.split(/_+/)[1]">
+                {{ currentQuestion.question_text.split(/_+/)[1] }}
+              </span>
             </p>
 
-            <!-- Question Text -->
-            <h2 class="text-2xl md:text-4xl font-black text-[#F8FAFC] text-center leading-relaxed">
-              {{ currentQuestion.question_text }}
-            </h2>
-
-          </div>
-
-        </div>
-      </section>
-
-      <!-- BOTTOM SECTION: Answer Slots -->
-      <section class="flex flex-col items-center gap-6">
-        <div class="flex items-end gap-3 flex-wrap justify-center">
-          <template v-if="gameState === 'loading'">
-            <div v-for="i in 8" :key="i" class="flex flex-col items-center gap-1">
-              <div class="w-8 h-7 bg-white/10 animate-pulse rounded-sm"></div>
-              <div class="w-8 h-0.5 bg-white/20"></div>
-            </div>
-          </template>
-
-          <template v-else>
-            <div v-for="idx in currentQuestion.target_word.length" :key="idx" class="flex flex-col items-center gap-1">
-              <div
-                class="w-14 h-16 rounded-xl border-2 flex items-center justify-center text-2xl font-black uppercase transition-all duration-200"
+            <transition name="fade">
+              <div v-if="gameState === 'correct' || gameState === 'wrong'"
+                class="flex items-center gap-3 px-8 py-3.5 border font-bold text-sm tracking-widest uppercase rounded-full shadow-2xl mt-10 mx-auto w-fit backdrop-blur-lg"
                 :class="{
-                  'border-green-500 bg-green-500/20 text-green-300': typedLetters[idx - 1],
-                  'border-[#60A5FA]/40 bg-white/5 text-white': !typedLetters[idx - 1]
+                  'border-success/50 bg-success/20 text-green-300': gameState === 'correct',
+                  'border-hexred/50 bg-hexred/20 text-red-300': gameState === 'wrong',
                 }">
-                {{ typedLetters[idx - 1] ?? '_' }}
+                <span v-if="gameState === 'correct'">✓ Brilliant! +{{ pointsEarned }} pts</span>
+                <span v-else>✕ Correct word: <span class="uppercase text-white ml-1 font-black">{{
+                    currentQuestion.target_word }}</span></span>
               </div>
-            
-            </div>
-          </template>
-        </div>
+            </transition>
 
-        <!-- Feedback -->
-        <transition name="fade">
-          <div v-if="gameState === 'correct' || gameState === 'wrong'"
-            class="flex items-center gap-3 px-6 py-3 border font-bold text-sm tracking-widest uppercase backdrop-blur-md rounded-full"
-            :class="{
-              'border-success/50 bg-success/10 text-green-300': gameState === 'correct',
-              'border-hexred/50  bg-hexred/10  text-red-300': gameState === 'wrong',
-            }">
-            <span v-if="gameState === 'correct'">✓ Brilliant! +{{ pointsEarned }} pts</span>
-            <span v-else>✕ Correct word: <span class="uppercase text-white ml-1">{{ currentQuestion.target_word
-                }}</span></span>
           </div>
-        </transition>
 
-        <p v-if="gameState === 'playing'" class="text-xs text-gray-400 tracking-widest">
-          {{ currentQuestion.target_word.length }} letters — type to fill the blank
-        </p>
+        </div>
       </section>
 
     </main>
@@ -251,6 +242,7 @@ const FEEDBACK_MS = 1000
 const gameState = ref<GameState>('loading')
 const timeLeft = ref(MATCH_DURATION)
 const score = ref(0)
+const isScoreAnimating = ref(false)
 const questionsAnswered = ref(0)
 const pointsEarned = ref(0)
 const typedLetters = ref<string[]>([])
@@ -384,6 +376,11 @@ function checkAnswer() {
     pointsEarned.value = 100 + Math.floor(timeLeft.value * 3)
     score.value += pointsEarned.value
     gameState.value = 'correct'
+
+    isScoreAnimating.value = true
+    setTimeout(() => {
+      isScoreAnimating.value = false
+    }, 300)
   } else {
     gameState.value = 'wrong'
   }
@@ -590,5 +587,24 @@ onUnmounted(() => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.score-pop {
+  animation: scoreScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scoreScale {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.6);
+    text-shadow: 0 0 15px rgba(255, 165, 0, 0.8);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 </style>

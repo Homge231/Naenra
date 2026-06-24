@@ -32,7 +32,7 @@ export async function getQuestion(_req: Request, res: Response): Promise<void> {
 
     const { data: question, error: qError } = await supabase
       .from('questions')
-      .select('question_text, target_word')
+      .select('question_text, target_word, hint')
       .eq('id', randomId)
       .single()
 
