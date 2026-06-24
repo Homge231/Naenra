@@ -20,14 +20,14 @@ Naenra is a multiplayer typing game where players compete in real-time ranked ma
 client/
   src/
     game/        # Phaser game initialization and scenes
-    views/       # Vue views (Login, Home, Profile, etc.)
+    views/       # Vue views (Login, Home, Profile, Gameplay, etc.)
     stores/      # Pinia stores (auth, error, game)
     router/      # Vue Router with auth guards
     components/  # Reusable components
 server/
   src/
-    routes/      # Auth and user routes
-    controllers/ # User profile controller
+    routes/      # Auth, user, and game routes
+    controllers/ # User profile and game controllers
     middleware/  # JWT auth middleware
     utils/       # JWT, OTP, mailer utilities
 ```
@@ -64,8 +64,8 @@ VITE_SITE_URL=http://localhost:5173
 SUPABASE_URL=
 SUPABASE_SERVICE_KEY=
 JWT_SECRET=
-RESEND_API_KEY=
-MAIL_FROM=
+MAIL_USER=
+MAIL_PASS=
 ```
 
 ## Deployment (Render)
@@ -75,6 +75,7 @@ MAIL_FROM=
 - Build Command: `npm install && npm run build`
 - Start Command: `npm start`
 - URL: https://axonproject-1.onrender.com
+- Custom Domain: https://api.naenra.xyz
 
 **Client — Static Site:**
 - Root Directory: `client`
@@ -96,8 +97,8 @@ VITE_SITE_URL=https://naenra.xyz
 SUPABASE_URL=
 SUPABASE_SERVICE_KEY=
 JWT_SECRET=
-RESEND_API_KEY=
-MAIL_FROM=
+MAIL_USER=
+MAIL_PASS=
 ```
 
 **CORS Origins (server):**

@@ -1,0 +1,1 @@
+<template><div class="score-display">Score: {{ score }}</div></template><script>export default {props: {score: {type: Number, required: true}}}</script><style>.score-display {font-size: 24px;font-weight: bold;color: #fff;text-align: center;margin-bottom: 20px;}</style>
