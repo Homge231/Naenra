@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
 import gameRoutes from './routes/gameRoutes'
-
+import rateLimit from 'express-rate-limit'
 dotenv.config()
 
 const app = express()
@@ -35,3 +35,12 @@ app.use('/api/game', gameRoutes)
 httpServer.listen(3000, () => {
   console.log('Server running on port 3000')
 })
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 20, // tối đa 20 request mỗi IP
+  message: { error: 'Too many requests, please try again later.' }
+})
+
+// Đặt TRƯỚC các route
+app.use('/auth/login', authLimiter)
+app.use('/auth/register', authLimiter)
