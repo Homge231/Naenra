@@ -97,6 +97,7 @@
 
             <!-- Question Text -->
             <h2 class="text-2xl md:text-4xl font-black text-[#F8FAFC] text-center leading-relaxed">
+<p class="text-sm italic text-[#60A5FA] mb-3 tracking-wide">{{ currentQuestion.hint }}</p>
               {{ currentQuestion.question_text }}
             </h2>
 
