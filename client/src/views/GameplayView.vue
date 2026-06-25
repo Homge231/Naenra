@@ -161,7 +161,7 @@
                     'border-success/50 bg-success/20 text-green-300': gameState === 'correct',
                     'border-hexred/50 bg-hexred/20 text-red-300': gameState === 'wrong',
                   }">
-                  <span v-if="gameState === 'correct'">✓ Brilliant! +100 pts</span>
+                  <span v-if="gameState === 'correct'">✓ Brilliant! +{{ pointsEarned }} pts</span>
                   <span v-else>✕ Correct word: <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.target_word }}</span></span>
                 </div>
               </transition>
@@ -278,6 +278,7 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const MATCH_DURATION = 60
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
+const BASE_POINTS = 100 // Sprint 3: nhân với core multiplier
 
 const THEME_MAP: Record<string, string> = {
   'daily-life': '/bg-daily-life.png',
@@ -291,6 +292,7 @@ const timeLeft = ref(MATCH_DURATION)
 const score = ref(0)
 const isScoreAnimating = ref(false)
 const questionsAnswered = ref(0)
+const pointsEarned = ref(0)
 const typedLetters = ref<string[]>([])
 const inputRef = ref<HTMLInputElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
@@ -454,7 +456,8 @@ function checkAnswer() {
 
   if (isCorrect) {
     gameState.value = 'correct'
-    score.value += 100
+    pointsEarned.value = BASE_POINTS // Sprint 3: nhân với core multiplier tại đây
+    score.value += pointsEarned.value
     questionsAnswered.value++
     syncAnswer(typed)
     isScoreAnimating.value = true
