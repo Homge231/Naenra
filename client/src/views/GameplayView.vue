@@ -29,7 +29,7 @@
             <div class="px-5 py-3 border-b border-white/10 bg-black/20">
               <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Match in progress</p>
               <p class="text-sm text-gray-200 font-mono mt-1">Score: <span class="text-white font-bold">{{ score
-                  }}</span></p>
+              }}</span></p>
             </div>
             <button @click.stop="goHome"
               class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-left">
