@@ -79,33 +79,36 @@ export async function createSession(req: Request, res: Response): Promise<void> 
 
 export async function submitAnswer(req: Request, res: Response): Promise<void> {
   try {
-    const playerId = (req as any).user?.id;
-    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+    const playerId = (req as any).user?.id
+    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id, question_id, answer, time_left } = req.body;
+    const { session_id, question_id, answer } = req.body
     const { data: session, error: sessErr } = await supabase
       .from('game_sessions')
       .select('id, status, score, questions_answered')
       .eq('id', session_id)
       .eq('player_id', playerId)
-      .single();
+      .single()
 
-    if (sessErr || !session || session.status !== 'active') { res.status(400).json({ error: 'Invalid session' }); return; }
+    if (sessErr || !session || session.status !== 'active') { res.status(400).json({ error: 'Invalid session' }); return }
 
-    const { data: question, error: qErr } = await supabase.from('questions').select('target_word').eq('id', question_id).single();
-    if (qErr || !question) { res.status(404).json({ error: 'Question not found' }); return; }
+    const { data: question, error: qErr } = await supabase.from('questions').select('target_word').eq('id', question_id).single()
+    if (qErr || !question) { res.status(404).json({ error: 'Question not found' }); return }
 
-    const isCorrect = answer.toLowerCase() === question.target_word.toLowerCase();
+    const isCorrect = answer.toLowerCase() === question.target_word.toLowerCase()
     if (isCorrect) {
-      const points = 100 + Math.floor((time_left || 0) * 3);
-      const newScore = (session.score || 0) + points;
-      const newQuestionsAnswered = (session.questions_answered || 0) + 1;
-      await supabase.from('game_sessions').update({ score: newScore, questions_answered: newQuestionsAnswered }).eq('id', session_id);
-      res.status(200).json({ correct: true, points_earned: points, current_total_score: newScore, questions_answered: newQuestionsAnswered });
+      const points = 100
+      const newScore = (session.score || 0) + points
+      const newQuestionsAnswered = (session.questions_answered || 0) + 1
+      await supabase.from('game_sessions').update({ score: newScore, questions_answered: newQuestionsAnswered }).eq('id', session_id)
+      res.status(200).json({ correct: true, points_earned: points, current_total_score: newScore, questions_answered: newQuestionsAnswered })
     } else {
-      res.status(200).json({ correct: false, points_earned: 0, current_total_score: session.score, questions_answered: session.questions_answered });
+      res.status(200).json({ correct: false, points_earned: 0, current_total_score: session.score, questions_answered: session.questions_answered })
     }
-  } catch (err) { res.status(500).json({ error: 'Failed to submit.' }); }
+  } catch (err) {
+    console.error('submitAnswer error:', err)
+    res.status(500).json({ error: 'Failed to submit.' })
+  }
 }
 
 export async function timeoutSession(req: Request, res: Response): Promise<void> {

@@ -28,8 +28,7 @@
             class="absolute top-full left-0 mt-3 w-56 bg-darkNavy/90 backdrop-blur-xl border border-white/10 shadow-2xl z-50 rounded-b-lg overflow-hidden">
             <div class="px-5 py-3 border-b border-white/10 bg-black/20">
               <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Match in progress</p>
-              <p class="text-sm text-gray-200 font-mono mt-1">Score: <span class="text-white font-bold">{{ score
-                  }}</span></p>
+              <p class="text-sm text-gray-200 font-mono mt-1">Score: <span class="text-white font-bold">{{ score }}</span></p>
             </div>
             <button @click.stop="goHome"
               class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-left">
@@ -93,8 +92,7 @@
 
               <div v-if="currentQuestion.hint"
                 class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-6 md:p-8 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue to-transparent">
-                </div>
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue to-transparent"></div>
                 <div class="flex items-center justify-center gap-1.5 mb-3 opacity-90">
                   <svg class="w-4 h-4 text-lightBlue drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
                     <path
@@ -122,10 +120,8 @@
               </div>
 
               <div class="w-full flex flex-col items-center gap-3 overflow-hidden">
-
                 <div
                   class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none">
-
                   <div v-for="(char, idx) in currentQuestion.target_word.split('')" :key="idx" class="flex-shrink-0">
                     <div
                       class="relative w-10 h-14 md:w-14 md:h-20 bg-black/40 backdrop-blur-md rounded-t-lg flex items-center justify-center border-b-4 transition-all duration-200"
@@ -146,12 +142,10 @@
                         }" :style="gameState === 'correct' ? { animationDelay: `${idx * 0.05}s` } : {}">
                         {{ typedLetters[idx] ?? '_' }}
                       </span>
-
                       <span v-if="idx === typedLetters.length && gameState === 'playing'"
                         class="absolute bottom-2 left-1/2 -translate-x-1/2 w-5 h-1 bg-orange animate-pulse rounded-full"></span>
                     </div>
                   </div>
-
                 </div>
 
                 <div v-if="gameState === 'playing'"
@@ -167,9 +161,8 @@
                     'border-success/50 bg-success/20 text-green-300': gameState === 'correct',
                     'border-hexred/50 bg-hexred/20 text-red-300': gameState === 'wrong',
                   }">
-                  <span v-if="gameState === 'correct'">✓ Brilliant! +{{ pointsEarned }} pts</span>
-                  <span v-else>✕ Correct word: <span class="uppercase text-white ml-1 font-black">{{
-                      currentQuestion.target_word }}</span></span>
+                  <span v-if="gameState === 'correct'">✓ Brilliant! +100 pts</span>
+                  <span v-else>✕ Correct word: <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.target_word }}</span></span>
                 </div>
               </transition>
 
@@ -178,7 +171,6 @@
         </template>
 
       </section>
-
     </main>
 
     <div class="relative z-20 h-2 w-full flex bg-black/50">
@@ -188,10 +180,10 @@
     </div>
 
     <div v-if="playerAvatarUrl" class="absolute bottom-6 left-6 z-30 pointer-events-none">
-  <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue to-lightBlue p-0.5 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-    <img :src="playerAvatarUrl" alt="Player Avatar" class="w-full h-full rounded-full object-cover bg-darkNavy" />
-  </div>
-</div>
+      <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue to-lightBlue p-0.5 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+        <img :src="playerAvatarUrl" alt="Player Avatar" class="w-full h-full rounded-full object-cover bg-darkNavy" />
+      </div>
+    </div>
 
     <transition name="timeout-overlay">
       <div v-if="gameState === 'timeout'" class="absolute inset-0 z-50 flex items-center justify-center">
@@ -299,7 +291,6 @@ const timeLeft = ref(MATCH_DURATION)
 const score = ref(0)
 const isScoreAnimating = ref(false)
 const questionsAnswered = ref(0)
-const pointsEarned = ref(0)
 const typedLetters = ref<string[]>([])
 const inputRef = ref<HTMLInputElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
@@ -308,7 +299,7 @@ const confirmQuit = ref(false)
 const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const currentBgImage = ref('/bg-daily-life.png')
-const playerAvatarUrl = ref<string>('') // New ref for the avatar
+const playerAvatarUrl = ref<string>('')
 
 // ── Question queue ────────────────────────────────────────────────────────────
 const questionQueue = ref<QuestionPayload[]>([])
@@ -354,14 +345,8 @@ async function createSession() {
     if (!res.ok) return
     const data = await res.json()
     sessionId.value = data.session_id
-    
-    if (data.theme) {
-      currentBgImage.value = getBackgroundImage(data.theme)
-    }
-
-    if (data.avatar_url) {
-      playerAvatarUrl.value = data.avatar_url
-    }
+    if (data.theme) currentBgImage.value = getBackgroundImage(data.theme)
+    if (data.avatar_url) playerAvatarUrl.value = data.avatar_url
   } catch (err) {
     console.error(err)
   }
@@ -428,13 +413,13 @@ async function loadQuestion() {
   typedLetters.value = []
 
   if (questionQueue.value.length <= REFETCH_THRESHOLD) {
-    fetchBatch() // Fire and forget background fetch
+    fetchBatch()
   }
 
   const next = questionQueue.value.shift()
   if (!next) {
     currentQuestion.value = MOCK_QUESTIONS[Math.floor(Math.random() * MOCK_QUESTIONS.length)]
-    fetchBatch() // Fallback and retry fetch
+    fetchBatch()
   } else {
     currentQuestion.value = next
   }
@@ -465,18 +450,13 @@ function handleKeydown(e: KeyboardEvent) {
 
 function checkAnswer() {
   const typed = typedLetters.value.join('')
-  const isCorrectLocally = typed === currentQuestion.value.target_word
+  const isCorrect = typed === currentQuestion.value.target_word
 
-  if (isCorrectLocally) {
+  if (isCorrect) {
     gameState.value = 'correct'
-    
-    // Optimistic UI updates
-    pointsEarned.value = 100 + Math.floor(timeLeft.value * 3)
-    score.value += pointsEarned.value
+    score.value += 100
     questionsAnswered.value++
-    
     syncAnswer(typed)
-
     isScoreAnimating.value = true
     setTimeout(() => { isScoreAnimating.value = false }, 300)
   } else {
@@ -489,7 +469,7 @@ function checkAnswer() {
 }
 
 async function syncAnswer(answer: string) {
-  if (!sessionId.value || !currentQuestion.value.id) return;
+  if (!sessionId.value || !currentQuestion.value.id) return
   try {
     const token = localStorage.getItem('arena_token')
     const res = await fetch(`${SERVER_URL}/api/game/submit-answer`, {
@@ -501,15 +481,12 @@ async function syncAnswer(answer: string) {
       body: JSON.stringify({
         session_id: sessionId.value,
         question_id: currentQuestion.value.id,
-        answer: answer,
-        time_left: timeLeft.value
+        answer: answer
       })
     })
-    
     if (res.ok) {
       const data = await res.json()
       if (data.correct) {
-        // Sync with backend source of truth
         score.value = data.current_total_score
         questionsAnswered.value = data.questions_answered
       }
