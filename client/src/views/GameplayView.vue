@@ -29,7 +29,7 @@
             <div class="px-5 py-3 border-b border-white/10 bg-black/20">
               <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Match in progress</p>
               <p class="text-sm text-gray-200 font-mono mt-1">Score: <span class="text-white font-bold">{{ score
-                  }}</span></p>
+              }}</span></p>
             </div>
             <button @click.stop="goHome"
               class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-left">
@@ -114,22 +114,23 @@
                   <span v-if="currentQuestion.question_text.split(/_+/)[0]">
                     {{ currentQuestion.question_text.split(/_+/)[0] }}
                   </span>
-                  <span class="text-white/30 font-bold mx-2 tracking-widest">____</span>
+                  <span class="text-white/50 font-bold mx-2 tracking-widest">---</span>
                   <span v-if="currentQuestion.question_text.split(/_+/)[1]">
                     {{ currentQuestion.question_text.split(/_+/)[1] }}
                   </span>
                 </p>
               </div>
 
-              <div class="w-full flex flex-nowrap flex-col items-center overflow-x-auto gap-3">
+              <div class="w-full flex flex-col items-center gap-3 overflow-hidden">
 
-                <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4 w-full max-w-3xl">
-                  <div v-for="(char, idx) in currentQuestion.target_word.split('')" :key="idx"
-                    class="slot flex flex-col items-center gap-2">
+                <div
+                  class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none">
+
+                  <div v-for="(char, idx) in currentQuestion.target_word.split('')" :key="idx" class="flex-shrink-0">
                     <div
                       class="relative w-10 h-14 md:w-14 md:h-20 bg-black/40 backdrop-blur-md rounded-t-lg flex items-center justify-center border-b-4 transition-all duration-200"
                       :class="{
-                        'slot--active border-orange bg-black/60 shadow-[0_-4px_15px_rgba(255,165,0,0.35)]': idx === typedLetters.length && gameState === 'playing',
+                        'slot--active border-orange bg-black/60 shadow-[0_-4px_15px_rgba(255,165,0,0.25)]': idx === typedLetters.length && gameState === 'playing',
                         'slot--correct border-success': gameState === 'correct',
                         'slot--wrong border-hexred': gameState === 'wrong',
                         'border-white/20': idx !== typedLetters.length || gameState !== 'playing'
@@ -150,6 +151,7 @@
                         class="absolute bottom-2 left-1/2 -translate-x-1/2 w-5 h-1 bg-orange animate-pulse rounded-full"></span>
                     </div>
                   </div>
+
                 </div>
 
                 <div v-if="gameState === 'playing'"
