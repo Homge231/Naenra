@@ -68,8 +68,12 @@
 
         <div class="text-right hidden md:block">
           <p class="text-[10px] text-gray-400 uppercase tracking-widest drop-shadow-sm">Score</p>
-          <p class="font-black text-xl text-white drop-shadow-md inline-block transition-colors duration-200"
-            :class="{ 'score-pop text-orange': isScoreAnimating }">
+          <p class="font-black text-xl drop-shadow-md inline-block transition-colors duration-200"
+            :class="{
+              'score-pop-correct text-orange': scoreFlash === 'correct',
+              'score-pop-wrong text-hexred': scoreFlash === 'wrong',
+              'text-white': scoreFlash === null
+            }">
             {{ score }}
           </p>
         </div>
@@ -162,7 +166,11 @@
                     'border-hexred/50 bg-hexred/20 text-red-300': gameState === 'wrong',
                   }">
                   <span v-if="gameState === 'correct'">✓ Brilliant! +{{ pointsEarned }} pts</span>
-                  <span v-else>✕ Correct word: <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.target_word }}</span></span>
+                  <span v-else>
+                    ✕ Correct word:
+                    <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.target_word }}</span>
+                    <span class="ml-3 text-hexred font-black">−{{ pointsDeducted }} pts</span>
+                  </span>
                 </div>
               </transition>
 
@@ -273,6 +281,7 @@ interface QuestionPayload {
 }
 
 type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout'
+type ScoreFlash = 'correct' | 'wrong' | null
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const MATCH_DURATION = 60
@@ -290,9 +299,10 @@ const THEME_MAP: Record<string, string> = {
 const gameState = ref<GameState>('loading')
 const timeLeft = ref(MATCH_DURATION)
 const score = ref(0)
-const isScoreAnimating = ref(false)
+const scoreFlash = ref<ScoreFlash>(null)
 const questionsAnswered = ref(0)
 const pointsEarned = ref(0)
+const pointsDeducted = ref(0)
 const typedLetters = ref<string[]>([])
 const inputRef = ref<HTMLInputElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
@@ -309,6 +319,14 @@ const isFetchingBatch = ref(false)
 const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_word: '' })
 
 let matchTimer: ReturnType<typeof setInterval> | null = null
+let flashTimer: ReturnType<typeof setTimeout> | null = null
+
+// ── Score flash helper ────────────────────────────────────────────────────────
+function triggerScoreFlash(type: ScoreFlash) {
+  if (flashTimer) clearTimeout(flashTimer)
+  scoreFlash.value = type
+  flashTimer = setTimeout(() => { scoreFlash.value = null }, 400)
+}
 
 // ── Timer ─────────────────────────────────────────────────────────────────────
 function startMatchTimer() {
@@ -452,18 +470,30 @@ function handleKeydown(e: KeyboardEvent) {
 
 function checkAnswer() {
   const typed = typedLetters.value.join('')
-  const isCorrect = typed === currentQuestion.value.target_word
+  const target = currentQuestion.value.target_word
+  const isCorrect = typed === target
 
   if (isCorrect) {
     gameState.value = 'correct'
     pointsEarned.value = BASE_POINTS // Sprint 3: nhân với core multiplier tại đây
     score.value += pointsEarned.value
     questionsAnswered.value++
+    triggerScoreFlash('correct')
+    // Fire-and-forget — do NOT let syncAnswer overwrite score.value
     syncAnswer(typed)
-    isScoreAnimating.value = true
-    setTimeout(() => { isScoreAnimating.value = false }, 300)
   } else {
     gameState.value = 'wrong'
+
+    // Count mismatched letters position by position
+    let wrongCount = 0
+    for (let i = 0; i < target.length; i++) {
+      if (typed[i] !== target[i]) wrongCount++
+    }
+    // penalty: 5 pts per wrong letter, min 5, max 25
+    const penalty = Math.min(25, Math.max(5, wrongCount * 5))
+    pointsDeducted.value = penalty
+    score.value = Math.max(0, score.value - penalty)
+    triggerScoreFlash('wrong')
   }
 
   setTimeout(() => {
@@ -471,11 +501,12 @@ function checkAnswer() {
   }, FEEDBACK_MS)
 }
 
+// Fire-and-forget: only used for server-side tracking, never overwrites local score
 async function syncAnswer(answer: string) {
   if (!sessionId.value || !currentQuestion.value.id) return
   try {
     const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/submit-answer`, {
+    await fetch(`${SERVER_URL}/api/game/submit-answer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -487,15 +518,11 @@ async function syncAnswer(answer: string) {
         answer: answer
       })
     })
-    if (res.ok) {
-      const data = await res.json()
-      if (data.correct) {
-        score.value = data.current_total_score
-        questionsAnswered.value = data.questions_answered
-      }
-    }
+    // ⚠️ Intentionally NOT reading the response score back —
+    // local score is authoritative (includes wrong-answer penalties
+    // that the server doesn't track). Final score is sent on timeout.
   } catch (err) {
-    console.error('Failed to sync score:', err)
+    console.error('Failed to sync answer:', err)
   }
 }
 
@@ -511,6 +538,7 @@ async function restartMatch() {
   questionsAnswered.value = 0
   timeLeft.value = MATCH_DURATION
   questionQueue.value = []
+  scoreFlash.value = null
   stopMatchTimer()
   await createSession()
   await fetchBatch()
@@ -545,6 +573,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopMatchTimer()
+  if (flashTimer) clearTimeout(flashTimer)
   document.removeEventListener('click', handleOutsideClick)
 })
 </script>
@@ -557,13 +586,23 @@ onUnmounted(() => {
   background-size: 64px 64px;
 }
 
-.score-pop {
-  animation: scoreScale 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.score-pop-correct {
+  animation: scoreScaleCorrect 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes scoreScale {
+.score-pop-wrong {
+  animation: scoreScaleWrong 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scoreScaleCorrect {
   0%   { transform: scale(1); }
   50%  { transform: scale(1.6); text-shadow: 0 0 15px rgba(255, 165, 0, 0.8); }
+  100% { transform: scale(1); }
+}
+
+@keyframes scoreScaleWrong {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.4); text-shadow: 0 0 15px rgba(230, 57, 70, 0.9); }
   100% { transform: scale(1); }
 }
 
