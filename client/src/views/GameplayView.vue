@@ -229,9 +229,10 @@
               class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
               <div
                 class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-              </div>s
+              </div>
               <span class="relative z-10 text-white">Play Again</span>
             </button>
+          </div>
         </div>
       </div>
     </transition>
