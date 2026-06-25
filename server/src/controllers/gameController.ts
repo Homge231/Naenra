@@ -8,7 +8,6 @@ const supabase = createClient(
 
 /**
  * GET /api/game/question
- * Giữ nguyên để không breaking change.
  * Trả về 1 câu hỏi ngẫu nhiên.
  */
 export async function getQuestion(_req: Request, res: Response): Promise<void> {
@@ -27,7 +26,7 @@ export async function getQuestion(_req: Request, res: Response): Promise<void> {
 
     const { data: question, error: qError } = await supabase
       .from('questions')
-      .select('question_text, target_word, hint')
+      .select('id, question_text, target_word, hint')
       .eq('id', randomId)
       .single()
 
@@ -42,8 +41,7 @@ export async function getQuestion(_req: Request, res: Response): Promise<void> {
 
 /**
  * GET /api/game/questions
- * Trả về batch 20 câu hỏi ngẫu nhiên, không trùng nhau trong batch.
- * Response: { questions: { question_text, target_word, hint }[] }
+ * Trả về batch 20 câu hỏi ngẫu nhiên.
  */
 export async function getQuestions(_req: Request, res: Response): Promise<void> {
   const BATCH_SIZE = 20
@@ -58,18 +56,16 @@ export async function getQuestions(_req: Request, res: Response): Promise<void> 
       return
     }
 
-    // Shuffle toàn bộ IDs rồi lấy tối đa BATCH_SIZE cái
     const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, BATCH_SIZE)
     const pickedIds = shuffled.map((r: { id: string }) => r.id)
 
     const { data: questions, error: qError } = await supabase
       .from('questions')
-      .select('question_text, target_word, hint')
+      .select('id, question_text, target_word, hint')
       .in('id', pickedIds)
 
     if (qError) throw qError
 
-    // Shuffle lại lần nữa để thứ tự không bị đoán theo insertion order
     const shuffledQuestions = (questions ?? []).sort(() => Math.random() - 0.5)
 
     res.status(200).json({ questions: shuffledQuestions })
@@ -81,7 +77,7 @@ export async function getQuestions(_req: Request, res: Response): Promise<void> 
 
 /**
  * POST /api/game/session
- * Tạo một session mới khi trận bắt đầu. Trả về session_id.
+ * Tạo một session mới khi trận bắt đầu. Kèm theo random theme.
  */
 export async function createSession(req: Request, res: Response): Promise<void> {
   try {
@@ -95,7 +91,11 @@ export async function createSession(req: Request, res: Response): Promise<void> 
       .single()
 
     if (error) throw error
-    res.status(201).json({ session_id: data.id })
+
+   const themes = ['daily-life', 'cafe', 'travel']
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)]
+
+    res.status(201).json({ session_id: data.id, theme: randomTheme })
   } catch (err) {
     console.error('createSession error:', err)
     res.status(500).json({ error: 'Failed to create session.' })
@@ -103,9 +103,81 @@ export async function createSession(req: Request, res: Response): Promise<void> 
 }
 
 /**
+ * POST /api/game/submit-answer
+ * Gửi đáp án từng câu hỏi, kiểm tra server-side và cộng điểm vào session.
+ */
+export async function submitAnswer(req: Request, res: Response): Promise<void> {
+  try {
+    const playerId = (req as any).user?.id;
+    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+
+    const { session_id, question_id, answer, time_left } = req.body;
+
+    if (!session_id || !question_id || answer === undefined) {
+      res.status(400).json({ error: 'Missing required fields' });
+      return;
+    }
+
+    const { data: session, error: sessErr } = await supabase
+      .from('game_sessions')
+      .select('id, status, score, questions_answered')
+      .eq('id', session_id)
+      .eq('player_id', playerId)
+      .single();
+
+    if (sessErr || !session || session.status !== 'active') {
+      res.status(400).json({ error: 'Invalid or inactive session' });
+      return;
+    }
+
+    const { data: question, error: qErr } = await supabase
+      .from('questions')
+      .select('target_word')
+      .eq('id', question_id)
+      .single();
+
+    if (qErr || !question) {
+      res.status(404).json({ error: 'Question not found' });
+      return;
+    }
+
+    const isCorrect = answer.toLowerCase() === question.target_word.toLowerCase();
+
+    if (isCorrect) {
+      const points = 100 + Math.floor((time_left || 0) * 3);
+      const newScore = (session.score || 0) + points;
+      const newQuestionsAnswered = (session.questions_answered || 0) + 1;
+
+      const { error: updErr } = await supabase
+        .from('game_sessions')
+        .update({ score: newScore, questions_answered: newQuestionsAnswered })
+        .eq('id', session_id);
+
+      if (updErr) throw updErr;
+
+      res.status(200).json({ 
+        correct: true, 
+        points_earned: points, 
+        current_total_score: newScore,
+        questions_answered: newQuestionsAnswered
+      });
+    } else {
+      res.status(200).json({ 
+        correct: false, 
+        points_earned: 0, 
+        current_total_score: session.score || 0,
+        questions_answered: session.questions_answered || 0
+      });
+    }
+  } catch (err) {
+    console.error('submitAnswer error:', err);
+    res.status(500).json({ error: 'Failed to submit answer.' });
+  }
+}
+
+/**
  * POST /api/game/timeout
- * Khoá session khi hết giờ. Reject duplicate call bằng 409.
- * Body: { session_id, score, questions_answered }
+ * Khoá session khi hết giờ.
  */
 export async function timeoutSession(req: Request, res: Response): Promise<void> {
   try {

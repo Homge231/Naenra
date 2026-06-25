@@ -114,22 +114,23 @@
                   <span v-if="currentQuestion.question_text.split(/_+/)[0]">
                     {{ currentQuestion.question_text.split(/_+/)[0] }}
                   </span>
-                  <span class="text-white/30 font-bold mx-2 tracking-widest">____</span>
+                  <span class="text-white/50 font-bold mx-2 tracking-widest">---</span>
                   <span v-if="currentQuestion.question_text.split(/_+/)[1]">
                     {{ currentQuestion.question_text.split(/_+/)[1] }}
                   </span>
                 </p>
               </div>
 
-              <div class="w-full flex flex-nowrap flex-col items-center overflow-x-auto gap-3">
+              <div class="w-full flex flex-col items-center gap-3 overflow-hidden">
 
-                <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4 w-full max-w-3xl">
-                  <div v-for="(char, idx) in currentQuestion.target_word.split('')" :key="idx"
-                    class="slot flex flex-col items-center gap-2">
+                <div
+                  class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none">
+
+                  <div v-for="(char, idx) in currentQuestion.target_word.split('')" :key="idx" class="flex-shrink-0">
                     <div
                       class="relative w-10 h-14 md:w-14 md:h-20 bg-black/40 backdrop-blur-md rounded-t-lg flex items-center justify-center border-b-4 transition-all duration-200"
                       :class="{
-                        'slot--active border-orange bg-black/60 shadow-[0_-4px_15px_rgba(255,165,0,0.35)]': idx === typedLetters.length && gameState === 'playing',
+                        'slot--active border-orange bg-black/60 shadow-[0_-4px_15px_rgba(255,165,0,0.25)]': idx === typedLetters.length && gameState === 'playing',
                         'slot--correct border-success': gameState === 'correct',
                         'slot--wrong border-hexred': gameState === 'wrong',
                         'border-white/20': idx !== typedLetters.length || gameState !== 'playing'
@@ -150,6 +151,7 @@
                         class="absolute bottom-2 left-1/2 -translate-x-1/2 w-5 h-1 bg-orange animate-pulse rounded-full"></span>
                     </div>
                   </div>
+
                 </div>
 
                 <div v-if="gameState === 'playing'"
@@ -266,6 +268,7 @@ import PhaserBackground from '../components/game/PhaserBackground.vue'
 const router = useRouter()
 
 interface QuestionPayload {
+  id: string
   question_text: string
   target_word: string
   hint?: string
@@ -276,8 +279,13 @@ type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout'
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const MATCH_DURATION = 45
 const FEEDBACK_MS = 1000
-// Refetch batch khi queue còn ≤ ngưỡng này
 const REFETCH_THRESHOLD = 5
+
+const THEME_MAP: Record<string, string> = {
+  'daily-life': '/bg-daily-life.png',
+  'cafe': '/bg-cafe.png',
+  'travel': '/bg-travel.png'
+}
 
 // ── State ────────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
@@ -298,7 +306,7 @@ const currentBgImage = ref('/bg-daily-life.png')
 // ── Question queue ────────────────────────────────────────────────────────────
 const questionQueue = ref<QuestionPayload[]>([])
 const isFetchingBatch = ref(false)
-const currentQuestion = ref<QuestionPayload>({ question_text: '', target_word: '' })
+const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_word: '' })
 
 let matchTimer: ReturnType<typeof setInterval> | null = null
 
@@ -321,6 +329,10 @@ function stopMatchTimer() {
   if (matchTimer) { clearInterval(matchTimer); matchTimer = null }
 }
 
+function getBackgroundImage(themeKey: string) {
+  return THEME_MAP[themeKey] || '/bg-daily-life.png'
+}
+
 // ── Session API ───────────────────────────────────────────────────────────────
 async function createSession() {
   try {
@@ -335,6 +347,10 @@ async function createSession() {
     if (!res.ok) return
     const data = await res.json()
     sessionId.value = data.session_id
+    
+    if (data.theme) {
+      currentBgImage.value = getBackgroundImage(data.theme)
+    }
   } catch (err) {
     console.error(err)
   }
@@ -366,15 +382,14 @@ async function callTimeoutEndpoint() {
 
 // ── Batch fetching ────────────────────────────────────────────────────────────
 const MOCK_QUESTIONS: QuestionPayload[] = [
-  { question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_word: 'discovery', hint: 'The act of finding something new' },
-  { question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_word: 'confidence', hint: 'A feeling of self-assurance' },
-  { question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_word: 'analyze', hint: 'Examine methodically and in detail' },
-  { question_text: 'The team celebrated their ________ after months of hard work.', target_word: 'victory', hint: 'Winning a competition' },
-  { question_text: 'She showed great ________ in the face of adversity.', target_word: 'resilience', hint: 'Ability to recover quickly' },
+  { id: 'm1', question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_word: 'discovery', hint: 'The act of finding something new' },
+  { id: 'm2', question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_word: 'confidence', hint: 'A feeling of self-assurance' },
+  { id: 'm3', question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_word: 'analyze', hint: 'Examine methodically and in detail' },
+  { id: 'm4', question_text: 'The team celebrated their ________ after months of hard work.', target_word: 'victory', hint: 'Winning a competition' },
+  { id: 'm5', question_text: 'She showed great ________ in the face of adversity.', target_word: 'resilience', hint: 'Ability to recover quickly' },
 ]
 
 async function fetchBatch(): Promise<void> {
-  // Không fetch nếu đang fetch dở hoặc game đã timeout
   if (isFetchingBatch.value || gameState.value === 'timeout') return
   isFetchingBatch.value = true
   try {
@@ -387,10 +402,8 @@ async function fetchBatch(): Promise<void> {
     })
     if (!res.ok) throw new Error('fetch failed')
     const data = await res.json()
-    // Đẩy toàn bộ batch vào cuối queue
     questionQueue.value.push(...(data.questions as QuestionPayload[]))
   } catch {
-    // Fallback mock khi DB không kết nối được
     const shuffled = [...MOCK_QUESTIONS].sort(() => Math.random() - 0.5)
     questionQueue.value.push(...shuffled)
   } finally {
@@ -403,16 +416,14 @@ async function loadQuestion() {
   gameState.value = 'loading'
   typedLetters.value = []
 
-  // Khi queue còn ≤ REFETCH_THRESHOLD câu → fetch batch mới (background nếu có thể)
   if (questionQueue.value.length <= REFETCH_THRESHOLD) {
-    await fetchBatch()
+    fetchBatch() // Fire and forget background fetch
   }
 
-  // Lấy câu đầu tiên ra khỏi queue
   const next = questionQueue.value.shift()
   if (!next) {
-    // Không nên xảy ra sau fetchBatch, nhưng guard cho chắc
     currentQuestion.value = MOCK_QUESTIONS[Math.floor(Math.random() * MOCK_QUESTIONS.length)]
+    fetchBatch() // Fallback and retry fetch
   } else {
     currentQuestion.value = next
   }
@@ -443,12 +454,17 @@ function handleKeydown(e: KeyboardEvent) {
 
 function checkAnswer() {
   const typed = typedLetters.value.join('')
-  questionsAnswered.value++
+  const isCorrectLocally = typed === currentQuestion.value.target_word
 
-  if (typed === currentQuestion.value.target_word) {
+  if (isCorrectLocally) {
+    gameState.value = 'correct'
+    
+    // Optimistic UI updates
     pointsEarned.value = 100 + Math.floor(timeLeft.value * 3)
     score.value += pointsEarned.value
-    gameState.value = 'correct'
+    questionsAnswered.value++
+    
+    syncAnswer(typed)
 
     isScoreAnimating.value = true
     setTimeout(() => { isScoreAnimating.value = false }, 300)
@@ -459,6 +475,37 @@ function checkAnswer() {
   setTimeout(() => {
     if (gameState.value !== 'timeout') loadQuestion()
   }, FEEDBACK_MS)
+}
+
+async function syncAnswer(answer: string) {
+  if (!sessionId.value || !currentQuestion.value.id) return;
+  try {
+    const token = localStorage.getItem('arena_token')
+    const res = await fetch(`${SERVER_URL}/api/game/submit-answer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        session_id: sessionId.value,
+        question_id: currentQuestion.value.id,
+        answer: answer,
+        time_left: timeLeft.value
+      })
+    })
+    
+    if (res.ok) {
+      const data = await res.json()
+      if (data.correct) {
+        // Sync with backend source of truth
+        score.value = data.current_total_score
+        questionsAnswered.value = data.questions_answered
+      }
+    }
+  } catch (err) {
+    console.error('Failed to sync score:', err)
+  }
 }
 
 function triggerTimeout() {
@@ -499,7 +546,7 @@ function refocusInput() {
 
 onMounted(async () => {
   await createSession()
-  await fetchBatch()   // pre-fill queue với 20 câu đầu
+  await fetchBatch()
   await loadQuestion()
   startMatchTimer()
   document.addEventListener('click', handleOutsideClick)
