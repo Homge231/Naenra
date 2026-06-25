@@ -4,10 +4,10 @@ import { getQuestion, getQuestions, createSession, timeoutSession, submitAnswer 
 
 const router = Router()
 
-router.get('/question',  authMiddleware, getQuestion)
+router.get('/question', authMiddleware, getQuestion)
 router.get('/questions', authMiddleware, getQuestions)
-router.post('/session',  authMiddleware, createSession)
+router.post('/session', authMiddleware, createSession)
 router.post('/submit-answer', authMiddleware, submitAnswer)
-router.post('/timeout',  authMiddleware, timeoutSession)
+router.post('/timeout', authMiddleware, timeoutSession)
 
 export default router

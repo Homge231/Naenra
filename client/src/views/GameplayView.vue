@@ -29,7 +29,7 @@
             <div class="px-5 py-3 border-b border-white/10 bg-black/20">
               <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Match in progress</p>
               <p class="text-sm text-gray-200 font-mono mt-1">Score: <span class="text-white font-bold">{{ score
-              }}</span></p>
+                  }}</span></p>
             </div>
             <button @click.stop="goHome"
               class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-left">
@@ -187,6 +187,12 @@
         :style="{ width: `${(timeLeft / MATCH_DURATION) * 100}%` }"></div>
     </div>
 
+    <div v-if="playerAvatarUrl" class="absolute bottom-6 left-6 z-30 pointer-events-none">
+  <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue to-lightBlue p-0.5 shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+    <img :src="playerAvatarUrl" alt="Player Avatar" class="w-full h-full rounded-full object-cover bg-darkNavy" />
+  </div>
+</div>
+
     <transition name="timeout-overlay">
       <div v-if="gameState === 'timeout'" class="absolute inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-xl"></div>
@@ -302,6 +308,7 @@ const confirmQuit = ref(false)
 const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const currentBgImage = ref('/bg-daily-life.png')
+const playerAvatarUrl = ref<string>('') // New ref for the avatar
 
 // ── Question queue ────────────────────────────────────────────────────────────
 const questionQueue = ref<QuestionPayload[]>([])
@@ -350,6 +357,10 @@ async function createSession() {
     
     if (data.theme) {
       currentBgImage.value = getBackgroundImage(data.theme)
+    }
+
+    if (data.avatar_url) {
+      playerAvatarUrl.value = data.avatar_url
     }
   } catch (err) {
     console.error(err)
