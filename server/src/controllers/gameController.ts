@@ -109,5 +109,38 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
 }
 
 export async function timeoutSession(req: Request, res: Response): Promise<void> {
-  // ... (giữ nguyên logic cũ của bạn)
+  try {
+    const playerId = (req as any).user?.id
+    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+    const { session_id, score, questions_answered } = req.body
+    if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
+
+    const { data: session, error: fetchErr } = await supabase
+      .from('game_sessions')
+      .select('id, status')
+      .eq('id', session_id)
+      .eq('player_id', playerId)
+      .single()
+
+    if (fetchErr || !session) { res.status(404).json({ error: 'Session not found' }); return }
+    if (session.status !== 'active') { res.status(409).json({ error: 'Session already ended' }); return }
+
+    const { error: updateErr } = await supabase
+      .from('game_sessions')
+      .update({
+        status: 'timeout',
+        score: score ?? 0,
+        questions_answered: questions_answered ?? 0,
+        ended_at: new Date().toISOString()
+      })
+      .eq('id', session_id)
+
+    if (updateErr) throw updateErr
+
+    res.status(200).json({ message: 'Session ended' })
+  } catch (err) {
+    console.error('timeoutSession error:', err)
+    res.status(500).json({ error: 'Failed to end session.' })
+  }
 }
