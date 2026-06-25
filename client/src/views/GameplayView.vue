@@ -69,7 +69,7 @@
         <div class="text-right hidden md:block">
           <p class="text-[10px] text-gray-400 uppercase tracking-widest drop-shadow-sm">Score</p>
           <p class="font-black text-xl text-white drop-shadow-md inline-block transition-colors duration-200"
-            :class="{ 'score-pop text-orange': isScoreAnimating }">
+            :class="{ 'score-pop text-orange': isScoreAnimating && gameState === 'correct', 'score-pop text-hexred': isScoreAnimating && gameState === 'wrong' }">
             {{ score }}
           </p>
         </div>
@@ -162,7 +162,11 @@
                     'border-hexred/50 bg-hexred/20 text-red-300': gameState === 'wrong',
                   }">
                   <span v-if="gameState === 'correct'">✓ Brilliant! +{{ pointsEarned }} pts</span>
-                  <span v-else>✕ Correct word: <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.target_word }}</span></span>
+                  <span v-else>
+                    ✕ Correct word:
+                    <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.target_word }}</span>
+                    <span class="ml-3 text-hexred/80">−{{ pointsDeducted }} pts</span>
+                  </span>
                 </div>
               </transition>
 
@@ -293,6 +297,7 @@ const score = ref(0)
 const isScoreAnimating = ref(false)
 const questionsAnswered = ref(0)
 const pointsEarned = ref(0)
+const pointsDeducted = ref(0)
 const typedLetters = ref<string[]>([])
 const inputRef = ref<HTMLInputElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
@@ -452,7 +457,8 @@ function handleKeydown(e: KeyboardEvent) {
 
 function checkAnswer() {
   const typed = typedLetters.value.join('')
-  const isCorrect = typed === currentQuestion.value.target_word
+  const target = currentQuestion.value.target_word
+  const isCorrect = typed === target
 
   if (isCorrect) {
     gameState.value = 'correct'
@@ -464,6 +470,17 @@ function checkAnswer() {
     setTimeout(() => { isScoreAnimating.value = false }, 300)
   } else {
     gameState.value = 'wrong'
+    // Count mismatched letters (typed vs target, position by position)
+    let wrongCount = 0
+    for (let i = 0; i < target.length; i++) {
+      if (typed[i] !== target[i]) wrongCount++
+    }
+    // penalty: 5 pts per wrong letter, min 5, max 25
+    const penalty = Math.min(25, Math.max(5, Math.floor(wrongCount * 5)))
+    pointsDeducted.value = penalty
+    score.value = Math.max(0, score.value - penalty)
+    isScoreAnimating.value = true
+    setTimeout(() => { isScoreAnimating.value = false }, 300)
   }
 
   setTimeout(() => {
