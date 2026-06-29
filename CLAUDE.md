@@ -1,4 +1,4 @@
-# ARENA.ENG — Project Context
+# ARENA.ENG – Project Context
 
 ## Stack
 
@@ -27,7 +27,7 @@
 | `src/views/VerifyOTPView.vue` | 6-digit OTP input; calls `POST /auth/verify-otp` |
 | `src/views/HomeView.vue` | Authenticated home / matchmaking stub; avatar clickable → /profile |
 | `src/views/ProfileView.vue` | View + edit username/avatar; shows elo, rank, wins, losses, matches |
-| `src/views/GameplayView.vue` | Full match UI: countdown timer, question display, letter slots, timeout overlay; **batch queue system** — fetches 20 questions at once via `GET /api/game/questions`, refetches when queue ≤ 5 remaining; calls `POST /api/game/session` on mount and `POST /api/game/timeout` on timer end |
+| `src/views/GameplayView.vue` | Full match UI: countdown timer, question display, letter slots, timeout overlay; **batch queue system** → fetches 20 questions at once via `GET /api/game/questions`, refetches when queue ≤ 5 remaining; calls `POST /api/game/session` on mount and `POST /api/game/timeout` on timer end; **calls `POST /api/game/submit-answer` immediately on each answer** → updates score state from BE response; **floating "+N PTS" / "-N PTS" animation** anchored to letter-slot coordinates; **score progress bar** with smooth CSS transition |
 | `src/views/ForgotPasswordView.vue` | Supabase `resetPasswordForEmail` |
 | `src/views/ResetPasswordView.vue` | Supabase `updateUser` (handles `#access_token` hash) |
 | `src/views/SignupView.vue` | DEAD CODE — delete before Sprint 2 |
@@ -39,9 +39,9 @@
 | `src/index.ts` | Express + HTTP server on port 3000; mounts `/auth`, `/api/user`, `/api/game`; body limit 10mb; CORS configured for naenra.xyz, www.naenra.xyz, axonproject.onrender.com, localhost:5173 |
 | `src/routes/authRoutes.ts` | All auth endpoints incl. `GET /auth/check-email` |
 | `src/routes/userRoutes.ts` | Profile endpoints: GET/PATCH `/api/user/profile` |
-| `src/routes/gameRoutes.ts` | Game endpoints: GET `/api/game/question`, GET `/api/game/questions`, POST `/api/game/session`, POST `/api/game/timeout` |
+| `src/routes/gameRoutes.ts` | Game endpoints: GET `/api/game/question`, GET `/api/game/questions`, POST `/api/game/session`, POST `/api/game/submit-answer`, POST `/api/game/timeout`, POST `/api/game/abandon` |
 | `src/controllers/userController.ts` | getUserProfile, updateUserProfile; rank computed from elo |
-| `src/controllers/gameController.ts` | getQuestion, getQuestions, createSession, timeoutSession |
+| `src/controllers/gameController.ts` | getQuestion, getQuestions, createSession, submitAnswer, timeoutSession, abandonSession |
 | `src/middleware/authMiddleware.ts` | JWT Bearer verification; attaches `req.user` |
 | `src/utils/jwt.ts` | `generateToken` / `verifyToken` (7d expiry) |
 | `src/utils/otp.ts` | In-memory OTP store (10-min TTL) |
@@ -101,11 +101,19 @@ Gameplay mount →
 During match (infinite loop until timeout) →
   Player types answer → correct/wrong feedback (1s) → next question popped from queue
   When queue ≤ 5 remaining → GET /api/game/questions fetched in background (no latency)
-  No limit on questions answered — gameplay continues until timer hits 0
+  No limit on questions answered → gameplay continues until timer hits 0
+
+On each answer submission →
+  POST /api/game/submit-answer { session_id, question_id, answer }
+  → BE validates answer, computes points_earned or points_deducted, updates game_sessions row
+  → Response: { correct, points_earned, points_deducted, current_total_score, questions_answered }
+  → FE updates score, questionsAnswered from authoritative BE values
+  → Floating "+N PTS" or "-N PTS" text animates upward from letter-slot area
+  → Score progress bar smoothly transitions to new width
 
 Timer hits 0 → triggerTimeout()
   → gameState = 'timeout' (blocks keyboard input, shows TIME OUT overlay)
-  → POST /api/game/timeout { session_id, score, questions_answered }
+  → POST /api/game/timeout { session_id }
   → server locks row: status='timeout', ended_at=now(), score, questions_answered saved
   → duplicate calls rejected with 409 if session already ended
 ```
@@ -116,12 +124,12 @@ Timer hits 0 → triggerTimeout()
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/auth/register` | — | Validate, check for conflicts (incl. Google-only), send OTP, store pending |
-| POST | `/auth/verify-otp` | — | Verify OTP, create user+player row (explicit elo:0) |
-| POST | `/auth/resend-otp` | — | Resend OTP |
-| POST | `/auth/login` | — | Check not Google-only, email/password login |
-| POST | `/auth/token` | — | Exchange Supabase token for arena JWT + upsert player row (explicit elo:0) |
-| GET | `/auth/check-email` | — | Check if email exists and which provider (google/email) |
+| POST | `/auth/register` | ✗ | Validate, check for conflicts (incl. Google-only), send OTP, store pending |
+| POST | `/auth/verify-otp` | ✗ | Verify OTP, create user+player row (explicit elo:0) |
+| POST | `/auth/resend-otp` | ✗ | Resend OTP |
+| POST | `/auth/login` | ✗ | Check not Google-only, email/password login |
+| POST | `/auth/token` | ✗ | Exchange Supabase token for arena JWT + upsert player row (explicit elo:0) |
+| GET | `/auth/check-email` | ✗ | Check if email exists and which provider (google/email) |
 | GET | `/auth/me` | JWT | Return decoded user |
 | GET | `/auth/profile` | JWT | Return players row (legacy) |
 | GET | `/api/user/profile` | JWT | Return full profile: username, avatar_url, elo, rank, wins, losses, total_matches |
@@ -129,8 +137,10 @@ Timer hits 0 → triggerTimeout()
 | GET | `/api/game/question` | JWT | Return 1 random question (legacy, kept for compatibility) |
 | GET | `/api/game/questions` | JWT | Return batch of 20 random questions, no duplicates within batch |
 | POST | `/api/game/session` | JWT | Create active game session, returns session_id |
+| POST | `/api/game/submit-answer` | JWT | Submit typed answer; returns `{ correct, points_earned, points_deducted, current_total_score, questions_answered }` |
 | POST | `/api/game/timeout` | JWT | Lock session on timeout; sets status='timeout', saves score |
-| GET | `/health` | — | Server status |
+| POST | `/api/game/abandon` | JWT | Mark session as abandoned when player leaves mid-match |
+| GET | `/health` | ✗ | Server status |
 
 ---
 
@@ -160,9 +170,20 @@ Table `game_sessions` — actual schema:
 | player_id | uuid | FK → players.id |
 | score | int | default 0 |
 | questions_answered | int | default 0 |
-| status | text | 'active' \| 'timeout'; default 'active' |
+| status | text | 'active' \| 'timeout' \| 'abandoned'; default 'active' |
 | started_at | timestamptz | default now() |
-| ended_at | timestamptz | nullable; set on timeout |
+| ended_at | timestamptz | nullable; set on timeout or abandon |
+
+Table `game_session_answers`:
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | PK |
+| session_id | uuid | FK → game_sessions.id |
+| question_id | uuid | FK → questions.id |
+| answer | text | Player's typed answer |
+| correct | bool | Whether answer matched target_word |
+| points_delta | int | Positive (earned) or negative (deducted) |
 
 Table `questions`:
 
@@ -200,14 +221,15 @@ MAIL_PASS=
 
 ## Known Issues / Architecture Notes
 
-- `pendingRegistrations` is in-memory — lost on server restart. Documented limitation for Sprint 1; move to Redis/Supabase in future sprint.
-- No rate limiting on auth endpoints yet — Sprint 1 deferred.
-- `BackgroundScene` has placeholder debug text — remove before any demo.
-- `SignupView.vue` and `/signup` route are dead code — delete before Sprint 2.
-- Avatar upload stores base64 in Supabase DB column — not ideal for large images. Move to Supabase Storage in future sprint.
+- `pendingRegistrations` is in-memory → lost on server restart. Documented limitation for Sprint 1; move to Redis/Supabase in future sprint.
+- No rate limiting on auth endpoints yet → Sprint 1 deferred.
+- `BackgroundScene` has placeholder debug text → remove before any demo.
+- `SignupView.vue` and `/signup` route are dead code → delete before Sprint 2.
+- Avatar upload stores base64 in Supabase DB column → not ideal for large images. Move to Supabase Storage in future sprint.
 - **Dual auth architecture**: custom JWT (`arena_token`) for all API calls + Supabase session for OAuth/password reset. `fetchProfile` in authStore now always uses the arena JWT to call `/api/user/profile`, avoiding Supabase RLS issues that previously caused elo to show as 0.
-- `GET /auth/check-email` scans the players table then calls `admin.getUserById` — fine at small scale, but consider caching or a direct identity lookup before production scaling.
-- **Batch question loading**: `GET /api/game/questions` shuffles all IDs in memory — fine for current question bank size. For 10k+ questions, switch to `ORDER BY RANDOM() LIMIT 20` or a cursor-based approach.
+- `GET /auth/check-email` scans the players table then calls `admin.getUserById` → fine at small scale, but consider caching or a direct identity lookup before production scaling.
+- **Batch question loading**: `GET /api/game/questions` shuffles all IDs in memory → fine for current question bank size. For 10k+ questions, switch to `ORDER BY RANDOM() LIMIT 20` or a cursor-based approach.
+- **Score progress bar soft cap**: bar treats 2000 pts as "full width" for visual purposes; actual score continues to accumulate beyond that.
 
 ---
 
@@ -248,13 +270,18 @@ MAIL_PASS=
 
 **Sprint 2 (complete)**:
 - GameplayView: 60s match, letter-slot UI, correct/wrong feedback, TIME OUT overlay
-- `POST /api/game/session` — creates active session on match start
-- `POST /api/game/timeout` — locks session with score on timer end; rejects duplicate calls with 409
-- `GET /api/game/question` — single random question from DB (legacy, kept for compatibility)
-- `GET /api/game/questions` — batch of 20 random questions (US-05); client uses local queue, refetches at ≤5 remaining
-- `GET /auth/check-email` — Google-only account detection on login email blur
+- `POST /api/game/session` → creates active session on match start
+- `POST /api/game/timeout` → locks session with score on timer end; rejects duplicate calls with 409
+- `POST /api/game/submit-answer` → validates answer per-question, scores in BE, returns authoritative totals
+- `POST /api/game/abandon` → marks session abandoned when player quits mid-match
+- `GET /api/game/question` → single random question from DB (legacy, kept for compatibility)
+- `GET /api/game/questions` → batch of 20 random questions (US-05); client uses local queue, refetches at ≤5 remaining
+- `GET /auth/check-email` → Google-only account detection on login email blur
 - Questions table integrated; mock questions removed from client (fallback mocks remain for offline dev)
 - Infinite question stream: no question limit per match, gameplay runs until timer hits 0
+- **Score API integration**: `POST /api/game/submit-answer` called immediately on answer; FE state updated from BE response
+- **Floating score popup**: "+N PTS" / "-N PTS" rises and fades at letter-slot coordinates
+- **Score progress bar**: smooth CSS-transition bar below timer bar; colour shifts by score tier
 
 **Sprint 3 (next)**: Colyseus multiplayer rooms, matchmaking, real-time opponent sync, CoreSelectionView, ELO updates after match.
 
@@ -297,7 +324,7 @@ success: '#22C55E'
 - Custom Domain: https://naenra.xyz
 
 **Environment Variables:**
-- Client: VITE_SERVER_URL=https://axonprojsect-1.onrender.com
+- Client: VITE_SERVER_URL=https://axonproject-1.onrender.com
 - Client: VITE_SITE_URL=https://naenra.xyz
 
 ## Agent Instructions

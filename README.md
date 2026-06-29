@@ -1,4 +1,4 @@
-# ARENA.ENG — Naenra
+# ARENA.ENG – Naenra
 
 A web-based typing esports arena built with Vue 3 + TypeScript frontend and an Express/Colyseus backend.
 
@@ -72,7 +72,12 @@ MAIL_PASS=
 
 Each match is **60 seconds**. Players receive an infinite stream of fill-in-the-blank questions and earn points for every correct answer. Typing the correct word immediately loads the next question — no limit on questions per match.
 
-**Scoring:** `100 points per correct answer.`
+**Scoring:** `100 points per correct answer. Wrong answers deduct 5–25 points based on how many letters differ.`
+
+**Live score feedback:**
+- Score state is updated from the authoritative BE response after each answer.
+- A floating **"+N PTS"** (green) or **"-N PTS"** (red) text animates upward from the letter-slot area, rising and fading over ~1.2 s.
+- A **score progress bar** at the bottom of the screen fills and transitions smoothly with each update; its colour shifts from blue → orange → green as the score climbs.
 
 **Question loading:** The client pre-fetches a batch of 20 questions on match start. When the queue drops to 5 or fewer, a new batch is fetched in the background — ensuring zero latency between questions.
 
@@ -80,19 +85,21 @@ Each match is **60 seconds**. Players receive an infinite stream of fill-in-the-
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/auth/register` | — | Register with email + OTP verification |
-| POST | `/auth/verify-otp` | — | Verify OTP and create account |
-| POST | `/auth/resend-otp` | — | Resend OTP |
-| POST | `/auth/login` | — | Email/password login |
-| POST | `/auth/token` | — | Exchange Supabase token for arena JWT (Google OAuth) |
-| GET | `/auth/check-email` | — | Check provider for an email address |
+| POST | `/auth/register` | ✗ | Register with email + OTP verification |
+| POST | `/auth/verify-otp` | ✗ | Verify OTP and create account |
+| POST | `/auth/resend-otp` | ✗ | Resend OTP |
+| POST | `/auth/login` | ✗ | Email/password login |
+| POST | `/auth/token` | ✗ | Exchange Supabase token for arena JWT (Google OAuth) |
+| GET | `/auth/check-email` | ✗ | Check provider for an email address |
 | GET | `/api/user/profile` | JWT | Get full player profile |
 | PATCH | `/api/user/profile` | JWT | Update username and/or avatar |
 | GET | `/api/game/question` | JWT | Single random question (legacy) |
 | GET | `/api/game/questions` | JWT | Batch of 20 random questions |
 | POST | `/api/game/session` | JWT | Create active game session |
+| POST | `/api/game/submit-answer` | JWT | Submit answer; returns `{ correct, points_earned, points_deducted, current_total_score, questions_answered }` |
 | POST | `/api/game/timeout` | JWT | Lock session on timeout with final score |
-| GET | `/health` | — | Server status |
+| POST | `/api/game/abandon` | JWT | Abandon session when player quits mid-match |
+| GET | `/health` | ✗ | Server status |
 
 ## Deployment (Render)
 
