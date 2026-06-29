@@ -6,6 +6,23 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY!
 )
 
+const BASE_POINTS = 100
+
+function normalizeAnswer(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function getWrongAnswerPenalty(answer: string, target: string): number {
+  let wrongCount = Math.abs(target.length - answer.length)
+  const comparableLength = Math.min(answer.length, target.length)
+
+  for (let i = 0; i < comparableLength; i++) {
+    if (answer[i] !== target[i]) wrongCount++
+  }
+
+  return Math.min(25, Math.max(5, wrongCount * 5))
+}
+
 export async function getQuestion(_req: Request, res: Response): Promise<void> {
   try {
     const { data: ids, error: idError } = await supabase.from('questions').select('id')
@@ -83,6 +100,11 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
     const { session_id, question_id, answer } = req.body
+    if (!session_id || !question_id || typeof answer !== 'string') {
+      res.status(400).json({ error: 'session_id, question_id and answer are required' })
+      return
+    }
+
     const { data: session, error: sessErr } = await supabase
       .from('game_sessions')
       .select('id, status, score, questions_answered')
@@ -95,16 +117,47 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
     const { data: question, error: qErr } = await supabase.from('questions').select('target_word').eq('id', question_id).single()
     if (qErr || !question) { res.status(404).json({ error: 'Question not found' }); return }
 
-    const isCorrect = answer.toLowerCase() === question.target_word.toLowerCase()
-    if (isCorrect) {
-      const points = 100
-      const newScore = (session.score || 0) + points
-      const newQuestionsAnswered = (session.questions_answered || 0) + 1
-      await supabase.from('game_sessions').update({ score: newScore, questions_answered: newQuestionsAnswered }).eq('id', session_id)
-      res.status(200).json({ correct: true, points_earned: points, current_total_score: newScore, questions_answered: newQuestionsAnswered })
-    } else {
-      res.status(200).json({ correct: false, points_earned: 0, current_total_score: session.score, questions_answered: session.questions_answered })
+    const normalizedAnswer = normalizeAnswer(answer)
+    const normalizedTarget = normalizeAnswer(question.target_word)
+    const isCorrect = normalizedAnswer === normalizedTarget
+    const pointsDelta = isCorrect ? BASE_POINTS : -getWrongAnswerPenalty(normalizedAnswer, normalizedTarget)
+
+    const { error: answerErr } = await supabase
+      .from('game_session_answers')
+      .insert({
+        session_id,
+        question_id,
+        answer,
+        correct: isCorrect,
+        points_delta: pointsDelta
+      })
+
+    if (answerErr) {
+      if (answerErr.code === '23505') {
+        res.status(409).json({ error: 'Question already answered for this session' })
+        return
+      }
+      throw answerErr
     }
+
+    const newScore = Math.max(0, (session.score || 0) + pointsDelta)
+    const newQuestionsAnswered = (session.questions_answered || 0) + 1
+    const { error: updateErr } = await supabase
+      .from('game_sessions')
+      .update({ score: newScore, questions_answered: newQuestionsAnswered })
+      .eq('id', session_id)
+      .eq('player_id', playerId)
+      .eq('status', 'active')
+
+    if (updateErr) throw updateErr
+
+    res.status(200).json({
+      correct: isCorrect,
+      points_earned: isCorrect ? BASE_POINTS : 0,
+      points_deducted: isCorrect ? 0 : Math.abs(pointsDelta),
+      current_total_score: newScore,
+      questions_answered: newQuestionsAnswered
+    })
   } catch (err) {
     console.error('submitAnswer error:', err)
     res.status(500).json({ error: 'Failed to submit.' })
@@ -116,7 +169,50 @@ export async function timeoutSession(req: Request, res: Response): Promise<void>
     const playerId = (req as any).user?.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id, score, questions_answered } = req.body
+    const { session_id } = req.body
+    if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
+
+    const { data: session, error: fetchErr } = await supabase
+      .from('game_sessions')
+      .select('id, status, score, questions_answered')
+      .eq('id', session_id)
+      .eq('player_id', playerId)
+      .single()
+
+    if (fetchErr || !session) { res.status(404).json({ error: 'Session not found' }); return }
+    if (session.status !== 'active') { res.status(409).json({ error: 'Session already ended' }); return }
+
+    const { error: updateErr } = await supabase
+      .from('game_sessions')
+      .update({
+        status: 'timeout',
+        score: session.score ?? 0,
+        questions_answered: session.questions_answered ?? 0,
+        ended_at: new Date().toISOString()
+      })
+      .eq('id', session_id)
+      .eq('player_id', playerId)
+      .eq('status', 'active')
+
+    if (updateErr) throw updateErr
+
+    res.status(200).json({
+      message: 'Session ended',
+      score: session.score ?? 0,
+      questions_answered: session.questions_answered ?? 0
+    })
+  } catch (err) {
+    console.error('timeoutSession error:', err)
+    res.status(500).json({ error: 'Failed to end session.' })
+  }
+}
+
+export async function abandonSession(req: Request, res: Response): Promise<void> {
+  try {
+    const playerId = (req as any).user?.id
+    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+    const { session_id } = req.body
     if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
 
     const { data: session, error: fetchErr } = await supabase
@@ -132,18 +228,18 @@ export async function timeoutSession(req: Request, res: Response): Promise<void>
     const { error: updateErr } = await supabase
       .from('game_sessions')
       .update({
-        status: 'timeout',
-        score: score ?? 0,
-        questions_answered: questions_answered ?? 0,
+        status: 'abandoned',
         ended_at: new Date().toISOString()
       })
       .eq('id', session_id)
+      .eq('player_id', playerId)
+      .eq('status', 'active')
 
     if (updateErr) throw updateErr
 
-    res.status(200).json({ message: 'Session ended' })
+    res.status(200).json({ message: 'Session abandoned' })
   } catch (err) {
-    console.error('timeoutSession error:', err)
-    res.status(500).json({ error: 'Failed to end session.' })
+    console.error('abandonSession error:', err)
+    res.status(500).json({ error: 'Failed to abandon session.' })
   }
 }

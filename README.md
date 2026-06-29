@@ -118,7 +118,7 @@ VITE_SERVER_URL=https://axonproject-1.onrender.com
 VITE_SITE_URL=https://naenra.xyz
 ```
 
-**Server ENV on Render:**s
+**Server ENV on Render:**
 ```
 SUPABASE_URL=
 SUPABASE_SERVICE_KEY=

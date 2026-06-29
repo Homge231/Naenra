@@ -380,18 +380,21 @@ async function callTimeoutEndpoint() {
   savingSession.value = true
   try {
     const token = localStorage.getItem('arena_token')
-    await fetch(`${SERVER_URL}/api/game/timeout`, {
+    const res = await fetch(`${SERVER_URL}/api/game/timeout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
       body: JSON.stringify({
-        session_id: sessionId.value,
-        score: score.value,
-        questions_answered: questionsAnswered.value,
+        session_id: sessionId.value
       })
     })
+    if (res.ok) {
+      const data = await res.json()
+      score.value = data.score ?? score.value
+      questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+    }
   } catch (err) {
     console.error(err)
   } finally {
@@ -479,10 +482,7 @@ function checkAnswer() {
   if (isCorrect) {
     gameState.value = 'correct'
     pointsEarned.value = BASE_POINTS
-    score.value += pointsEarned.value
-    questionsAnswered.value++
     triggerScoreFlash('correct')
-    syncAnswer(typed)
   } else {
     gameState.value = 'wrong'
 
@@ -492,9 +492,10 @@ function checkAnswer() {
     }
     const penalty = Math.min(25, Math.max(5, wrongCount * 5))
     pointsDeducted.value = penalty
-    score.value = Math.max(0, score.value - penalty)
     triggerScoreFlash('wrong')
   }
+
+  syncAnswer(typed)
 
   setTimeout(() => {
     if (gameState.value !== 'timeout') loadQuestion()
@@ -505,7 +506,7 @@ async function syncAnswer(answer: string) {
   if (!sessionId.value || !currentQuestion.value.id) return
   try {
     const token = localStorage.getItem('arena_token')
-    await fetch(`${SERVER_URL}/api/game/submit-answer`, {
+    const res = await fetch(`${SERVER_URL}/api/game/submit-answer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -517,6 +518,13 @@ async function syncAnswer(answer: string) {
         answer: answer
       })
     })
+    if (res.ok) {
+      const data = await res.json()
+      score.value = data.current_total_score ?? score.value
+      questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+      pointsEarned.value = data.points_earned ?? pointsEarned.value
+      pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
+    }
   } catch (err) {
     console.error('Failed to sync answer:', err)
   }
@@ -544,7 +552,25 @@ async function restartMatch() {
 
 function goHome() {
   stopMatchTimer()
+  abandonCurrentSession()
   router.push('/home')
+}
+
+async function abandonCurrentSession() {
+  if (!sessionId.value || gameState.value === 'timeout') return
+  try {
+    const token = localStorage.getItem('arena_token')
+    await fetch(`${SERVER_URL}/api/game/abandon`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ session_id: sessionId.value })
+    })
+  } catch (err) {
+    console.error('Failed to abandon session:', err)
+  }
 }
 
 // ── Misc ──────────────────────────────────────────────────────────────────────
