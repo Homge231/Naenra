@@ -192,20 +192,7 @@
         :style="{ width: `${(timeLeft / MATCH_DURATION) * 100}%` }"></div>
     </div>
 
-    <!-- Score progress bar -->
-    <div class="relative z-20 w-full bg-black/40">
-      <div class="flex items-center gap-3 px-8 lg:px-12 py-2">
-        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Score</span>
-        <div class="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-          <div
-            class="h-full rounded-full score-bar-fill"
-            :class="scoreBarColor"
-            :style="{ width: `${scoreBarPercent}%` }"
-          ></div>
-        </div>
-        <span class="text-xs font-black tabular-nums text-white min-w-[4ch] text-right">{{ score }}</span>
-      </div>
-    </div>
+    <!-- Player Avatar -->
 
     <Avatar :src="playerAvatarUrl" alt="Player Avatar" />
 
