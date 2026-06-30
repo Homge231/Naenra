@@ -6,13 +6,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY!
 )
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 const BASE_POINTS = 100
 const COMBO_BONUS_PER_STREAK = 10   // +10 pts per combo level (combo 5 → +50)
 const MAX_COMBO_BONUS = 100         // cap combo bonus at +100 pts
 const DEFAULT_CORE_ID = '00000000-0000-0000-0000-000000000001' // "No Core"
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 interface CoreRow {
   id: string
   name: string
@@ -20,7 +20,7 @@ interface CoreRow {
   multiplier_buff: number
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function normalizeAnswer(value: unknown): string {
   return String(value ?? '').trim().toLowerCase()
 }
@@ -38,6 +38,9 @@ function getWrongAnswerPenalty(answer: string, target: string): number {
  * Core scoring formula:
  *   correct  → floor( ((BASE + comboBonus) + flat_buff) * multiplier_buff )
  *   wrong    → -(penalty)  [no core buffs applied to wrong answers]
+ *
+ * comboBonus only applies when the active core is the "Combo Core".
+ * All other cores ignore combo streak entirely.
  */
 function calculateScore(
   isCorrect: boolean,
@@ -52,7 +55,11 @@ function calculateScore(
     }
   }
 
-  const comboBonus = Math.min(combo * COMBO_BONUS_PER_STREAK, MAX_COMBO_BONUS)
+  const isComboCore = core.name?.toLowerCase().includes('combo')
+  const comboBonus = isComboCore
+    ? Math.min(combo * COMBO_BONUS_PER_STREAK, MAX_COMBO_BONUS)
+    : 0
+
   const beforeMultiplier = BASE_POINTS + comboBonus + core.flat_buff
   const total = Math.floor(beforeMultiplier * core.multiplier_buff)
 
@@ -68,7 +75,7 @@ function calculateScore(
   }
 }
 
-// ── Endpoint: GET /api/game/question (legacy) ─────────────────────────────────
+// ── Endpoint: GET /api/game/question (legacy) ───────────────────────────────
 export async function getQuestion(_req: Request, res: Response): Promise<void> {
   try {
     const { data: ids, error: idError } = await supabase.from('questions').select('id')
@@ -90,7 +97,7 @@ export async function getQuestion(_req: Request, res: Response): Promise<void> {
   }
 }
 
-// ── Endpoint: GET /api/game/questions ────────────────────────────────────────
+// ── Endpoint: GET /api/game/questions ───────────────────────────────────────
 export async function getQuestions(_req: Request, res: Response): Promise<void> {
   const BATCH_SIZE = 20
   try {
@@ -115,7 +122,7 @@ export async function getQuestions(_req: Request, res: Response): Promise<void> 
   }
 }
 
-// ── Endpoint: GET /api/game/cores ────────────────────────────────────────────
+// ── Endpoint: GET /api/game/cores ───────────────────────────────────────────
 export async function getCores(_req: Request, res: Response): Promise<void> {
   try {
     const { data: cores, error } = await supabase
@@ -131,7 +138,7 @@ export async function getCores(_req: Request, res: Response): Promise<void> {
   }
 }
 
-// ── Endpoint: POST /api/game/session ─────────────────────────────────────────
+// ── Endpoint: POST /api/game/session ────────────────────────────────────────
 export async function createSession(req: Request, res: Response): Promise<void> {
   try {
     const playerId = (req as any).user?.id
@@ -139,7 +146,6 @@ export async function createSession(req: Request, res: Response): Promise<void> 
 
     const { active_core_id } = req.body
 
-    // Validate core exists if provided
     const coreId = active_core_id ?? DEFAULT_CORE_ID
     const { data: core, error: coreErr } = await supabase
       .from('cores')
@@ -184,11 +190,12 @@ export async function createSession(req: Request, res: Response): Promise<void> 
   }
 }
 
-// ── Endpoint: POST /api/game/submit-answer ────────────────────────────────────
+// ── Endpoint: POST /api/game/submit-answer ──────────────────────────────────
 /**
  * Receives:  { session_id, question_id, answer, time_taken?, current_combo, active_core_id }
  * Validates: active_core_id matches game_sessions.active_core_id (anti-cheat)
  * Calculates: ((Base + ComboBonus) + FlatBuff) * MultiplierBuff
+ *             ComboBonus only applies when active core is "Combo Core"
  * Returns:   { status, correct, points_earned, points_deducted, current_total_score, questions_answered, breakdown }
  */
 export async function submitAnswer(req: Request, res: Response): Promise<void> {
@@ -198,7 +205,6 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
 
     const { session_id, question_id, answer, time_taken, current_combo, active_core_id } = req.body
 
-    // ── 1. Input validation ───────────────────────────────────────────────────
     if (!session_id || !question_id || typeof answer !== 'string') {
       res.status(400).json({ error: 'session_id, question_id and answer are required.' })
       return
@@ -208,7 +214,6 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
       ? Math.floor(current_combo)
       : 0
 
-    // ── 2. Fetch session (verify ownership & status) ──────────────────────────
     const { data: session, error: sessErr } = await supabase
       .from('game_sessions')
       .select('id, status, score, questions_answered, active_core_id')
@@ -225,7 +230,6 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
       return
     }
 
-    // ── 3. Anti-cheat: validate submitted core matches session core ────────────
     const sessionCoreId = session.active_core_id ?? DEFAULT_CORE_ID
     const submittedCoreId = active_core_id ?? DEFAULT_CORE_ID
 
@@ -239,7 +243,6 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
       return
     }
 
-    // ── 4. Fetch core buffs ───────────────────────────────────────────────────
     const { data: coreRow, error: coreErr } = await supabase
       .from('cores')
       .select('id, name, flat_buff, multiplier_buff')
@@ -253,7 +256,6 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
 
     const core: CoreRow = coreRow
 
-    // ── 5. Fetch question & evaluate answer ──────────────────────────────────
     const { data: question, error: qErr } = await supabase
       .from('questions')
       .select('target_word')
@@ -271,10 +273,8 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
 
     const wrongPenalty = isCorrect ? 0 : getWrongAnswerPenalty(normalizedAnswer, normalizedTarget)
 
-    // ── 6. Calculate score ────────────────────────────────────────────────────
     const { pointsDelta, breakdown } = calculateScore(isCorrect, combo, core, wrongPenalty)
 
-    // ── 7. Record the answer (unique per session+question) ────────────────────
     const { error: answerErr } = await supabase
       .from('game_session_answers')
       .insert({
@@ -293,7 +293,6 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
       throw answerErr
     }
 
-    // ── 8. Update session totals ──────────────────────────────────────────────
     const newScore = Math.max(0, (session.score || 0) + pointsDelta)
     const newQuestionsAnswered = (session.questions_answered || 0) + 1
 
@@ -306,7 +305,6 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
 
     if (updateErr) throw updateErr
 
-    // ── 9. Build response ─────────────────────────────────────────────────────
     const pointsEarned = isCorrect ? pointsDelta : 0
     const pointsDeducted = isCorrect ? 0 : Math.abs(pointsDelta)
 
@@ -332,7 +330,7 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
   }
 }
 
-// ── Endpoint: POST /api/game/timeout ─────────────────────────────────────────
+// ── Endpoint: POST /api/game/timeout ────────────────────────────────────────
 export async function timeoutSession(req: Request, res: Response): Promise<void> {
   try {
     const playerId = (req as any).user?.id
@@ -376,7 +374,7 @@ export async function timeoutSession(req: Request, res: Response): Promise<void>
   }
 }
 
-// ── Endpoint: POST /api/game/abandon ─────────────────────────────────────────
+// ── Endpoint: POST /api/game/abandon ────────────────────────────────────────
 export async function abandonSession(req: Request, res: Response): Promise<void> {
   try {
     const playerId = (req as any).user?.id

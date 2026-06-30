@@ -74,12 +74,6 @@
 
         <div
           class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
-          <span class="text-xs font-bold text-lightOrange tracking-[0.2em] uppercase">Combo</span>
-          <span class="text-xl font-black text-white">x{{ currentCombo }}</span>
-        </div>
-
-        <div
-          class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
           <span class="text-xs font-bold text-lightBlue tracking-[0.2em] uppercase">Q</span>
           <span class="text-xl font-black text-white">{{ questionsAnswered }}</span>
         </div>
@@ -204,6 +198,14 @@
         :style="{ width: `${(timeLeft / MATCH_DURATION) * 100}%` }"></div>
     </div>
 
+    <!-- Combo indicator: only visible when active core is the Combo Core -->
+    <div v-if="isComboCore" class="relative z-20 flex justify-center -mt-1">
+      <div class="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-lightOrange/30 px-5 py-1.5 rounded-b-lg shadow-inner">
+        <span class="text-xs font-bold text-lightOrange tracking-[0.2em] uppercase">Combo</span>
+        <span class="text-xl font-black text-white">x{{ currentCombo }}</span>
+      </div>
+    </div>
+
     <!-- Player Avatar -->
 
     <Avatar :src="playerAvatarUrl" alt="Player Avatar" />
@@ -315,7 +317,6 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const MATCH_DURATION = 60
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
-// Score bar: treat 2000 pts as "full" bar — scales naturally beyond
 const SCORE_BAR_MAX = 2000
 
 const THEME_MAP: Record<string, string> = {
@@ -343,11 +344,15 @@ const sessionId = ref<string | null>(null)
 const currentBgImage = ref('/bg-daily-life.png')
 const currentCombo = ref(0)
 
-// active_core_id sourced from gameStore (set in CoreSelectionView)
+// active_core_id / name sourced from gameStore (set in CoreSelectionView)
 const activeCoreId = computed<string | null>({
   get: () => gameStore.activeCoreId,
   set: (val) => { gameStore.activeCoreId = val }
 })
+
+const isComboCore = computed(() =>
+  (gameStore.activeCoreName ?? '').toLowerCase().includes('combo')
+)
 
 // Floating point popups
 const pointPopups = ref<PointPopup[]>([])
@@ -384,7 +389,6 @@ function triggerScoreFlash(type: ScoreFlash) {
 
 // ── Floating popup helper ────────────────────────────────────────────────────
 function spawnPointPopup(value: number, type: 'correct' | 'wrong') {
-  // Anchor to letter-slots element centre, fallback to viewport centre
   let x = window.innerWidth / 2 - 50
   let y = window.innerHeight / 2 - 60
   if (letterSlotsRef.value) {
@@ -395,7 +399,6 @@ function spawnPointPopup(value: number, type: 'correct' | 'wrong') {
 
   const id = popupIdCounter++
   pointPopups.value.push({ id, value, type, x, y })
-  // Remove after animation completes (1.2 s)
   setTimeout(() => {
     pointPopups.value = pointPopups.value.filter(p => p.id !== id)
   }, 1200)
@@ -440,6 +443,7 @@ async function createSession() {
     const data = await res.json()
     sessionId.value = data.session_id
     if (data.active_core?.id) activeCoreId.value = data.active_core.id
+    if (data.active_core?.name) gameStore.activeCoreName = data.active_core.name
     if (data.theme) currentBgImage.value = getBackgroundImage(data.theme)
   } catch (err) {
     console.error(err)
@@ -592,7 +596,6 @@ async function syncAnswer(answer: string, isCorrect: boolean) {
 
     if (res.ok) {
       const data = await res.json()
-      // Authoritative values from BE — triggers score bar transition
       score.value = data.current_total_score ?? score.value
       questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
       pointsEarned.value = data.points_earned ?? pointsEarned.value
@@ -688,12 +691,10 @@ onUnmounted(() => {
   background-size: 64px 64px;
 }
 
-/* ── Score bar ─────────────────────────────────────────────────────────────── */
 .score-bar-fill {
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Floating point popup ──────────────────────────────────────────────────── */
 .float-pts-item {
   text-shadow: 0 0 12px currentColor;
   white-space: nowrap;
@@ -703,7 +704,7 @@ onUnmounted(() => {
   animation: floatUp 1.2s ease-out forwards;
 }
 .float-pts-leave-active {
-  display: none; /* removed by JS after animation */
+  display: none;
 }
 
 @keyframes floatUp {
@@ -713,7 +714,6 @@ onUnmounted(() => {
   100% { opacity: 0; transform: translateY(-80px) scale(0.85); }
 }
 
-/* ── Score header flash ────────────────────────────────────────────────────── */
 .score-pop-correct {
   animation: scoreScaleCorrect 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -734,7 +734,6 @@ onUnmounted(() => {
   100% { transform: scale(1); }
 }
 
-/* ── Letter slots ──────────────────────────────────────────────────────────── */
 .slot--correct { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .slot--wrong   { animation: shake 0.4s ease; }
 
@@ -750,7 +749,6 @@ onUnmounted(() => {
   75%       { transform: translateX(6px); }
 }
 
-/* ── Timeout overlay ───────────────────────────────────────────────────────── */
 .timeout-glitch { animation: glitch 0.8s ease forwards; }
 
 @keyframes glitch {
@@ -767,7 +765,6 @@ onUnmounted(() => {
   to   { transform: scale(1) translateY(0);      opacity: 1; }
 }
 
-/* ── Transitions ───────────────────────────────────────────────────────────── */
 .fade-enter-active, .fade-leave-active         { transition: opacity 0.2s, transform 0.2s; }
 .fade-enter-from,   .fade-leave-to             { opacity: 0; transform: translateY(10px); }
 
@@ -780,7 +777,6 @@ onUnmounted(() => {
 .overlay-enter-active, .overlay-leave-active { transition: opacity 0.2s; }
 .overlay-enter-from,   .overlay-leave-to     { opacity: 0; }
 
-/* ── Hidden input ──────────────────────────────────────────────────────────── */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -792,7 +788,6 @@ onUnmounted(() => {
   border: 0;
 }
 
-/* ── Card flip ─────────────────────────────────────────────────────────────── */
 .card-flip-enter-active, .card-flip-leave-active {
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   transform-style: preserve-3d;
@@ -800,7 +795,6 @@ onUnmounted(() => {
 .card-flip-enter-from { opacity: 0; transform: rotateX(-90deg) scale(0.9); }
 .card-flip-leave-to   { opacity: 0; transform: rotateX(90deg)  scale(0.9); }
 
-/* ── Correct letter glow ───────────────────────────────────────────────────── */
 .glow-sweep { animation: sweepWave 1s ease-in-out infinite; display: inline-block; }
 
 @keyframes sweepWave {
