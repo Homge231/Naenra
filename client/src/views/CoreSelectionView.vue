@@ -1,126 +1,77 @@
 <template>
-  <div class="min-h-screen w-full bg-darkNavy text-white overflow-hidden relative font-sans flex flex-col items-center justify-center px-6">
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue rounded-full mix-blend-screen filter blur-[128px] opacity-20 pointer-events-none z-0"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-orange rounded-full mix-blend-screen filter blur-[128px] opacity-20 pointer-events-none z-0"></div>
-    <div class="absolute inset-0 cyber-grid opacity-50 pointer-events-none z-0"></div>
-
-    <div class="relative z-10 w-full max-w-3xl">
-      <div class="text-center mb-10">
-        <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase mb-2">Pre-Match</p>
-        <h1 class="text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred italic">
-          Select Support Core
-        </h1>
-      </div>
-
-      <div v-if="loading" class="flex justify-center py-16">
-        <svg class="animate-spin w-8 h-8 text-orange" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
-
-      <p v-else-if="errorMsg" class="text-hexred text-sm font-bold text-center uppercase tracking-wider mb-6">{{ errorMsg }}</p>
-
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-        <button
-          v-for="core in cores"
-          :key="core.id"
-          @click="selectedCoreId = core.id"
-          class="text-left p-6 rounded-2xl border transition-all duration-200 backdrop-blur-xl"
-          :class="selectedCoreId === core.id
-            ? 'border-orange bg-orange/10 shadow-[0_0_25px_rgba(255,123,0,0.25)]'
-            : 'border-white/10 bg-white/5 hover:border-white/30'"
-        >
-          <div class="flex justify-between items-start mb-2">
-            <h2 class="text-lg font-black uppercase tracking-wider"
-              :class="selectedCoreId === core.id ? 'text-orange' : 'text-white'">
-              {{ core.name }}
-            </h2>
-            <svg v-if="selectedCoreId === core.id" class="w-5 h-5 text-orange flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <p v-if="core.description" class="text-gray-400 text-xs mb-4 leading-relaxed">{{ core.description }}</p>
-          <div class="flex gap-3 text-[11px] font-mono">
-            <span class="px-2 py-1 rounded bg-black/30 text-lightBlue">+{{ core.flat_buff }} flat</span>
-            <span class="px-2 py-1 rounded bg-black/30 text-lightOrange">x{{ core.multiplier_buff }} mult</span>
-          </div>
-        </button>
-      </div>
-
-      <div class="flex gap-4 justify-center">
-        <button @click="router.push('/home')"
-          class="px-8 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors rounded-xl">
-          Back
-        </button>
-        <button
-          @click="confirmAndStart"
-          :disabled="!selectedCoreId"
-          class="px-10 py-3.5 bg-gradient-to-r from-orange to-hexred text-white font-black text-sm tracking-widest uppercase rounded-xl shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Confirm & Find Match
-        </button>
-      </div>
+<div class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md">
+<div class="relative w-full max-w-4xl px-4 md:px-8 flex flex-col items-center">
+<h2 class="text-4xl md:text-5xl font-black text-white mb-3 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] tracking-widest text-center uppercase">
+        Tactical Support
+</h2>
+<p class="text-lightBlue/80 mb-12 text-sm md:text-base tracking-[0.2em] uppercase text-center font-bold">
+        Select 1 of 2 available cores for this round
+</p>
+ 
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 w-full">
+<div v-for="core in supportCores" :key="core.id"
+             @click="selectCore(core)"
+             class="group relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-12 hover:bg-white/10 hover:border-lightBlue/50 cursor-pointer transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_0_40px_rgba(59,130,246,0.3)] hover:-translate-y-4 flex flex-col items-center text-center overflow-hidden">
+<div class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+ 
+          <div class="relative w-24 h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-8 group-hover:from-blue/20 group-hover:to-lightBlue/10 transition-all duration-500 border border-white/10 group-hover:border-lightBlue shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]">
+<svg class="w-12 h-12 text-gray-400 group-hover:text-lightBlue transition-colors duration-500 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" :d="core.icon" />
+</svg>
+</div>
+ 
+          <h3 class="text-3xl font-black text-white mb-4 tracking-wide group-hover:text-lightBlue transition-colors duration-500">
+            {{ core.title }}
+</h3>
+<p class="text-base text-gray-300/80 leading-relaxed max-w-[250px]">
+            {{ core.description }}
+</p>
+ 
+          <div class="mt-10 opacity-0 group-hover:opacity-100 transition-all transform translate-y-6 group-hover:translate-y-0 duration-500">
+<div class="relative px-8 py-3 bg-blue/20 rounded-full border border-lightBlue overflow-hidden shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+<div class="absolute inset-0 bg-lightBlue/20 animate-pulse"></div>
+<span class="relative z-10 text-xs font-black text-lightBlue tracking-[0.2em] uppercase drop-shadow-md">Select</span>
+</div>
+</div>
+</div>
+</div>
+ 
     </div>
-  </div>
+</div>
 </template>
-
+ 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { useGameStore } from '../stores/gameStore'
-
-interface CoreOption {
+ 
+interface SupportCore {
   id: string
-  name: string
-  description: string | null
-  flat_buff: number
-  multiplier_buff: number
+  title: string
+  description: string
+  icon: string
 }
-
-const router = useRouter()
-const gameStore = useGameStore()
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
-
-const cores = ref<CoreOption[]>([])
-const selectedCoreId = ref<string | null>(null)
-const loading = ref(true)
-const errorMsg = ref('')
-
-async function fetchCores() {
-  loading.value = true
-  errorMsg.value = ''
-  try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/cores`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-    })
-    if (!res.ok) throw new Error('failed')
-    const data = await res.json()
-    cores.value = data.cores ?? []
-    const noCore = cores.value.find(c => c.name.toLowerCase() === 'no core')
-    selectedCoreId.value = (noCore ?? cores.value[0])?.id ?? null
-  } catch (err) {
-    console.error('fetchCores error:', err)
-    errorMsg.value = 'Failed to load Support Cores.'
-  } finally {
-    loading.value = false
-  }
+ 
+const emit = defineEmits<{
+  (e: 'coreSelected', core: SupportCore): void
+}>()
+ 
+const MOCK_CORES: SupportCore[] = [
+  { id: 'core-time', title: 'Time Freeze', description: 'Pauses the timer for 5 seconds once per match.', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+  { id: 'core-score', title: 'Score Multiplier', description: 'Earn 1.5x points for the next 3 correct answers.', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
+  { id: 'core-hint', title: 'Hint Reveal', description: 'Automatically reveals the first letter of the target word.', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' }
+]
+ 
+const supportCores = ref<SupportCore[]>([])
+ 
+function fetchSupportCores() {
+  const shuffledCores = [...MOCK_CORES].sort(() => 0.5 - Math.random())
+  supportCores.value = shuffledCores.slice(0, 2)
 }
-
-function confirmAndStart() {
-  if (!selectedCoreId.value) return
-  gameStore.activeCoreId = selectedCoreId.value
-  router.push('/game')
+ 
+function selectCore(core: SupportCore) {
+  emit('coreSelected', core)
 }
-
-onMounted(fetchCores)
+ 
+onMounted(() => {
+  fetchSupportCores()
+})
 </script>
-
-<style scoped>
-.cyber-grid {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 64px 64px;
-}
-</style>
