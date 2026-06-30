@@ -160,7 +160,7 @@ function startMatchmaking() {
   isSearching.value = true
   setTimeout(() => {
     isSearching.value = false
-    router.push('/game')
+    router.push('/core')
   }, 3000)
 }
 </script>

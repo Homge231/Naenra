@@ -68,6 +68,12 @@
       <div class="flex items-center gap-8">
         <div
           class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
+          <span class="text-xs font-bold text-lightOrange tracking-[0.2em] uppercase">Combo</span>
+          <span class="text-xl font-black text-white">x{{ currentCombo }}</span>
+        </div>
+
+        <div
+          class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
           <span class="text-xs font-bold text-lightBlue tracking-[0.2em] uppercase">Q</span>
           <span class="text-xl font-black text-white">{{ questionsAnswered }}</span>
         </div>
@@ -275,9 +281,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import Avatar from '../components/Avatar.vue'
+import { useGameStore } from '../stores/gameStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const gameStore = useGameStore()
 
 interface QuestionPayload {
   id: string
@@ -301,7 +309,6 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const MATCH_DURATION = 60
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
-const BASE_POINTS = 100
 // Score bar: treat 2000 pts as "full" bar — scales naturally beyond
 const SCORE_BAR_MAX = 2000
 
@@ -328,6 +335,13 @@ const confirmQuit = ref(false)
 const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const currentBgImage = ref('/bg-daily-life.png')
+const currentCombo = ref(0)
+
+// active_core_id sourced from gameStore (set in CoreSelectionView)
+const activeCoreId = computed<string | null>({
+  get: () => gameStore.activeCoreId,
+  set: (val) => { gameStore.activeCoreId = val }
+})
 
 // Floating point popups
 const pointPopups = ref<PointPopup[]>([])
@@ -413,11 +427,13 @@ async function createSession() {
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
-      }
+      },
+      body: JSON.stringify({ active_core_id: activeCoreId.value })
     })
     if (!res.ok) return
     const data = await res.json()
     sessionId.value = data.session_id
+    if (data.active_core?.id) activeCoreId.value = data.active_core.id
     if (data.theme) currentBgImage.value = getBackgroundImage(data.theme)
   } catch (err) {
     console.error(err)
@@ -528,30 +544,23 @@ function checkAnswer() {
 
   if (isCorrect) {
     gameState.value = 'correct'
-    pointsEarned.value = BASE_POINTS
+    currentCombo.value++
     triggerScoreFlash('correct')
-    spawnPointPopup(BASE_POINTS, 'correct')
   } else {
     gameState.value = 'wrong'
-    let wrongCount = 0
-    for (let i = 0; i < target.length; i++) {
-      if (typed[i] !== target[i]) wrongCount++
-    }
-    const penalty = Math.min(25, Math.max(5, wrongCount * 5))
-    pointsDeducted.value = penalty
+    currentCombo.value = 0
     triggerScoreFlash('wrong')
-    spawnPointPopup(penalty, 'wrong')
   }
 
-  // Immediately sync with backend; score state updated from API response
-  syncAnswer(typed)
+  // Score is computed and returned exclusively by the backend.
+  syncAnswer(typed, isCorrect)
 
   setTimeout(() => {
     if (gameState.value !== 'timeout') loadQuestion()
   }, FEEDBACK_MS)
 }
 
-async function syncAnswer(answer: string) {
+async function syncAnswer(answer: string, isCorrect: boolean) {
   if (!sessionId.value || !currentQuestion.value.id) return
   try {
     const token = localStorage.getItem('arena_token')
@@ -564,9 +573,17 @@ async function syncAnswer(answer: string) {
       body: JSON.stringify({
         session_id: sessionId.value,
         question_id: currentQuestion.value.id,
-        answer: answer
+        answer,
+        current_combo: currentCombo.value,
+        active_core_id: activeCoreId.value
       })
     })
+
+    if (res.status === 403) {
+      console.error('Core mismatch detected by server (anti-cheat)')
+      return
+    }
+
     if (res.ok) {
       const data = await res.json()
       // Authoritative values from BE — triggers score bar transition
@@ -574,6 +591,11 @@ async function syncAnswer(answer: string) {
       questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
       pointsEarned.value = data.points_earned ?? pointsEarned.value
       pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
+
+      spawnPointPopup(
+        isCorrect ? data.points_earned : data.points_deducted,
+        isCorrect ? 'correct' : 'wrong'
+      )
     }
   } catch (err) {
     console.error('Failed to sync answer:', err)
@@ -592,6 +614,7 @@ async function restartMatch() {
   questionsAnswered.value = 0
   timeLeft.value = MATCH_DURATION
   questionQueue.value = []
+  currentCombo.value = 0
   scoreFlash.value = null
   pointPopups.value = []
   stopMatchTimer()
