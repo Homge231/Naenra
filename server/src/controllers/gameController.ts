@@ -128,15 +128,22 @@ function calculateScore(
   wrongPenalty: number,
   oracleRevealLevel: number
 ): { pointsDelta: number; breakdown: Record<string, number> } {
+  let oraclePenalty = 0
+  const isOracleCore = core.name?.toLowerCase().includes('oracle')
+  if (isOracleCore && oracleRevealLevel > 0) {
+    const cumulativeCosts = [10, 30, 60] // [10, 10+20, 10+20+30]
+    const levelIndex = Math.min(Math.max(oracleRevealLevel, 1), cumulativeCosts.length) - 1
+    oraclePenalty = cumulativeCosts[levelIndex]
+  }
+
   if (!isCorrect) {
     return {
-      pointsDelta: -wrongPenalty,
-      breakdown: { base: 0, combo_bonus: 0, flat_buff: 0, multiplier_buff: 1, penalty: wrongPenalty }
+      pointsDelta: -wrongPenalty - oraclePenalty,
+      breakdown: { base: 0, combo_bonus: 0, flat_buff: 0, multiplier_buff: 1, oracle_penalty: oraclePenalty, penalty: wrongPenalty }
     }
   }
 
   const isComboCore = core.name?.toLowerCase().includes('combo')
-  const isOracleCore = core.name?.toLowerCase().includes('oracle')
   const comboBonus = isComboCore
     ? Math.min(combo * COMBO_BONUS_PER_STREAK, MAX_COMBO_BONUS)
     : 0
@@ -144,13 +151,7 @@ function calculateScore(
   const beforeMultiplier = BASE_POINTS + comboBonus + core.flat_buff
   let total = Math.floor(beforeMultiplier * core.multiplier_buff)
 
-  let oraclePenalty = 0
-  if (isOracleCore && oracleRevealLevel > 0) {
-    const oracleCosts = [10, 25, 50]
-    const levelIndex = Math.min(Math.max(oracleRevealLevel, 1), oracleCosts.length) - 1
-    oraclePenalty = oracleCosts[levelIndex]
-    total = Math.max(0, total - oraclePenalty)
-  }
+  total = total - oraclePenalty
 
   return {
     pointsDelta: total,
