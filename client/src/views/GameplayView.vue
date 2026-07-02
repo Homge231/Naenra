@@ -144,7 +144,7 @@
                 </transition>
 
                 <!-- Reveal button (hidden when max level reached) -->
-                <button v-if="oracleRevealLevel < ORACLE_MAX_LEVEL"
+                <button v-if="oracleRevealLevel < oracleMaxAllowed"
                   @click.stop="useOracleHint"
                   class="oracle-reveal-btn group relative flex items-center gap-2 px-5 py-2.5 bg-purple-500/15 hover:bg-purple-500/25 backdrop-blur-md border border-purple-400/30 hover:border-purple-400/60 rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(168,85,247,0.1)] hover:shadow-[0_0_25px_rgba(168,85,247,0.3)]">
                   <svg class="w-4 h-4 text-purple-300 group-hover:text-purple-200 transition-colors" fill="currentColor" viewBox="0 0 20 20">
@@ -428,16 +428,28 @@ const oracleHintText = computed(() => {
   }
   // Level 2: + 2nd and 2nd-to-last
   if (level >= 2) {
-    if (len > 2) revealed.add(1)
-    if (len > 3) revealed.add(len - 2)
+    const maxReveal = Math.floor(len * 0.4)
+    let count = revealed.size
+    // thêm từ vị trí 1 ra ngoài (bỏ qua 0 và len-1 đã có)
+    for (let i = 1; i < len - 1 && count < maxReveal; i += 2) {
+      revealed.add(i)
+      count++
+    }
   }
   // Level 3: + every other remaining letter
-  if (level >= 3) {
-    for (let i = 0; i < len; i += 2) revealed.add(i)
+ if (level >= 3) {
+    const maxReveal = Math.floor(len * 0.6)
+    let count = revealed.size
+    for (let i = 1; i < len - 1 && count < maxReveal; i++) {
+      if (!revealed.has(i)) {
+        revealed.add(i)
+        count++
+      }
+    }
   }
 
   return word.split('').map((ch, i) =>
-    revealed.has(i) ? ch.toUpperCase() : '\u00b7'
+    revealed.has(i) ? ch.toUpperCase() : '·'
   ).join(' ')
 })
 
@@ -453,6 +465,12 @@ function useOracleHint() {
   score.value = Math.max(0, score.value - cost)
   spawnPointPopup(cost, 'wrong')
 }
+const oracleMaxAllowed = computed(() => {
+  const len = currentQuestion.value.target_word.length
+  if (len <= 5) return 2
+  return ORACLE_MAX_LEVEL
+})
+
 
 
 // Floating point popups
