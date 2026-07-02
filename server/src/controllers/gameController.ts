@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -260,6 +261,7 @@ export async function getQuestions(_req: Request, res: Response): Promise<void> 
       return {
         ...rest,
         target_length: target_word?.length || 0,
+        target_hash: target_word ? crypto.createHash('sha256').update(target_word).digest('hex') : '',
         oracle_hints: generateOracleHints(target_word)
       }
     })

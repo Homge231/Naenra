@@ -345,6 +345,7 @@ interface QuestionPayload {
   id: string
   question_text: string
   target_length: number
+  target_hash: string
   oracle_hints: string[]
   hint?: string
   correct_word?: string
@@ -460,7 +461,7 @@ const scoreBarColor = computed(() => {
 // ── Question queue ────────────────────────────────────────────────────────
 const questionQueue = ref<QuestionPayload[]>([])
 const isFetchingBatch = ref(false)
-const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_length: 0, oracle_hints: ['', '', ''] })
+const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_length: 0, target_hash: '', oracle_hints: ['', '', ''] })
 
 let matchTimer: ReturnType<typeof setInterval> | null = null
 let flashTimer: ReturnType<typeof setTimeout> | null = null
@@ -566,11 +567,11 @@ async function callTimeoutEndpoint() {
 
 // ── Batch fetching ─────────────────────────────────────────────────────────
 const MOCK_QUESTIONS: QuestionPayload[] = [
-  { id: 'm1', question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_length: 9, oracle_hints: ['D·······Y','D·S···E·Y','D·S·O·E·Y'], hint: 'The act of finding something new' },
-  { id: 'm2', question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_length: 10, oracle_hints: ['C········E','C·N····C·E','C·N·I·E·C·E'], hint: 'A feeling of self-assurance' },
-  { id: 'm3', question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_length: 7, oracle_hints: ['A·····E','A·A··Z·E','A·A·Y·Z·E'], hint: 'Examine methodically and in detail' },
-  { id: 'm4', question_text: 'The team celebrated their ________ after months of hard work.', target_length: 7, oracle_hints: ['V·····Y','V·C··R·Y','V·C·O·R·Y'], hint: 'Winning a competition' },
-  { id: 'm5', question_text: 'She showed great ________ in the face of adversity.', target_length: 10, oracle_hints: ['R········E','R·S····N·E','R·S·L·E·N·E'], hint: 'Ability to recover quickly' },
+  { id: 'm1', question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_length: 9, target_hash: '', oracle_hints: ['D·······Y','D·S···E·Y','D·S·O·E·Y'], hint: 'The act of finding something new' },
+  { id: 'm2', question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_length: 10, target_hash: '', oracle_hints: ['C········E','C·N····C·E','C·N·I·E·C·E'], hint: 'A feeling of self-assurance' },
+  { id: 'm3', question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_length: 7, target_hash: '', oracle_hints: ['A·····E','A·A··Z·E','A·A·Y·Z·E'], hint: 'Examine methodically and in detail' },
+  { id: 'm4', question_text: 'The team celebrated their ________ after months of hard work.', target_length: 7, target_hash: '', oracle_hints: ['V·····Y','V·C··R·Y','V·C·O·R·Y'], hint: 'Winning a competition' },
+  { id: 'm5', question_text: 'She showed great ________ in the face of adversity.', target_length: 10, target_hash: '', oracle_hints: ['R········E','R·S····N·E','R·S·L·E·N·E'], hint: 'Ability to recover quickly' },
 ]
 
 async function fetchBatch(): Promise<void> {
@@ -638,11 +639,32 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
+async function sha256(message: string) {
+  const msgBuffer = new TextEncoder().encode(message)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 async function checkAnswer() {
   const maxLen = currentQuestion.value.target_length
   if (typedLetters.value.length < maxLen) return
 
   const typed = typedLetters.value.join('')
+  
+  // Instant validation via Hash
+  const hashVal = await sha256(typed)
+  const isCorrectLocal = hashVal === currentQuestion.value.target_hash
+
+  if (isCorrectLocal) {
+    gameState.value = 'correct'
+    currentCombo.value++
+    triggerScoreFlash('correct')
+  } else {
+    gameState.value = 'wrong'
+    currentCombo.value = 0
+    triggerScoreFlash('wrong')
+  }
   
   if (!sessionId.value || !currentQuestion.value.id) return
   try {
@@ -671,16 +693,9 @@ async function checkAnswer() {
     if (res.ok) {
       const data = await res.json()
       
-      const isCorrect = data.correct
+      const isCorrectServer = data.correct
       
-      if (isCorrect) {
-        gameState.value = 'correct'
-        currentCombo.value++
-        triggerScoreFlash('correct')
-      } else {
-        gameState.value = 'wrong'
-        currentCombo.value = 0
-        triggerScoreFlash('wrong')
+      if (!isCorrectServer) {
         if (data.correct_word) {
           currentQuestion.value.correct_word = data.correct_word
         }
@@ -691,12 +706,12 @@ async function checkAnswer() {
       pointsEarned.value = data.points_earned ?? pointsEarned.value
       pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
 
-      const popupType: 'correct' | 'wrong' | 'typo' = isCorrect
+      const popupType: 'correct' | 'wrong' | 'typo' = isCorrectServer
         ? 'correct'
         : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
 
       spawnPointPopup(
-        isCorrect ? data.points_earned : data.points_deducted,
+        isCorrectServer ? data.points_earned : data.points_deducted,
         popupType
       )
 
