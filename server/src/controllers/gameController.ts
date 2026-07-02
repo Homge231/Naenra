@@ -569,7 +569,7 @@ export async function timeoutSession(req: Request, res: Response): Promise<void>
 
     res.status(200).json({
       message: 'Session ended',
-      score: session.score ?? 0,
+      score: finalScore,
       questions_answered: session.questions_answered ?? 0
     })
   } catch (err) {

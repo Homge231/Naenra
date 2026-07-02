@@ -763,7 +763,9 @@ async function checkAnswer() {
 function triggerTimeout() {
   gameState.value = 'timeout'
   inputRef.value?.blur()
-  callTimeoutEndpoint()
+  // Small delay to let any in-flight submit-answer requests write to DB first
+  // before timeout endpoint reads session.score, preventing a race condition.
+  setTimeout(() => callTimeoutEndpoint(), 300)
 }
 
 // ── Match control ──────────────────────────────────────────────────────────
