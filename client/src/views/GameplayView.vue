@@ -430,6 +430,9 @@ function useOracleHint() {
   // Deduct points immediately and show floating popup
   score.value = Math.max(0, score.value - cost)
   spawnPointPopup(cost, 'wrong')
+  
+  // Re-focus the hidden input so the player can continue typing without clicking the screen
+  inputRef.value?.focus()
 }
 const oracleMaxAllowed = computed(() => {
   const len = currentQuestion.value.target_length
