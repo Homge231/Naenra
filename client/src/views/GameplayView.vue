@@ -728,7 +728,8 @@ async function syncAnswer(answer: string, isCorrect: boolean) {
         question_id: currentQuestion.value.id,
         answer,
         current_combo: currentCombo.value,
-        active_core_id: activeCoreId.value
+        active_core_id: activeCoreId.value,
+        oracle_reveal_level: oracleRevealLevel.value
       })
     })
 

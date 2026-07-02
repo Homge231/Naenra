@@ -4,7 +4,7 @@ INSERT INTO cores (id, name, description, flat_buff, multiplier_buff)
 VALUES (
   '00000000-0000-0000-0000-000000000006',
   'Oracle Core',
-  'Reveals hints for target words. Correct answers earn 50% fewer points.',
+  'Reveals hints for target words. Correct answers earn 50% fewer points only if a hint is revealed.',
   0,
   1.0
 ) ON CONFLICT (id) DO NOTHING;

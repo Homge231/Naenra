@@ -125,7 +125,8 @@ function calculateScore(
   isCorrect: boolean,
   combo: number,
   core: CoreRow,
-  wrongPenalty: number
+  wrongPenalty: number,
+  oracleHintUsed: boolean
 ): { pointsDelta: number; breakdown: Record<string, number> } {
   if (!isCorrect) {
     return {
@@ -143,8 +144,8 @@ function calculateScore(
   const beforeMultiplier = BASE_POINTS + comboBonus + core.flat_buff
   let total = Math.floor(beforeMultiplier * core.multiplier_buff)
 
-  // Oracle penalty: halve final score for correct answers
-  if (isOracleCore) {
+  // Oracle penalty only applies when Oracle hint was actually used.
+  if (isOracleCore && oracleHintUsed) {
     total = Math.floor(total * ORACLE_PENALTY_MULTIPLIER)
   }
 
@@ -155,7 +156,7 @@ function calculateScore(
       combo_bonus: comboBonus,
       flat_buff: core.flat_buff,
       multiplier_buff: core.multiplier_buff,
-      oracle_penalty: isOracleCore ? ORACLE_PENALTY_MULTIPLIER : 1,
+      oracle_penalty: isOracleCore && oracleHintUsed ? ORACLE_PENALTY_MULTIPLIER : 1,
       penalty: 0
     }
   }
@@ -295,12 +296,16 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
     const playerId = (req as any).user?.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-   const { player_id, session_id, question_id, answer, time_taken, current_combo, active_core_id } = req.body
+   const { player_id, session_id, question_id, answer, time_taken, current_combo, active_core_id, oracle_reveal_level } = req.body
 
-      if (player_id && player_id !== playerId) {
+    if (player_id && player_id !== playerId) {
       res.status(403).json({ error: 'player_id does not match authenticated user.' })
       return
     }
+
+    const oracleRevealLevel = typeof oracle_reveal_level === 'number' && oracle_reveal_level >= 0
+      ? Math.floor(oracle_reveal_level)
+      : 0
 
     // ── 1. Input validation ───────────────────────────────────────────────────
     if (!session_id || !question_id || typeof answer !== 'string') {
@@ -386,7 +391,8 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
     }
 
     // ── 7. Calculate score ────────────────────────────────────────────────────
-    const { pointsDelta, breakdown } = calculateScore(isCorrect, combo, core, wrongPenalty)
+    const oracleHintUsed = oracleRevealLevel > 0
+    const { pointsDelta, breakdown } = calculateScore(isCorrect, combo, core, wrongPenalty, oracleHintUsed)
 
     // ── 8. Record the answer (unique per session+question) ────────────────────
     const { error: answerErr } = await supabase
@@ -439,7 +445,8 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
         flat_buff: breakdown.flat_buff,
         multiplier_buff: breakdown.multiplier_buff,
         penalty: breakdown.penalty,
-        core_name: core.name
+        core_name: core.name,
+      oracle_hint_used: oracleHintUsed
       }
     })
   } catch (err) {
