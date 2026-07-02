@@ -188,6 +188,54 @@ export async function getQuestion(_req: Request, res: Response): Promise<void> {
   }
 }
 
+function generateOracleHints(word: string): string[] {
+  if (!word) return ['', '', '']
+  const len = word.length
+  const getHintForLevel = (level: number) => {
+    const revealed = new Set<number>()
+    if (level >= 1) {
+      revealed.add(0)
+      if (len > 1) revealed.add(len - 1)
+    }
+    if (level >= 2) {
+      const targetReveal = Math.max(2, Math.ceil(len * 0.5))
+      let count = revealed.size
+      const interval = (len - 1) / (targetReveal - 1)
+      for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {
+        const index = Math.min(len - 2, Math.max(1, Math.round(k * interval)))
+        if (!revealed.has(index)) {
+          revealed.add(index)
+          count++
+        }
+      }
+      let fallback = 1
+      while (count < targetReveal && fallback < len - 1) {
+        if (!revealed.has(fallback)) { revealed.add(fallback); count++ }
+        fallback++
+      }
+    }
+    if (level >= 3) {
+      const targetReveal = Math.max(2, Math.ceil(len * 0.7))
+      let count = revealed.size
+      const interval = (len - 1) / (targetReveal - 1)
+      for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {
+        const index = Math.min(len - 2, Math.max(1, Math.round(k * interval)))
+        if (!revealed.has(index)) {
+          revealed.add(index)
+          count++
+        }
+      }
+      let fallback = 1
+      while (count < targetReveal && fallback < len - 1) {
+        if (!revealed.has(fallback)) { revealed.add(fallback); count++ }
+        fallback++
+      }
+    }
+    return word.split('').map((ch, i) => revealed.has(i) ? ch.toUpperCase() : '\u00b7').join(' ')
+  }
+  return [getHintForLevel(1), getHintForLevel(2), getHintForLevel(3)]
+}
+
 // ── Endpoint: GET /api/game/questions ────────────────────────────────────────
 export async function getQuestions(_req: Request, res: Response): Promise<void> {
   const BATCH_SIZE = 20
@@ -205,7 +253,18 @@ export async function getQuestions(_req: Request, res: Response): Promise<void> 
       .in('id', pickedIds)
 
     if (qError) throw qError
-    const shuffledQuestions = (questions ?? []).sort(() => Math.random() - 0.5)
+    
+    // Mask the payload to avoid information disclosure
+    const maskedQuestions = (questions ?? []).map(q => {
+      const { target_word, ...rest } = q
+      return {
+        ...rest,
+        target_length: target_word?.length || 0,
+        oracle_hints: generateOracleHints(target_word)
+      }
+    })
+    
+    const shuffledQuestions = maskedQuestions.sort(() => Math.random() - 0.5)
     res.status(200).json({ questions: shuffledQuestions })
   } catch (err) {
     console.error('getQuestions error:', err)
@@ -450,6 +509,7 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
         oracle_penalty: breakdown.oracle_penalty,
         penalty: breakdown.penalty,
         core_name: core.name,
+        correct_word: !isCorrect ? question.target_word : undefined
       }
     })
   } catch (err) {
@@ -464,7 +524,7 @@ export async function timeoutSession(req: Request, res: Response): Promise<void>
     const playerId = (req as any).user?.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id } = req.body
+    const { session_id, active_core_id, oracle_reveal_level } = req.body
     if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
 
     const { data: session, error: fetchErr } = await supabase
@@ -477,11 +537,25 @@ export async function timeoutSession(req: Request, res: Response): Promise<void>
     if (fetchErr || !session) { res.status(404).json({ error: 'Session not found' }); return }
     if (session.status !== 'active') { res.status(409).json({ error: 'Session already ended' }); return }
 
+    // Deduct Oracle Penalty on timeout if used
+    let oraclePenalty = 0
+    const revealLevel = Number(oracle_reveal_level) || 0
+    if (revealLevel > 0 && active_core_id) {
+      const { data: core } = await supabase.from('cores').select('name').eq('id', active_core_id).single()
+      if (core?.name?.toLowerCase().includes('oracle')) {
+        const cumulativeCosts = [10, 30, 60]
+        const levelIndex = Math.min(Math.max(revealLevel, 1), cumulativeCosts.length) - 1
+        oraclePenalty = cumulativeCosts[levelIndex]
+      }
+    }
+
+    const finalScore = Math.max(0, (session.score ?? 0) - oraclePenalty)
+
     const { error: updateErr } = await supabase
       .from('game_sessions')
       .update({
         status: 'timeout',
-        score: session.score ?? 0,
+        score: finalScore,
         questions_answered: session.questions_answered ?? 0,
         ended_at: new Date().toISOString()
       })

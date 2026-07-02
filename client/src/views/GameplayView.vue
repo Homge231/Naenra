@@ -105,7 +105,7 @@
 
         <template v-else>
           <transition name="card-flip" mode="out-in">
-            <div :key="currentQuestion.target_word" class="w-full flex flex-col items-center gap-10">
+            <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-10">
 
               <div v-if="currentQuestion.hint"
                 class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-6 md:p-8 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
@@ -178,7 +178,7 @@
               <div class="w-full flex flex-col items-center gap-3 overflow-hidden" ref="letterSlotsRef">
                 <div
                   class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none">
-                  <div v-for="(char, idx) in currentQuestion.target_word.split('')" :key="idx" class="flex-shrink-0">
+                  <div v-for="(_, idx) in currentQuestion.target_length" :key="idx" class="flex-shrink-0">
                     <div
                       class="relative w-10 h-14 md:w-14 md:h-20 bg-black/40 backdrop-blur-md rounded-t-lg flex items-center justify-center border-b-4 transition-all duration-200"
                       :class="{
@@ -206,7 +206,7 @@
 
                 <div v-if="gameState === 'playing'"
                   class="text-xs md:text-sm font-semibold text-lightBlue/80 tracking-widest font-mono mt-1">
-                  ({{ currentQuestion.target_word.length }} letters)
+                  ({{ currentQuestion.target_length }} letters)
                 </div>
               </div>
 
@@ -220,7 +220,7 @@
                   <span v-if="gameState === 'correct'">★ Brilliant! +{{ pointsEarned }} pts</span>
                   <span v-else>
                     ✗ Correct word:
-                    <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.target_word }}</span>
+                    <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.correct_word }}</span>
                     <span class="ml-3 text-hexred font-black">-{{ pointsDeducted }} pts</span>
                   </span>
                 </div>
@@ -344,8 +344,10 @@ const gameStore = useGameStore()
 interface QuestionPayload {
   id: string
   question_text: string
-  target_word: string
+  target_length: number
+  oracle_hints: string[]
   hint?: string
+  correct_word?: string
 }
 
 interface PointPopup {
@@ -410,72 +412,10 @@ const oracleTotalPenalty = ref(0)
 
 const oracleNextCost = computed(() => ORACLE_COSTS[oracleRevealLevel.value] ?? 0)
 
-/**
- * Progressive hint: each level reveals more letters.
- * Lv1: first + last letter
- * Lv2: first + last + 2nd letter + 2nd-to-last
- * Lv3: first + last + every other letter
- */
 const oracleHintText = computed(() => {
-  const word = currentQuestion.value.target_word
-  if (!word) return ''
   const level = oracleRevealLevel.value
   if (level === 0) return ''
-
-  const len = word.length
-  const revealed = new Set<number>()
-
-  // Level 1: first + last
-  if (level >= 1) {
-    revealed.add(0)
-    if (len > 1) revealed.add(len - 1)
-  }
-  // Level 2: reveal roughly 50% of letters
-  if (level >= 2) {
-    const targetReveal = Math.max(2, Math.ceil(len * 0.5))
-    let count = revealed.size
-    const interval = (len - 1) / (targetReveal - 1)
-    for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {
-      const index = Math.min(len - 2, Math.max(1, Math.round(k * interval)))
-      if (!revealed.has(index)) {
-        revealed.add(index)
-        count++
-      }
-    }
-    let fallback = 1
-    while (count < targetReveal && fallback < len - 1) {
-      if (!revealed.has(fallback)) {
-        revealed.add(fallback)
-        count++
-      }
-      fallback++
-    }
-  }
-  // Level 3: reveal roughly 70% of letters
-  if (level >= 3) {
-    const targetReveal = Math.max(2, Math.ceil(len * 0.7))
-    let count = revealed.size
-    const interval = (len - 1) / (targetReveal - 1)
-    for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {
-      const index = Math.min(len - 2, Math.max(1, Math.round(k * interval)))
-      if (!revealed.has(index)) {
-        revealed.add(index)
-        count++
-      }
-    }
-    let fallback = 1
-    while (count < targetReveal && fallback < len - 1) {
-      if (!revealed.has(fallback)) {
-        revealed.add(fallback)
-        count++
-      }
-      fallback++
-    }
-  }
-
-  return word.split('').map((ch, i) =>
-    revealed.has(i) ? ch.toUpperCase() : '·'
-  ).join(' ')
+  return currentQuestion.value.oracle_hints?.[level - 1] || ''
 })
 
 function useOracleHint() {
@@ -491,7 +431,7 @@ function useOracleHint() {
   spawnPointPopup(cost, 'wrong')
 }
 const oracleMaxAllowed = computed(() => {
-  const len = currentQuestion.value.target_word.length
+  const len = currentQuestion.value.target_length
   if (len <= 5) return 2
   return ORACLE_MAX_LEVEL
 })
@@ -520,7 +460,7 @@ const scoreBarColor = computed(() => {
 // ── Question queue ────────────────────────────────────────────────────────
 const questionQueue = ref<QuestionPayload[]>([])
 const isFetchingBatch = ref(false)
-const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_word: '' })
+const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_length: 0, oracle_hints: ['', '', ''] })
 
 let matchTimer: ReturnType<typeof setInterval> | null = null
 let flashTimer: ReturnType<typeof setTimeout> | null = null
@@ -606,7 +546,11 @@ async function callTimeoutEndpoint() {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
-      body: JSON.stringify({ session_id: sessionId.value })
+      body: JSON.stringify({ 
+        session_id: sessionId.value,
+        active_core_id: activeCoreId.value,
+        oracle_reveal_level: oracleRevealLevel.value
+      })
     })
     if (res.ok) {
       const data = await res.json()
@@ -622,11 +566,11 @@ async function callTimeoutEndpoint() {
 
 // ── Batch fetching ─────────────────────────────────────────────────────────
 const MOCK_QUESTIONS: QuestionPayload[] = [
-  { id: 'm1', question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_word: 'discovery', hint: 'The act of finding something new' },
-  { id: 'm2', question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_word: 'confidence', hint: 'A feeling of self-assurance' },
-  { id: 'm3', question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_word: 'analyze', hint: 'Examine methodically and in detail' },
-  { id: 'm4', question_text: 'The team celebrated their ________ after months of hard work.', target_word: 'victory', hint: 'Winning a competition' },
-  { id: 'm5', question_text: 'She showed great ________ in the face of adversity.', target_word: 'resilience', hint: 'Ability to recover quickly' },
+  { id: 'm1', question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_length: 9, oracle_hints: ['D·······Y','D·S···E·Y','D·S·O·E·Y'], hint: 'The act of finding something new' },
+  { id: 'm2', question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_length: 10, oracle_hints: ['C········E','C·N····C·E','C·N·I·E·C·E'], hint: 'A feeling of self-assurance' },
+  { id: 'm3', question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_length: 7, oracle_hints: ['A·····E','A·A··Z·E','A·A·Y·Z·E'], hint: 'Examine methodically and in detail' },
+  { id: 'm4', question_text: 'The team celebrated their ________ after months of hard work.', target_length: 7, oracle_hints: ['V·····Y','V·C··R·Y','V·C·O·R·Y'], hint: 'Winning a competition' },
+  { id: 'm5', question_text: 'She showed great ________ in the face of adversity.', target_length: 10, oracle_hints: ['R········E','R·S····N·E','R·S·L·E·N·E'], hint: 'Ability to recover quickly' },
 ]
 
 async function fetchBatch(): Promise<void> {
@@ -685,39 +629,21 @@ function handleKeydown(e: KeyboardEvent) {
     typedLetters.value = typedLetters.value.slice(0, -1)
     return
   }
-  if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return
+  if (/^[a-zA-Z]$/.test(e.key)) {
+    const maxLen = currentQuestion.value.target_length
+    if (typedLetters.value.length >= maxLen) return
 
-  const maxLen = currentQuestion.value.target_word.length
-  if (typedLetters.value.length >= maxLen) return
-
-  typedLetters.value = [...typedLetters.value, e.key.toLowerCase()]
-  if (typedLetters.value.length === maxLen) checkAnswer()
-}
-
-function checkAnswer() {
-  const typed = typedLetters.value.join('')
-  const target = currentQuestion.value.target_word
-  const isCorrect = typed === target
-
-  if (isCorrect) {
-    gameState.value = 'correct'
-    currentCombo.value++
-    triggerScoreFlash('correct')
-  } else {
-    gameState.value = 'wrong'
-    currentCombo.value = 0
-    triggerScoreFlash('wrong')
+    typedLetters.value = [...typedLetters.value, e.key.toLowerCase()]
+    if (typedLetters.value.length === maxLen) checkAnswer()
   }
-
-  // Score is computed and returned exclusively by the backend.
-  syncAnswer(typed, isCorrect)
-
-  setTimeout(() => {
-    if (gameState.value !== 'timeout') loadQuestion()
-  }, FEEDBACK_MS)
 }
 
-async function syncAnswer(answer: string, isCorrect: boolean) {
+async function checkAnswer() {
+  const maxLen = currentQuestion.value.target_length
+  if (typedLetters.value.length < maxLen) return
+
+  const typed = typedLetters.value.join('')
+  
   if (!sessionId.value || !currentQuestion.value.id) return
   try {
     const token = localStorage.getItem('arena_token')
@@ -730,7 +656,7 @@ async function syncAnswer(answer: string, isCorrect: boolean) {
       body: JSON.stringify({
         session_id: sessionId.value,
         question_id: currentQuestion.value.id,
-        answer,
+        answer: typed,
         current_combo: currentCombo.value,
         active_core_id: activeCoreId.value,
         oracle_reveal_level: oracleRevealLevel.value
@@ -744,6 +670,22 @@ async function syncAnswer(answer: string, isCorrect: boolean) {
 
     if (res.ok) {
       const data = await res.json()
+      
+      const isCorrect = data.correct
+      
+      if (isCorrect) {
+        gameState.value = 'correct'
+        currentCombo.value++
+        triggerScoreFlash('correct')
+      } else {
+        gameState.value = 'wrong'
+        currentCombo.value = 0
+        triggerScoreFlash('wrong')
+        if (data.correct_word) {
+          currentQuestion.value.correct_word = data.correct_word
+        }
+      }
+
       score.value = data.new_total_score ?? score.value
       questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
       pointsEarned.value = data.points_earned ?? pointsEarned.value
@@ -757,6 +699,10 @@ async function syncAnswer(answer: string, isCorrect: boolean) {
         isCorrect ? data.points_earned : data.points_deducted,
         popupType
       )
+
+      setTimeout(() => {
+        if (gameState.value !== 'timeout') loadQuestion()
+      }, FEEDBACK_MS)
     }
   } catch (err) {
     console.error('Failed to sync answer:', err)
