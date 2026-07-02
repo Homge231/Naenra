@@ -6,19 +6,23 @@
     <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
 
     <!-- Floating points popup container -->
-    <div class="fixed inset-0 z-50 pointer-events-none overflow-hidden">
-      <transition-group name="float-pts" tag="div">
-        <div
-          v-for="popup in pointPopups"
-          :key="popup.id"
-          class="float-pts-item absolute font-black text-2xl tracking-widest drop-shadow-lg"
-          :class="popup.type === 'correct' ? 'text-success' : 'text-hexred'"
-          :style="{ left: popup.x + 'px', top: popup.y + 'px' }"
-        >
-          {{ popup.type === 'correct' ? '+' : '-' }}{{ popup.value }} PTS
-        </div>
-      </transition-group>
+   <div class="fixed inset-0 z-50 pointer-events-none overflow-hidden">
+  <transition-group name="float-pts" tag="div">
+    <div
+      v-for="popup in pointPopups"
+      :key="popup.id"
+      class="float-pts-item absolute font-black text-2xl tracking-widest drop-shadow-lg"
+      :class="{
+        'text-success': popup.type === 'correct',
+        'text-hexred': popup.type === 'wrong',
+        'text-yellow-400': popup.type === 'typo'
+      }"
+      :style="{ left: popup.x + 'px', top: popup.y + 'px' }"
+    >
+      {{ popup.type === 'correct' ? '+' : '-' }}{{ popup.value }}{{ popup.type === 'typo' ? ' (Typo)' : ' PTS' }}
     </div>
+  </transition-group>
+</div>
 
     <header
       class="relative z-30 flex justify-between items-center px-8 lg:px-12 py-5 bg-darkNavy/30 backdrop-blur-md border-b border-white/10 shadow-lg">
@@ -305,7 +309,7 @@ interface QuestionPayload {
 interface PointPopup {
   id: number
   value: number
-  type: 'correct' | 'wrong'
+  type: 'correct' | 'wrong' | 'typo'
   x: number
   y: number
 }
@@ -388,7 +392,7 @@ function triggerScoreFlash(type: ScoreFlash) {
 }
 
 // ── Floating popup helper ────────────────────────────────────────────────────
-function spawnPointPopup(value: number, type: 'correct' | 'wrong') {
+function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo') {
   let x = window.innerWidth / 2 - 50
   let y = window.innerHeight / 2 - 60
   if (letterSlotsRef.value) {
@@ -600,11 +604,15 @@ async function syncAnswer(answer: string, isCorrect: boolean) {
       pointsEarned.value = data.points_earned ?? pointsEarned.value
       pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
 
+      const popupType: 'correct' | 'wrong' | 'typo' = isCorrect
+        ? 'correct'
+        : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
+
       spawnPointPopup(
         isCorrect ? data.points_earned : data.points_deducted,
-        isCorrect ? 'correct' : 'wrong'
-      )
-    }
+        popupType
+  )
+}
   } catch (err) {
     console.error('Failed to sync answer:', err)
   }
