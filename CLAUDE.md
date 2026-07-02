@@ -118,7 +118,7 @@ On each answer submission →
                      wrong    → -(5–25 penalty based on letter diff, no core buffs)
   ⑥ Insert into game_session_answers (unique per session+question, 409 on duplicate)
   ⑦ Update game_sessions.score and questions_answered
-  ⑧ Return { status, correct, points_earned, points_deducted, current_total_score, questions_answered, breakdown }
+  ⑧ Return { status, correct, points_earned, points_deducted, new_total_score, questions_answered, breakdown }
   → FE updates score from authoritative BE value
   → Floating "+N PTS" or "-N PTS" animates at letter-slot coordinates
   → Score progress bar transitions smoothly

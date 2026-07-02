@@ -595,7 +595,7 @@ async function syncAnswer(answer: string, isCorrect: boolean) {
 
     if (res.ok) {
       const data = await res.json()
-      score.value = data.current_total_score ?? score.value
+      score.value = data.new_total_score ?? score.value
       questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
       pointsEarned.value = data.points_earned ?? pointsEarned.value
       pointsDeducted.value = data.points_deducted ?? pointsDeducted.value

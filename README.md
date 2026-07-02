@@ -126,7 +126,7 @@ The core is locked at session creation. Every `submit-answer` call validates tha
 | GET | `/api/game/questions` | JWT | Batch of 20 random questions |
 | GET | `/api/game/cores` | JWT | List all available Support Cores |
 | POST | `/api/game/session` | JWT | Create session with `active_core_id`; returns session_id, theme, active_core |
-| POST | `/api/game/submit-answer` | JWT | Secure scoring: validates core, computes formula, updates DB; returns `{ status, correct, points_earned, points_deducted, current_total_score, questions_answered, breakdown }` |
+| POST | `/api/game/submit-answer` | JWT | Secure scoring: validates core, computes formula, updates DB; returns `{ status, correct, points_earned, points_deducted, new_total_score, questions_answered, breakdown }` |
 | POST | `/api/game/timeout` | JWT | Lock session on timeout with final score |
 | POST | `/api/game/abandon` | JWT | Abandon session when player quits mid-match |
 | GET | `/health` | ✗ | Server status |

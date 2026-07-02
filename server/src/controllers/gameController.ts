@@ -287,7 +287,12 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
     const playerId = (req as any).user?.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id, question_id, answer, time_taken, current_combo, active_core_id } = req.body
+   const { player_id, session_id, question_id, answer, time_taken, current_combo, active_core_id } = req.body
+
+      if (player_id && player_id !== playerId) {
+      res.status(403).json({ error: 'player_id does not match authenticated user.' })
+      return
+    }
 
     // ── 1. Input validation ───────────────────────────────────────────────────
     if (!session_id || !question_id || typeof answer !== 'string') {
@@ -416,9 +421,9 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
       correct: isCorrect,
       points_earned: pointsEarned,
       points_deducted: pointsDeducted,
-      penalty_type: penaltyType,        // 'typo' | 'wrong' | null
-      accuracy: Math.round(accuracy * 1000) / 1000, // rounded to 3 decimals
-      current_total_score: newScore,
+      new_total_score: newScore,      
+      penalty_type: penaltyType,
+      accuracy: Math.round(accuracy * 1000) / 1000,
       questions_answered: newQuestionsAnswered,
       breakdown: {
         base_score: breakdown.base,
