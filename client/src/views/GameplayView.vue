@@ -426,25 +426,46 @@ const oracleHintText = computed(() => {
     revealed.add(0)
     if (len > 1) revealed.add(len - 1)
   }
-  // Level 2: + 2nd and 2nd-to-last
+  // Level 2: reveal roughly 50% of letters
   if (level >= 2) {
-    const maxReveal = Math.floor(len * 0.4)
+    const targetReveal = Math.max(2, Math.ceil(len * 0.5))
     let count = revealed.size
-    // thêm từ vị trí 1 ra ngoài (bỏ qua 0 và len-1 đã có)
-    for (let i = 1; i < len - 1 && count < maxReveal; i += 2) {
-      revealed.add(i)
-      count++
-    }
-  }
-  // Level 3: + every other remaining letter
- if (level >= 3) {
-    const maxReveal = Math.floor(len * 0.6)
-    let count = revealed.size
-    for (let i = 1; i < len - 1 && count < maxReveal; i++) {
-      if (!revealed.has(i)) {
-        revealed.add(i)
+    const interval = (len - 1) / (targetReveal - 1)
+    for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {
+      const index = Math.min(len - 2, Math.max(1, Math.round(k * interval)))
+      if (!revealed.has(index)) {
+        revealed.add(index)
         count++
       }
+    }
+    let fallback = 1
+    while (count < targetReveal && fallback < len - 1) {
+      if (!revealed.has(fallback)) {
+        revealed.add(fallback)
+        count++
+      }
+      fallback++
+    }
+  }
+  // Level 3: reveal roughly 70% of letters
+  if (level >= 3) {
+    const targetReveal = Math.max(2, Math.ceil(len * 0.7))
+    let count = revealed.size
+    const interval = (len - 1) / (targetReveal - 1)
+    for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {
+      const index = Math.min(len - 2, Math.max(1, Math.round(k * interval)))
+      if (!revealed.has(index)) {
+        revealed.add(index)
+        count++
+      }
+    }
+    let fallback = 1
+    while (count < targetReveal && fallback < len - 1) {
+      if (!revealed.has(fallback)) {
+        revealed.add(fallback)
+        count++
+      }
+      fallback++
     }
   }
 
