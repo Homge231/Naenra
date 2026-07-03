@@ -266,10 +266,10 @@
 
     <!-- Timer progress bar -->
     <div class="relative z-20 h-2 w-full flex bg-black/50">
-      <div class="h-full transition-all duration-1000 ease-linear rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]"
+      <div class="h-full rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]"
         :class="[
           timeLeft <= 10 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-blue to-lightBlue'
-        ]" :style="{ width: `${(timeLeft / MATCH_DURATION) * 100}%` }">
+        ]" :style="{ width: `${timerProgressPercent}%` }">
       </div>
     </div>
 
@@ -411,6 +411,7 @@ const THEME_MAP: Record<string, string> = {
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
 const timeLeft = ref(MATCH_DURATION)
+const timerProgressPercent = ref(100)
 const score = ref(0)
 const scoreFlash = ref<ScoreFlash>(null)
 const questionsAnswered = ref(0)
@@ -498,7 +499,6 @@ const questionQueue = ref<QuestionPayload[]>([])
 const isFetchingBatch = ref(false)
 const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_length: 0, target_hash: '', oracle_hints: ['', '', ''] })
 
-let matchTimer: ReturnType<typeof setInterval> | null = null
 let flashTimer: ReturnType<typeof setTimeout> | null = null
 
 // ── Score flash helper ────────────────────────────────────────────────────
@@ -530,22 +530,39 @@ function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo' | 'sp
 const questionStartTime = ref<number>(Date.now())
 
 // ── Timer ──────────────────────────────────────────────────────────────────
+let matchTimerFrame: number | null = null
+let matchStartTime = 0
+
 function startMatchTimer() {
-  if (matchTimer) return
-  matchTimer = setInterval(() => {
-    if (timeLeft.value <= 1) {
-      timeLeft.value = 0
-      clearInterval(matchTimer!)
-      matchTimer = null
-      triggerTimeout()
-    } else {
-      timeLeft.value--
+  if (matchTimerFrame) return
+  matchStartTime = Date.now()
+  
+  const tick = () => {
+    if (gameState.value !== 'playing') {
+      matchTimerFrame = null
+      return
     }
-  }, 1000)
+    
+    const elapsed = Date.now() - matchStartTime
+    const remainingMs = Math.max(0, (MATCH_DURATION * 1000) - elapsed)
+    
+    timerProgressPercent.value = (remainingMs / (MATCH_DURATION * 1000)) * 100
+    timeLeft.value = Math.ceil(remainingMs / 1000)
+    
+    if (remainingMs > 0) {
+      matchTimerFrame = requestAnimationFrame(tick)
+    } else {
+      matchTimerFrame = null
+      timeLeft.value = 0
+      triggerTimeout()
+    }
+  }
+  
+  matchTimerFrame = requestAnimationFrame(tick)
 }
 
 function stopMatchTimer() {
-  if (matchTimer) { clearInterval(matchTimer); matchTimer = null }
+  if (matchTimerFrame) { cancelAnimationFrame(matchTimerFrame); matchTimerFrame = null }
 }
 
 function getBackgroundImage(themeKey: string) {
@@ -864,6 +881,7 @@ async function restartMatch() {
   score.value = 0
   questionsAnswered.value = 0
   timeLeft.value = MATCH_DURATION
+  timerProgressPercent.value = 100
   questionQueue.value = []
   currentCombo.value = 0
   scoreFlash.value = null
