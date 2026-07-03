@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { runScoring } from '../cores/index'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -8,11 +9,8 @@ const supabase = createClient(
 )
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const BASE_POINTS = 100
-const COMBO_BONUS_PER_STREAK = 10   // +10 pts per combo level (combo 5 → +50)
-const MAX_COMBO_BONUS = 100         // cap combo bonus at +100 pts
 const DEFAULT_CORE_ID = '00000000-0000-0000-0000-000000000001' // "No Core"
-const ORACLE_PENALTY_MULTIPLIER = 0.5  // Oracle core: -50% score for correct answers
+const MATCH_DURATION_MS = 60_000                              // 60-second match
 
 const TYPO_ACCURACY_THRESHOLD = 0.8   // >= 80% similarity counts as a "typo"
 const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misses
@@ -114,58 +112,9 @@ function getWrongAnswerPenalty(
   return { penalty, penaltyType: 'wrong', accuracy, distance: effectiveDistance }
 }
 
-/**
- * Core scoring formula:
- *   correct  → floor( ((BASE + comboBonus) + flat_buff) * multiplier_buff )
- *   wrong    → -(penalty)  [no core buffs applied to wrong answers]
- *
- * comboBonus only applies when the active core is the "Combo Core".
- * All other cores ignore combo streak entirely.
- */
-function calculateScore(
-  isCorrect: boolean,
-  combo: number,
-  core: CoreRow,
-  wrongPenalty: number,
-  oracleRevealLevel: number
-): { pointsDelta: number; breakdown: Record<string, number> } {
-  let oraclePenalty = 0
-  const isOracleCore = core.name?.toLowerCase().includes('oracle')
-  if (isOracleCore && oracleRevealLevel > 0) {
-    const cumulativeCosts = [10, 30, 60] // [10, 10+20, 10+20+30]
-    const levelIndex = Math.min(Math.max(oracleRevealLevel, 1), cumulativeCosts.length) - 1
-    oraclePenalty = cumulativeCosts[levelIndex]
-  }
-
-  if (!isCorrect) {
-    return {
-      pointsDelta: -wrongPenalty - oraclePenalty,
-      breakdown: { base: 0, combo_bonus: 0, flat_buff: 0, multiplier_buff: 1, oracle_penalty: oraclePenalty, penalty: wrongPenalty }
-    }
-  }
-
-  const isComboCore = core.name?.toLowerCase().includes('combo')
-  const comboBonus = isComboCore
-    ? Math.min(combo * COMBO_BONUS_PER_STREAK, MAX_COMBO_BONUS)
-    : 0
-
-  const beforeMultiplier = BASE_POINTS + comboBonus + core.flat_buff
-  let total = Math.floor(beforeMultiplier * core.multiplier_buff)
-
-  total = total - oraclePenalty
-
-  return {
-    pointsDelta: total,
-    breakdown: {
-      base: BASE_POINTS,
-      combo_bonus: comboBonus,
-      flat_buff: core.flat_buff,
-      multiplier_buff: core.multiplier_buff,
-      oracle_penalty: oraclePenalty,
-      penalty: 0
-    }
-  }
-}
+// NOTE: calculateScore() has been removed.
+// Scoring is now delegated to the core strategy registry — see server/src/cores/index.ts
+// To add a new core: create a strategy file + register it in cores/index.ts.
 
 // ── Endpoint: GET /api/game/question (legacy) ─────────────────────────────────
 export async function getQuestion(_req: Request, res: Response): Promise<void> {
@@ -455,8 +404,17 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
       accuracy = result.accuracy
     }
 
-    // ── 7. Calculate score ────────────────────────────────────────────────────
-    const { pointsDelta, breakdown } = calculateScore(isCorrect, combo, core, wrongPenalty, oracleRevealLevel)
+    // ── 7. Calculate score via core strategy registry ────────────────────────
+    const timeTaken = typeof time_taken === 'number' && time_taken >= 0 ? Math.floor(time_taken) : 0
+    const { pointsDelta, breakdown } = runScoring(isCorrect, core.name, {
+      timeTaken,
+      totalTime:         MATCH_DURATION_MS,
+      combo,
+      wrongPenalty,
+      oracleRevealLevel,
+      flatBuff:          core.flat_buff,
+      multiplierBuff:    core.multiplier_buff,
+    })
 
     // ── 8. Record the answer (unique per session+question) ────────────────────
     const { error: answerErr } = await supabase

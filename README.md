@@ -1,64 +1,72 @@
 # ARENA.ENG – Naenra
 
-A web-based typing esports arena built with Vue 3 + TypeScript frontend and an Express/Colyseus backend.
+A web-based typing esports arena built with Vue 3 + TypeScript frontend and an Express backend.
 
 ## Overview
 
-Naenra is a multiplayer typing game where players compete in real-time ranked matches.
-- `client/`: Vue 3 app using Vite, Phaser, Pinia, and Tailwind CSS
-- `server/`: Express-based backend with Colyseus support for real-time multiplayer
+**Naenra** is a competitive typing game where players race against a 60-second timer, answering fill-in-the-blank vocabulary questions. Before each match, players choose a **Support Core** — a power-up that changes how their score is calculated for the entire session.
+
+- `client/` — Vue 3 SPA (Vite, Phaser, Pinia, Tailwind CSS)
+- `server/` — Express API with Supabase (auth, DB, storage)
+
+**Live:** https://naenra.xyz · **API:** https://api.naenra.xyz
+
+---
 
 ## Tech Stack
 
-**Frontend:** Vue 3, TypeScript, Vite 8, Phaser 4, Pinia 3, Vue Router 5, Tailwind CSS 3, Supabase JS 2
+| Layer | Technologies |
+|---|---|
+| Frontend | Vue 3, TypeScript, Vite 8, Phaser 4, Pinia 3, Vue Router 5, Tailwind CSS 3, Supabase JS 2 |
+| Backend | Node.js, Express 5, TypeScript, Supabase JS 2, bcrypt, jsonwebtoken, nodemailer |
+| Database | Supabase (PostgreSQL) |
+| Deployment | Render (server + client static) |
 
-**Backend:** Node.js, Express 5, TypeScript, Colyseus 0.17, Supabase JS 2, bcrypt, jsonwebtoken, nodemailer, dotenv
+---
 
 ## Project Structure
 
 ```
-client/
-  src/
-    game/        # Phaser game initialization and scenes
-    views/       # Vue views (Login, Home, Profile, Gameplay, CoreSelection, etc.)
-    stores/      # Pinia stores (auth, error, game)
-    router/      # Vue Router with auth guards
-    components/  # Reusable components
-server/
-  src/
-    routes/      # Auth, user, and game routes
-    controllers/ # User profile and game controllers
-    middleware/  # JWT auth middleware
-    utils/       # JWT, OTP, mailer utilities
-sql/
-  migration_scoring_system.sql   # cores table + game_sessions.active_core_id
+client/src/
+  views/              # Full-page components (Gameplay, CoreSelection, Login, Profile…)
+  stores/             # Pinia: authStore, gameStore, errorStore
+  components/         # Avatar, ErrorNotification, game/PhaserBackground
+  game/               # Phaser init + scenes
+  game/cores/         # Frontend core registry (Strategy Pattern)
+    BaseCore.ts       # CoreModule interface
+    registry.ts       # All core UI configs — THE only file to edit for a new core (FE)
+  router/             # Vue Router with auth guards
+
+server/src/
+  controllers/        # gameController.ts, userController.ts
+  routes/             # authRoutes, userRoutes, gameRoutes
+  middleware/         # JWT auth middleware
+  utils/              # jwt.ts, otp.ts, mailer.ts
+  cores/              # Backend scoring strategy system (Strategy Pattern)
+    BaseCore.ts       # Abstract class + ScoringContext / ScoringResult types
+    NoCoreStrategy.ts
+    ComboCoreStrategy.ts
+    OracleCoreStrategy.ts
+    SpeedsterCoreStrategy.ts
+    index.ts          # Registry + runScoring() — THE only file to edit for a new core (BE)
 ```
+
+---
 
 ## Run Locally
 
 ```bash
-# Client
-cd client
-npm install
-npm run dev
+# Terminal 1 — backend
+cd server && npm install && npm run dev
 
-# Server (new terminal)
-cd server
-npm install
-npm run dev
+# Terminal 2 — frontend
+cd client && npm install && npm run dev
 ```
 
 - Client: http://localhost:5173
 - Server: http://localhost:3000/health
 
-## Database Migration
-
-Run `sql/migration_scoring_system.sql` in your Supabase SQL editor to add the `cores` table and `active_core_id` column on `game_sessions`:
-
-```sql
--- Creates cores table, seeds 4 starter cores, adds active_core_id FK to game_sessions
-\i sql/migration_scoring_system.sql
-```
+---
 
 ## Environment Variables
 
@@ -79,97 +87,174 @@ RESEND_API_KEY=
 MAIL_FROM=
 ```
 
+---
+
 ## Gameplay
 
-Each match is **60 seconds**. Players receive an infinite stream of fill-in-the-blank questions. Correct answers earn points; wrong answers incur a small penalty. A **Support Core** chosen before the match applies permanent buffs throughout the session.
+Each match is **60 seconds**. Players receive an infinite stream of fill-in-the-blank questions. Correct answers earn points; wrong answers lose points based on how many letters were wrong (Levenshtein distance). A **Support Core** chosen before the match changes how points are calculated for the entire session.
 
-### Scoring Formula
+### Support Core System
 
-```
-CORRECT:  floor( ((100 + combo_bonus) + flat_buff) × multiplier_buff )
-WRONG:    −(5–25 pts based on letter mismatch count; no core buffs)
-```
+Cores are the central mechanic that differentiates player strategies. Each core is a self-contained module — adding a new core requires creating one file on the backend and adding one entry on the frontend.
 
-**Combo bonus:** `current_combo × 10`, capped at +100 pts per answer.
+| Core | Scoring behaviour | UUID |
+|---|---|---|
+| **No Core** | `floor( (100 + flat_buff) × multiplier_buff )` | `00000000-0000-0000-0000-000000000001` |
+| **Combo Core** | Same as No Core + up to +100 bonus for answer streaks | `00000000-0000-0000-0000-000000000005` |
+| **Oracle Core** | Lets you reveal letter hints at −10/−30/−60 point cost per level | `00000000-0000-0000-0000-000000000006` |
+| **Speedster** | `100 + floor( (1 − timeTaken/60s) × 200 )` — faster = more points | `00000000-0000-0000-0000-000000000007` |
 
-### Support Cores
+The chosen core is **locked at session creation** and validated on every answer submission (anti-cheat: mismatches return 403).
 
-| Core | Flat Buff | Multiplier | Effect |
-|---|---|---|---|
-| No Core | +0 | ×1.0 | Standard play |
-| Speed Core | +15 | ×1.0 | +15 pts every correct word |
-| Power Core | +0 | ×1.5 | 50% more points per word |
-| Balanced Core | +10 | ×1.25 | Flat and multiplier combined |
+### Wrong-Answer Penalties
 
-The core is locked at session creation. Every `submit-answer` call validates that the client-submitted `active_core_id` matches the session's stored value — mismatches are rejected with **403 Forbidden** (anti-cheat).
+| Scenario | Formula |
+|---|---|
+| Close miss (≥ 80% similarity) | `max(1, wrongLetters × 2)` pts deducted |
+| Wrong / skip (< 80% similarity) | `wrongLetters × 10` pts, clamped 10–50 |
 
-**Live score feedback:**
-- Score state updated from authoritative BE response after each answer.
-- Floating **"+N PTS"** (green) or **"-N PTS"** (red) animates upward from the letter-slot area.
-- **Score progress bar** fills and transitions smoothly with each update; colour shifts by score tier.
+---
 
-**Question loading:** Client pre-fetches 20 questions on match start; refetches in the background when queue drops to ≤5.
-
-## API Endpoints
+## API Reference
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/auth/register` | ✗ | Register with email + OTP verification |
-| POST | `/auth/verify-otp` | ✗ | Verify OTP and create account |
+| POST | `/auth/register` | ✗ | Register → send OTP |
+| POST | `/auth/verify-otp` | ✗ | Verify OTP → create account |
 | POST | `/auth/resend-otp` | ✗ | Resend OTP |
 | POST | `/auth/login` | ✗ | Email/password login |
-| POST | `/auth/token` | ✗ | Exchange Supabase token for arena JWT (Google OAuth) |
-| GET | `/auth/check-email` | ✗ | Check provider for an email address |
-| GET | `/api/user/profile` | JWT | Get full player profile |
-| PATCH | `/api/user/profile` | JWT | Update username and/or avatar |
-| GET | `/api/game/question` | JWT | Single random question (legacy) |
-| GET | `/api/game/questions` | JWT | Batch of 20 random questions |
-| GET | `/api/game/cores` | JWT | List all available Support Cores |
-| POST | `/api/game/session` | JWT | Create session with `active_core_id`; returns session_id, theme, active_core |
-| POST | `/api/game/submit-answer` | JWT | Secure scoring: validates core, computes formula, updates DB; returns `{ status, correct, points_earned, points_deducted, new_total_score, questions_answered, breakdown }` |
-| POST | `/api/game/timeout` | JWT | Lock session on timeout with final score |
-| POST | `/api/game/abandon` | JWT | Abandon session when player quits mid-match |
-| GET | `/health` | ✗ | Server status |
+| POST | `/auth/token` | ✗ | Google OAuth → arena JWT |
+| GET | `/auth/check-email` | ✗ | Detect provider for an email |
+| GET | `/api/user/profile` | JWT | Full profile: elo, rank, stats |
+| PATCH | `/api/user/profile` | JWT | Update username / avatar |
+| GET | `/api/game/questions` | JWT | Batch of 20 randomised questions |
+| GET | `/api/game/cores` | JWT | List all available cores |
+| POST | `/api/game/session` | JWT | Create session; lock core |
+| POST | `/api/game/submit-answer` | JWT | Score an answer; returns breakdown |
+| POST | `/api/game/timeout` | JWT | Finalise session on timer end |
+| POST | `/api/game/abandon` | JWT | Abandon mid-match |
+| GET | `/health` | ✗ | Server health check |
+
+### submit-answer payload
+
+```json
+{
+  "session_id": "...",
+  "question_id": "...",
+  "answer": "discovery",
+  "current_combo": 3,
+  "active_core_id": "...",
+  "oracle_reveal_level": 0,
+  "time_taken": 4231
+}
+```
+
+`time_taken` is always sent (ms elapsed since the question appeared). It is used by the Speedster core.
+
+---
+
+## Adding a New Core
+
+### Backend — 2 steps
+
+**1. Create `server/src/cores/YourCoreStrategy.ts`:**
+
+```ts
+import { BaseCore, ScoringContext, ScoringResult, BASE_POINTS } from './BaseCore'
+
+export class YourCoreStrategy extends BaseCore {
+  readonly coreName = 'your core name'   // must match cores.name in DB
+
+  calculateCorrect(ctx: ScoringContext): ScoringResult {
+    const oraclePenalty = this._oraclePenalty(ctx)
+    const total = /* your formula */ - oraclePenalty
+    return {
+      pointsDelta: total,
+      breakdown: { base: BASE_POINTS, combo_bonus: 0, flat_buff: 0, multiplier_buff: 1, oracle_penalty: oraclePenalty, penalty: 0 }
+    }
+  }
+}
+```
+
+**2. Register in `server/src/cores/index.ts`:**
+
+```ts
+import { YourCoreStrategy } from './YourCoreStrategy'
+
+const CORE_REGISTRY = {
+  // ... existing entries
+  'your core name': new YourCoreStrategy(),
+}
+```
+
+### Frontend — 1 step
+
+Add one entry to `client/src/game/cores/registry.ts`:
+
+```ts
+'<supabase-uuid>': {
+  id: '<supabase-uuid>',
+  name: 'Your Core Name',
+  timerColor: 'text-purple-400',
+  timerClass: '',
+  timerIconClass: '',
+  popupType: 'correct',
+  // showWindOverlay: true   ← optional, adds wind-streak effect
+},
+```
+
+**That's it. No other files need to change.**
+
+---
+
+## Database (Supabase)
+
+### `cores`
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid | Stable seeded UUIDs |
+| name | text | Matched by BE strategy registry |
+| description | text | Shown on CoreSelectionView |
+| flat_buff | int | Added before multiplier (default 0) |
+| multiplier_buff | float | Score multiplier (default 1.0) |
+
+### `game_sessions`
+| Column | Notes |
+|---|---|
+| active_core_id | FK → cores.id; locked at session start |
+| score | Updated after each answer |
+| status | `'active'` \| `'timeout'` \| `'abandoned'` |
+
+### `game_session_answers`
+Stores every submitted answer with `points_delta` for audit.
+
+### `questions`
+| Column | Notes |
+|---|---|
+| question_text | Sentence with `______` blank |
+| target_word | Correct answer (never sent to client directly) |
+| hint | Shown above question card |
+
+---
 
 ## Deployment (Render)
 
 **Server — Web Service:**
-- Root Directory: `server`
-- Build Command: `npm install && npm run build`
-- Start Command: `npm start`
-- URL: https://axonproject-1.onrender.com
-- Custom Domain: https://api.naenra.xyz
+- Root: `server/` · Build: `npm install && npm run build` · Start: `npm start`
+- URL: https://api.naenra.xyz
 
 **Client — Static Site:**
-- Root Directory: `client`
-- Build Command: `npm install && npm run build`
-- Publish Directory: `dist`
-- URL: https://axonproject.onrender.com
-- Custom Domain: https://naenra.xyz
+- Root: `client/` · Build: `npm install && npm run build` · Publish: `dist`
+- URL: https://naenra.xyz
 
-**Client ENV on Render:**
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_SERVER_URL=https://axonproject-1.onrender.com
-VITE_SITE_URL=https://naenra.xyz
-```
+**CORS origins:** naenra.xyz, www.naenra.xyz, axonproject.onrender.com, localhost:5173
 
-**Server ENV on Render:**
-```
-SUPABASE_URL=
-SUPABASE_SERVICE_KEY=
-JWT_SECRET=
-RESEND_API_KEY=
-MAIL_FROM=
-```
+---
 
-**CORS Origins (server):**
-- https://naenra.xyz
-- https://www.naenra.xyz
-- https://axonproject.onrender.com
-- http://localhost:5173
+## Known Pending Items
 
-**Supabase:**
-- Site URL: https://naenra.xyz
-- Redirect URLs: https://naenra.xyz/**, https://www.naenra.xyz/**
+- **Speedster core** — Supabase UUID `00000000-0000-0000-0000-000000000007`. Registry fully wired.
+- `pendingRegistrations` is in-memory — lost on server restart. Move to Redis/Supabase in a future sprint.
+- Avatar upload stores base64 in the DB column — move to Supabase Storage later.
+- ELO updates after match are not yet wired (Sprint 3).
+- Colyseus multiplayer rooms not yet active (Sprint 3).

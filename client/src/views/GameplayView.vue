@@ -11,15 +11,21 @@
         <div
           v-for="popup in pointPopups"
           :key="popup.id"
-          class="float-pts-item absolute font-black text-2xl tracking-widest drop-shadow-lg"
+          class="float-pts-item absolute font-black tracking-widest drop-shadow-lg"
           :class="{
-            'text-success': popup.type === 'correct',
-            'text-hexred': popup.type === 'wrong',
-            'text-yellow-400': popup.type === 'typo'
+            'text-2xl text-success': popup.type === 'correct',
+            'text-2xl text-hexred': popup.type === 'wrong',
+            'text-2xl text-yellow-400': popup.type === 'typo',
+            'speedster-popup': popup.type === 'speedster'
           }"
           :style="{ left: popup.x + 'px', top: popup.y + 'px' }"
         >
-          {{ popup.type === 'correct' ? '+' : '-' }}{{ popup.value }}{{ popup.type === 'typo' ? ' (Typo)' : ' PTS' }}
+          <template v-if="popup.type === 'speedster'">
+            <span class="speedster-fast-text">+{{ popup.value }} FAST!</span>
+          </template>
+          <template v-else>
+            {{ popup.type === 'correct' ? '+' : '-' }}{{ popup.value }}{{ popup.type === 'typo' ? ' (Typo)' : ' PTS' }}
+          </template>
         </div>
       </transition-group>
     </div>
@@ -82,13 +88,22 @@
           <span class="text-xl font-black text-white">{{ questionsAnswered }}</span>
         </div>
 
-        <div class="flex items-center gap-2" :class="timeLeft <= 10 ? 'text-hexred' : 'text-lightOrange'">
-          <svg class="w-5 h-5 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-2" :class="timeLeft <= 10 ? 'text-hexred' : activeCoreModule.timerColor">
+          <svg
+            class="w-5 h-5 drop-shadow-md"
+            :class="activeCoreModule.timerIconClass || undefined"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="font-mono font-black text-3xl tabular-nums drop-shadow-lg"
-            :class="timeLeft <= 10 ? 'animate-pulse' : ''">{{ String(timeLeft).padStart(2, '0') }}</span>
+          <span
+            class="font-mono font-black text-3xl tabular-nums drop-shadow-lg"
+            :class="[
+              timeLeft <= 10 ? 'animate-pulse' : '',
+              activeCoreModule.timerClass || ''
+            ]">
+            {{ String(timeLeft).padStart(2, '0') }}
+          </span>
         </div>
       </div>
     </header>
@@ -176,8 +191,22 @@
 
               <!-- Letter slots (anchor for popup position) -->
               <div class="w-full flex flex-col items-center gap-3 overflow-hidden" ref="letterSlotsRef">
+
+                <!-- Speedster wind streak overlay -->
+                <transition name="wind-fade">
+                  <div v-if="activeCoreModule.showWindOverlay && gameState === 'playing'" class="speedster-wind-container" aria-hidden="true">
+                    <span class="wind-streak ws1"></span>
+                    <span class="wind-streak ws2"></span>
+                    <span class="wind-streak ws3"></span>
+                    <span class="wind-streak ws4"></span>
+                    <span class="wind-streak ws5"></span>
+                    <span class="wind-streak ws6"></span>
+                  </div>
+                </transition>
+
                 <div
-                  class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none">
+                  class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none"
+                  :class="{ 'speedster-slots-glow': isSpeedsterCore && gameState === 'playing' }">
                   <div v-for="(_, idx) in currentQuestion.target_length" :key="idx" class="flex-shrink-0">
                     <div
                       class="relative w-10 h-14 md:w-14 md:h-20 bg-black/40 backdrop-blur-md rounded-t-lg flex items-center justify-center border-b-4 transition-all duration-200"
@@ -336,6 +365,7 @@ import { useAuthStore } from '../stores/authStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import Avatar from '../components/Avatar.vue'
 import { useGameStore } from '../stores/gameStore'
+import { getCoreModule } from '../game/cores/registry'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -354,7 +384,7 @@ interface QuestionPayload {
 interface PointPopup {
   id: number
   value: number
-  type: 'correct' | 'wrong' | 'typo'
+  type: 'correct' | 'wrong' | 'typo' | 'speedster'
   x: number
   y: number
 }
@@ -392,7 +422,6 @@ const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const currentBgImage = ref('/bg-daily-life.png')
 const currentCombo = ref(0)
-const COMBO_CORE_ID = '00000000-0000-0000-0000-000000000005'
 
 // active_core_id / name sourced from gameStore (set in CoreSelectionView)
 const activeCoreId = computed<string | null>({
@@ -400,10 +429,15 @@ const activeCoreId = computed<string | null>({
   set: (val) => { gameStore.activeCoreId = val }
 })
 
-const isComboCore = computed(() => gameStore.activeCoreId === COMBO_CORE_ID)
+// ── Core registry ──────────────────────────────────────────────────────────
+// Single source of truth for all core-specific UI behaviour.
+// To add a new core: edit client/src/game/cores/registry.ts only.
+const activeCoreModule = computed(() => getCoreModule(gameStore.activeCoreId))
 
-const ORACLE_CORE_ID = '00000000-0000-0000-0000-000000000006'
-const isOracleCore = computed(() => gameStore.activeCoreId === ORACLE_CORE_ID)
+// Convenience booleans — still used by Oracle-specific template logic
+const isComboCore     = computed(() => activeCoreModule.value.name === 'Combo Core')
+const isOracleCore    = computed(() => activeCoreModule.value.name === 'Oracle Core')
+const isSpeedsterCore = computed(() => activeCoreModule.value.name === 'Speedster')
 
 // Oracle progressive reveal: 3 levels, increasing cost
 const ORACLE_MAX_LEVEL = 3
@@ -479,7 +513,7 @@ function triggerScoreFlash(type: ScoreFlash) {
 }
 
 // ── Floating popup helper ─────────────────────────────────────────────────
-function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo') {
+function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo' | 'speedster') {
   let x = window.innerWidth / 2 - 50
   let y = window.innerHeight / 2 - 60
   if (letterSlotsRef.value) {
@@ -490,10 +524,14 @@ function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo') {
 
   const id = popupIdCounter++
   pointPopups.value.push({ id, value, type, x, y })
+  const duration = type === 'speedster' ? 1800 : 1200
   setTimeout(() => {
     pointPopups.value = pointPopups.value.filter(p => p.id !== id)
-  }, 1200)
+  }, duration)
 }
+
+// ── Question start-time tracking (for Speedster time_taken) ───────────────
+const questionStartTime = ref<number>(Date.now())
 
 // ── Timer ──────────────────────────────────────────────────────────────────
 function startMatchTimer() {
@@ -620,6 +658,9 @@ async function loadQuestion() {
     currentQuestion.value = next
   }
 
+  // Reset per-question start time for Speedster time_taken calculation
+  questionStartTime.value = Date.now()
+
   gameState.value = 'playing'
   await nextTick()
   inputRef.value?.focus()
@@ -654,6 +695,7 @@ async function skipQuestion() {
   loadQuestion()
 
   // Notify server: send empty string as answer (server treats it as a full skip/wrong)
+  const timeTaken = Date.now() - questionStartTime.value
   const mySeq = ++submitAnswerSeq
   ;(async () => {
     try {
@@ -670,7 +712,8 @@ async function skipQuestion() {
           answer: '',            // empty = full skip
           current_combo: capturedCombo,
           active_core_id: activeCoreId.value,
-          oracle_reveal_level: capturedOracleLevel
+          oracle_reveal_level: capturedOracleLevel,
+          time_taken: timeTaken
         })
       })
       if (res.ok && mySeq === submitAnswerSeq) {
@@ -750,6 +793,7 @@ async function checkAnswer() {
 
   // ── 4. Background sync with server (fire-and-forget) ─────────────────────
   if (!sessionId.value || !questionId) return
+  const timeTaken = Date.now() - questionStartTime.value
   const mySeq = ++submitAnswerSeq   // capture sequence number for this specific answer
   ;(async () => {
     try {
@@ -766,7 +810,8 @@ async function checkAnswer() {
           answer: typed,
           current_combo: capturedCombo,
           active_core_id: activeCoreId.value,
-          oracle_reveal_level: capturedOracleLevel  // use captured level, not the reset one
+          oracle_reveal_level: capturedOracleLevel,  // use captured level, not the reset one
+          time_taken: timeTaken                       // ms elapsed since question loaded
         })
       })
 
@@ -789,14 +834,19 @@ async function checkAnswer() {
           currentQuestion.value.correct_word = data.correct_word
         }
 
-        // Spawn score popup (typo detection and oracle penalty require server response)
-        const popupType: 'correct' | 'wrong' | 'typo' = data.correct
-          ? 'correct'
-          : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
-        spawnPointPopup(
-          data.correct ? data.points_earned : data.points_deducted,
-          popupType
-        )
+        // Spawn score popup
+        // Speedster core gets a specialised "+N FAST!" popup when answering correctly
+        if (data.correct && isSpeedsterCore.value) {
+          spawnPointPopup(data.points_earned, 'speedster')
+        } else {
+          const popupType: 'correct' | 'wrong' | 'typo' = data.correct
+            ? 'correct'
+            : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
+          spawnPointPopup(
+            data.correct ? data.points_earned : data.points_deducted,
+            popupType
+          )
+        }
       }
     } catch (err) {
       console.error('Failed to sync answer:', err)
@@ -910,6 +960,106 @@ onUnmounted(() => {
   80%  { opacity: 0.7; transform: translateY(-56px) scale(1); }
   100% { opacity: 0; transform: translateY(-80px) scale(0.85); }
 }
+
+/* ── Speedster FAST! popup ──────────────────────────────────────────────── */
+.speedster-popup {
+  animation: fastPopup 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+.speedster-fast-text {
+  display: inline-block;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  background: linear-gradient(90deg, #67e8f9, #06b6d4, #ffffff, #06b6d4, #67e8f9);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0 12px rgba(6,182,212,0.9)) drop-shadow(0 0 24px rgba(103,232,249,0.6));
+  animation: shimmerFast 0.6s linear infinite;
+}
+
+@keyframes shimmerFast {
+  to { background-position: 200% center; }
+}
+
+@keyframes fastPopup {
+  0%   { opacity: 0;   transform: translateY(10px)  scale(0.6)  skewX(-8deg); }
+  10%  { opacity: 1;   transform: translateY(-10px) scale(1.5)  skewX(4deg);  }
+  25%  { opacity: 1;   transform: translateY(-30px) scale(1.2)  skewX(-2deg); }
+  70%  { opacity: 0.9; transform: translateY(-80px) scale(1.05) skewX(0deg);  }
+  100% { opacity: 0;   transform: translateY(-120px) scale(0.8) skewX(0deg);  }
+}
+
+/* ── Speedster timer glow ───────────────────────────────────────────────── */
+.speedster-timer-glow {
+  animation: speedTimerPulse 0.8s ease-in-out infinite;
+  color: #67e8f9;
+}
+
+.speedster-timer-icon {
+  animation: speedTimerPulse 0.8s ease-in-out infinite;
+  color: #67e8f9;
+  filter: drop-shadow(0 0 6px rgba(6,182,212,0.8));
+}
+
+@keyframes speedTimerPulse {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(6,182,212,0.6), 0 0 16px rgba(103,232,249,0.3);
+    filter: drop-shadow(0 0 6px rgba(6,182,212,0.8));
+  }
+  50% {
+    text-shadow: 0 0 20px rgba(6,182,212,1), 0 0 40px rgba(103,232,249,0.8), 0 0 60px rgba(255,255,255,0.3);
+    filter: drop-shadow(0 0 14px rgba(6,182,212,1)) drop-shadow(0 0 28px rgba(103,232,249,0.6));
+  }
+}
+
+/* ── Speedster wind streaks ─────────────────────────────────────────────── */
+.speedster-wind-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.wind-streak {
+  position: absolute;
+  left: -160px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, rgba(103,232,249,0.7), rgba(255,255,255,0.9), transparent);
+  animation: windMove 0.9s linear infinite;
+  filter: blur(1px);
+  opacity: 0;
+}
+
+.ws1 { top: 18%;  width: 160px; animation-delay: 0s;     animation-duration: 0.75s; }
+.ws2 { top: 35%;  width: 220px; animation-delay: 0.15s;  animation-duration: 0.90s; }
+.ws3 { top: 50%;  width: 140px; animation-delay: 0.05s;  animation-duration: 0.65s; }
+.ws4 { top: 62%;  width: 200px; animation-delay: 0.30s;  animation-duration: 0.80s; }
+.ws5 { top: 28%;  width: 100px; animation-delay: 0.42s;  animation-duration: 0.70s; }
+.ws6 { top: 75%;  width: 180px; animation-delay: 0.22s;  animation-duration: 0.95s; }
+
+@keyframes windMove {
+  0%   { transform: translateX(0);    opacity: 0; }
+  15%  { opacity: 0.9; }
+  80%  { opacity: 0.6; }
+  100% { transform: translateX(calc(100vw + 260px)); opacity: 0; }
+}
+
+.speedster-slots-glow {
+  filter: drop-shadow(0 0 8px rgba(6,182,212,0.35));
+  transition: filter 0.3s ease;
+}
+
+.wind-fade-enter-active { transition: opacity 0.4s ease; }
+.wind-fade-leave-active { transition: opacity 0.4s ease; }
+.wind-fade-enter-from   { opacity: 0; }
+.wind-fade-leave-to     { opacity: 0; }
 
 .score-pop-correct {
   animation: scoreScaleCorrect 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
