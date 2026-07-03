@@ -266,7 +266,7 @@
 
     <!-- Timer progress bar -->
     <div class="relative z-20 h-2 w-full flex bg-black/50">
-      <div class="h-full transition-all duration-600 ease-out rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]"
+      <div class="h-full transition-all duration-1000 ease-linear rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]"
         :class="[
           timeLeft <= 10 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-blue to-lightBlue'
         ]" :style="{ width: `${(timeLeft / MATCH_DURATION) * 100}%` }">
