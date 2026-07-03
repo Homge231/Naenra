@@ -80,7 +80,7 @@ interface ScoringContext {
 | `'no core'` | `NoCoreStrategy` | `floor((100 + flat_buff) × multiplier_buff)` |
 | `'combo core'` | `ComboCoreStrategy` | `floor((100 + comboBonus + flat_buff) × multiplier_buff)` |
 | `'oracle core'` | `OracleCoreStrategy` | Same as No Core minus oracle hint penalty |
-| `'speedster'` | `SpeedsterCoreStrategy` | `100 + floor((1 − timeTaken/60000) × 200)` |
+| `'speedster'` | `SpeedsterCoreStrategy` | `100 + max(0, floor((1 − timeTaken/8000) × 150))` |
 
 Registry lookup: `getCoreStrategy(core.name)` — **case-insensitive, trimmed**. Unknown names fall back to `NoCoreStrategy` with a `console.warn`.
 
@@ -146,11 +146,11 @@ Accuracy uses Levenshtein edit distance. Empty answer = full skip = worst case.
 ### Speedster formula (US-17.1)
 
 ```
-speedBonus  = floor( (1 − timeTaken / 60000) × 200 )
+speedBonus  = max(0, floor( (1 − timeTaken / 8000) × 150 ))
 pointsDelta = 100 + speedBonus            -- ignores flat_buff and multiplier_buff
 ```
 
-Answer in 1s → ~297 pts. Answer in 30s → ~200 pts. Answer in 59s → ~103 pts.
+Answer in 1s → ~231 pts. Answer in 3s → ~193 pts. Answer in 8s+ → 100 pts.
 
 ---
 

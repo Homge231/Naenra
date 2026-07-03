@@ -129,11 +129,12 @@ Oracle Core:
   oraclePenalty: Lv1=10, Lv2=30, Lv3=60 (cumulative)
 
 Speedster Core:
-  speedBonus  = floor( (1 − timeTaken/60000) × 200 )
+  speedBonus  = max(0, floor( (1 − timeTaken/8000) × 150 ))
   pointsDelta = 100 + speedBonus         [ignores flat_buff and multiplier_buff entirely]
-  Answer in 1s  → ~297 pts
-  Answer in 30s → ~200 pts
-  Answer in 59s → ~103 pts
+  Answer in 1s  → ~231 pts
+  Answer in 3s  → ~193 pts
+  Answer in 6s  → ~137 pts
+  Answer in 8s+ →  100 pts (no speed bonus)
 ```
 
 ### Wrong answer penalty

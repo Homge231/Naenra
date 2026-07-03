@@ -102,7 +102,7 @@ Cores are the central mechanic that differentiates player strategies. Each core 
 | **No Core** | `floor( (100 + flat_buff) × multiplier_buff )` | `00000000-0000-0000-0000-000000000001` |
 | **Combo Core** | Same as No Core + up to +100 bonus for answer streaks | `00000000-0000-0000-0000-000000000005` |
 | **Oracle Core** | Lets you reveal letter hints at −10/−30/−60 point cost per level | `00000000-0000-0000-0000-000000000006` |
-| **Speedster** | `100 + floor( (1 − timeTaken/60s) × 200 )` — faster = more points | `00000000-0000-0000-0000-000000000007` |
+| **Speedster** | `100 + max(0, floor( (1 − timeTaken/8s) × 150 ))` — faster = more points | `00000000-0000-0000-0000-000000000007` |
 
 The chosen core is **locked at session creation** and validated on every answer submission (anti-cheat: mismatches return 403).
 

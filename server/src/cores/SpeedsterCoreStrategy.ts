@@ -2,7 +2,7 @@ import {
   BaseCore,
   BASE_POINTS,
   SPEEDSTER_MULTIPLIER,
-  MATCH_DURATION_MS,
+  SPEEDSTER_TIME_BUDGET_MS,
   ScoringContext,
   ScoringResult,
 } from './BaseCore'
@@ -11,17 +11,17 @@ import {
  * Speedster Core  (US-17.1)
  *
  * Rewards players who answer quickly. The faster the answer, the higher the bonus.
- * Flat 100-point base is replaced entirely by a time-based formula.
+ * Flat 100-point base is replaced entirely by a time-based formula with a strict time window.
  *
  * Formula:
- *   speedBonus = floor( (1 - timeTaken / totalTime) * SPEEDSTER_MULTIPLIER )
+ *   speedBonus = max(0, floor( (1 - timeTaken / budget) * SPEEDSTER_MULTIPLIER ))
  *   total      = BASE_POINTS + speedBonus
  *
- * Examples (SPEEDSTER_MULTIPLIER = 200, totalTime = 60 000 ms):
- *   Answer in  1s  →  +197 bonus  → 297 pts
- *   Answer in 10s  →  +167 bonus  → 267 pts
- *   Answer in 30s  →  +100 bonus  → 200 pts
- *   Answer in 59s  →  +  3 bonus  → 103 pts
+ * Examples (SPEEDSTER_MULTIPLIER = 150, budget = 8000 ms):
+ *   Answer in  1s  →  +131 bonus  → 231 pts
+ *   Answer in  3s  →  +93 bonus   → 193 pts
+ *   Answer in  6s  →  +37 bonus   → 137 pts
+ *   Answer in  8s+ →  +0 bonus    → 100 pts
  *
  * The combo streak and flat_buff / multiplier_buff are intentionally ignored —
  * speed is the ONLY axis that matters for this core.
@@ -32,12 +32,10 @@ export class SpeedsterCoreStrategy extends BaseCore {
   calculateCorrect(ctx: ScoringContext): ScoringResult {
     const oraclePenalty = this._oraclePenalty(ctx)
 
-    // Clamp timeTaken to [0, totalTime] to guard against clock drift or missing data
-    const safeTotalTime = ctx.totalTime > 0 ? ctx.totalTime : MATCH_DURATION_MS
-    const safeTaken     = Math.min(Math.max(ctx.timeTaken, 0), safeTotalTime)
-
-    const speedRatio  = 1 - safeTaken / safeTotalTime          // 1.0 = instant, 0.0 = full time used
-    const speedBonus  = Math.floor(speedRatio * SPEEDSTER_MULTIPLIER)
+    // Clamp timeTaken to guard against clock drift or missing data
+    const safeTaken     = Math.max(ctx.timeTaken, 0)
+    const speedRatio    = Math.max(0, 1 - safeTaken / SPEEDSTER_TIME_BUDGET_MS) // 1.0 = instant, 0.0 = budget exhausted
+    const speedBonus    = Math.floor(speedRatio * SPEEDSTER_MULTIPLIER)
     const total       = BASE_POINTS + speedBonus - oraclePenalty
 
     return {

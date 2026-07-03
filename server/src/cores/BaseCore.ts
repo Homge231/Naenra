@@ -8,7 +8,8 @@
 
 export const BASE_POINTS             = 100
 export const MATCH_DURATION_MS       = 60_000          // 60-second match
-export const SPEEDSTER_MULTIPLIER    = 200              // max bonus pts from speed
+export const SPEEDSTER_MULTIPLIER    = 150             // max bonus pts from speed
+export const SPEEDSTER_TIME_BUDGET_MS= 8_000           // 8-second window to get speed bonus
 export const COMBO_BONUS_PER_STREAK  = 10              // +10 pts per combo level
 export const MAX_COMBO_BONUS         = 100             // cap combo bonus at +100
 
