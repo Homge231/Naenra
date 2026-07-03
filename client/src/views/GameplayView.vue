@@ -268,8 +268,8 @@
     <div class="relative z-20 h-2 w-full flex bg-black/50">
       <div class="h-full transition-all duration-600 ease-out rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]"
         :class="[
-          timeLeft <= 10 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : scoreBarColor
-        ]" :style="{ width: `${scoreBarPercent}%` }">
+          timeLeft <= 10 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-blue to-lightBlue'
+        ]" :style="{ width: `${(timeLeft / MATCH_DURATION) * 100}%` }">
       </div>
     </div>
 
@@ -491,15 +491,7 @@ const playerAvatarUrl = computed(() =>
   `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(authStore.profile?.username || 'Player')}`
 )
 
-// Score bar derived state
-const scoreBarPercent = computed(() => Math.min(100, (score.value / SCORE_BAR_MAX) * 100))
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const scoreBarColor = computed(() => {
-  const pct = scoreBarPercent.value
-  if (pct >= 80) return 'bg-gradient-to-r from-success to-emerald-400'
-  if (pct >= 50) return 'bg-gradient-to-r from-orange to-lightOrange'
-  return 'bg-gradient-to-r from-blue to-lightBlue'
-})
+// Removed unused scoreBar derived state
 
 // ── Question queue ────────────────────────────────────────────────────────
 const questionQueue = ref<QuestionPayload[]>([])
