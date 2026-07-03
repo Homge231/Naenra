@@ -288,7 +288,10 @@
     <div v-if="isMissionCore" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
       <div
         class="flex flex-col items-start gap-2 bg-darkNavy/40 backdrop-blur-md border border-lightBlue/30 px-5 py-3 rounded-2xl shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-        <span class="text-[10px] font-bold text-lightBlue/80 tracking-[0.2em] uppercase">Mission Progress</span>
+        <div class="flex items-center justify-between w-full">
+          <span class="text-[10px] font-bold text-lightBlue/80 tracking-[0.2em] uppercase">Mission Progress</span>
+          <span class="text-xs font-black text-white tabular-nums">{{ missionProgress }}/5</span>
+        </div>
         <div class="flex items-center gap-1.5">
           <svg v-for="i in 5" :key="i" class="w-6 h-6 transition-all duration-300"
             :class="i <= missionProgress ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] scale-110' : 'text-gray-600'"
