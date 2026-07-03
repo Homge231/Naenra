@@ -291,12 +291,19 @@ async function submitCore(core: CoreOption) {
   router.push('/game')
 }
 
+const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+  e.preventDefault()
+  e.returnValue = ''
+}
+
 onMounted(() => {
   fetchSupportCores()
+  window.addEventListener('beforeunload', handleBeforeUnload)
 })
 
 onUnmounted(() => {
   stopTimer()
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
