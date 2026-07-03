@@ -161,7 +161,7 @@ const successMsg = ref('')
 const uploadedBase64 = ref('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
-const profile = ref({
+const profile = computed(() => authStore.profile || {
   username: '',
   avatar_url: '',
   elo: 0,
@@ -185,32 +185,7 @@ const displayAvatar = computed(() => {
   return fallbackAvatar.value
 })
 
-async function fetchProfile() {
-  loading.value = true
-  try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/user/profile`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    const data = await res.json()
-    if (res.ok) {
-      profile.value = {
-        username: data.username,
-        avatar_url: data.avatar_url || '',
-        elo: data.elo ?? 0,
-        rank: data.rank || 'Bronze',
-        wins: data.wins ?? 0,
-        losses: data.losses ?? 0,
-        total_matches: data.total_matches ?? 0
-      }
-      form.value.username = data.username
-    }
-  } catch (err) {
-    console.error('fetchProfile error:', err)
-  } finally {
-    loading.value = false
-  }
-}
+// Removed local fetchProfile in favor of authStore.fetchProfile()
 
 function enterEditMode() {
   form.value.username = profile.value.username
@@ -276,19 +251,17 @@ async function handleSave() {
       return
     }
 
-    profile.value = {
-      ...profile.value,
-      username: data.profile.username,
-      avatar_url: data.profile.avatar_url || '',
-      elo: data.profile.elo ?? profile.value.elo,
-      rank: data.profile.rank || profile.value.rank
-    }
-    uploadedBase64.value = ''
-
     if (authStore.profile) {
       authStore.profile.username = data.profile.username
-      authStore.profile.avatar_url = data.profile.avatar_url
+      authStore.profile.avatar_url = data.profile.avatar_url || ''
+      authStore.profile.elo = data.profile.elo ?? authStore.profile.elo
+      authStore.profile.rank = data.profile.rank || authStore.profile.rank
+      authStore.profile.wins = data.profile.wins ?? authStore.profile.wins
+      authStore.profile.losses = data.profile.losses ?? authStore.profile.losses
+      authStore.profile.total_matches = data.profile.total_matches ?? authStore.profile.total_matches
     }
+    
+    uploadedBase64.value = ''
 
     successMsg.value = 'Profile updated!'
     editMode.value = false
@@ -299,8 +272,13 @@ async function handleSave() {
   }
 }
 
-onMounted(() => {
-  fetchProfile()
+onMounted(async () => {
+  // If profile isn't loaded globally yet, try to load it
+  if (!authStore.profile) {
+    await authStore.fetchProfile()
+  }
+  form.value.username = profile.value.username
+  loading.value = false
 })
 </script>
 

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import { AuthRequest } from '../middleware/authMiddleware'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { runScoring } from '../cores/index'
@@ -116,27 +117,7 @@ function getWrongAnswerPenalty(
 // Scoring is now delegated to the core strategy registry — see server/src/cores/index.ts
 // To add a new core: create a strategy file + register it in cores/index.ts.
 
-// ── Endpoint: GET /api/game/question (legacy) ─────────────────────────────────
-export async function getQuestion(_req: Request, res: Response): Promise<void> {
-  try {
-    const { data: ids, error: idError } = await supabase.from('questions').select('id')
-    if (idError) throw idError
-    if (!ids || ids.length === 0) { res.status(404).json({ error: 'No questions available.' }); return }
-
-    const randomId = ids[Math.floor(Math.random() * ids.length)].id
-    const { data: question, error: qError } = await supabase
-      .from('questions')
-      .select('id, question_text, target_word, hint')
-      .eq('id', randomId)
-      .single()
-
-    if (qError) throw qError
-    res.status(200).json(question)
-  } catch (err) {
-    console.error('getQuestion error:', err)
-    res.status(500).json({ error: 'Failed to fetch question.' })
-  }
-}
+// ── Endpoint: GET /api/game/question (legacy) removed ───────────────────────
 
 function generateOracleHints(word: string): string[] {
   if (!word) return ['', '', '']
@@ -187,7 +168,7 @@ function generateOracleHints(word: string): string[] {
 }
 
 // ── Endpoint: GET /api/game/questions ────────────────────────────────────────
-export async function getQuestions(_req: Request, res: Response): Promise<void> {
+export async function getQuestions(_req: AuthRequest, res: Response): Promise<void> {
   const BATCH_SIZE = 20
   try {
     const { data: ids, error: idError } = await supabase.from('questions').select('id')
@@ -223,8 +204,8 @@ export async function getQuestions(_req: Request, res: Response): Promise<void> 
   }
 }
 
-// ── Endpoint: GET /api/game/cores ────────────────────────────────────────────
-export async function getCores(_req: Request, res: Response): Promise<void> {
+// ── Endpoint: GET /api/game/cores ─────────────────────────────────────────────
+export async function getCores(_req: AuthRequest, res: Response): Promise<void> {
   try {
     const { data: cores, error } = await supabase
       .from('cores')
@@ -239,10 +220,10 @@ export async function getCores(_req: Request, res: Response): Promise<void> {
   }
 }
 
-// ── Endpoint: POST /api/game/session ─────────────────────────────────────────
-export async function createSession(req: Request, res: Response): Promise<void> {
+// ── Endpoint: POST /api/game/session ──────────────────────────────────────────
+export async function createSession(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const playerId = (req as any).user?.id
+    const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
     const { active_core_id } = req.body
@@ -305,9 +286,9 @@ export async function createSession(req: Request, res: Response): Promise<void> 
  * Returns:   { status, correct, points_earned, points_deducted, penalty_type, accuracy,
  *              current_total_score, questions_answered, breakdown }
  */
-export async function submitAnswer(req: Request, res: Response): Promise<void> {
+export async function submitAnswer(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const playerId = (req as any).user?.id
+    const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
    const { player_id, session_id, question_id, answer, time_taken, current_combo, active_core_id, oracle_reveal_level } = req.body
@@ -478,10 +459,10 @@ export async function submitAnswer(req: Request, res: Response): Promise<void> {
   }
 }
 
-// ── Endpoint: POST /api/game/timeout ─────────────────────────────────────────
-export async function timeoutSession(req: Request, res: Response): Promise<void> {
+// ── Endpoint: POST /api/game/timeout ──────────────────────────────────────────
+export async function timeoutSession(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const playerId = (req as any).user?.id
+    const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
     const { session_id, active_core_id, oracle_reveal_level } = req.body
@@ -536,10 +517,10 @@ export async function timeoutSession(req: Request, res: Response): Promise<void>
   }
 }
 
-// ── Endpoint: POST /api/game/abandon ─────────────────────────────────────────
-export async function abandonSession(req: Request, res: Response): Promise<void> {
+// ── Endpoint: POST /api/game/abandon ──────────────────────────────────────────
+export async function abandonSession(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const playerId = (req as any).user?.id
+    const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
     const { session_id } = req.body
