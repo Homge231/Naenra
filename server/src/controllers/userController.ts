@@ -78,7 +78,46 @@ export const updateUserProfile = async (req: AuthRequest, res: Response): Promis
 
     const updates: any = {}
     if (username?.trim()) updates.username = username.trim()
-    if (avatar_url?.trim()) updates.avatar_url = avatar_url.trim()
+
+    if (avatar_url?.trim()) {
+      let finalAvatarToSave = avatar_url.trim()
+
+      // If it's a new base64 upload, store it in the avatars bucket
+      if (finalAvatarToSave.startsWith('data:image')) {
+        try {
+          const match = finalAvatarToSave.match(/^data:image\/(\w+);base64,/)
+          const ext = match ? match[1] : 'png'
+          const base64Data = finalAvatarToSave.replace(/^data:image\/\w+;base64,/, '')
+          const buffer = Buffer.from(base64Data, 'base64')
+
+          const filePath = `${req.user!.id}/avatar.${ext}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, buffer, {
+              contentType: `image/${ext}`,
+              upsert: true
+            })
+
+          if (uploadError) {
+            console.error('Avatar upload error:', uploadError)
+            return res.status(500).json({ error: 'Failed to upload avatar to storage' })
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('avatars')
+            .getPublicUrl(filePath)
+
+          // Append timestamp to bypass browser cache on updates
+          finalAvatarToSave = `${publicUrl}?t=${Date.now()}`
+        } catch (uploadErr) {
+          console.error('Avatar processing error:', uploadErr)
+          return res.status(500).json({ error: 'Failed to process avatar image' })
+        }
+      }
+
+      updates.avatar_url = finalAvatarToSave
+    }
 
     const { data, error } = await supabase
       .from('players')

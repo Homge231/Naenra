@@ -50,7 +50,7 @@
 | Real-time opponent sync | Planned Sprint 3 |
 | Rate limiting on auth endpoints | Deferred |
 | OTP store persistence | Currently in-memory, lost on restart |
-| Avatar storage | Currently base64 in DB column, should move to Supabase Storage |
+| Avatar storage | ✅ Uploads to Supabase Storage bucket `avatars` |
 
 ---
 

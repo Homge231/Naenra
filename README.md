@@ -255,6 +255,6 @@ Stores every submitted answer with `points_delta` for audit.
 
 - **Speedster core** — Supabase UUID `00000000-0000-0000-0000-000000000007`. Registry fully wired.
 - `pendingRegistrations` is in-memory — lost on server restart. Move to Redis/Supabase in a future sprint.
-- Avatar upload stores base64 in the DB column — move to Supabase Storage later.
+- **Avatar storage** — Uploads to Supabase Storage bucket `avatars`.
 - ELO updates after match are not yet wired (Sprint 3).
 - Colyseus multiplayer rooms not yet active (Sprint 3).
