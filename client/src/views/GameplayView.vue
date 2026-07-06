@@ -374,8 +374,8 @@ import PhaserBackground from '../components/game/PhaserBackground.vue'
 import Avatar from '../components/Avatar.vue'
 import { useGameStore } from '../stores/gameStore'
 import { getCoreModule } from '../game/cores/registry'
+import { fetchWithAuth } from '../services/api'
 
-const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
 
@@ -466,13 +466,7 @@ const pandoraPool = ref<any[]>([])
 
 async function fetchPandoraPool() {
   try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/cores`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      }
-    })
+    const res = await fetchWithAuth(`/api/game/cores`)
     if (!res.ok) return
     const data = await res.json()
     // Pandora shifts into anything except itself
@@ -632,13 +626,8 @@ function getBackgroundImage(themeKey: string) {
 // ── Session API ────────────────────────────────────────────────────────────
 async function createSession() {
   try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/session`, {
+    const res = await fetchWithAuth(`/api/game/session`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: 'Bearer ' + token } : {})
-      },
       body: JSON.stringify({ active_core_id: activeCoreId.value })
     })
     if (!res.ok) return
@@ -662,13 +651,8 @@ async function callTimeoutEndpoint() {
   if (!sessionId.value) return
   savingSession.value = true
   try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/timeout`, {
+    const res = await fetchWithAuth(`/api/game/timeout`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
       body: JSON.stringify({
         session_id: sessionId.value,
         active_core_id: activeCoreId.value,
@@ -700,13 +684,7 @@ async function fetchBatch(): Promise<void> {
   if (isFetchingBatch.value || gameState.value === 'timeout') return
   isFetchingBatch.value = true
   try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/questions`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      }
-    })
+    const res = await fetchWithAuth(`/api/game/questions`)
     if (!res.ok) throw new Error('fetch failed')
     const data = await res.json()
     questionQueue.value.push(...(data.questions as QuestionPayload[]))
@@ -786,13 +764,8 @@ async function skipQuestion() {
   const mySeq = ++submitAnswerSeq
     ; (async () => {
       try {
-        const token = localStorage.getItem('arena_token')
-        const res = await fetch(`${SERVER_URL}/api/game/submit-answer`, {
+        const res = await fetchWithAuth(`/api/game/submit-answer`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
           body: JSON.stringify({
             session_id: sessionId.value,
             question_id: questionId,
@@ -893,13 +866,8 @@ async function checkAnswer() {
 
     ; (async () => {
       try {
-        const token = localStorage.getItem('arena_token')
-        const res = await fetch(`${SERVER_URL}/api/game/submit-answer`, {
+        const res = await fetchWithAuth(`/api/game/submit-answer`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
           body: JSON.stringify({
             session_id: sessionId.value,
             question_id: questionId,
@@ -1001,13 +969,8 @@ function goHome() {
 async function abandonCurrentSession() {
   if (!sessionId.value || gameState.value === 'timeout') return
   try {
-    const token = localStorage.getItem('arena_token')
-    await fetch(`${SERVER_URL}/api/game/abandon`, {
+    await fetchWithAuth(`/api/game/abandon`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
       body: JSON.stringify({ session_id: sessionId.value })
     })
   } catch (err) {

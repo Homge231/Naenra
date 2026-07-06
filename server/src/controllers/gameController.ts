@@ -444,6 +444,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       .from('game_session_answers')
       .insert({
         session_id,
+        player_id: playerId,
         question_id,
         answer,
         correct: isCorrect,
