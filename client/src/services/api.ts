@@ -5,7 +5,7 @@
  * to all requests, ensuring secure access to backend routes.
  */
 
-const BASE_URL = 'http://localhost:3000' // Ensure this matches your backend URL
+const BASE_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('arena_token')
