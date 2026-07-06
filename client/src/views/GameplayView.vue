@@ -293,7 +293,7 @@
       <div v-if="gameState === 'timeout'" class="absolute inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-xl"></div>
         <div
-          class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-lg w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)]">
+          class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-2xl w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[90vh]">
           <p class="text-xs font-bold text-hexred tracking-[0.4em] uppercase mb-4 drop-shadow-md">Match Ended</p>
           <h2
             class="text-7xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(230,57,70,0.8)] mb-2 timeout-glitch">
@@ -301,24 +301,46 @@
           </h2>
           <div class="w-20 h-1 bg-gradient-to-r from-transparent via-hexred to-transparent mx-auto mb-10 mt-6"></div>
 
-          <div class="flex justify-center gap-12 mb-10 bg-black/30 py-6 rounded-xl border border-white/5">
+          <div class="flex justify-center gap-12 mb-6 bg-black/30 py-4 rounded-xl border border-white/5 flex-shrink-0">
             <div>
-              <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Final Score</p>
-              <p class="text-5xl font-black text-orange drop-shadow-md">{{ score }}</p>
+              <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Final Score</p>
+              <p class="text-4xl font-black text-orange drop-shadow-md">{{ score }}</p>
             </div>
             <div class="w-px bg-white/10"></div>
             <div>
-              <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-2">Questions</p>
-              <p class="text-5xl font-black text-lightBlue drop-shadow-md">{{ questionsAnswered }}</p>
+              <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Questions</p>
+              <p class="text-4xl font-black text-lightBlue drop-shadow-md">{{ questionsAnswered }}</p>
             </div>
           </div>
 
-          <p v-if="savingSession" class="text-xs text-gray-400 uppercase tracking-widest mb-8 animate-pulse">
+          <!-- Recap Table -->
+          <div v-if="matchHistory.length > 0" class="mb-6 bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 overflow-y-auto custom-scrollbar">
+            <table class="w-full text-left text-sm text-gray-300">
+              <thead class="bg-black/60 text-xs uppercase text-gray-500 sticky top-0 z-10">
+                <tr>
+                  <th class="px-6 py-4 font-bold tracking-widest">Your Answer</th>
+                  <th class="px-6 py-4 font-bold tracking-widest border-l border-white/5">Correct Answer</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <tr v-for="(item, idx) in matchHistory" :key="idx" class="hover:bg-white/5 transition-colors">
+                  <td class="px-6 py-3 font-medium uppercase tracking-wider" :class="item.isCorrect ? 'text-green bg-green/10' : 'text-hexred bg-hexred/10'">
+                    {{ item.submitted }}
+                  </td>
+                  <td class="px-6 py-3 font-medium text-white uppercase tracking-wider border-l border-white/5">
+                    {{ item.correct }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p v-if="savingSession" class="text-xs text-gray-400 uppercase tracking-widest mb-6 animate-pulse flex-shrink-0">
             <span class="inline-block w-2 h-2 bg-lightBlue rounded-full mr-2"></span>
             Syncing results...
           </p>
 
-          <div class="flex gap-4 justify-center">
+          <div class="flex gap-4 justify-center flex-shrink-0 mt-auto">
             <button @click="router.push('/home')"
               class="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors rounded-lg">Home</button>
             <button @click="restartMatch"
@@ -548,6 +570,7 @@ const playerAvatarUrl = computed(() =>
 const questionQueue = ref<QuestionPayload[]>([])
 const isFetchingBatch = ref(false)
 const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_length: 0, target_hash: '', oracle_hints: ['', '', ''] })
+const matchHistory = ref<{ submitted: string, correct: string, isCorrect: boolean }[]>([])
 
 let flashTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -795,6 +818,12 @@ async function skipQuestion() {
           } else {
             spawnPointPopup(data.points_deducted, 'wrong')
           }
+            
+          matchHistory.value.push({
+            submitted: '(Skipped)',
+            correct: data.correct_word || '???',
+            isCorrect: false
+          })
         }
       } catch (err) {
         console.error('Failed to sync skip:', err)
@@ -913,6 +942,12 @@ async function checkAnswer() {
             currentQuestion.value.correct_word = data.correct_word
           }
 
+          matchHistory.value.push({
+            submitted: typed,
+            correct: data.correct ? typed : (data.correct_word || '???'),
+            isCorrect: data.correct
+          })
+
           if (data.breakdown?.mission_completed === 1) {
             showMissionCelebration.value = true
             setTimeout(() => {
@@ -965,6 +1000,8 @@ function triggerTimeout() {
 
 // ── Match control ──────────────────────────────────────────────────────────
 async function restartMatch() {
+  gameState.value = 'timeout'
+  matchHistory.value = []
   stopTimeoutInterval()
   score.value = 0
   questionsAnswered.value = 0
