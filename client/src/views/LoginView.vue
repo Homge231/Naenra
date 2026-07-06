@@ -49,6 +49,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Username</label>
           <input
             v-model="form.username"
+            @keyup.enter="handleRegister"
             type="text"
             placeholder="Player_One"
             class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
@@ -60,6 +61,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
           <input
             v-model="form.email"
+            @keyup.enter="mode === 'register' ? handleRegister() : handleLogin()"
             type="email"
             placeholder="player@naenra.com"
             class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
@@ -71,6 +73,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Password</label>
           <input
             v-model="form.password"
+            @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
             class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
@@ -82,6 +85,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Confirm Password</label>
           <input
             v-model="form.confirmPassword"
+            @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
             class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
@@ -108,6 +112,7 @@
           <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
           <input
             v-model="form.email"
+            @keyup.enter="handleLogin"
             type="email"
             placeholder="player@naenra.com"
             class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
@@ -128,6 +133,7 @@
           </div>
           <input
             v-model="form.password"
+            @keyup.enter="handleLogin"
             type="password"
             placeholder="••••••••"
             class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
