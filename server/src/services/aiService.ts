@@ -26,7 +26,7 @@ const questionSchema: Schema = {
       },
       hint: {
         type: Type.STRING,
-        description: "A short hint for the answer. Example: 'City of light'"
+        description: "A highly specific, unambiguous hint that strongly points to the target_word. The hint MUST always start with a capital letter."
       }
     },
     required: ["question_text", "target_word", "hint"]
@@ -41,9 +41,9 @@ Topic: ${topic}
 Difficulty Level: ${level}
 
 RULES:
-1. Every "question_text" MUST contain exactly one blank represented by four underscores ("____").
-2. The "target_word" is the correct answer that belongs in the blank. It should be a single word or short phrase.
-3. The "hint" should be a brief, helpful clue.
+1. **question_text**: A fill-in-the-blank question containing EXACTLY ONE blank represented by four underscores ("____").
+2. **target_word**: The exact word that goes in the blank (must be a single word, lowercase).
+3. **hint**: A highly specific, unambiguous hint that strongly points to the target_word. The hint MUST always start with a capital letter.
 `
 
   try {
