@@ -395,7 +395,8 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
 
     // ── 7. Fetch answer history for pattern-based cores ───────────────────────
     let answerHistory: boolean[] = []
-    if (core.name.toLowerCase() === 'mission core') {
+    const lowerCoreName = core.name.toLowerCase()
+    if (lowerCoreName === 'mission core' || lowerCoreName === 'aegis shield') {
       const { data: historyData } = await supabase
         .from('game_session_answers')
         .select('correct')

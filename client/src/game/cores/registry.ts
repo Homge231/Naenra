@@ -66,6 +66,16 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
     popupType:    'correct',
   },
 
+  // ── Aegis Shield ───────────────────────────────────────────────────────────
+  '00000000-0000-0000-0000-000000000011': {
+    id:           '00000000-0000-0000-0000-000000000011',
+    name:         'Aegis Shield',
+    timerColor:   'text-cyan-400',
+    timerClass:   'shadow-cyan-500',
+    timerIconClass: 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]',
+    popupType:    'correct',
+  },
+
   // ↑ Add new cores here — nothing else needs to change.
 }
 

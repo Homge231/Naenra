@@ -14,10 +14,13 @@
             'text-2xl text-success': popup.type === 'correct',
             'text-2xl text-hexred': popup.type === 'wrong',
             'text-2xl text-yellow-400': popup.type === 'typo',
+            'text-2xl text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]': popup.type === 'shield_blocked',
             'speedster-popup': popup.type === 'speedster'
           }" :style="{ left: popup.x + 'px', top: popup.y + 'px' }">
           <template v-if="popup.type === 'speedster'">
             <span class="speedster-fast-text">+{{ popup.value }} FAST!</span>
+          <template v-else-if="popup.type === 'shield_blocked'">
+            BLOCKED!
           </template>
           <template v-else>
             {{ popup.type === 'correct' ? '+' : '-' }}{{ popup.value }}{{ popup.type === 'typo' ? ' (Typo)' : ' PTS' }}
@@ -299,9 +302,28 @@
         <span class="text-xs font-bold text-lightOrange/80 tracking-[0.2em] uppercase">🔥 Combo</span> <span
           class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-lightOrange drop-shadow-md tabular-nums">
           x{{ currentCombo }}
-        </span>
-      </div>
     </div>
+
+    <!-- Aegis Shield Mode Indicator -->
+    <transition name="fade-scale">
+      <div v-if="isAegisMode" class="absolute top-28 right-8 z-20 flex justify-end transition-all duration-300">
+        <div class="flex items-center gap-3 px-5 py-2.5 rounded-full bg-cyan-900/40 border border-cyan-500/50 backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+          <svg class="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <div class="flex items-center gap-1.5">
+            <!-- 3 Shields max -->
+            <div v-for="i in 3" :key="i"
+              class="w-4 h-4 rounded-full transition-all duration-300"
+              :class="[
+                i <= aegisShieldCount 
+                  ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] scale-110' 
+                  : 'bg-cyan-900/50 border border-cyan-500/30'
+              ]"></div>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- Mission Tracker UI: only visible when active core is the Mission Core -->
     <div v-if="isMissionCore" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
@@ -437,7 +459,7 @@ interface QuestionPayload {
 interface PointPopup {
   id: number
   value: number
-  type: 'correct' | 'wrong' | 'typo' | 'speedster'
+  type: 'correct' | 'wrong' | 'typo' | 'speedster' | 'shield_blocked'
   x: number
   y: number
 }
@@ -478,6 +500,9 @@ const currentBgImage = ref('/bg-daily-life.png')
 const currentCombo = ref(0)
 const isBurningComboActive = computed(() => isComboCore.value && currentCombo.value >= 3)
 const missionProgress = ref(0)
+const AEGIS_CORE_ID = '00000000-0000-0000-0000-000000000011'
+const isAegisMode = computed(() => activeCoreId.value === AEGIS_CORE_ID)
+const aegisShieldCount = ref(0)
 const showMissionCelebration = ref(false)
 
 // active_core_id / name sourced from gameStore (set in CoreSelectionView)
@@ -789,11 +814,16 @@ async function skipQuestion() {
   if (gameState.value !== 'playing') return
   if (!sessionId.value || !currentQuestion.value.id) {
     // No session (guest/mock): deduct locally only
-    score.value = Math.max(0, score.value - 10)
+    if (isAegisMode.value && aegisShieldCount.value > 0) {
+      aegisShieldCount.value--
+      spawnPointPopup(0, 'shield_blocked')
+    } else {
+      score.value = Math.max(0, score.value - 10)
+      spawnPointPopup(10, 'wrong')
+    }
     currentCombo.value = 0
     if (isMissionCore.value) missionProgress.value = 0
     typedLetters.value = []
-    spawnPointPopup(10, 'wrong')
     triggerScoreFlash('wrong')
     loadQuestion()
     return
@@ -808,6 +838,7 @@ async function skipQuestion() {
   gameState.value = 'wrong'
   currentCombo.value = 0
   if (isMissionCore.value) missionProgress.value = 0
+  if (isAegisMode.value) aegisShieldCount.value = Math.max(0, aegisShieldCount.value - 1)
   typedLetters.value = []
   triggerScoreFlash('wrong')
 
@@ -840,7 +871,11 @@ async function skipQuestion() {
           const data = await res.json()
           score.value = data.new_total_score ?? score.value
           questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
-          spawnPointPopup(data.points_deducted, 'wrong')
+          if (data.breakdown?.shield_blocked) {
+            spawnPointPopup(0, 'shield_blocked')
+          } else {
+            spawnPointPopup(data.points_deducted, 'wrong')
+          }
         }
       } catch (err) {
         console.error('Failed to sync skip:', err)
@@ -900,11 +935,15 @@ async function checkAnswer() {
       missionProgress.value = (missionProgress.value + 1)
       if (missionProgress.value > 5) missionProgress.value = 1
     }
+    if (isAegisMode.value) {
+      aegisShieldCount.value = Math.min(3, aegisShieldCount.value + 1)
+    }
     triggerScoreFlash('correct')
   } else {
     gameState.value = 'wrong'
     currentCombo.value = 0
     if (isMissionCore.value) missionProgress.value = 0
+    if (isAegisMode.value) aegisShieldCount.value = Math.max(0, aegisShieldCount.value - 1)
     triggerScoreFlash('wrong')
   }
 
@@ -968,7 +1007,9 @@ async function checkAnswer() {
             }, 2000)
           }
 
-          if (data.correct && isSpeedsterCore.value) {
+          if (data.breakdown?.shield_blocked) {
+            spawnPointPopup(0, 'shield_blocked')
+          } else if (data.correct && isSpeedsterCore.value) {
             spawnPointPopup(data.points_earned, 'speedster')
           } else {
             const popupType: 'correct' | 'wrong' | 'typo' = data.correct

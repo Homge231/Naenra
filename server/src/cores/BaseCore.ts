@@ -53,7 +53,7 @@ export interface ScoringResult {
     oracle_penalty: number
     penalty: number
     /** Any extra fields a specific core wants to surface */
-    [key: string]: number
+    [key: string]: number | boolean | undefined
   }
 }
 
