@@ -680,16 +680,15 @@ async function createSession() {
   }
 }
 
-async function callTimeoutEndpoint() {
-  if (!sessionId.value) return
+async function callTimeoutEndpoint(sid: string, coreId: string, oracleLvl: number) {
   savingSession.value = true
   try {
     const res = await fetchWithAuth(`/api/game/timeout`, {
       method: 'POST',
       body: JSON.stringify({
-        session_id: sessionId.value,
-        active_core_id: activeCoreId.value,
-        oracle_reveal_level: oracleRevealLevel.value
+        session_id: sid,
+        active_core_id: coreId,
+        oracle_reveal_level: oracleLvl
       })
     })
     if (res.ok) {
@@ -1000,9 +999,13 @@ function triggerTimeout() {
     }
   }, 1000)
 
-  // Small delay to let any in-flight submit-answer requests write to DB first
-  // before timeout endpoint reads session.score, preventing a race condition.
-  setTimeout(() => callTimeoutEndpoint(), 300)
+  const sid = sessionId.value
+  const coreId = activeCoreId.value
+  const oracleLvl = oracleRevealLevel.value
+  
+  if (sid) {
+    setTimeout(() => callTimeoutEndpoint(sid, coreId, oracleLvl), 300)
+  }
 }
 
 // ── Match control ──────────────────────────────────────────────────────────
@@ -1021,6 +1024,7 @@ async function restartMatch() {
   pointPopups.value = []
   stopMatchTimer()
   await createSession()
+  gameState.value = 'loading'
   await fetchBatch()
   await loadQuestion()
   startMatchTimer()
