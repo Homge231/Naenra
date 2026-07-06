@@ -983,6 +983,11 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 }
 
 onMounted(async () => {
+  if (!activeCoreId.value) {
+    router.replace('/core-selection')
+    return
+  }
+
   await createSession()
   await fetchBatch()
   await loadQuestion()

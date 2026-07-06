@@ -10,7 +10,6 @@ const supabase = createClient(
 )
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const DEFAULT_CORE_ID = '00000000-0000-0000-0000-000000000001' // "No Core"
 const MATCH_DURATION_MS = 90_000                              // 90-second match
 
 const TYPO_ACCURACY_THRESHOLD = 0.8   // >= 80% similarity counts as a "typo"
@@ -228,11 +227,15 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
 
     const { active_core_id } = req.body
 
-    const coreId = active_core_id ?? DEFAULT_CORE_ID
+    if (!active_core_id) {
+      res.status(400).json({ error: 'active_core_id is required.' })
+      return
+    }
+
     const { data: core, error: coreErr } = await supabase
       .from('cores')
       .select('id, name')
-      .eq('id', coreId)
+      .eq('id', active_core_id)
       .single()
 
     if (coreErr || !core) {
@@ -251,7 +254,7 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
 
     const { data, error } = await supabase
       .from('game_sessions')
-      .insert({ player_id: playerId, status: 'active', active_core_id: coreId })
+      .insert({ player_id: playerId, status: 'active', active_core_id: active_core_id })
       .select('id')
       .single()
 
@@ -330,16 +333,11 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     }
 
     // ── 3. Anti-cheat: validate submitted core matches session core ────────────
-    const sessionCoreId = session.active_core_id ?? DEFAULT_CORE_ID
-    const submittedCoreId = active_core_id ?? DEFAULT_CORE_ID
+    const sessionCoreId = session.active_core_id
+    const submittedCoreId = active_core_id
 
-    if (submittedCoreId !== sessionCoreId) {
-      console.warn(
-        `[ANTI-CHEAT] Player ${playerId} submitted core ${submittedCoreId} but session core is ${sessionCoreId}`
-      )
-      res.status(403).json({
-        error: 'Core mismatch: submitted active_core_id does not match the session\'s selected core.'
-      })
+    if (!sessionCoreId || !submittedCoreId || sessionCoreId !== submittedCoreId) {
+      res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
       return
     }
 
