@@ -809,14 +809,19 @@ async function skipQuestion() {
             time_taken: timeTaken
           })
         })
-        if (res.ok && mySeq === submitAnswerSeq) {
+        if (res.ok) {
           const data = await res.json()
+          
           score.value = data.new_total_score ?? score.value
           questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
-          if (data.breakdown?.shield_blocked) {
-            spawnPointPopup(0, 'shield_blocked')
-          } else {
-            spawnPointPopup(data.points_deducted, 'wrong')
+          
+          // Only show popup if it's the latest question to avoid spam, but ALWAYS update history
+          if (mySeq === submitAnswerSeq) {
+            if (data.breakdown?.shield_blocked) {
+              spawnPointPopup(0, 'shield_blocked')
+            } else {
+              spawnPointPopup(data.points_deducted, 'wrong')
+            }
           }
             
           matchHistory.value.push({
@@ -918,7 +923,7 @@ async function checkAnswer() {
           })
         })
 
-        if (res.ok && mySeq === submitAnswerSeq) {
+        if (res.ok) {
           const data = await res.json()
 
           const startScore = score.value
@@ -938,7 +943,7 @@ async function checkAnswer() {
           pointsEarned.value = data.points_earned ?? pointsEarned.value
           pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
 
-          if (!data.correct && data.correct_word) {
+          if (mySeq === submitAnswerSeq && !data.correct && data.correct_word) {
             currentQuestion.value.correct_word = data.correct_word
           }
 
@@ -948,26 +953,28 @@ async function checkAnswer() {
             isCorrect: data.correct
           })
 
-          if (data.breakdown?.mission_completed === 1) {
-            showMissionCelebration.value = true
-            setTimeout(() => {
-              showMissionCelebration.value = false
-              missionProgress.value = 0
-            }, 2000)
-          }
+          if (mySeq === submitAnswerSeq) {
+            if (data.breakdown?.mission_completed === 1) {
+              showMissionCelebration.value = true
+              setTimeout(() => {
+                showMissionCelebration.value = false
+                missionProgress.value = 0
+              }, 2000)
+            }
 
-          if (data.breakdown?.shield_blocked) {
-            spawnPointPopup(0, 'shield_blocked')
-          } else if (data.correct && isSpeedsterCore.value) {
-            spawnPointPopup(data.points_earned, 'speedster')
-          } else {
-            const popupType: 'correct' | 'wrong' | 'typo' = data.correct
-              ? 'correct'
-              : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
-            spawnPointPopup(
-              data.correct ? data.points_earned : data.points_deducted,
-              popupType
-            )
+            if (data.breakdown?.shield_blocked) {
+              spawnPointPopup(0, 'shield_blocked')
+            } else if (data.correct && isSpeedsterCore.value) {
+              spawnPointPopup(data.points_earned, 'speedster')
+            } else {
+              const popupType: 'correct' | 'wrong' | 'typo' = data.correct
+                ? 'correct'
+                : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
+              spawnPointPopup(
+                data.correct ? data.points_earned : data.points_deducted,
+                popupType
+              )
+            }
           }
 
         }
