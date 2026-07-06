@@ -375,7 +375,7 @@ import Avatar from '../components/Avatar.vue'
 import { useGameStore } from '../stores/gameStore'
 import { getCoreModule } from '../game/cores/registry'
 import { fetchWithAuth } from '../services/api'
-
+const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
 
