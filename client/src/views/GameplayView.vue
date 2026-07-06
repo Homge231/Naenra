@@ -601,7 +601,7 @@ let matchStartTime = 0
 function startMatchTimer() {
   if (matchTimerFrame) return
   matchStartTime = Date.now()
-  let lastShiftTime = matchStartTime
+  let lastShiftTime = matchStartTime - 15000 // Trigger first shift immediately
 
   const tick = () => {
     const elapsed = Date.now() - matchStartTime
