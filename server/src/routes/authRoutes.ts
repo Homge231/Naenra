@@ -135,14 +135,15 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
   }
 
   try {
-    console.log('Calling createUser'); const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: pending.email,
       password: pending.password,
       email_confirm: true,
       user_metadata: { full_name: pending.username }
     })
 
-    if (authError) { console.log('AuthError:', authError.message);
+    if (authError) {
+      console.error('AuthError:', authError.message)
       res.status(400).json({ error: authError.message })
       return
     }
