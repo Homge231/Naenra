@@ -16,6 +16,7 @@ import { OracleCoreStrategy }   from './OracleCoreStrategy'
 import { SpeedsterCoreStrategy} from './SpeedsterCoreStrategy'
 import { MissionCoreStrategy }  from './MissionCoreStrategy'
 import { AegisCoreStrategy }    from './AegisCoreStrategy'
+import { PandoraCoreStrategy }  from './PandoraCoreStrategy'
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 // Key = lowercase core name as stored in the DB `cores.name` column.
@@ -27,6 +28,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'speedster':  new SpeedsterCoreStrategy(),
   'mission core': new MissionCoreStrategy(),
   'aegis shield': new AegisCoreStrategy(),
+  'pandora''s box': new PandoraCoreStrategy(),
   // ↑ Add new cores here — nothing else needs to change.
 }
 

@@ -630,7 +630,7 @@ function triggerScoreFlash(type: ScoreFlash) {
 }
 
 // ── Floating popup helper ─────────────────────────────────────────────────
-function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo' | 'speedster') {
+function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo' | 'speedster' | 'shield_blocked') {
   let x = window.innerWidth / 2 - 50
   let y = window.innerHeight / 2 - 60
   if (letterSlotsRef.value) {
