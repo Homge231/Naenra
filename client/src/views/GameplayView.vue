@@ -245,9 +245,14 @@
                   }">
                   <span v-if="gameState === 'correct'">★ Brilliant! +{{ pointsEarned }} pts</span>
                   <span v-else>
-                    ✗ Correct word:
-                    <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.correct_word }}</span>
-                    <span class="ml-3 text-hexred font-black">-{{ pointsDeducted }} pts</span>
+                    <span v-if="currentQuestion.correct_word">
+                      ✗ Correct word:
+                      <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.correct_word }}</span>
+                      <span class="ml-3 text-hexred font-black">-{{ pointsDeducted }} pts</span>
+                    </span>
+                    <span v-else class="animate-pulse">
+                      ✗ Checking...
+                    </span>
                   </span>
                 </div>
               </transition>
@@ -907,13 +912,22 @@ async function checkAnswer() {
     triggerScoreFlash('wrong')
   }
 
-  setTimeout(() => {
-    if (gameState.value !== 'timeout') loadQuestion()
-  }, FEEDBACK_MS)
+  if (!sessionId.value || !questionId) {
+    setTimeout(() => {
+      if (gameState.value !== 'timeout') loadQuestion()
+    }, FEEDBACK_MS)
+    return
+  }
 
-  if (!sessionId.value || !questionId) return
   const timeTaken = Date.now() - questionStartTime.value
   const mySeq = ++submitAnswerSeq
+
+  // If local check is correct, transition to next question immediately after FEEDBACK_MS
+  if (isCorrectLocal) {
+    setTimeout(() => {
+      if (gameState.value !== 'timeout' && mySeq === submitAnswerSeq) loadQuestion()
+    }, FEEDBACK_MS)
+  }
 
     ; (async () => {
       try {
@@ -987,6 +1001,12 @@ async function checkAnswer() {
         }
       } catch (err) {
         console.error('Failed to sync answer:', err)
+      } finally {
+        if (!isCorrectLocal && mySeq === submitAnswerSeq) {
+          setTimeout(() => {
+            if (gameState.value !== 'timeout') loadQuestion()
+          }, FEEDBACK_MS)
+        }
       }
     })()
 }
