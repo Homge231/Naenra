@@ -303,6 +303,8 @@
         <span class="text-xs font-bold text-lightOrange/80 tracking-[0.2em] uppercase">🔥 Combo</span> <span
           class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-lightOrange drop-shadow-md tabular-nums">
           x{{ currentCombo }}
+        </span>
+      </div>
     </div>
 
     <!-- Aegis Shield Mode Indicator -->
