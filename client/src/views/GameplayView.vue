@@ -19,6 +19,7 @@
           }" :style="{ left: popup.x + 'px', top: popup.y + 'px' }">
           <template v-if="popup.type === 'speedster'">
             <span class="speedster-fast-text">+{{ popup.value }} FAST!</span>
+          </template>
           <template v-else-if="popup.type === 'shield_blocked'">
             BLOCKED!
           </template>
