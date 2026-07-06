@@ -8,8 +8,8 @@ export function initQuestionCron() {
     console.log('Running weekly AI question generation cron job...')
     try {
       // 1. Generate 50 new questions
-      // Feel free to randomize the topic/level each week if desired.
-      const newQuestions = await generateQuestions('General Tech and Software Engineering Trivia', 'Medium', 50)
+      // We use a diverse set of topics based on your preferences
+      const newQuestions = await generateQuestions('Daily Life & Habits, Food & Cafe Culture, and Travel & Vacations', 'Medium', 50)
       
       // 2. Wipe existing questions (optional depending on your exact preference, 
       //    but since the instruction was "delete all questions", we truncate/delete them here).

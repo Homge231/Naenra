@@ -5,7 +5,7 @@ import { generateQuestions } from '../services/aiService'
 import { supabase } from '../config/supabase'
 
 async function run() {
-  const topic = 'General Software Engineering and Tech Trivia'
+  const topic = 'Daily Life & Habits, Food & Cafe Culture, and Travel & Vacations'
   const level = 'Medium'
   const count = 50
 
