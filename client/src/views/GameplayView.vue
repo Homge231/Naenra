@@ -632,7 +632,7 @@ let matchStartTime = 0
 function startMatchTimer() {
   if (matchTimerFrame) return
   matchStartTime = Date.now()
-  let lastShiftTime = matchStartTime - 20000 // Trigger first shift immediately
+  let lastShiftTime = matchStartTime - 25000 // Trigger first shift immediately
 
   const tick = () => {
     const elapsed = Date.now() - matchStartTime
@@ -641,9 +641,9 @@ function startMatchTimer() {
     timerProgressPercent.value = (remainingMs / (MATCH_DURATION * 1000)) * 100
     timeLeft.value = Math.ceil(remainingMs / 1000)
 
-    // Shapeshifter trigger every 20s
+    // Shapeshifter trigger every 25s
     if (isPandoraMode.value && pandoraPool.value.length > 0) {
-      if (Date.now() - lastShiftTime >= 20000) {
+      if (Date.now() - lastShiftTime >= 25000) {
         lastShiftTime = Date.now()
         triggerShapeshift()
       }
