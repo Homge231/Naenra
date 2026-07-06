@@ -81,6 +81,9 @@ interface ScoringContext {
 | `'combo core'` | `ComboCoreStrategy` | `floor((100 + comboBonus + flat_buff) × multiplier_buff)` |
 | `'oracle core'` | `OracleCoreStrategy` | Same as No Core minus oracle hint penalty |
 | `'speedster'` | `SpeedsterCoreStrategy` | `100 + max(0, floor((1 − timeTaken/8000) × 150))` |
+| `'mission core'`| `MissionCoreStrategy` | Flat +500 bonus upon completing 5 correct answers in a row |
+| `'aegis shield'`| `AegisCoreStrategy` | Tracks correct answers (max 3 stacks). Deducts stack instead of points on miss. |
+| `'pandora''s box'` | `PandoraCoreStrategy` | Meta-core (shifts frontend active core). Acts as NoCore if answered before shift. |
 
 Registry lookup: `getCoreStrategy(core.name)` — **case-insensitive, trimmed**. Unknown names fall back to `NoCoreStrategy` with a `console.warn`.
 
@@ -106,6 +109,8 @@ interface CoreModule {
 | `00000000-0000-0000-0000-000000000005` | Combo Core | None |
 | `00000000-0000-0000-0000-000000000006` | Oracle Core | None (Oracle uses its own template block) |
 | `00000000-0000-0000-0000-000000000007` | Speedster | Cyan timer glow, wind-streak overlay, "+N FAST!" popup |
+| `00000000-0000-0000-0000-000000000010` | Pandora's Box | Purple pulse timer, shifts core every 25s, "PANDORA SHIFTS TO X" text |
+| `00000000-0000-0000-0000-000000000011` | Aegis Shield | Cyan timer, glowing 3-orb stack tracker UI, "BLOCKED!" popup on miss |
 
 ### How GameplayView.vue uses the registry
 

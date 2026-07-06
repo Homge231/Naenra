@@ -104,6 +104,8 @@ Cores are the central mechanic that differentiates player strategies. Each core 
 | **Oracle Core** | Lets you reveal letter hints at −10/−30/−60 point cost per level | `00000000-0000-0000-0000-000000000006` |
 | **Speedster** | `100 + max(0, floor( (1 − timeTaken/8s) × 150 ))` — faster = more points | `00000000-0000-0000-0000-000000000007` |
 | **Mission Core**| Answer 5 correctly in a row for a flat bonus of +500 points | *(Custom UUID via SQL script)* |
+| **Pandora's Box**| Periodically shapeshifts into another core entirely during the match! | `00000000-0000-0000-0000-000000000010` |
+| **Aegis Shield**| Answering correctly builds a shield (max 3) that deflects wrong answer penalties | `00000000-0000-0000-0000-000000000011` |
 
 The chosen core is **locked at session creation** and validated on every answer submission (anti-cheat: mismatches return 403).
 
