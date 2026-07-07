@@ -508,13 +508,14 @@ let timeoutPhaseStart = 0
 
 // Biến reactive lưu trữ link ảnh nền đang hiển thị
 // 1. Khai báo danh sách background tương ứng với từng Round
+// Chỉ cần xuyệt một cái (/) là nó tự động chui vào thư mục public để tìm
 const ROUND_BACKGROUNDS: Record<number, string> = {
-  1: '/assets/images/bg-daily-life.jpg', // Round 1: Chủ đề Daily Life & Habits
-  2: '/assets/images/bg-food-cafe.jpg',  // Round 2: Chủ đề Food & Cafe Culture
-  3: '/assets/images/bg-travel.jpg'      // Round 3: Chủ đề Travel & Vacations
+  1: '/bg-daily-life.png', 
+  2: '/bg-food-cafe.png',  // Nhớ check xem file này của bạn là png hay jpg nhé
+  3: '/bg-travel.png'      // Nhớ check đuôi file này luôn
 }
 
-// Biến reactive lưu trữ link ảnh nền đang hiển thị (Mặc định lấy ảnh Round 1)
+// Biến reactive khởi tạo mặc định
 const currentBgImage = ref(ROUND_BACKGROUNDS[1])
 const isBgFading = ref(false)
 
