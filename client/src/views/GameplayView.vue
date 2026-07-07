@@ -1166,6 +1166,7 @@ function startTimeoutPhase() {
 
 // ── Match control ──────────────────────────────────────────────────────────
 async function restartMatch() {
+  if (gameState.value === 'loading') return
   if (matchStore.isFinalRound()) {
     // If they manually click "Next Round" somehow, route to home as fallback
     router.push('/home')
@@ -1193,6 +1194,7 @@ async function restartMatch() {
 }
 
 async function playAgain() {
+  if (gameState.value === 'loading') return
   // Reset Match Store completely
   matchStore.resetMatch()
 
@@ -1261,6 +1263,9 @@ onMounted(async () => {
     router.replace('/core-selection')
     return
   }
+
+  // Ensure we start a fresh match if navigating here from outside
+  matchStore.resetMatch()
 
   await createSession()
   await fetchBatch()

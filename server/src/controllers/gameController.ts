@@ -441,10 +441,12 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
 
     if (answerErr) {
       if (answerErr.code === '23505') {
-        res.status(409).json({ error: 'Question already answered for this session.' })
-        return
+        // Question already answered in this session (e.g. drawn again in a later round).
+        // Skip inserting into history, but still allow scoring and progression.
+        console.warn(`[submitAnswer] Question ${question_id} already answered in session ${session_id}. Skipping history insert.`)
+      } else {
+        throw answerErr
       }
-      throw answerErr
     }
 
     // ── 10. Update session totals ──────────────────────────────────────────────
