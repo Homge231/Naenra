@@ -302,39 +302,16 @@
 
     <Avatar :src="playerAvatarUrl" alt="Player Avatar" />
 
-    <!-- US-24: 15-second timeout phase banner — shown while isTimeoutPhase is true -->
-    <transition name="timeout-phase-banner">
-      <div v-if="isTimeoutPhase"
-        class="absolute inset-0 z-[45] flex flex-col items-center justify-center pointer-events-none">
-        <!-- Dim backdrop (lighter than the full overlay so the game is still visible underneath) -->
-        <div class="absolute inset-0 bg-darkNavy/60 backdrop-blur-sm"></div>
-        <!-- Countdown pill -->
-        <div class="relative flex flex-col items-center gap-4">
-          <p class="text-[11px] font-bold text-hexred/80 tracking-[0.45em] uppercase">Match Ended · Calculating…</p>
-          <div
-            class="flex items-center justify-center w-36 h-36 rounded-full border-4 border-hexred/70 bg-darkNavy/80 shadow-[0_0_40px_rgba(230,57,70,0.5)] timeout-phase-ring">
-            <span class="font-mono font-black text-6xl text-white tabular-nums drop-shadow-lg timeout-phase-digits">{{
-              String(timeoutCountdown).padStart(2, '0') }}</span>
-          </div>
-          <!-- INPUT LOCKED badge -->
-          <div
-            class="flex items-center gap-2 px-5 py-2 rounded-full bg-hexred/20 border border-hexred/40 backdrop-blur-md">
-            <svg class="w-4 h-4 text-hexred" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <span class="text-xs font-bold text-hexred tracking-[0.3em] uppercase">Input Locked</span>
-          </div>
-        </div>
-      </div>
-    </transition>
+
 
     <transition name="timeout-overlay">
       <div v-if="gameState === 'timeout'" class="absolute inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-xl"></div>
         <div
           class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-2xl w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[90vh]">
-          <p class="text-xs font-bold text-hexred tracking-[0.4em] uppercase mb-4 drop-shadow-md">Match Ended</p>
+          <p class="text-xs font-bold text-hexred tracking-[0.4em] uppercase mb-4 drop-shadow-md">
+            {{ matchStore.isFinalRound() ? 'Match Ended' : 'Round Ended' }}
+          </p>
           <h2
             class="text-7xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(230,57,70,0.8)] mb-2 timeout-glitch">
             TIME OUT
@@ -435,7 +412,7 @@
 
     <!-- US-24: input is disabled during the 15s timeout phase AND in the final timeout state -->
     <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
-      spellcheck="false" :disabled="isTimeoutPhase || gameState === 'timeout'" @keydown="handleKeydown" />
+      spellcheck="false" :disabled="gameState === 'timeout'" @keydown="handleKeydown" />
   </div>
 </template>
 
@@ -510,10 +487,8 @@ const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 
 // ── US-24: 15-second timeout phase ───────────────────────────────────────
-// isTimeoutPhase: true during the 15s grace window after gameplay ends.
 // The input is disabled and a countdown is shown until timeoutCountdown reaches 0.
 const TIMEOUT_PHASE_DURATION = 15
-const isTimeoutPhase = ref(false)
 const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
 let timeoutPhaseFrame: number | null = null
 let timeoutPhaseStart = 0
@@ -930,7 +905,7 @@ async function skipQuestion() {
 
 // ── Input handling ────────────────────────────────────────────────────────
 function handleKeydown(e: KeyboardEvent) {
-  if (isTimeoutPhase.value || gameState.value === 'timeout') return
+  if (gameState.value === 'timeout') return
   if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
 
@@ -1134,7 +1109,7 @@ function resetTypingBoard() {
 // Initialises the countdown state and schedules callTimeoutEndpoint once the
 // 15s window has elapsed (or immediately completes the phase if it finishes).
 function startTimeoutPhase() {
-  isTimeoutPhase.value = true
+  gameState.value = 'timeout'
   timeoutCountdown.value = TIMEOUT_PHASE_DURATION
   timeoutPhaseStart = Date.now()
   inputRef.value?.blur()
@@ -1142,16 +1117,15 @@ function startTimeoutPhase() {
   timeoutCountdown.value = 15
   stopTimeoutInterval()
 
-  // Only auto-countdown for rounds 1 and 2
-  if (!matchStore.isFinalRound()) {
-    timeoutInterval = setInterval(() => {
-      timeoutCountdown.value--
-      if (timeoutCountdown.value <= 0) {
-        stopTimeoutInterval()
+  timeoutInterval = setInterval(() => {
+    timeoutCountdown.value--
+    if (timeoutCountdown.value <= 0) {
+      stopTimeoutInterval()
+      if (!matchStore.isFinalRound()) {
         restartMatch()
       }
-    }, 1000)
-  }
+    }
+  }, 1000)
 
   // Only tell the backend the session is over if it's the final round!
   // Otherwise, we keep the session alive to retain score and anti-cheat tracking.
@@ -1247,7 +1221,7 @@ function handleOutsideClick(e: MouseEvent) {
 }
 
 function refocusInput() {
-  if (isTimeoutPhase.value || gameState.value === 'timeout') return
+  if (gameState.value === 'timeout') return
   if (!menuOpen.value && !confirmQuit.value) inputRef.value?.focus()
 }
 
