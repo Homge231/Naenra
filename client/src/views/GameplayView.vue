@@ -699,7 +699,7 @@ const questionStartTime = ref<number>(Date.now())
 let matchTimerFrame: number | null = null
 let matchStartTime = 0
 
-const timeoutCountdown = ref(15)
+
 let timeoutInterval: ReturnType<typeof setInterval> | null = null
 
 function stopTimeoutInterval() {
