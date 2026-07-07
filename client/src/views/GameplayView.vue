@@ -734,7 +734,7 @@ function startMatchTimer() {
     } else {
       matchTimerFrame = null
       timeLeft.value = 0
-      triggerTimeout()
+      startTimeoutPhase()
     }
   }
 
