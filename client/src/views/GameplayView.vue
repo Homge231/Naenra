@@ -354,12 +354,23 @@
           <div class="flex gap-4 justify-center flex-shrink-0 mt-auto">
             <button @click="router.push('/home')"
               class="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors rounded-lg">Home</button>
-            <button @click="restartMatch"
+
+            <!-- Next Round (Rounds 1 & 2) -->
+            <button v-if="!matchStore.isFinalRound()" @click="restartMatch"
               class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
               <div
                 class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
               </div>
               <span class="relative z-10 text-white">Next Round ({{ timeoutCountdown }}s)</span>
+            </button>
+
+            <!-- Play Again (Round 3) -->
+            <button v-else @click="playAgain"
+              class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-shadow">
+              <div
+                class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+              </div>
+              <span class="relative z-10 text-white">Play Again</span>
             </button>
           </div>
         </div>
@@ -1034,13 +1045,17 @@ function triggerTimeout() {
   
   timeoutCountdown.value = 15
   stopTimeoutInterval()
-  timeoutInterval = setInterval(() => {
-    timeoutCountdown.value--
-    if (timeoutCountdown.value <= 0) {
-      stopTimeoutInterval()
-      restartMatch()
-    }
-  }, 1000)
+
+  // Only auto-countdown for rounds 1 and 2
+  if (!matchStore.isFinalRound()) {
+    timeoutInterval = setInterval(() => {
+      timeoutCountdown.value--
+      if (timeoutCountdown.value <= 0) {
+        stopTimeoutInterval()
+        restartMatch()
+      }
+    }, 1000)
+  }
 
   // Only tell the backend the session is over if it's the final round!
   // Otherwise, we keep the session alive to retain score and anti-cheat tracking.
@@ -1056,9 +1071,8 @@ function triggerTimeout() {
 // ── Match control ──────────────────────────────────────────────────────────
 async function restartMatch() {
   if (matchStore.isFinalRound()) {
-    // Match Over! Transition to End Screen
-    console.log('Match Over! Proceeding to results...')
-    router.push('/end')
+    // If they manually click "Next Round" somehow, route to home as fallback
+    router.push('/home')
     return
   }
 
@@ -1077,6 +1091,32 @@ async function restartMatch() {
     startMatchTimer()
   } else {
     // Fallback if fetch completely failed
+    gameState.value = 'playing'
+    startMatchTimer()
+  }
+}
+
+async function playAgain() {
+  // Reset Match Store completely
+  matchStore.resetMatch()
+  
+  // Hard reset of global state
+  score.value = 0
+  questionsAnswered.value = 0
+  
+  resetTypingBoard()
+  
+  stopMatchTimer()
+  await createSession() // Important: create a new session for the new match!
+  
+  gameState.value = 'loading'
+  await fetchBatch(3)
+  
+  if (questionQueue.value.length > 0) {
+    await loadQuestion()
+    gameState.value = 'playing'
+    startMatchTimer()
+  } else {
     gameState.value = 'playing'
     startMatchTimer()
   }
