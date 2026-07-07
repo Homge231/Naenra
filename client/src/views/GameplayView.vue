@@ -116,11 +116,6 @@
           </div>
         </transition>
 
-        <!-- Upgrade Selection Phase (Overlay on top of game board) -->
-        <transition name="fade">
-          <CoreUpgradeOverlay v-if="gameState === 'upgrade'" @selected="handleUpgradeSelected" />
-        </transition>
-
       </div>
 
       <div class="flex items-center gap-8">
@@ -158,6 +153,15 @@
         </div>
       </div>
     </header>
+
+    <!-- Upgrade Selection Phase (Overlay on top of game board) -->
+    <!-- Moved out of the header's .relative wrapper: that wrapper is a descendant of a
+         backdrop-blur element, which creates a new containing block for `position: fixed`
+         children. That squashed this overlay's fixed inset-0 into the header's ~80px box
+         instead of the full viewport. Living as a direct sibling of header/main fixes it. -->
+    <transition name="fade">
+      <CoreUpgradeOverlay v-if="gameState === 'upgrade'" @selected="handleUpgradeSelected" />
+    </transition>
 
     <main
       class="relative z-20 flex-1 flex flex-col items-center justify-center py-10 px-6 lg:px-16 max-w-5xl mx-auto w-full">
@@ -506,9 +510,8 @@ const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
 const isDev = import.meta.env.DEV
-// (Xóa luôn THEME_MAP và DEFAULT_BG cũ ở trên đi nhé vì không dùng tới nữa)
 
-// 1. Khai báo danh sách background tương ứng với từng Round
+// 1. Danh sách background tương ứng với từng Round
 const ROUND_BACKGROUNDS: Record<number, string> = {
   1: '/bg-daily-life.png', 
   2: '/bg-cafe.png',
@@ -1910,58 +1913,19 @@ onUnmounted(() => {
 }
 
 
-/* ── INTENSE WILDFIRE EFFECT (Thuần CSS) ────────────────────────────── */
+/* ── INTENSE WILDFIRE EFFECT ────────────────────────────── */
 .burning-edge-active {
   position: relative;
-  border-color: rgba(255, 69, 0, 0.8) !important;
-  box-shadow: inset 0 0 40px rgba(255, 69, 0, 0.6) !important;
-}
-
-/* Layer lửa bốc rộng ra xung quanh */
-.burning-edge-active::before,
-.burning-edge-active::after {
-  content: '';
-  position: absolute;
-  /* Kéo dài lửa ra khỏi viền 50px */
-  inset: -50px;
-  border-radius: 40px;
-  z-index: -1;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  filter: blur(15px);
-}
-
-/* Lớp lửa màu đỏ/cam chớp nháy dưới nền */
-.burning-edge-active::before {
-  background:
-    radial-gradient(circle at 20% 100%, rgba(255, 0, 0, 0.8) 0%, transparent 50%),
-    radial-gradient(circle at 80% 100%, rgba(255, 69, 0, 0.8) 0%, transparent 50%),
-    radial-gradient(circle at 50% -20%, rgba(255, 140, 0, 0.6) 0%, transparent 60%);
-  animation: wildFireBase 0.3s infinite alternate ease-in-out;
-}
-
-/* Lớp lửa màu vàng rực bốc cao lên trên */
-/* ── BURNING EDGE (Box nằm im, Lửa chỉ cháy bên ngoài) ───────────────── */
-
-.burning-edge-active {
-  position: relative;
-  /* Đổi màu viền box thành cam cho đồng bộ với lửa */
   border-color: rgba(255, 100, 0, 0.8) !important;
-  /* KHÔNG có transform rung lắc, KHÔNG có inset shadow để bên trong sạch sẽ */
 }
 
-/* Layer lửa bám sát vòng quanh mép ngoài của box */
 .burning-edge-active::before {
   content: '';
   position: absolute;
-  /* inset: 0 giúp layer này to đúng bằng cái box, không tràn vào trong */
   inset: 0;
   border-radius: inherit;
   z-index: -1;
-  /* Nằm dưới cái box */
   pointer-events: none;
-
-  /* Hiệu ứng ngọn lửa chỉ tỏa ra ngoài */
   animation: outerFlames 0.4s infinite alternate ease-in-out;
 }
 
@@ -1969,26 +1933,18 @@ onUnmounted(() => {
   0% {
     box-shadow:
       0 -10px 15px rgba(255, 165, 0, 0.6),
-      /* Lửa trên */
       0 10px 15px rgba(255, 69, 0, 0.5),
-      /* Lửa dưới */
       10px 0 15px rgba(255, 69, 0, 0.5),
-      /* Lửa phải */
       -10px 0 15px rgba(255, 165, 0, 0.5);
-    /* Lửa trái */
   }
 
   100% {
     box-shadow:
       0 -40px 45px rgba(255, 100, 0, 0.9),
-      /* Lửa bốc cao mạnh lên phía trên */
       0 20px 30px rgba(255, 0, 0, 0.7),
-      /* Lửa dưới tỏa ra */
       25px 0 35px rgba(255, 100, 0, 0.8),
-      /* Lửa hắt sang 2 bên */
       -25px 0 35px rgba(255, 0, 0, 0.8),
       0 0 20px rgba(255, 255, 255, 0.3);
-    /* Lõi sáng chớp nhẹ ở mép */
   }
 }
 /* Chaos Theory Color Shift */
