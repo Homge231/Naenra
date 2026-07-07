@@ -490,6 +490,8 @@ const THEME_MAP: Record<string, string> = {
   'cafe': '/bg-cafe.png',
   'travel': '/bg-travel.png'
 }
+const DEFAULT_BG = '/assets/images/bg-daily-life.jpg'
+
 
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
@@ -518,31 +520,40 @@ const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
 let timeoutPhaseFrame: number | null = null
 let timeoutPhaseStart = 0
 // Khai báo danh sách ảnh tương ứng với 3 chủ đề mới của bạn
-const TOPIC_BACKGROUNDS: Record<string, string> = {
-  'Daily Life & Habits': '/assets/images/bg-daily-life.jpg',
-  'Food & Cafe Culture': '/assets/images/bg-food-cafe.jpg',
-  'Travel & Vacations': '/assets/images/bg-travel.jpg'
-}
 
-const DEFAULT_BG = '/assets/images/bg-daily-life.jpg'
+
 
 // Biến reactive lưu trữ link ảnh nền đang hiển thị
-const currentBgImage = ref(DEFAULT_BG)
+// 1. Khai báo danh sách background tương ứng với từng Round
+const ROUND_BACKGROUNDS: Record<number, string> = {
+  1: '/assets/images/bg-daily-life.jpg', // Round 1: Chủ đề Daily Life & Habits
+  2: '/assets/images/bg-food-cafe.jpg',  // Round 2: Chủ đề Food & Cafe Culture
+  3: '/assets/images/bg-travel.jpg'      // Round 3: Chủ đề Travel & Vacations
+}
+
+// Biến reactive lưu trữ link ảnh nền đang hiển thị (Mặc định lấy ảnh Round 1)
+const currentBgImage = ref(ROUND_BACKGROUNDS[1])
 const isBgFading = ref(false)
 
-watch(() => currentQuestion.value?.topic, (newTopic, oldTopic) => {
-  if (newTopic && newTopic !== oldTopic) {
+// 2. Theo dõi biến currentRound để tự động đổi ảnh khi qua màn
+watch(() => matchStore.currentRound, (newRound, oldRound) => {
+  // Chỉ chạy hiệu ứng đổi nền khi số Round thực sự thay đổi
+  if (newRound && newRound !== oldRound) {
+    // Bật hiệu ứng mờ dần về đen
     isBgFading.value = true
 
+    // Đợi 0.5s để màn hình mờ hẳn rồi mới đổi link ảnh
     setTimeout(() => {
-      currentBgImage.value = TOPIC_BACKGROUNDS[newTopic] || DEFAULT_BG
+      // Lấy ảnh theo số Round, nếu lỗi thì fallback về ảnh Round 1
+      currentBgImage.value = ROUND_BACKGROUNDS[newRound] || ROUND_BACKGROUNDS[1]
 
+      // Đợi ảnh load một chút xíu rồi sáng bừng lên lại
       setTimeout(() => {
         isBgFading.value = false
       }, 100)
-    }, 500)
+    }, 500) 
   }
-}, { immediate: true })
+}, { immediate: true }) // Chạy ngay lần đầu tiên component được render
 
 
 const currentCombo = ref(0)
