@@ -909,7 +909,15 @@ async function checkAnswer() {
     currentCombo.value++
     if (isMissionCore.value) {
       missionProgress.value = (missionProgress.value + 1)
-      if (missionProgress.value > 5) missionProgress.value = 1
+      if (missionProgress.value === 5) {
+        showMissionCelebration.value = true
+        setTimeout(() => {
+          showMissionCelebration.value = false
+          missionProgress.value = 0
+        }, 2000)
+      } else if (missionProgress.value > 5) {
+        missionProgress.value = 1
+      }
     }
     if (isAegisMode.value) {
       aegisShieldCount.value = Math.min(3, aegisShieldCount.value + 1)
@@ -933,11 +941,15 @@ async function checkAnswer() {
   const timeTaken = Date.now() - questionStartTime.value
   const mySeq = ++submitAnswerSeq
 
-  // If local check is correct, transition to next question immediately after FEEDBACK_MS
+  // If local check is correct, transition to next question immediately after feedback time
   if (isCorrectLocal) {
+    let delay = FEEDBACK_MS
+    if (isMissionCore.value && missionProgress.value === 5) {
+      delay = 2000 // Wait for celebration to finish
+    }
     setTimeout(() => {
       if (gameState.value !== 'timeout' && mySeq === submitAnswerSeq) loadQuestion()
-    }, FEEDBACK_MS)
+    }, delay)
   }
 
     ; (async () => {
@@ -986,14 +998,7 @@ async function checkAnswer() {
           })
 
           if (mySeq === submitAnswerSeq) {
-            if (data.breakdown?.mission_completed === 1) {
-              showMissionCelebration.value = true
-              setTimeout(() => {
-                showMissionCelebration.value = false
-                missionProgress.value = 0
-              }, 2000)
-            }
-
+            // Note: Mission celebration is now handled locally for instant feedback
             if (data.breakdown?.shield_blocked) {
               spawnPointPopup(0, 'shield_blocked')
             } else if (data.correct && isSpeedsterCore.value) {
