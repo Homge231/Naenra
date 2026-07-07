@@ -192,11 +192,11 @@
                 :class="{ 'burning-edge-active': isBurningComboActive }">
                 <p class="text-xl md:text-3xl font-medium text-gray-200 leading-relaxed max-w-3xl">
                   <span v-if="currentQuestion?.question_text?.split(/_+/)[0]">
-                    {{ currentQuestion.question_text.split(/_+/)[0] }}
+                    {{ currentQuestion.question_text?.split(/_+/)[0] }}
                   </span>
                   <span class="text-white/50 font-bold mx-2 tracking-widest">---</span>
                   <span v-if="currentQuestion?.question_text?.split(/_+/)[1]">
-                    {{ currentQuestion.question_text.split(/_+/)[1] }}
+                    {{ currentQuestion.question_text?.split(/_+/)[1] }}
                   </span>
                 </p>
               </div>
@@ -478,6 +478,7 @@ type ScoreFlash = 'correct' | 'wrong' | null
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const MATCH_DURATION = 90
+const TIMEOUT_PHASE_DURATION = 15
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
 const SCORE_BAR_MAX = 2000
@@ -727,7 +728,10 @@ let matchTimerFrame: number | null = null
 let remainingMatchMs = MATCH_DURATION * 1000
 let lastTickTime = 0
 let isTimerPaused = false
+const timeLeft = ref(MATCH_DURATION)
+const timerProgressPercent = ref(100)
 let timeoutInterval: ReturnType<typeof setInterval> | null = null
+let timeoutPhaseStart = 0
 
 function stopTimeoutInterval() {
   if (timeoutInterval) {
@@ -1336,6 +1340,8 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   matchStore.resetMatch()
+  remainingMatchMs = MATCH_DURATION * 1000
+  timeLeft.value = MATCH_DURATION
 
   await createSession()
   await fetchBatch()
