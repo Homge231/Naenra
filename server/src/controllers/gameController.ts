@@ -129,7 +129,7 @@ function generateOracleHints(word: string): string[] {
       if (len > 1) revealed.add(len - 1)
     }
     if (level >= 2) {
-      const targetReveal = Math.max(2, Math.ceil(len * 0.5))
+      const targetReveal = Math.max(Math.min(len, revealed.size + 1), Math.ceil(len * 0.5))
       let count = revealed.size
       const interval = (len - 1) / (targetReveal - 1)
       for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {
@@ -146,7 +146,7 @@ function generateOracleHints(word: string): string[] {
       }
     }
     if (level >= 3) {
-      const targetReveal = Math.max(2, Math.ceil(len * 0.7))
+      const targetReveal = Math.max(Math.min(len, revealed.size + 1), Math.ceil(len * 0.7))
       let count = revealed.size
       const interval = (len - 1) / (targetReveal - 1)
       for (let k = 1; k < targetReveal - 1 && count < targetReveal; k++) {

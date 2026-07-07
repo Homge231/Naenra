@@ -341,15 +341,22 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-white/5">
-                <tr v-for="(item, idx) in matchHistory" :key="idx" class="hover:bg-white/5 transition-colors">
-                  <td class="px-6 py-3 font-medium uppercase tracking-wider"
-                    :class="item.isCorrect ? 'text-green bg-green/10' : 'text-hexred bg-hexred/10'">
-                    {{ item.submitted }}
-                  </td>
-                  <td class="px-6 py-3 font-medium text-white uppercase tracking-wider border-l border-white/5">
-                    {{ item.correct }}
-                  </td>
-                </tr>
+                <template v-for="(group, roundNum) in groupedMatchHistory" :key="roundNum">
+                  <tr>
+                    <td colspan="2" class="px-6 py-2 font-bold text-xs text-white/50 bg-black/80 uppercase tracking-widest border-b border-white/10">
+                      Round {{ roundNum }}
+                    </td>
+                  </tr>
+                  <tr v-for="(item, idx) in group" :key="`${roundNum}-${idx}`" class="hover:bg-white/5 transition-colors">
+                    <td class="px-6 py-3 font-medium uppercase tracking-wider"
+                      :class="item.isCorrect ? 'text-green bg-green/10' : 'text-hexred bg-hexred/10'">
+                      {{ item.submitted }}
+                    </td>
+                    <td class="px-6 py-3 font-medium text-white uppercase tracking-wider border-l border-white/5">
+                      {{ item.correct }}
+                    </td>
+                  </tr>
+                </template>
               </tbody>
             </table>
           </div>
@@ -638,7 +645,16 @@ const playerAvatarUrl = computed(() =>
 const questionQueue = ref<QuestionPayload[]>([])
 const isFetchingBatch = ref(false)
 const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_length: 0, target_hash: '', oracle_hints: ['', '', ''] })
-const matchHistory = ref<{ submitted: string, correct: string, isCorrect: boolean }[]>([])
+const matchHistory = ref<{ round: number, submitted: string, correct: string, isCorrect: boolean }[]>([])
+
+const groupedMatchHistory = computed(() => {
+  const groups: Record<number, typeof matchHistory.value> = {}
+  matchHistory.value.forEach(item => {
+    if (!groups[item.round]) groups[item.round] = []
+    groups[item.round].push(item)
+  })
+  return groups
+})
 
 let flashTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -892,6 +908,7 @@ async function skipQuestion() {
           }
 
           matchHistory.value.push({
+            round: matchStore.currentRound,
             submitted: '(Skipped)',
             correct: data.correct_word || '???',
             isCorrect: false
@@ -1036,6 +1053,7 @@ async function checkAnswer() {
         }
 
         matchHistory.value.push({
+          round: matchStore.currentRound,
           submitted: typed,
           correct: data.correct ? typed : (data.correct_word || '???'),
           isCorrect: data.correct
