@@ -18,9 +18,25 @@ export function initQuestionCron() {
       
       for (const t of topicConfigs) {
         for (const level of levels) {
-          const questions = await generateQuestions(t.prompt, level, 17)
-          const questionsWithTopic = questions.map(q => ({ ...q, topic: t.slug }))
-          allNewQuestions = allNewQuestions.concat(questionsWithTopic)
+          let success = false;
+          let attempts = 0;
+          while (!success && attempts < 3) {
+            try {
+              const questions = await generateQuestions(t.prompt, level, 50)
+              const questionsWithTopic = questions.map(q => ({ ...q, topic: t.slug }))
+              allNewQuestions = allNewQuestions.concat(questionsWithTopic)
+              success = true;
+            } catch (err: any) {
+              attempts++;
+              console.error(`⚠️ Cron attempt ${attempts} failed: ${err.message}`)
+              if (attempts < 3) {
+                await new Promise(r => setTimeout(r, 5000))
+              } else {
+                throw err
+              }
+            }
+          }
+          await new Promise(r => setTimeout(r, 2000))
         }
       }
       
