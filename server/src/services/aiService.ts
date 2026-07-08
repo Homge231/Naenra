@@ -43,7 +43,8 @@ Difficulty Level: ${level}
 RULES:
 1. **question_text**: A fill-in-the-blank question containing EXACTLY ONE blank represented by four underscores ("____").
 2. **target_word**: The exact word that goes in the blank (must be a single word, lowercase).
-3. **hint**: A highly specific, unambiguous hint that strongly points to the target_word. The hint MUST always start with a capital letter.
+3. **target_word restriction**: The target_word MUST NOT contain spaces, hyphens (-), apostrophes, or any other punctuation/special characters. It MUST consist entirely of alphabet letters (a-z).
+4. **hint**: A highly specific, unambiguous hint that strongly points to the target_word. The hint MUST always start with a capital letter.
 `
 
   try {
