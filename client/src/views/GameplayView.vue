@@ -585,10 +585,14 @@ const isExodia = computed(() => gameStore.activeCoreName?.toLowerCase() === 'exo
 const isSpeedDemon = computed(() => gameStore.activeCoreName?.toLowerCase() === 'speed demon')
 
 // ── Pandora's Box Logic ──────────────────────────────────────────────────
-const isPandora = computed(() => gameStore.activeCoreName?.toLowerCase() === "pandora's box")
+const basePandoraCoreName = computed(() => {
+  const baseCore = allCores.value.find(c => c.id === gameStore.activeCoreId)
+  return baseCore ? baseCore.name : gameStore.activeCoreName
+})
+const isPandora = computed(() => basePandoraCoreName.value?.toLowerCase() === "pandora's box")
+const isPandoraMode = computed(() => checkPandoraCore(basePandoraCoreName.value))
 const isTrickster = computed(() => isPandoraMode.value && matchStore.currentRound === 2)
 const isChaos = computed(() => isPandoraMode.value && matchStore.currentRound === 3)
-const isPandoraMode = computed(() => checkPandoraCore(gameStore.activeCoreName))
 
 const isShifting = ref(false)
 const shiftAnnouncement = ref('')
@@ -635,10 +639,8 @@ function triggerShapeshift() {
   const tier2Names = Object.keys(upgradePaths).filter(k => tier1Names.includes(Object.keys(upgradePaths).find(key => upgradePaths[key] === k) || ''))
   const tier3Names = Object.values(upgradePaths).filter(v => tier2Names.includes(Object.keys(upgradePaths).find(key => upgradePaths[key] === v) || ''))
   
-  let validNames: string[] = []
-  if (tier === 3) validNames = tier3Names
-  else if (tier === 2) validNames = tier2Names
-  else validNames = tier1Names
+  // Pandora ALWAYS shifts between the 8 main (Tier 1) cores, regardless of round!
+  const validNames = tier1Names
 
   pandoraPool.value = allCores.value.filter((c: any) => 
     validNames.some(name => name.toLowerCase() === c.name.toLowerCase()) && 

@@ -33,8 +33,8 @@ const newCores = [
   { name: 'Supernova Core', description: '3.0× multiplier on every score calculation, but mistakes cost double points.', flat_buff: 0, multiplier_buff: 3.0 },
   
   // 8. Pandora Focus
-  { name: "Trickster's Glass", description: 'Shape-shifts every 25 seconds into powerful Tier 2 cores.', flat_buff: 0, multiplier_buff: 1 },
-  { name: 'Chaos Theory', description: 'Shape-shifts every 25 seconds. Fuses TWO Tier 3 cores simultaneously.', flat_buff: 0, multiplier_buff: 1 }
+  { name: "Trickster's Glass", description: 'Shape-shifts every 20 seconds into powerful Main (Tier 1) cores.', flat_buff: 0, multiplier_buff: 1 },
+  { name: 'Chaos Theory', description: 'Shape-shifts every 15 seconds. Fuses the power of Main (Tier 1) cores.', flat_buff: 0, multiplier_buff: 1 }
 ]
 
 async function run() {
