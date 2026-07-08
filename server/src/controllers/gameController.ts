@@ -296,12 +296,18 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
 
     const { data: core, error: coreErr } = await supabase
       .from('cores')
-      .select('id, name')
+      .select('id, name, tier')
       .eq('id', active_core_id)
       .single()
 
     if (coreErr || !core) {
       res.status(400).json({ error: 'Invalid active_core_id: core not found.' })
+      return
+    }
+
+    // Verify initial core tier is 1
+    if (core.tier !== 1 && core.tier !== null) {
+      res.status(400).json({ error: 'Initial core must be a Tier 1 core.' })
       return
     }
 
@@ -628,6 +634,45 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
 
     const finalScore = Math.max(0, (session.score ?? 0) - oraclePenalty)
 
+    // Fetch player profile to get current Elo and stats
+    const { data: playerProfile } = await supabase
+      .from('players')
+      .select('elo, wins, losses, total_matches')
+      .eq('id', playerId)
+      .single()
+
+    let newElo = 0
+    let eloDelta = 0
+
+    if (playerProfile) {
+      const currentElo = playerProfile.elo ?? 0
+      const wins = playerProfile.wins ?? 0
+      const losses = playerProfile.losses ?? 0
+      const totalMatches = playerProfile.total_matches ?? 0
+
+      // Expected score based on current Elo
+      const expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
+      
+      // Calculate Elo change: K-factor = 0.05 of the score difference
+      eloDelta = Math.floor(0.05 * (finalScore - expectedScore))
+      
+      // Clamp the delta to avoid extreme shifts
+      eloDelta = Math.max(-100, Math.min(150, eloDelta))
+      
+      newElo = Math.max(0, currentElo + eloDelta)
+      const isWin = finalScore >= expectedScore
+
+      await supabase
+        .from('players')
+        .update({
+          elo: newElo,
+          wins: wins + (isWin ? 1 : 0),
+          losses: losses + (isWin ? 0 : 1),
+          total_matches: totalMatches + 1
+        })
+        .eq('id', playerId)
+    }
+
     const { error: updateErr } = await supabase
       .from('game_sessions')
       .update({
@@ -645,7 +690,9 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
     res.status(200).json({
       message: 'Session ended',
       score: finalScore,
-      questions_answered: session.questions_answered ?? 0
+      questions_answered: session.questions_answered ?? 0,
+      elo_change: eloDelta,
+      new_elo: newElo
     })
   } catch (err) {
     console.error('timeoutSession error:', err)
@@ -697,6 +744,47 @@ export async function updateSessionCore(req: AuthRequest, res: Response): Promis
     const { session_id, new_core_id } = req.body
     if (!session_id || !new_core_id) {
       res.status(400).json({ error: 'session_id and new_core_id are required.' })
+      return
+    }
+
+    // 1. Fetch current session and its active_core_id
+    const { data: session, error: sessErr } = await supabase
+      .from('game_sessions')
+      .select('active_core_id')
+      .eq('id', session_id)
+      .eq('player_id', playerId)
+      .single()
+
+    if (sessErr || !session) {
+      res.status(404).json({ error: 'Session not found.' })
+      return
+    }
+
+    // 2. Fetch current core details
+    const { data: currentCore, error: currErr } = await supabase
+      .from('cores')
+      .select('name, tier')
+      .eq('id', session.active_core_id)
+      .single()
+
+    // 3. Fetch new core details
+    const { data: newCore, error: newErr } = await supabase
+      .from('cores')
+      .select('name, tier')
+      .eq('id', new_core_id)
+      .single()
+
+    if (currErr || newErr || !currentCore || !newCore) {
+      res.status(400).json({ error: 'Invalid core transition: core details not found.' })
+      return
+    }
+
+    // 4. Validate transition tier and family consistency (Anti-cheat)
+    const currentFamily = getCoreFamily(currentCore.name)
+    const newFamily = getCoreFamily(newCore.name)
+
+    if (newCore.tier !== currentCore.tier + 1 || currentFamily !== newFamily) {
+      res.status(403).json({ error: 'Core transition verification failed (Anti-cheat triggered).' })
       return
     }
 
