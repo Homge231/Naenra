@@ -1,19 +1,14 @@
 import { Router, Request, Response } from 'express'
-import { createClient } from '@supabase/supabase-js'
 import { generateToken } from '../utils/jwt'
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware'
 import { generateOTP, saveOTP, verifyOTP } from '../utils/otp'
 import { sendOTPEmail } from '../utils/mailer'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
+import { supabase } from '../config/supabase'
 dotenv.config()
 
 const router = Router()
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-)
 
 interface PendingRegistration {
   email: string
@@ -148,11 +143,10 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       return
     }
 
-    // Use upsert to avoid race conditions with the trigger
+    // The database trigger automatically creates the row, so we just update it
     const { error: upsertError } = await supabase
       .from('players')
-      .upsert({
-        id: authData.user.id,
+      .update({
         email: pending.email,
         username: pending.username,
         hashed_password: pending.hashedPassword,
@@ -160,7 +154,8 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
         wins: 0,
         losses: 0,
         total_matches: 0
-      }, { onConflict: 'id' })
+      })
+      .eq('id', authData.user.id)
 
     if (upsertError) {
       res.status(400).json({ error: 'NEW CODE RUNNING BUT UPSERT FAILED: ' + upsertError.message })
