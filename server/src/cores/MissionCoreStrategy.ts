@@ -53,7 +53,8 @@ export class MissionCoreStrategy extends BaseCore {
         multiplier_buff: ctx.multiplierBuff,
         oracle_penalty: oraclePenalty,
         penalty,
-        mission_completed: missionCompleted
+        mission_completed: missionCompleted,
+        mission_streak: consecutiveCorrect % this.missionReq
       }
     }
   }

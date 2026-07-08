@@ -30,19 +30,44 @@ export class AegisCoreStrategy extends BaseCore {
     this.bastionMult = bastionMult
   }
 
-  // Helper to calculate the current shield count based on answer history
-  private getShieldCount(initial: number, history: boolean[]): number {
-    return history.reduce((shields, isCorrect) => {
-      if (isCorrect) return Math.min(shields + 1, this.maxShields) // dynamic max shields
-      return Math.max(0, shields - 1)
-    }, initial)
+  // Helper to calculate both current shields and consecutive correct streak
+  private getShieldAndStreak(initialShields: number, history: boolean[]): { shields: number, streak: number } {
+    let shields = initialShields
+    let streak = 0
+
+    for (const isCorrect of history) {
+      if (isCorrect) {
+        shields = Math.min(shields + 1, this.maxShields)
+        streak++
+        if (this.coreName === 'shield mission' && streak >= 3) {
+          shields = this.maxShields
+          streak = 0
+        }
+      } else {
+        if (shields > 0) {
+          shields = Math.max(0, shields - 1)
+          if (this.coreName === 'shield mission') {
+            // Shield Mission Special: streak does NOT break if protected by a shield
+          } else {
+            streak = 0
+          }
+        } else {
+          streak = 0
+        }
+      }
+    }
+
+    return { shields, streak }
   }
 
   calculateCorrect(ctx: ScoringContext): ScoringResult {
     const oraclePenalty = this._oraclePenalty(ctx)
-    // Bastion logic: if at max shields *before* this answer, double the points
+    // Calculate shields right BEFORE this answer
     const historyBeforeThisAnswer = ctx.answerHistory.slice(0, -1)
-    const currentShields = this.getShieldCount(ctx.initialShieldCount || 0, historyBeforeThisAnswer)
+    const { shields: currentShields } = this.getShieldAndStreak(ctx.initialShieldCount || 0, historyBeforeThisAnswer)
+    
+    // Calculate final shields and streak after this answer
+    const { shields: finalShields, streak: finalStreak } = this.getShieldAndStreak(ctx.initialShieldCount || 0, ctx.answerHistory)
     
     let activeMultiplier = ctx.multiplierBuff
     if (this.bastionMult && currentShields === this.maxShields) {
@@ -58,7 +83,7 @@ export class AegisCoreStrategy extends BaseCore {
       flatNova = 500
     }
     if (this.coreName === 'shield synergy' && currentShields === this.maxShields) {
-      flatNova = 500 // Wait, description says +50 points. Let's make it 50!
+      flatNova = 500
     }
     const synergyBonus = (this.coreName === 'shield synergy' && currentShields === this.maxShields) ? 50 : 0
 
@@ -74,7 +99,8 @@ export class AegisCoreStrategy extends BaseCore {
         multiplier_buff: activeMultiplier,
         oracle_penalty:  oraclePenalty,
         penalty:         0,
-        finalShieldCount: this.getShieldCount(ctx.initialShieldCount || 0, ctx.answerHistory)
+        finalShieldCount: finalShields,
+        mission_streak:  finalStreak
       },
     }
   }
@@ -84,12 +110,13 @@ export class AegisCoreStrategy extends BaseCore {
     
     // Calculate shields right BEFORE this wrong answer
     const historyBeforeThisAnswer = ctx.answerHistory.slice(0, -1)
-    const currentShields = this.getShieldCount(ctx.initialShieldCount || 0, historyBeforeThisAnswer)
+    const { shields: currentShields } = this.getShieldAndStreak(ctx.initialShieldCount || 0, historyBeforeThisAnswer)
+
+    // Calculate final shields and streak after this wrong answer
+    const { shields: finalShields, streak: finalStreak } = this.getShieldAndStreak(ctx.initialShieldCount || 0, ctx.answerHistory)
 
     if (currentShields > 0) {
       // Shield blocks the penalty!
-      // Reflective Aegis: grant +50 points instead of losing
-      // Spiked Shield: grant +200 points instead of losing
       let reflectBonus = 0
       if (this.coreName === 'spiked shield') {
         reflectBonus = 200
@@ -105,9 +132,10 @@ export class AegisCoreStrategy extends BaseCore {
           flat_buff: reflectBonus,
           multiplier_buff: 1,
           oracle_penalty: oraclePenalty,
-          penalty: 0, // penalty reduced to 0
+          penalty: 0,
           shield_blocked: 1,
-          finalShieldCount: Math.max(0, currentShields - 1)
+          finalShieldCount: finalShields,
+          mission_streak: finalStreak
         },
       }
     }
@@ -123,7 +151,8 @@ export class AegisCoreStrategy extends BaseCore {
         oracle_penalty: oraclePenalty,
         penalty: ctx.wrongPenalty,
         shield_blocked: 0,
-        finalShieldCount: 0
+        finalShieldCount: finalShields,
+        mission_streak: finalStreak
       },
     }
   }

@@ -964,7 +964,14 @@ async function skipQuestion() {
   // Immediate local feedback
   gameState.value = 'wrong'
   currentCombo.value = 0
-  if (isMissionCore.value) missionProgress.value = 0
+  if (isMissionCore.value) {
+    const isShieldMission = gameStore.activeCoreName?.toLowerCase() === 'shield mission'
+    if (isShieldMission && aegisShieldCount.value > 0) {
+      // Streak is protected by active shield
+    } else {
+      missionProgress.value = 0
+    }
+  }
   if (isAegisMode.value) aegisShieldCount.value = Math.max(0, aegisShieldCount.value - 1)
   typedLetters.value = []
   triggerScoreFlash('wrong')
@@ -997,6 +1004,9 @@ async function skipQuestion() {
 
           if (data.breakdown?.final_shield_count !== undefined) {
             aegisShieldCount.value = data.breakdown.final_shield_count
+          }
+          if (data.breakdown?.mission_streak !== undefined) {
+            missionProgress.value = data.breakdown.mission_streak
           }
 
           // Only show popup if it's the latest question to avoid spam, but ALWAYS update history
@@ -1079,14 +1089,19 @@ async function checkAnswer() {
     }
 
     if (isMissionCore.value) {
+      const isShieldMission = gameStore.activeCoreName?.toLowerCase() === 'shield mission'
+      const targetStreak = isShieldMission ? 3 : 5
       missionProgress.value = (missionProgress.value + 1)
-      if (missionProgress.value === 5) {
+      if (missionProgress.value === targetStreak) {
         showMissionCelebration.value = true
+        if (isShieldMission) {
+          aegisShieldCount.value = maxShields.value
+        }
         setTimeout(() => {
           showMissionCelebration.value = false
           missionProgress.value = 0
         }, 2000)
-      } else if (missionProgress.value > 5) {
+      } else if (missionProgress.value > targetStreak) {
         missionProgress.value = 1
       }
     }
@@ -1097,8 +1112,17 @@ async function checkAnswer() {
   } else {
     gameState.value = 'wrong'
     currentCombo.value = 0
-    if (isMissionCore.value) missionProgress.value = 0
-    if (isAegisMode.value) aegisShieldCount.value = Math.max(0, aegisShieldCount.value - 1)
+    if (isMissionCore.value) {
+      const isShieldMission = gameStore.activeCoreName?.toLowerCase() === 'shield mission'
+      if (isShieldMission && aegisShieldCount.value > 0) {
+        // Streak is protected by active shield
+      } else {
+        missionProgress.value = 0
+      }
+    }
+    if (isAegisMode.value) {
+      aegisShieldCount.value = Math.max(0, aegisShieldCount.value - 1)
+    }
     triggerScoreFlash('wrong')
   }
 
@@ -1160,6 +1184,9 @@ async function checkAnswer() {
 
         if (data.breakdown?.final_shield_count !== undefined) {
           aegisShieldCount.value = data.breakdown.final_shield_count
+        }
+        if (data.breakdown?.mission_streak !== undefined) {
+          missionProgress.value = data.breakdown.mission_streak
         }
 
         if (mySeq === submitAnswerSeq && !data.correct && data.correct_word) {
