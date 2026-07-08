@@ -793,7 +793,7 @@ function startMatchTimer() {
     // Shapeshifter trigger based on tier
     if (isPandoraMode.value) {
       let shiftInterval = 25000 // T1 Pandora: 25s
-      if (isTrickster.value) shiftInterval = 15000 // T2 upgrades: 15s
+      if (isTrickster.value) shiftInterval = 20000 // T2 upgrades: 20s
       if (isChaos.value) shiftInterval = 15000 // T3 upgrades: 15s
       
       if (Date.now() - lastShiftTime >= shiftInterval) {
