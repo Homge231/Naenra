@@ -1033,6 +1033,7 @@ async function skipQuestion() {
             answer: '',            // empty = full skip
             current_combo: capturedCombo,
             active_core_id: activeCoreId.value,
+            core_history_names: gameStore.coreHistory.map(c => c.name),
             oracle_reveal_level: capturedOracleLevel,
             time_taken: timeTaken
           })
@@ -1202,6 +1203,8 @@ async function checkAnswer() {
           answer: typed,
           current_combo: capturedCombo,
           active_core_id: activeCoreId.value,
+          core_history_names: gameStore.coreHistory.map(c => c.name),
+          core_history: gameStore.coreHistory.map(c => c.id),
           oracle_reveal_level: capturedOracleLevel,
           time_taken: timeTaken
         })

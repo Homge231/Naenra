@@ -366,7 +366,18 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { player_id, session_id, question_id, answer, time_taken, current_combo, active_core_id, secondary_core_id, oracle_reveal_level } = req.body
+    const { 
+      session_id, 
+      question_id, 
+      answer, 
+      time_taken, 
+      current_combo, 
+      active_core_id, 
+      oracle_reveal_level,
+      core_history_names,
+      secondary_core_id,
+      player_id
+    } = req.body
 
     if (player_id && player_id !== playerId) {
       res.status(403).json({ error: 'player_id does not match authenticated user.' })
@@ -480,15 +491,22 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
 
     // ── 7. Fetch answer history for pattern-based cores ───────────────────────
     let answerHistory: boolean[] = []
-    const primaryStrategy = getCoreStrategy(core.name)
-    const secondaryStrategy = secondaryCore ? getCoreStrategy(secondaryCore.name) : null
+    
+    // Default to the active core
+    const historyCoreNames = Array.isArray(core_history_names) && core_history_names.length > 0 
+      ? core_history_names 
+      : [core.name]
+      
+    // Include secondaryCore if it exists (for Chaos Theory)
+    if (secondaryCore && !historyCoreNames.includes(secondaryCore.name)) {
+      historyCoreNames.push(secondaryCore.name)
+    }
 
-    const needsHistory = (primaryStrategy.constructor.name === 'AegisCoreStrategy') ||
-                         (primaryStrategy.constructor.name === 'MissionCoreStrategy') ||
-                         (secondaryStrategy && (
-                           secondaryStrategy.constructor.name === 'AegisCoreStrategy' ||
-                           secondaryStrategy.constructor.name === 'MissionCoreStrategy'
-                         ))
+    const needsHistory = historyCoreNames.some(name => {
+      const strategy = getCoreStrategy(name)
+      return strategy.constructor.name === 'AegisCoreStrategy' || 
+             strategy.constructor.name === 'MissionCoreStrategy'
+    })
     
     if (needsHistory) {
       const { data: historyData } = await supabase
@@ -506,6 +524,9 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     // ── 8. Calculate score via core strategy registry ────────────────────────
     const timeTaken = typeof time_taken === 'number' && time_taken >= 0 ? Math.floor(time_taken) : 0
     
+    // Find if ANY core in history grants initial shields
+    const initialShieldCount = historyCoreNames.some(n => n.toLowerCase() === 'shield battery') ? 2 : 0
+
     const ctx = {
       timeTaken,
       totalTime:         MATCH_DURATION_MS,
@@ -515,10 +536,24 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       flatBuff:          core.flat_buff,
       multiplierBuff:    core.multiplier_buff,
       answerHistory,
-      initialShieldCount: (core.name.toLowerCase() === 'shield battery' || (secondaryCore && secondaryCore.name.toLowerCase() === 'shield battery')) ? 2 : 0
+      initialShieldCount
     }
 
+    // Always run the primary active core logic to get base score
     let { pointsDelta, breakdown } = runScoring(isCorrect, core.name, ctx)
+
+    // If there is an Aegis core in history that would block damage, let it override the primary penalty!
+    if (!isCorrect) {
+      const aegisCore = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'AegisCoreStrategy')
+      if (aegisCore && aegisCore !== core.name) {
+         const aegisResult = runScoring(isCorrect, aegisCore, ctx)
+         if (aegisResult.breakdown.shield_blocked) {
+           // Shield successfully blocked! Override the penalty result.
+           pointsDelta = aegisResult.pointsDelta
+           breakdown = aegisResult.breakdown
+         }
+      }
+    }
 
     // Apply Chaos Theory secondary score
     if (secondaryCore) {
