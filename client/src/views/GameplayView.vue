@@ -559,9 +559,12 @@ const isShattering = ref(false)
 const showMissionCelebration = ref(false)
 
 // active_core_id / name sourced from gameStore (set in CoreSelectionView)
-const activeCoreId = computed<string | null>({
-  get: () => gameStore.activeCoreId,
-  set: (val) => { gameStore.activeCoreId = val }
+const currentPandoraCoreId = ref<string | null>(null)
+const activeCoreId = computed<string | null>(() => {
+  if (isPandoraMode.value && currentPandoraCoreId.value) {
+    return currentPandoraCoreId.value
+  }
+  return gameStore.activeCoreId
 })
 
 // ── Core registry ──────────────────────────────────────────────────────────
@@ -650,7 +653,7 @@ function triggerShapeshift() {
   const randomCore = pandoraPool.value[Math.floor(Math.random() * pandoraPool.value.length)]
 
   setTimeout(() => {
-    activeCoreId.value = randomCore.id
+    currentPandoraCoreId.value = randomCore.id
     gameStore.activeCoreName = randomCore.name
     shiftAnnouncement.value = randomCore.name
     isShifting.value = false
@@ -1323,6 +1326,7 @@ async function restartMatch() {
   }
 
   // Next Round
+  currentPandoraCoreId.value = null
   matchStore.incrementRound()
   resetTypingBoard()
 
