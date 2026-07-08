@@ -282,7 +282,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const { data: profile } = await supabase
       .from('players')
-      .select('*')
+      .select('*, is_first_play')
       .eq('id', authData.user.id)
       .single()
 
@@ -300,7 +300,8 @@ router.post('/login', async (req: Request, res: Response) => {
         email: authData.user.email,
         username: profile?.username,
         avatar_url: profile?.avatar_url,
-        elo: profile?.elo ?? 0
+        elo: profile?.elo ?? 0,
+        is_first_play: profile?.is_first_play ?? true
       }
     })
 
@@ -326,7 +327,7 @@ router.post('/token', async (req: Request, res: Response) => {
 
     const { data: profile } = await supabase
       .from('players')
-      .select('*')
+      .select('*, is_first_play')
       .eq('id', user.id)
       .single()
 
@@ -394,6 +395,25 @@ router.get('/profile', authMiddleware, async (req: AuthRequest, res: Response) =
   }
 
   res.json({ profile })
+})
+
+// POST /auth/skip-tutorial
+router.post('/skip-tutorial', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { error } = await supabase
+      .from('players')
+      .update({ is_first_play: false })
+      .eq('id', req.user!.id)
+      
+    if (error) {
+      console.error('Failed to skip tutorial:', error)
+      return res.status(500).json({ error: 'Failed to update preference' })
+    }
+    
+    res.json({ message: 'Tutorial skipped permanently' })
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' })
+  }
 })
 
 export default router

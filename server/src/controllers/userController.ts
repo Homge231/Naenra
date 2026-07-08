@@ -33,7 +33,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
   try {
     const { data: profile, error } = await supabase
       .from('players')
-      .select('username, avatar_url, elo, wins, losses, total_matches')
+      .select('username, avatar_url, elo, wins, losses, total_matches, is_first_play')
       .eq('id', req.user!.id)
       .maybeSingle()
 
@@ -60,7 +60,8 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       rank: getRankFromElo(elo),
       wins: profile?.wins ?? 0,
       losses: profile?.losses ?? 0,
-      total_matches: profile?.total_matches ?? 0
+      total_matches: profile?.total_matches ?? 0,
+      is_first_play: profile?.is_first_play ?? true
     })
   } catch (error) {
     console.error('getUserProfile error:', error)

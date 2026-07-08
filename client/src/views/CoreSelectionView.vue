@@ -39,7 +39,7 @@
         {{ errorMsg }}
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full px-4 md:px-0 items-stretch"
+      <div v-else id="tutorial-core-cards" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full px-4 md:px-0 items-stretch"
         :class="{ 'pointer-events-none': loading }">
 
         <div v-for="(core, index) in randomCores" :key="index" class="flex flex-col items-center gap-6 w-full h-full">
@@ -100,6 +100,16 @@
         :class="timeLeft <= 5 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-orange to-lightOrange'"
         :style="{ width: `${(timeLeft / SELECTION_DURATION) * 100}%` }"></div>
     </div>
+
+    <!-- Tutorial CoachMark -->
+    <CoachMark 
+      v-if="showTutorial"
+      targetId="tutorial-core-cards"
+      message="Select a Support Core to determine your strategy before the match."
+      placement="top"
+      @next="dismissTutorialLocally"
+      @skip="skipTutorialPermanently"
+    />
   </div>
 </template>
 
@@ -107,10 +117,13 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '../stores/gameStore'
+import { useAuthStore } from '../stores/authStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
+import CoachMark from '../components/tutorial/CoachMark.vue'
 
 const router = useRouter()
 const gameStore = useGameStore()
+const authStore = useAuthStore()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
 interface CoreOption {
@@ -144,6 +157,17 @@ const randomCores = ref<CoreOption[]>([])
 const selectedCore = ref<CoreOption | null>(null)
 const loading = ref(true)
 const errorMsg = ref('')
+
+const showTutorial = ref(false)
+
+function dismissTutorialLocally() {
+  showTutorial.value = false
+}
+
+async function skipTutorialPermanently() {
+  showTutorial.value = false
+  await authStore.skipTutorial()
+}
 
 // ── Reroll State (Independent per card) ─────────────────────────────────────
 const rerolledSlots = ref([false, false])
@@ -297,6 +321,9 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 }
 
 onMounted(() => {
+  if (authStore.isFirstPlay) {
+    showTutorial.value = true
+  }
   fetchSupportCores()
   window.addEventListener('beforeunload', handleBeforeUnload)
 })

@@ -19,27 +19,34 @@
     <!-- Floating points popup container -->
     <div class="fixed inset-0 z-50 pointer-events-none overflow-hidden">
       <transition-group name="float-pts" tag="div">
-        <div v-for="popup in pointPopups" :key="popup.id"
-          class="float-pts-item absolute font-black tracking-widest drop-shadow-lg" :class="{
-            'text-2xl text-success': popup.type === 'correct',
-            'text-2xl text-hexred': popup.type === 'wrong',
-            'text-2xl text-yellow-400': popup.type === 'typo',
-            'text-2xl text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]': popup.type === 'shield_blocked',
-            'speedster-popup': popup.type === 'speedster',
-            'prismatic-explosion': isPrismaticCombo && popup.type === 'correct'
-          }" :style="{ left: popup.x + 'px', top: popup.y + 'px' }">
-          <template v-if="popup.type === 'speedster'">
-            <span class="speedster-fast-text">+{{ popup.value }} FAST!</span>
-          </template>
-          <template v-else-if="popup.type === 'shield_blocked'">
-            BLOCKED!
-          </template>
-          <template v-else>
-            {{ popup.type === 'correct' ? '+' : '-' }}{{ popup.value }}{{ popup.type === 'typo' ? ' (Typo)' : ' PTS' }}
-          </template>
+        <!-- Point Popups -->
+        <div v-for="popup in pointPopups" :key="popup.id" class="fixed pointer-events-none z-[100] font-black uppercase tracking-wider transition-all"
+          :class="[
+            popup.type === 'speedster' ? 'speedster-popup' : 'point-popup-anim',
+            popup.type === 'typo' ? 'text-orange drop-shadow-[0_0_10px_rgba(255,165,0,0.8)]' :
+              popup.type === 'wrong' ? 'text-hexred drop-shadow-[0_0_10px_rgba(230,57,70,0.8)]' :
+                popup.type === 'speedster' ? 'speedster-fast-text' :
+                  popup.type === 'shield_blocked' ? 'text-gray-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' :
+                    'text-success drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]'
+          ]" :style="{
+            left: `${popup.x}px`,
+            top: `${popup.y}px`
+          }">
+          {{ popup.value >= 0 && popup.type !== 'shield_blocked' ? '+' : '' }}{{ popup.type === 'shield_blocked' ? 'BLOCKED' : popup.value }}
+          <span v-if="popup.type === 'speedster'" class="ml-1">FAST!</span>
         </div>
       </transition-group>
     </div>
+
+    <!-- Tutorial CoachMark -->
+    <CoachMark 
+      v-if="showTutorial"
+      targetId="tutorial-typing-area"
+      message="Type the target word as fast as you can. Mistakes will cost you points!"
+      placement="top"
+      @next="skipTutorialPermanently"
+      @skip="skipTutorialPermanently"
+    />
 
     <!-- Pandora overlays: shift announcements and indicator -->
     <PandoraOverlay
@@ -220,7 +227,7 @@
               </div>
 
               <!-- Letter slots (anchor for popup position) -->
-              <div class="w-full flex flex-col items-center gap-3 overflow-hidden" ref="letterSlotsRef">
+              <div id="tutorial-typing-area" class="w-full flex flex-col items-center gap-3 overflow-hidden" ref="letterSlotsRef">
 
                 <!-- Speedster wind streak overlay component -->
                 <SpeedsterOverlay
@@ -295,7 +302,7 @@
     <div class="relative z-20 h-2 w-full flex bg-black/50">
       <div class="h-full rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]" :class="[
         timeLeft <= 10 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-blue to-lightBlue'
-      ]" :style="{ width: `${timerProgressPercent}%` }">
+      ]" :style="{ width: `${showTutorial ? 0 : timerProgressPercent}%` }">
       </div>
     </div>
 
@@ -440,7 +447,7 @@
 
     <!-- US-24: input is disabled during the 15s timeout phase AND in the final timeout state -->
     <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
-      spellcheck="false" :disabled="gameState === 'timeout'" @keydown="handleKeydown" />
+      spellcheck="false" :disabled="gameState === 'timeout' || showTutorial" @keydown="handleKeydown" />
   </div>
 </template>
 
@@ -457,6 +464,7 @@ import PhaserBackground from '../components/game/PhaserBackground.vue'
 import Avatar from '../components/Avatar.vue'
 import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
 import PandoraOverlay from '../components/game/PandoraOverlay.vue'
+import CoachMark from '../components/tutorial/CoachMark.vue'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
 import {
@@ -519,6 +527,12 @@ const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
 const isDev = import.meta.env.DEV
+const showTutorial = ref(false)
+
+async function skipTutorialPermanently() {
+  showTutorial.value = false
+  await authStore.skipTutorial()
+}
 
 // 1. Danh sách background tương ứng với từng Round
 const ROUND_BACKGROUNDS: Record<number, string> = {
@@ -789,7 +803,7 @@ function startMatchTimer() {
     const dt = now - lastTickTime
     lastTickTime = now
 
-    if (!isTimerPaused && !isNaN(dt)) {
+    if (!isTimerPaused && !showTutorial.value && !isNaN(dt)) {
       remainingMatchMs -= dt
     }
     
@@ -1436,6 +1450,10 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
 }
 
 onMounted(async () => {
+  if (authStore.isFirstPlay) {
+    showTutorial.value = true
+  }
+
   if (!activeCoreId.value) {
     router.replace('/core')
     return

@@ -10,6 +10,24 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(true)
 
   const isLoggedIn = computed(() => !!user.value)
+  const isFirstPlay = computed(() => profile.value?.is_first_play ?? false)
+
+  async function skipTutorial() {
+    if (profile.value) {
+      profile.value.is_first_play = false
+    }
+    const token = localStorage.getItem('arena_token')
+    if (!token) return
+
+    try {
+      await fetch(`${SERVER_URL}/auth/skip-tutorial`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    } catch (err) {
+      console.error('Failed to skip tutorial:', err)
+    }
+  }
 
   async function init() {
     const token = localStorage.getItem('arena_token')
@@ -139,9 +157,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user, profile, loading, isLoggedIn,
+    user, profile, loading, isLoggedIn, isFirstPlay,
     init, loginWithGoogle, loginWithEmail,
     registerWithEmail, logout, fetchProfile,
-    exchangeTokenAfterOAuth
+    exchangeTokenAfterOAuth, skipTutorial
   }
 })
