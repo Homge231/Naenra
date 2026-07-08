@@ -403,7 +403,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     const submittedCoreId = active_core_id
     const sessionCoreName = (session.cores as any)?.name?.toLowerCase() || ''
 
-    const isPandora = ['pandora\'s box', 'trickster\'s glass', 'chaos theory'].includes(sessionCoreName)
+    const isPandora = getCoreFamily(sessionCoreName) === 'pandora'
 
     if (!sessionCoreId || !submittedCoreId) {
       res.status(400).json({ error: 'Missing core ID.' })
