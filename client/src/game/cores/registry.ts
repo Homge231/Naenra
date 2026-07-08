@@ -236,8 +236,8 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
     popupType:    'correct',
   },
   // ── Combo Branch Upgrades ──
-  'combo shield': { id: 'combo-shield', name: 'Combo Shield', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
-  'combo time': { id: 'combo-time', name: 'Combo Time', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'combo shield': { id: 'combo-shield', name: 'Combo Shield', timerColor: 'text-cyan-400', timerClass: 'shadow-cyan-500', timerIconClass: 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]', popupType: 'correct' },
+  'combo time': { id: 'combo-time', name: 'Combo Time', timerColor: 'text-cyan-300', timerClass: 'speedster-timer-glow', timerIconClass: 'speedster-timer-icon', popupType: 'speedster', showWindOverlay: true },
   'combo multiplier': { id: 'combo-multiplier', name: 'Combo Multiplier', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
   'golden combo': { id: 'golden-combo', name: 'Golden Combo', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
   'chain lightning': { id: 'chain-lightning', name: 'Chain Lightning', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
@@ -261,8 +261,8 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
 
   // ── Mission Branch Upgrades ──
   'daily quest': { id: 'daily-quest', name: 'Daily Quest', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
-  'shield mission': { id: 'shield-mission', name: 'Shield Mission', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
-  'time mission': { id: 'time-mission', name: 'Time Mission', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'shield mission': { id: 'shield-mission', name: 'Shield Mission', timerColor: 'text-cyan-400', timerClass: 'shadow-cyan-500', timerIconClass: 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]', popupType: 'correct' },
+  'time mission': { id: 'time-mission', name: 'Time Mission', timerColor: 'text-cyan-300', timerClass: 'speedster-timer-glow', timerIconClass: 'speedster-timer-icon', popupType: 'speedster', showWindOverlay: true },
   'bounty overlord': { id: 'bounty-overlord', name: 'Bounty Overlord', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
   'apex predator': { id: 'apex-predator', name: 'Apex Predator', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
   'mission specialist': { id: 'mission-specialist', name: 'Mission Specialist', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
@@ -306,7 +306,7 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
   'sonic boom': { id: 'sonic-boom', name: 'Sonic Boom', timerColor: 'text-cyan-300', timerClass: 'speedster-timer-glow', timerIconClass: 'speedster-timer-icon', popupType: 'speedster', showWindOverlay: true },
   'oracle blessing': { id: 'oracle-blessing', name: 'Oracle Blessing', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
   'divine eye': { id: 'divine-eye', name: 'Divine Eye', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
-  'swift mission': { id: 'swift-mission', name: 'Swift Mission', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'swift mission': { id: 'swift-mission', name: 'Swift Mission', timerColor: 'text-cyan-300', timerClass: 'speedster-timer-glow', timerIconClass: 'speedster-timer-icon', popupType: 'speedster', showWindOverlay: true },
   'mission master': { id: 'mission-master', name: 'Mission Master', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
   'shield burst': { id: 'shield-burst', name: 'Shield Burst', timerColor: 'text-cyan-400', timerClass: 'shadow-cyan-500', timerIconClass: 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]', popupType: 'correct' },
   'guardian angel': { id: 'guardian-angel', name: 'Guardian Angel', timerColor: 'text-cyan-400', timerClass: 'shadow-cyan-500', timerIconClass: 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]', popupType: 'correct' },
@@ -361,7 +361,9 @@ export function isComboCore(name: string | null | undefined): boolean {
     'chain lightning',
     'combo mastery',
     'combo focus',
-    'super combo'
+    'super combo',
+    'combo shield',
+    'speed demon'
   ].includes(key)
 }
 
@@ -402,7 +404,11 @@ export function isSpeedsterCore(name: string | null | undefined): boolean {
     'warp speed',
     'grand prix',
     'speed demon',
-    'sonic boom'
+    'sonic boom',
+    'speed shield',
+    'combo time',
+    'time mission',
+    'swift mission'
   ].includes(key)
 }
 
@@ -422,7 +428,8 @@ export function isMissionCore(name: string | null | undefined): boolean {
     'apex predator',
     'mission specialist',
     'swift mission',
-    'mission master'
+    'mission master',
+    'shield mission'
   ].includes(key)
 }
 
