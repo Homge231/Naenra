@@ -313,19 +313,24 @@
       </div>
     </div>
 
-    <!-- Combo indicator: only visible when active core is the Combo Core -->
-    <transition name="fade-scale">
-      <div v-if="isComboCore" class="absolute top-28 right-8 z-20 flex justify-end transition-all duration-300">
-        <ComboCoreIndicator :current-combo="currentCombo" />
-      </div>
-    </transition>
+    <!-- Right-Side Indicators Container -->
+    <div class="absolute top-28 right-8 z-20 flex flex-col items-end gap-4 transition-all duration-300">
+      
+      <!-- Combo indicator: only visible when active core is the Combo Core -->
+      <transition name="fade-scale">
+        <div v-if="isComboCore">
+          <ComboCoreIndicator :current-combo="currentCombo" />
+        </div>
+      </transition>
 
-    <!-- Aegis Shield Mode Indicator -->
-    <transition name="fade-scale">
-      <div v-if="isAegisMode" class="absolute top-28 right-8 z-20 flex justify-end transition-all duration-300">
-        <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" :max-shields="maxShields" />
-      </div>
-    </transition>
+      <!-- Aegis Shield Mode Indicator -->
+      <transition name="fade-scale">
+        <div v-if="isAegisMode">
+          <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" :max-shields="maxShields" />
+        </div>
+      </transition>
+
+    </div>
 
     <!-- Mission Tracker UI: only visible when active core is the Mission Core -->
     <transition name="fade-scale">
