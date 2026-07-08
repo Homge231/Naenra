@@ -21,15 +21,21 @@ let retryTimer: ReturnType<typeof setTimeout> | null = null
 const calculatePosition = () => {
   const el = document.getElementById(props.targetId)
   if (el) {
-    targetRect.value = el.getBoundingClientRect()
-    isVisible.value = true
-    retryCount = 0
-  } else {
-    isVisible.value = false
-    if (retryCount < 20) {
-      retryCount++
-      retryTimer = setTimeout(calculatePosition, 250)
+    const rect = el.getBoundingClientRect()
+    // Only accept it if it actually has physical dimensions on the screen
+    if (rect.width > 0 && rect.height > 0) {
+      targetRect.value = rect
+      isVisible.value = true
+      retryCount = 0
+      return
     }
+  }
+  
+  // If we reach here, it either doesn't exist or hasn't rendered size yet
+  isVisible.value = false
+  if (retryCount < 20) {
+    retryCount++
+    retryTimer = setTimeout(calculatePosition, 250)
   }
 }
 

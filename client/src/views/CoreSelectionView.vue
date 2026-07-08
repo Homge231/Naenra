@@ -214,6 +214,8 @@ function handleCardReroll(index: number) {
 function startTimer() {
   if (selectionTimer) return
   selectionTimer = setInterval(() => {
+    if (showTutorial.value) return // Pause timer while tutorial is active
+
     if (timeLeft.value <= 1) {
       timeLeft.value = 0
       stopTimer()
