@@ -1,29 +1,42 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-    <div v-if="loading" class="text-white text-2xl font-bold animate-pulse">
-      Summoning Synergies...
-    </div>
+  <div class="fixed inset-0 z-50 h-screen w-full overflow-hidden relative font-sans flex flex-col text-white select-none">
     
-    <div v-else-if="errorMsg" class="text-hexred text-xl font-bold bg-hexred/10 p-6 rounded-2xl border border-hexred/30 text-center">
-      {{ errorMsg }}
+    <PhaserBackground :image-url="currentBgImage" />
+    <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
+
+    <div class="absolute top-8 right-8 z-20 flex items-center gap-2"
+      :class="timeLeft <= 5 ? 'text-hexred animate-pulse' : 'text-lightOrange'">
+      <svg class="w-6 h-6 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span class="font-mono font-black text-4xl tabular-nums drop-shadow-lg">
+        {{ String(timeLeft).padStart(2, '0') }}
+      </span>
     </div>
 
-    <div v-else class="w-full max-w-6xl flex flex-col items-center justify-center">
-      
-      <div class="mb-12 text-center">
-        <h1 class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange to-yellow drop-shadow-[0_0_15px_rgba(255,165,0,0.5)] mb-3">
-          CHOOSE YOUR UPGRADE
-        </h1>
-        <div class="flex items-center justify-center gap-3">
-          <div class="h-[1px] w-12 bg-gradient-to-r from-transparent to-white/50"></div>
-          <p class="text-gray-400 font-mono text-sm md:text-base tracking-widest uppercase">
-            {{ timeLeft }} SECONDS REMAINING
-          </p>
-          <div class="h-[1px] w-12 bg-gradient-to-l from-transparent to-white/50"></div>
-        </div>
+    <main class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 max-w-4xl mx-auto w-full">
+      <h2
+        class="text-4xl md:text-5xl font-black text-white mb-3 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] tracking-widest text-center uppercase">
+        Tactical Support
+      </h2>
+      <p class="text-lightBlue/80 mb-12 text-sm md:text-base tracking-[0.2em] uppercase text-center font-bold">
+        Select an Upgrade for Round {{ matchStore.currentRound + 1 }}
+      </p>
+
+      <div v-if="loading" class="flex justify-center py-16">
+        <svg class="animate-spin w-10 h-10 text-lightBlue" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c..."></path>
+        </svg>
+      </div>
+    
+      <div v-else-if="errorMsg" class="text-hexred text-xl font-bold bg-hexred/10 p-6 rounded-2xl border border-hexred/30 text-center">
+        {{ errorMsg }}
       </div>
 
-      <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 relative px-4">
+      <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 relative px-4 w-full">
         
         <div v-for="core in randomCores" :key="core.id" 
              class="group relative"
@@ -60,9 +73,15 @@
             </p>
           </div>
         </div>
-        
       </div>
+    </main>
+
+    <div class="relative z-20 h-2 w-full flex bg-black/50">
+      <div class="h-full transition-all duration-1000 ease-linear rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]"
+        :class="timeLeft <= 5 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-orange to-lightOrange'"
+        :style="{ width: `${(timeLeft / SELECTION_DURATION) * 100}%` }"></div>
     </div>
+
   </div>
 </template>
 
@@ -71,11 +90,19 @@ import { ref, onMounted, onUnmounted } from 'vue'
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 import { useGameStore } from '../../stores/gameStore'
 import { useMatchStore } from '../../stores/matchStore'
+import PhaserBackground from './PhaserBackground.vue'
 
 const emit = defineEmits<{ (e: 'selected', coreId: string): void }>()
 
 const gameStore = useGameStore()
 const matchStore = useMatchStore()
+
+const THEME_MAP: Record<string, string> = {
+  'daily-life': '/bg-daily-life.png',
+  'cafe': '/bg-cafe.png',
+  'travel': '/bg-travel.png'
+}
+const currentBgImage = ref(THEME_MAP[matchStore.matchTheme] || '/bg-daily-life.png')
 
 const DEFAULT_ICON = '🔮'
 const ICON_MAP: Record<string, string> = {
@@ -288,3 +315,10 @@ onUnmounted(() => {
   stopTimer()
 })
 </script>
+
+<style scoped>
+.cyber-grid {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+</style>

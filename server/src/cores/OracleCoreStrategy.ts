@@ -44,7 +44,9 @@ export class OracleCoreStrategy extends BaseCore {
 
   // Wrong answers for Oracle also carry the hint penalty — override parent default.
   calculateWrong(ctx: ScoringContext): ScoringResult {
-    const oraclePenalty = this.forgivePenalty ? 0 : this._oraclePenalty(ctx)
+    // If the player answers incorrectly, they must ALWAYS pay for the hints they revealed,
+    // even if they have a "free oracle" core like Future Sight.
+    const oraclePenalty = this._oraclePenalty(ctx)
     return {
       pointsDelta: -(ctx.wrongPenalty + oraclePenalty),
       breakdown: {

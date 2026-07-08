@@ -1450,6 +1450,24 @@ function handleOutsideClick(e: MouseEvent) {
   }
 }
 
+function skipToUpgrade() {
+  if (gameState.value === 'timeout') return
+  stopMatchTimer()
+  gameState.value = 'timeout'
+  timeoutCountdown.value = 0
+
+  const sid = sessionId.value
+  const coreId = activeCoreId.value
+  const oracleLvl = oracleRevealLevel.value
+  if (sid) {
+    callTimeoutEndpoint(sid, coreId, oracleLvl)
+  }
+
+  if (!matchStore.isFinalRound()) {
+    gameState.value = 'upgrade'
+  }
+}
+
 function refocusInput() {
   if (gameState.value === 'timeout') return
   if (!menuOpen.value && !confirmQuit.value) inputRef.value?.focus()
