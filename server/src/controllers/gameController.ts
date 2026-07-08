@@ -583,7 +583,9 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         mission_completed: breakdown.mission_completed,
         oracle_penalty: breakdown.oracle_penalty,
         penalty: breakdown.penalty,
-        core_name: core.name
+        core_name: core.name,
+        shield_blocked: breakdown.shield_blocked,
+        final_shield_count: breakdown.finalShieldCount
       }
     })
   } catch (err) {

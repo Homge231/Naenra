@@ -4,8 +4,8 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
     </svg>
     <div class="flex items-center gap-1.5 relative">
-      <!-- 3 Shields max -->
-      <div v-for="i in 3" :key="i"
+      <!-- Dynamic Shields max -->
+      <div v-for="i in (maxShields || 3)" :key="i"
         class="w-4 h-4 rounded-full transition-all duration-300 relative"
         :class="[
           i <= count 
@@ -31,6 +31,7 @@ import { watch } from 'vue'
 const props = defineProps<{
   count: number
   shattering: boolean
+  maxShields?: number
 }>()
 
 // Procedural sound effect for shield deflect/shatter

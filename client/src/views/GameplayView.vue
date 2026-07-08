@@ -319,7 +319,7 @@
     <!-- Aegis Shield Mode Indicator -->
     <transition name="fade-scale">
       <div v-if="isAegisMode" class="absolute top-28 right-8 z-20 flex justify-end transition-all duration-300">
-        <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" />
+        <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" :max-shields="maxShields" />
       </div>
     </transition>
 
@@ -552,8 +552,32 @@ watch(() => matchStore.currentRound, (newRound, oldRound) => {
 const currentCombo = ref(0)
 const isBurningComboActive = computed(() => isComboCore.value && currentCombo.value >= 3)
 const missionProgress = ref(0)
-const AEGIS_CORE_ID = '00000000-0000-0000-0000-000000000011'
-const isAegisMode = computed(() => activeCoreId.value === AEGIS_CORE_ID)
+const isAegisMode = computed(() => {
+  const name = gameStore.activeCoreName?.toLowerCase()
+  if (!name) return false
+  return [
+    'aegis shield',
+    'reflective aegis',
+    'bastion of light',
+    'shield battery',
+    'fortress aegis',
+    'shield synergy',
+    'spiked shield',
+    'indomitable',
+    'aegis nova',
+    'shield burst',
+    'guardian angel',
+    'combo shield',
+    'speed shield',
+    'shield mission'
+  ].includes(name)
+})
+const maxShields = computed(() => {
+  const name = gameStore.activeCoreName?.toLowerCase()
+  if (name === 'bastion of light') return 5
+  if (name === 'shield battery') return 4
+  return 3
+})
 // Aegis Shield State
 const aegisShieldCount = ref(0)
 const isShattering = ref(false)
@@ -571,10 +595,71 @@ const activeCoreId = computed<string | null>({
 const activeCoreModule = computed(() => getCoreModule(gameStore.activeCoreName))
 
 // Convenience booleans — still used by Oracle-specific template logic
-const isComboCore = computed(() => gameStore.activeCoreName?.toLowerCase() === 'combo core' || gameStore.activeCoreName?.toLowerCase() === 'radiant combo' || gameStore.activeCoreName?.toLowerCase() === 'prismatic combo')
-const isOracleCore = computed(() => gameStore.activeCoreName?.toLowerCase() === 'oracle core' || gameStore.activeCoreName?.toLowerCase() === 'clairvoyance' || gameStore.activeCoreName?.toLowerCase() === 'omniscience')
-const isSpeedsterCore = computed(() => gameStore.activeCoreName?.toLowerCase() === 'speedster' || gameStore.activeCoreName?.toLowerCase() === 'time warp' || gameStore.activeCoreName?.toLowerCase() === 'chronobreak')
-const isMissionCore = computed(() => gameStore.activeCoreName?.toLowerCase() === 'mission core' || gameStore.activeCoreName?.toLowerCase() === 'bounty hunter' || gameStore.activeCoreName?.toLowerCase() === 'exodia')
+const isComboCore = computed(() => {
+  const name = gameStore.activeCoreName?.toLowerCase()
+  if (!name) return false
+  return [
+    'combo core',
+    'radiant combo',
+    'prismatic combo',
+    'combo time',
+    'combo multiplier',
+    'golden combo',
+    'chain lightning',
+    'combo mastery',
+    'combo focus',
+    'super combo'
+  ].includes(name)
+})
+const isOracleCore = computed(() => {
+  const name = gameStore.activeCoreName?.toLowerCase()
+  if (!name) return false
+  return [
+    'oracle core',
+    'clairvoyance',
+    'omniscience',
+    'third eye',
+    'future sight',
+    'divine guidance',
+    'mind reader',
+    'predictive strike',
+    'cosmic wisdom',
+    'oracle blessing',
+    'divine eye'
+  ].includes(name)
+})
+const isSpeedsterCore = computed(() => {
+  const name = gameStore.activeCoreName?.toLowerCase()
+  if (!name) return false
+  return [
+    'speedster',
+    'time warp',
+    'chronobreak',
+    'mach speed',
+    'overdrive',
+    'time freeze',
+    'warp speed',
+    'grand prix',
+    'speed demon',
+    'sonic boom'
+  ].includes(name)
+})
+const isMissionCore = computed(() => {
+  const name = gameStore.activeCoreName?.toLowerCase()
+  if (!name) return false
+  return [
+    'mission core',
+    'bounty hunter',
+    'exodia',
+    'daily quest',
+    'time mission',
+    'bounty overlord',
+    'apex predator',
+    'mission specialist',
+    'swift mission',
+    'mission master'
+  ].includes(name)
+})
 const isTimeWarp = computed(() => gameStore.activeCoreName?.toLowerCase() === 'time warp')
 const isChronobreak = computed(() => gameStore.activeCoreName?.toLowerCase() === 'chronobreak')
 const isOmniscience = computed(() => gameStore.activeCoreName?.toLowerCase() === 'omniscience')
@@ -585,7 +670,23 @@ const isExodia = computed(() => gameStore.activeCoreName?.toLowerCase() === 'exo
 const isPandora = computed(() => gameStore.activeCoreName?.toLowerCase() === "pandora's box")
 const isTrickster = computed(() => gameStore.activeCoreName?.toLowerCase() === "trickster's glass")
 const isChaos = computed(() => gameStore.activeCoreName?.toLowerCase() === "chaos theory")
-const isPandoraMode = computed(() => isPandora.value || isTrickster.value || isChaos.value)
+const isPandoraMode = computed(() => {
+  const name = gameStore.activeCoreName?.toLowerCase()
+  if (!name) return false
+  return [
+    "pandora's box",
+    "trickster's glass",
+    "chaos theory",
+    'chaos prism',
+    'warp reality',
+    "pandora's curse",
+    'butterfly effect',
+    "pandora's wrath",
+    'cosmic entropy',
+    "pandora's mirror",
+    'reality collapse'
+  ].includes(name)
+})
 
 const isShifting = ref(false)
 const shiftAnnouncement = ref('')
@@ -996,6 +1097,10 @@ async function skipQuestion() {
           score.value = data.new_total_score ?? score.value
           questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
 
+          if (data.breakdown?.final_shield_count !== undefined) {
+            aegisShieldCount.value = data.breakdown.final_shield_count
+          }
+
           // Only show popup if it's the latest question to avoid spam, but ALWAYS update history
           if (mySeq === submitAnswerSeq) {
             if (data.breakdown?.shield_blocked) {
@@ -1088,7 +1193,7 @@ async function checkAnswer() {
       }
     }
     if (isAegisMode.value) {
-      aegisShieldCount.value = Math.min(3, aegisShieldCount.value + 1)
+      aegisShieldCount.value = Math.min(maxShields.value, aegisShieldCount.value + 1)
     }
     triggerScoreFlash('correct')
   } else {
@@ -1155,6 +1260,10 @@ async function checkAnswer() {
         pointsEarned.value = data.points_earned ?? pointsEarned.value
         pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
 
+        if (data.breakdown?.final_shield_count !== undefined) {
+          aegisShieldCount.value = data.breakdown.final_shield_count
+        }
+
         if (mySeq === submitAnswerSeq && !data.correct && data.correct_word) {
           currentQuestion.value.correct_word = data.correct_word
         }
@@ -1217,7 +1326,14 @@ function resetTypingBoard() {
   typedLetters.value = []
   currentCombo.value = 0
   missionProgress.value = 0
-  aegisShieldCount.value = 0
+  if (!isAegisMode.value) {
+    aegisShieldCount.value = 0
+  } else {
+    const name = gameStore.activeCoreName?.toLowerCase()
+    if (name === 'shield battery' && aegisShieldCount.value === 0) {
+      aegisShieldCount.value = 2
+    }
+  }
   scoreFlash.value = null
   pointPopups.value = []
   oracleRevealLevel.value = 0
