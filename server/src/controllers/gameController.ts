@@ -625,8 +625,8 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         else pointsDelta = -Math.abs(pointsDelta) * 2
       } 
       else if (baseName === "pandora's mirror") {
-        if (!isCorrect) {
-          // Reflects mistakes as positive points
+        if (!isCorrect && penaltyType === 'typo') {
+          // Reflects close typos as positive points
           pointsDelta = Math.abs(pointsDelta)
         }
       } 
