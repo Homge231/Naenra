@@ -558,7 +558,7 @@ const THEME_MAP: Record<string, string> = {
   'travel': '/bg-travel.png'
 }
 
-const currentBgImage = ref(THEME_MAP[matchStore.topics?.[matchStore.currentRound - 1] || 'daily-life'] || THEME_MAP['daily-life'])
+const currentBgImage = ref<string>(THEME_MAP[matchStore.topics?.[matchStore.currentRound - 1] || 'daily-life'] || THEME_MAP['daily-life'])
 const isBgFading = ref(false)
 
 watch(() => matchStore.currentRound, (newRound, oldRound) => {
