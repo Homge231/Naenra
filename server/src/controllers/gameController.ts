@@ -525,7 +525,9 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     const needsHistory = historyCoreNames.some(name => {
       const strategy = getCoreStrategy(name)
       return strategy.constructor.name === 'AegisCoreStrategy' || 
-             strategy.constructor.name === 'MissionCoreStrategy'
+             strategy.constructor.name === 'MissionCoreStrategy' ||
+             // Harmony Wave needs history to count wrong answers for its 2-miss immunity
+             name.toLowerCase() === 'harmony wave'
     })
     
     if (needsHistory) {
@@ -667,6 +669,19 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
           pointsDelta = Math.abs(pointsDelta)
         }
       } 
+      else if (baseName === "trickster's glass") {
+        // Passive: wrong answers deal only half the usual penalty
+        if (!isCorrect) {
+          pointsDelta = Math.ceil(pointsDelta / 2) // pointsDelta is negative, ceil = less damage
+        }
+      }
+      else if (baseName === "butterfly effect") {
+        // Passive: high combo (5+) doubles points on a correct answer
+        if (isCorrect && combo >= 5) {
+          pointsDelta = Math.floor(pointsDelta * 2.0)
+          breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * 2.0
+        }
+      }
       else if (baseName === "chaos prism") {
         if (isCorrect) pointsDelta += 50
       } 

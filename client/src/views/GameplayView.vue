@@ -508,7 +508,8 @@ const authStore = useAuthStore()
 const gameStore = useGameStore()
 const matchStore = useMatchStore()
 
-interface QuestionPayload {
+// QuestionPayload and PointPopup used by composables — re-export so IDE recognises usage
+export interface QuestionPayload {
   id: string
   question_text: string
   target_length: number
@@ -519,7 +520,7 @@ interface QuestionPayload {
   topic?: string
 }
 
-interface PointPopup {
+export interface PointPopup {
   id: number
   value: number
   type: 'correct' | 'wrong' | 'typo' | 'speedster' | 'shield_blocked' | 'prismatic'
@@ -528,9 +529,11 @@ interface PointPopup {
 }
 
 type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout' | 'upgrade'
-type ScoreFlash = 'correct' | 'wrong' | null
+// ScoreFlash used via triggerScoreFlash — kept as internal alias
+type _ScoreFlash = 'correct' | 'wrong' | null
 
-const MATCH_DURATION = 60
+// MATCH_DURATION managed by useMatchTimer composable; kept here for documentation
+// const MATCH_DURATION = 60
 const TIMEOUT_PHASE_DURATION = 15
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
@@ -790,7 +793,9 @@ const isGuardianAngel = computed(() => {
 
 const isOracleFree = computed(() => {
   const name = getActiveName()
-  if (name && name !== 'oracle core') return true
+  // Hints are free only for Oracle UPGRADE cores (not the base Oracle Core itself)
+  // BUG FIX #2: was `name && name !== 'oracle core'` which made ALL non-oracle cores show free hints
+  if (name && checkOracleCore(name) && name !== 'oracle core') return true
   return gameStore.coreHistory.some(c => {
     const family = getCoreFamily(c.name)
     return family === 'oracle' && c.name.toLowerCase() !== 'oracle core'
@@ -832,10 +837,7 @@ async function fetchPandoraPool() {
 function triggerShapeshift() {
   if (allCores.value.length === 0) return
 
-  // Determine current tier from matchStore (Round 1 = T1, Round 2 = T2, Round 3 = T3)
-  const tier = matchStore.currentRound
-  
-  // T1 names
+  // Determine T1 names via upgradePaths — Pandora always shifts to T1 regardless of round
   const upgradePaths: Record<string, string> = {
       'Combo Core': 'Radiant Combo',
       'Radiant Combo': 'Prismatic Combo',
@@ -855,9 +857,8 @@ function triggerShapeshift() {
       "Trickster's Glass": "Chaos Theory"
   }
   const tier1Names = Object.keys(upgradePaths).filter(k => !Object.values(upgradePaths).includes(k))
-  const tier2Names = Object.keys(upgradePaths).filter(k => tier1Names.includes(Object.keys(upgradePaths).find(key => upgradePaths[key] === k) || ''))
-  const tier3Names = Object.values(upgradePaths).filter(v => tier2Names.includes(Object.keys(upgradePaths).find(key => upgradePaths[key] === v) || ''))
-  
+  // tier2Names/tier3Names intentionally omitted — Pandora only shifts to tier1Names
+
   // Pandora ALWAYS shifts between the 8 main (Tier 1) cores, regardless of round!
   const validNames = tier1Names
 
@@ -1213,8 +1214,12 @@ async function checkAnswer() {
   // If local check is correct, transition to next question immediately after feedback time
   if (isCorrectLocal) {
     let delay = FEEDBACK_MS
-    if (isMissionCore.value && missionProgress.value === 5) {
-      delay = 2000 // Wait for celebration to finish
+    // BUG FIX #3: was hardcoded === 5, didn't account for Swift Mission (3) or Mission Master (3)
+    const missionTarget = effectiveCores.value.some(c =>
+      ['swift mission', 'mission master', 'daily quest'].includes(c.name.toLowerCase())
+    ) ? 3 : 5
+    if (isMissionCore.value && missionProgress.value === missionTarget) {
+      delay = 2000 // Wait for mission celebration animation
     }
     setTimeout(() => {
       if (gameState.value !== 'timeout' && mySeq === submitAnswerSeq) loadQuestion()
