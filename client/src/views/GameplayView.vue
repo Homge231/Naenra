@@ -527,7 +527,7 @@ interface PointPopup {
 type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout' | 'upgrade'
 type ScoreFlash = 'correct' | 'wrong' | null
 
-const MATCH_DURATION = 90
+const MATCH_DURATION = 60
 const TIMEOUT_PHASE_DURATION = 15
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
