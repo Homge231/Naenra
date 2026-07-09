@@ -60,3 +60,52 @@ export class OracleCoreStrategy extends BaseCore {
     }
   }
 }
+
+/**
+ * Oracle Blessing (Tier 2 Oracle Upgrade Core)
+ *
+ * Hints are completely free (no point cost).
+ * However, if the player answers correctly WITHOUT using any hints,
+ * they receive a 1.5x point multiplier on their score.
+ */
+export class OracleBlessingStrategy extends BaseCore {
+  readonly coreName: string;
+
+  constructor(name: string = 'oracle blessing') {
+    super()
+    this.coreName = name.toLowerCase()
+  }
+
+  calculateCorrect(ctx: ScoringContext): ScoringResult {
+    const isNoHint   = ctx.oracleRevealLevel === 0
+    const multiplier = isNoHint ? 1.5 : 1.0
+    const beforeMult = BASE_POINTS + ctx.flatBuff
+    const total      = Math.floor(beforeMult * ctx.multiplierBuff * multiplier)
+
+    return {
+      pointsDelta: total,
+      breakdown: {
+        base:            BASE_POINTS,
+        combo_bonus:     0,
+        flat_buff:       ctx.flatBuff,
+        multiplier_buff: ctx.multiplierBuff * multiplier,
+        oracle_penalty:  0,
+        penalty:         0,
+      },
+    }
+  }
+
+  calculateWrong(ctx: ScoringContext): ScoringResult {
+    return {
+      pointsDelta: -ctx.wrongPenalty,
+      breakdown: {
+        base:            0,
+        combo_bonus:     0,
+        flat_buff:       0,
+        multiplier_buff: 1,
+        oracle_penalty:  0,
+        penalty:         ctx.wrongPenalty,
+      },
+    }
+  }
+}

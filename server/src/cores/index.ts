@@ -12,7 +12,7 @@
 import { BaseCore, ScoringContext, ScoringResult } from './BaseCore'
 import { NoCoreStrategy } from './NoCoreStrategy'
 import { ComboCoreStrategy } from './ComboCoreStrategy'
-import { OracleCoreStrategy } from './OracleCoreStrategy'
+import { OracleCoreStrategy, OracleBlessingStrategy } from './OracleCoreStrategy'
 import { SpeedsterCoreStrategy } from './SpeedsterCoreStrategy'
 import { MissionCoreStrategy } from './MissionCoreStrategy'
 import { AegisCoreStrategy } from './AegisCoreStrategy'
@@ -60,7 +60,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'mind reader': new OracleCoreStrategy('mind reader', true),
   'predictive strike': new OracleCoreStrategy('predictive strike', true),
   'cosmic wisdom': new OracleCoreStrategy('cosmic wisdom', true),
-  'oracle blessing': new OracleCoreStrategy('oracle blessing', true),
+  'oracle blessing': new OracleBlessingStrategy('oracle blessing'),
   'divine eye': new OracleCoreStrategy('divine eye', true),
 
   // Speedster Branch

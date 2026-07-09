@@ -710,6 +710,14 @@ const isSpeedDemon = computed(() =>
   (activeCoreModule.value?.name || '').toLowerCase() === 'speed demon' ||
   effectiveCores.value.some(c => c.name.toLowerCase() === 'speed demon')
 )
+const isThirdEye = computed(() => 
+  (activeCoreModule.value?.name || '').toLowerCase() === 'third eye' ||
+  effectiveCores.value.some(c => c.name.toLowerCase() === 'third eye')
+)
+const isMindReader = computed(() => 
+  (activeCoreModule.value?.name || '').toLowerCase() === 'mind reader' ||
+  effectiveCores.value.some(c => c.name.toLowerCase() === 'mind reader')
+)
 
 // ── Pandora's Box Logic ──────────────────────────────────────────────────
 const basePandoraCoreName = computed(() => {
@@ -1055,10 +1063,17 @@ async function loadQuestion() {
 
   gameState.value = 'playing'
   
-  if (isOmniscience.value && currentQuestion.value.target_length > 0) {
+  if ((isOmniscience.value || isThirdEye.value) && currentQuestion.value.target_length > 0) {
     const firstLetter = currentQuestion.value.oracle_hints?.[0]?.charAt(0)?.toLowerCase() || '_'
     if (firstLetter && firstLetter !== '·') {
       typedLetters.value = [firstLetter]
+    }
+  } else if (isMindReader.value && currentQuestion.value.target_length > 1) {
+    const hintLetters = currentQuestion.value.oracle_hints?.[2]?.split(' ') || []
+    const first = hintLetters[0]?.toLowerCase()
+    const second = hintLetters[1]?.toLowerCase()
+    if (first && first !== '·' && second && second !== '·') {
+      typedLetters.value = [first, second]
     }
   }
   
