@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { generateToken } from '../utils/jwt'
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware'
-import { generateOTP, saveOTP, verifyOTP } from '../utils/otp'
+import { generateOTP } from '../utils/otp'
 import { sendOTPEmail } from '../utils/mailer'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
@@ -9,23 +9,6 @@ import { supabase } from '../config/supabase'
 dotenv.config()
 
 const router = Router()
-
-interface PendingRegistration {
-  email: string
-  password: string
-  hashedPassword: string
-  username: string
-  expiresAt: number
-}
-
-const pendingRegistrations = new Map<string, PendingRegistration>()
-
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, val] of pendingRegistrations.entries()) {
-    if (now > val.expiresAt) pendingRegistrations.delete(key)
-  }
-}, 5 * 60 * 1000)
 
 // ── Helper: check provider type from players table (fast, no admin API) ──────
 // hashed_password === '' means Google-only (set during OAuth upsert)
@@ -87,18 +70,33 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    pendingRegistrations.set(email, {
-      email,
-      password,
-      hashedPassword,
-      username,
-      expiresAt: Date.now() + 10 * 60 * 1000
-    })
+    // Clean up expired registrations first
+    await supabase
+      .from('pending_registrations')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
 
     const otp = generateOTP()
-    saveOTP(email, otp)
-    await sendOTPEmail(email, otp)
 
+    // Upsert pending registration details
+    const { error: insertErr } = await supabase
+      .from('pending_registrations')
+      .upsert({
+        email,
+        password,
+        hashed_password: hashedPassword,
+        username,
+        otp,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      })
+
+    if (insertErr) {
+      console.error('Pending Registration Insert Error:', insertErr.message)
+      res.status(500).json({ error: 'Failed to initiate verification' })
+      return
+    }
+
+    await sendOTPEmail(email, otp)
     res.status(200).json({ message: 'OTP sent to your email', email })
 
   } catch (error) {
@@ -116,20 +114,31 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
     return
   }
 
-  const isValid = verifyOTP(email, otp)
-  if (!isValid) {
-    res.status(400).json({ error: 'Invalid or expired OTP' })
-    return
-  }
-
-  const pending = pendingRegistrations.get(email)
-  if (!pending || Date.now() > pending.expiresAt) {
-    pendingRegistrations.delete(email)
-    res.status(400).json({ error: 'Registration session expired. Please register again.' })
-    return
-  }
-
   try {
+    // Clean up expired registrations first
+    await supabase
+      .from('pending_registrations')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+
+    // Fetch the pending registration
+    const { data: pending, error: selectErr } = await supabase
+      .from('pending_registrations')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (selectErr || !pending) {
+      res.status(400).json({ error: 'Registration session expired or not found. Please register again.' })
+      return
+    }
+
+    // Verify OTP code
+    if (pending.otp !== otp) {
+      res.status(400).json({ error: 'Invalid or expired OTP' })
+      return
+    }
+
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: pending.email,
       password: pending.password,
@@ -149,7 +158,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       .update({
         email: pending.email,
         username: pending.username,
-        hashed_password: pending.hashedPassword,
+        hashed_password: pending.hashed_password,
         elo: 0,
         wins: 0,
         losses: 0,
@@ -162,7 +171,11 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       return
     }
     
-    pendingRegistrations.delete(email)
+    // Delete the pending registration since it's verified
+    await supabase
+      .from('pending_registrations')
+      .delete()
+      .eq('email', email)
 
     const token = generateToken({
       id: authData.user.id,
@@ -196,15 +209,39 @@ router.post('/resend-otp', async (req: Request, res: Response) => {
     return
   }
 
-  const pending = pendingRegistrations.get(email)
-  if (!pending) {
-    res.status(400).json({ error: 'No pending registration found' })
-    return
-  }
-
   try {
+    // Clean up expired registrations first
+    await supabase
+      .from('pending_registrations')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+
+    const { data: pending } = await supabase
+      .from('pending_registrations')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (!pending) {
+      res.status(400).json({ error: 'No pending registration found' })
+      return
+    }
+
     const otp = generateOTP()
-    saveOTP(email, otp)
+    
+    const { error: updateErr } = await supabase
+      .from('pending_registrations')
+      .update({
+        otp,
+        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      })
+      .eq('email', email)
+
+    if (updateErr) {
+      res.status(500).json({ error: 'Failed to update OTP code' })
+      return
+    }
+
     await sendOTPEmail(email, otp)
     res.json({ message: 'OTP resent successfully' })
   } catch {

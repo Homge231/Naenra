@@ -131,7 +131,7 @@
 
       <!-- Active Core History Badges in Center -->
       <div v-if="gameStore.coreHistory.length > 0" class="hidden md:flex flex-row items-center gap-2">
-        <div v-for="(core, index) in gameStore.coreHistory" :key="core.id" 
+        <div v-for="(core, index) in gameStore.coreHistory" :key="`${core.id}-${index}`" 
              class="flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300"
              :class="[
                index === gameStore.coreHistory.length - 1 ? 'border border-white/20 opacity-100 scale-105' : 'border border-white/5 opacity-60 scale-95'
@@ -535,6 +535,7 @@ const REFETCH_THRESHOLD = 5
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
 const score = ref(0)
+let activeAnimationId: number | null = null
 const scoreFlash = ref<ScoreFlash>(null)
 const questionsAnswered = ref(0)
 const pointsEarned = ref(0)
@@ -889,7 +890,7 @@ function startMatchTimer() {
 
     // Shapeshifter trigger based on tier
     if (isPandoraMode.value) {
-      let shiftInterval = 25000 // T1 Pandora: 25s
+      let shiftInterval = 20000 // T1 Pandora: 20s
       if (isTrickster.value) shiftInterval = 20000 // T2 upgrades: 20s
       if (isChaos.value) shiftInterval = 15000 // T3 upgrades: 15s
       
@@ -1134,6 +1135,11 @@ function handleKeydown(e: KeyboardEvent) {
   if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
 
+  // Reset the input buffer on nextTick to prevent string accumulation memory bloat
+  nextTick(() => {
+    if (inputRef.value) inputRef.value.value = ''
+  })
+
   // Skip question when Enter is pressed
   if (e.key === 'Enter') {
     skipQuestion()
@@ -1269,6 +1275,11 @@ async function checkAnswer() {
       if (res.ok) {
         const data = await res.json()
 
+        if (activeAnimationId !== null) {
+          cancelAnimationFrame(activeAnimationId)
+          activeAnimationId = null
+        }
+
         const startScore = score.value
         const targetScore = data.new_total_score ?? score.value
         const duration = 500
@@ -1278,9 +1289,13 @@ async function checkAnswer() {
           const elapsed = currentTime - startTime
           const progress = Math.min(elapsed / duration, 1)
           score.value = Math.floor(startScore + (targetScore - startScore) * progress)
-          if (progress < 1) requestAnimationFrame(animateScore)
+          if (progress < 1) {
+            activeAnimationId = requestAnimationFrame(animateScore)
+          } else {
+            activeAnimationId = null
+          }
         }
-        requestAnimationFrame(animateScore)
+        activeAnimationId = requestAnimationFrame(animateScore)
 
         questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
         pointsEarned.value = data.points_earned ?? pointsEarned.value

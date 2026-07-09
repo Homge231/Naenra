@@ -28,6 +28,7 @@ interface CoreRow {
   multiplier_buff: number
   core_type: 'main' | 'upgrade'
   classification: 'power' | 'effect'
+  tier?: number
 }
 
 type PenaltyType = 'typo' | 'wrong' | null
@@ -441,7 +442,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
 
     const { data: coreRow, error: coreErr } = await supabase
       .from('cores')
-      .select('id, name, flat_buff, multiplier_buff, core_type, classification')
+      .select('id, name, flat_buff, multiplier_buff, core_type, classification, tier')
       .eq('id', coreIdToFetch)
       .single()
 
@@ -450,7 +451,16 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       return
     }
 
-    const core: CoreRow = coreRow
+    const core: CoreRow = coreRow as CoreRow
+
+    // Strict Pandora anti-cheat: verify submitted core is a main Tier 1 core and NOT a Pandora variant
+    if (isPandora) {
+      const family = getCoreFamily(core.name)
+      if (core.tier !== 1 || core.core_type !== 'main' || family === 'pandora') {
+        res.status(403).json({ error: 'Cheat detected: Submitted core is not a valid Tier 1 main core or is a Pandora variant.' })
+        return
+      }
+    }
 
     // Handle Chaos Theory dual core fetching
     let secondaryCore: CoreRow | null = null
@@ -669,18 +679,23 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // ── 10. Update session totals ──────────────────────────────────────────────
-    const newScore = Math.max(0, (session.score || 0) + pointsDelta)
-    const newQuestionsAnswered = (session.questions_answered || 0) + 1
-
-    const { error: updateErr } = await supabase
-      .from('game_sessions')
-      .update({ score: newScore, questions_answered: newQuestionsAnswered })
-      .eq('id', session_id)
-      .eq('player_id', playerId)
-      .eq('status', 'active')
+    // ── 10. Update session totals atomically ──────────────────────────────────
+    const { data: atomicData, error: updateErr } = await supabase
+      .rpc('submit_answer_atomic', {
+        p_session_id: session_id,
+        p_points_delta: pointsDelta
+      })
 
     if (updateErr) throw updateErr
+    
+    const result = Array.isArray(atomicData) ? atomicData[0] : atomicData
+    if (!result) {
+      res.status(409).json({ error: 'Failed to update session totals (session may have ended).' })
+      return
+    }
+
+    const newScore = result.new_score
+    const newQuestionsAnswered = result.new_questions_answered
 
     // ── 11. Build response ────────────────────────────────────────────────────
     const pointsEarned = isCorrect ? pointsDelta : 0

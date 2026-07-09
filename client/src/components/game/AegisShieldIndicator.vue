@@ -91,6 +91,10 @@ const playDeflectSound = () => {
     
     osc.stop(ctx.currentTime + 0.2)
     noise.stop(ctx.currentTime + 0.5)
+
+    setTimeout(() => {
+      ctx.close().catch(err => console.error('Error closing AudioContext', err))
+    }, 600)
   } catch (e) {
     console.error('Web Audio API not supported or failed', e)
   }
