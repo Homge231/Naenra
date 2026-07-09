@@ -102,7 +102,10 @@ const THEME_MAP: Record<string, string> = {
   'cafe': '/bg-cafe.png',
   'travel': '/bg-travel.png'
 }
-const currentBgImage = ref(THEME_MAP[matchStore.matchTheme] || '/bg-daily-life.png')
+
+// Get the topic for the NEXT round. (topics array is 0-indexed, so currentRound is the next topic)
+const nextRoundTopic = matchStore.topics?.[matchStore.currentRound] || 'daily-life'
+const currentBgImage = ref<string>(THEME_MAP[nextRoundTopic] || THEME_MAP['daily-life'])
 
 const DEFAULT_ICON = '🔮'
 const ICON_MAP: Record<string, string> = {
