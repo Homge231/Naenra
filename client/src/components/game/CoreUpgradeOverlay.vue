@@ -1,5 +1,5 @@
 <template>
-  <div class="fixed inset-0 z-50 h-screen w-full overflow-hidden relative font-sans flex flex-col text-white select-none">
+  <div class="fixed inset-0 z-50 h-screen w-full overflow-hidden font-sans flex flex-col text-white select-none">
     
     <PhaserBackground :image-url="currentBgImage" />
     <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
