@@ -563,8 +563,7 @@ const {
   pointPopups,
   triggerScoreFlash,
   spawnPointPopup,
-  updateScoreAnimated,
-  clearActiveAnimation
+  updateScoreAnimated
 } = useScoreAnimation(letterSlotsRef)
 
 const {
@@ -572,12 +571,9 @@ const {
   timerProgressPercent,
   startMatchTimer,
   stopMatchTimer,
-  setPaused,
   addTime,
   pauseTimerFor,
-  resetTimer,
-  getRemainingMs,
-  setRemainingMs
+  resetTimer
 } = useMatchTimer({
   showTutorial: () => showTutorial.value,
   timerSpeedMultiplier: () => timerSpeedMultiplier.value,
@@ -590,7 +586,6 @@ const {
 
 const {
   questionQueue,
-  isFetchingBatch,
   currentQuestion,
   fetchBatch,
   loadQuestion,
@@ -722,7 +717,6 @@ const basePandoraCoreName = computed(() => {
   const baseCore = allCores.value.find(c => c.id === gameStore.activeCoreId)
   return baseCore ? baseCore.name : gameStore.activeCoreName
 })
-const isPandora = computed(() => basePandoraCoreName.value?.toLowerCase() === "pandora's box")
 const isPandoraMode = computed(() => checkPandoraCore(basePandoraCoreName.value))
 const isTrickster = computed(() => isPandoraMode.value && matchStore.currentRound === 2)
 const isChaos = computed(() => isPandoraMode.value && matchStore.currentRound === 3)
@@ -772,11 +766,7 @@ const isChronobreak = computed(() => {
   if (name === 'chronobreak') return true
   return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'chronobreak')
 })
-const isOmniscience = computed(() => {
-  const name = getActiveName()
-  if (name === 'omniscience') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'omniscience')
-})
+
 const isPrismaticCombo = computed(() => {
   const name = getActiveName()
   if (name === 'prismatic combo') return true
@@ -792,16 +782,7 @@ const isSpeedDemon = computed(() => {
   if (name === 'speed demon') return true
   return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'speed demon')
 })
-const isThirdEye = computed(() => {
-  const name = getActiveName()
-  if (name === 'third eye') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'third eye')
-})
-const isMindReader = computed(() => {
-  const name = getActiveName()
-  if (name === 'mind reader') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'mind reader')
-})
+
 const isOracleFree = computed(() => {
   const name = getActiveName()
   if (name && name !== 'oracle core') return true
@@ -1489,23 +1470,7 @@ function handleOutsideClick(e: MouseEvent) {
   }
 }
 
-function skipToUpgrade() {
-  if (gameState.value === 'timeout') return
-  stopMatchTimer()
-  gameState.value = 'timeout'
-  timeoutCountdown.value = 0
 
-  const sid = sessionId.value
-  const coreId = activeCoreId.value
-  const oracleLvl = oracleRevealLevel.value
-  if (sid) {
-    callTimeoutEndpoint(sid, coreId, oracleLvl)
-  }
-
-  if (!matchStore.isFinalRound()) {
-    gameState.value = 'upgrade'
-  }
-}
 
 function refocusInput() {
   if (gameState.value === 'timeout') return
@@ -1547,7 +1512,6 @@ onMounted(async () => {
 onUnmounted(() => {
   stopMatchTimer()
   stopTimeoutInterval()
-  if (flashTimer) clearTimeout(flashTimer)
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
