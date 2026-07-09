@@ -604,6 +604,15 @@ const activeCoreId = computed<string | null>(() => {
 // ── Core registry ──────────────────────────────────────────────────────────
 const effectiveCores = computed(() => {
   const cores = [...gameStore.coreHistory]
+  
+  if (gameStore.activeCoreId && gameStore.activeCoreName) {
+    cores.push({
+      id: gameStore.activeCoreId,
+      name: gameStore.activeCoreName,
+      icon: '⚙️'
+    })
+  }
+  
   if (isPandoraMode.value && currentPandoraCoreId.value) {
     const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
     if (shiftedCore) {

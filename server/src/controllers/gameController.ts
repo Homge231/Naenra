@@ -197,7 +197,7 @@ export async function getQuestions(req: AuthRequest, res: Response): Promise<voi
       return {
         ...rest,
         target_length: target_word?.length || 0,
-        target_hash: target_word ? crypto.createHash('sha256').update(target_word).digest('hex') : '',
+        target_hash: target_word ? crypto.createHash('sha256').update(target_word.toLowerCase()).digest('hex') : '',
         oracle_hints: generateOracleHints(target_word)
       }
     })
