@@ -26,6 +26,9 @@ interface CoreRow {
   name: string
   flat_buff: number
   multiplier_buff: number
+  core_type: 'main' | 'upgrade'
+  classification: 'power' | 'effect'
+  tier?: number
 }
 
 type PenaltyType = 'typo' | 'wrong' | null
@@ -217,7 +220,7 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
 
     const { data: allCores, error } = await supabase
       .from('cores')
-      .select('id, name, description, flat_buff, multiplier_buff, tier, upgrades_to')
+      .select('id, name, description, flat_buff, multiplier_buff, tier, upgrades_to, core_type, classification')
 
     if (error) throw error
     if (!allCores || allCores.length === 0) {
@@ -427,19 +430,13 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       return
     }
 
-    // Relax anti-cheat if the session is a Pandora variant
-    if (!isPandora && sessionCoreId !== submittedCoreId) {
-      res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
-      return
-    }
-
     // ── 4. Fetch core buffs ───────────────────────────────────────────────────
     // If Pandora mode, grab the buffs for the newly shifted core submitted by the client
     const coreIdToFetch = isPandora ? submittedCoreId : sessionCoreId
 
     const { data: coreRow, error: coreErr } = await supabase
       .from('cores')
-      .select('id, name, flat_buff, multiplier_buff')
+      .select('id, name, flat_buff, multiplier_buff, core_type, classification, tier')
       .eq('id', coreIdToFetch)
       .single()
 
@@ -448,17 +445,30 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       return
     }
 
-    const core: CoreRow = coreRow
+    const core: CoreRow = coreRow as CoreRow
+
+    // ── 3. Anti-cheat: validate submitted core matches session core, or is a valid Pandora shift ──
+    if (sessionCoreId !== submittedCoreId) {
+      if (!isPandora) {
+        res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
+        return
+      }
+      const family = getCoreFamily(core.name)
+      if (core.tier !== 1 || core.core_type !== 'main' || family === 'pandora') {
+        res.status(403).json({ error: 'Cheat detected: Shifted core is not a valid Tier 1 main core or is a Pandora variant.' })
+        return
+      }
+    }
 
     // Handle Chaos Theory dual core fetching
     let secondaryCore: CoreRow | null = null
     if (sessionCoreName === 'chaos theory' && secondary_core_id) {
       const { data: secCore } = await supabase
         .from('cores')
-        .select('id, name, flat_buff, multiplier_buff')
+        .select('id, name, flat_buff, multiplier_buff, core_type, classification')
         .eq('id', secondary_core_id)
         .single()
-      if (secCore) secondaryCore = secCore
+      if (secCore) secondaryCore = secCore as CoreRow
     }
 
     // ── 5. Fetch question & evaluate answer ──────────────────────────────────
@@ -492,10 +502,20 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     // ── 7. Fetch answer history for pattern-based cores ───────────────────────
     let answerHistory: boolean[] = []
     
-    // Default to the active core
-    const historyCoreNames = Array.isArray(core_history_names) && core_history_names.length > 0 
-      ? core_history_names 
-      : [core.name]
+    // Only stack cores that belong to the SAME family as the active core
+    const activeFamily = getCoreFamily(core.name)
+    let historyCoreNames = Array.isArray(core_history_names) ? [...core_history_names] : []
+    
+    if (activeFamily) {
+      historyCoreNames = historyCoreNames.filter(n => getCoreFamily(n) === activeFamily)
+    } else {
+      historyCoreNames = historyCoreNames.filter(n => n === core.name)
+    }
+    
+    // Ensure the active core is always included
+    if (!historyCoreNames.includes(core.name)) {
+      historyCoreNames.push(core.name)
+    }
       
     // Include secondaryCore if it exists (for Chaos Theory)
     if (secondaryCore && !historyCoreNames.includes(secondaryCore.name)) {
@@ -505,7 +525,9 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     const needsHistory = historyCoreNames.some(name => {
       const strategy = getCoreStrategy(name)
       return strategy.constructor.name === 'AegisCoreStrategy' || 
-             strategy.constructor.name === 'MissionCoreStrategy'
+             strategy.constructor.name === 'MissionCoreStrategy' ||
+             // Harmony Wave needs history to count wrong answers for its 2-miss immunity
+             name.toLowerCase() === 'harmony wave'
     })
     
     if (needsHistory) {
@@ -524,8 +546,30 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     // ── 8. Calculate score via core strategy registry ────────────────────────
     const timeTaken = typeof time_taken === 'number' && time_taken >= 0 ? Math.floor(time_taken) : 0
     
+    // Fetch details of all cores in the family history
+    const { data: dbCores } = await supabase
+      .from('cores')
+      .select('id, name, flat_buff, multiplier_buff, core_type, classification')
+      .in('name', historyCoreNames)
+    const coreRows = (dbCores && dbCores.length > 0 ? dbCores : [core]) as CoreRow[]
+
+    // Identify the best Power Core in history to use for scoring calculation
+    const powerCores = coreRows.filter(r => r.classification === 'power')
+    let scoringCore = core
+    if (powerCores.length > 0) {
+      // Pick the most recent power core in history
+      scoringCore = powerCores.sort((a, b) => historyCoreNames.indexOf(b.name) - historyCoreNames.indexOf(a.name))[0]
+    }
+
     // Find if ANY core in history grants initial shields
-    const initialShieldCount = historyCoreNames.some(n => n.toLowerCase() === 'shield battery') ? 2 : 0
+    let initialShieldCount = 0
+    const historyLower = historyCoreNames.map(n => n.toLowerCase())
+    const activeLower = core.name.toLowerCase()
+    if (historyLower.includes('guardian angel') || activeLower === 'guardian angel') {
+      initialShieldCount = 3
+    } else if (historyLower.includes('shield battery') || activeLower === 'shield battery') {
+      initialShieldCount = 2
+    }
 
     const ctx = {
       timeTaken,
@@ -533,19 +577,62 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       combo,
       wrongPenalty,
       oracleRevealLevel,
-      flatBuff:          core.flat_buff,
-      multiplierBuff:    core.multiplier_buff,
+      flatBuff:          scoringCore.flat_buff,
+      multiplierBuff:    scoringCore.multiplier_buff,
       answerHistory,
-      initialShieldCount
+      initialShieldCount,
+      historyCoreNames
     }
 
-    // Always run the primary active core logic to get base score
-    let { pointsDelta, breakdown } = runScoring(isCorrect, core.name, ctx)
+    // Always run the primary scoring core logic
+    let { pointsDelta, breakdown } = runScoring(isCorrect, scoringCore.name, ctx)
+
+    // Apply Oracle Blessing points multiplier (1.5x on correct answer with no hints used)
+    const hasOracleBlessing = historyCoreNames.some(name => name.toLowerCase() === 'oracle blessing')
+    if (hasOracleBlessing && isCorrect && oracleRevealLevel === 0 && scoringCore.name.toLowerCase() !== 'oracle blessing') {
+      pointsDelta = Math.floor(pointsDelta * 1.5)
+      breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * 1.5
+    }
+
+    // Cosmic Wisdom: 2.0x multiplier if no hints used
+    const hasCosmicWisdom = historyCoreNames.some(name => name.toLowerCase() === 'cosmic wisdom')
+    if (hasCosmicWisdom && isCorrect && oracleRevealLevel === 0 && scoringCore.name.toLowerCase() !== 'cosmic wisdom') {
+      pointsDelta = Math.floor(pointsDelta * 2.0)
+      breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * 2.0
+    }
+
+    // Predictive Strike: +300 points if all 3 hints revealed
+    const hasPredictiveStrike = historyCoreNames.some(name => name.toLowerCase() === 'predictive strike')
+    if (hasPredictiveStrike && isCorrect && oracleRevealLevel === 3 && scoringCore.name.toLowerCase() !== 'predictive strike') {
+      pointsDelta += 300
+      breakdown.flat_buff = (breakdown.flat_buff || 0) + 300
+    }
+
+    // Future Sight: +50 points (scaled by current multiplier) if correct in under 4s
+    const hasFutureSight = historyCoreNames.some(name => name.toLowerCase() === 'future sight')
+    if (hasFutureSight && isCorrect && timeTaken <= 4000 && scoringCore.name.toLowerCase() !== 'future sight') {
+      const bonus = Math.floor(50 * (breakdown.multiplier_buff || 1))
+      pointsDelta += bonus
+      breakdown.flat_buff = (breakdown.flat_buff || 0) + 50
+    }
+
+    // Stack Mission progress if there is a Mission core in history
+    const missionCoreName = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'MissionCoreStrategy')
+    if (missionCoreName && missionCoreName !== scoringCore.name) {
+      const missionResult = runScoring(isCorrect, missionCoreName, ctx)
+      breakdown.mission_streak = missionResult.breakdown.mission_streak
+      if (isCorrect && missionResult.breakdown.mission_completed === 1) {
+        breakdown.mission_completed = 1
+        const missionBonus = missionResult.breakdown.flat_buff
+        pointsDelta += missionBonus
+        breakdown.flat_buff += missionBonus
+      }
+    }
 
     // If there is an Aegis core in history that would block damage, let it override the primary penalty!
     if (!isCorrect) {
       const aegisCore = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'AegisCoreStrategy')
-      if (aegisCore && aegisCore !== core.name) {
+      if (aegisCore && aegisCore !== scoringCore.name) {
          const aegisResult = runScoring(isCorrect, aegisCore, ctx)
          if (aegisResult.breakdown.shield_blocked) {
            // Shield successfully blocked! Override the penalty result.
@@ -577,11 +664,24 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         else pointsDelta = -Math.abs(pointsDelta) * 2
       } 
       else if (baseName === "pandora's mirror") {
-        if (!isCorrect) {
-          // Reflects mistakes as positive points
+        if (!isCorrect && penaltyType === 'typo') {
+          // Reflects close typos as positive points
           pointsDelta = Math.abs(pointsDelta)
         }
       } 
+      else if (baseName === "trickster's glass") {
+        // Passive: wrong answers deal only half the usual penalty
+        if (!isCorrect) {
+          pointsDelta = Math.ceil(pointsDelta / 2) // pointsDelta is negative, ceil = less damage
+        }
+      }
+      else if (baseName === "butterfly effect") {
+        // Passive: high combo (5+) doubles points on a correct answer
+        if (isCorrect && combo >= 5) {
+          pointsDelta = Math.floor(pointsDelta * 2.0)
+          breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * 2.0
+        }
+      }
       else if (baseName === "chaos prism") {
         if (isCorrect) pointsDelta += 50
       } 
@@ -629,18 +729,23 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // ── 10. Update session totals ──────────────────────────────────────────────
-    const newScore = Math.max(0, (session.score || 0) + pointsDelta)
-    const newQuestionsAnswered = (session.questions_answered || 0) + 1
-
-    const { error: updateErr } = await supabase
-      .from('game_sessions')
-      .update({ score: newScore, questions_answered: newQuestionsAnswered })
-      .eq('id', session_id)
-      .eq('player_id', playerId)
-      .eq('status', 'active')
+    // ── 10. Update session totals atomically ──────────────────────────────────
+    const { data: atomicData, error: updateErr } = await supabase
+      .rpc('submit_answer_atomic', {
+        p_session_id: session_id,
+        p_points_delta: pointsDelta
+      })
 
     if (updateErr) throw updateErr
+    
+    const result = Array.isArray(atomicData) ? atomicData[0] : atomicData
+    if (!result) {
+      res.status(409).json({ error: 'Failed to update session totals (session may have ended).' })
+      return
+    }
+
+    const newScore = result.new_score
+    const newQuestionsAnswered = result.new_questions_answered
 
     // ── 11. Build response ────────────────────────────────────────────────────
     const pointsEarned = isCorrect ? pointsDelta : 0

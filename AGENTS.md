@@ -46,12 +46,17 @@
 
 | Item | Notes |
 |---|---|
-| Speedster Supabase row | ✅ Created. UUID: `00000000-0000-0000-0000-000000000007`. Registry fully wired. |
 | Colyseus multiplayer | Planned Sprint 3 |
 | Real-time opponent sync | Planned Sprint 3 |
 | Rate limiting on auth endpoints | Deferred |
-| OTP store persistence | Currently in-memory, lost on restart |
-| Avatar storage | ✅ Uploads to Supabase Storage bucket `avatars` |
+
+### Completed Sprint 3 Items ✅
+- **Database-driven Core Classifications**: Added `core_type` and `classification` columns to database. Removed hardcoded family lists.
+- **OTP Database Persistence**: Migrated OTP/registration transient storage to database-backed `pending_registrations` table.
+- **Atomic Scoring Engine**: Implemented `submit_answer_atomic` RPC to prevent concurrent update Race Conditions.
+- **Audio Context Leak Fix**: Disposed window `AudioContext` inside `AegisShieldIndicator.vue`.
+- **Typing Buffer Flush**: Flushed hidden keystroke input value on `nextTick` in `GameplayView.vue`.
+- **VDOM Keys & Frame Clashing**: Resolved concurrent score animation frame clashes and key conflicts in core history list.
 
 ---
 

@@ -41,15 +41,16 @@ export class SpeedsterCoreStrategy extends BaseCore {
     const safeTaken     = Math.max(ctx.timeTaken, 0)
     const speedRatio    = Math.max(0, 1 - safeTaken / SPEEDSTER_TIME_BUDGET_MS) // 1.0 = instant, 0.0 = budget exhausted
     const speedBonus    = Math.floor(speedRatio * SPEEDSTER_MULTIPLIER)
-    const total       = BASE_POINTS + speedBonus - oraclePenalty
+    const baseTotal     = BASE_POINTS + speedBonus
+    const total         = Math.floor(baseTotal * ctx.multiplierBuff) - oraclePenalty
 
     return {
       pointsDelta: Math.max(0, total),  // never go negative on a correct answer
       breakdown: {
         base:            BASE_POINTS,
         combo_bonus:     0,             // Speedster ignores combo
-        flat_buff:       0,             // Speedster ignores flat_buff
-        multiplier_buff: 1,             // Speedster ignores multiplier_buff
+        flat_buff:       ctx.flatBuff,
+        multiplier_buff: ctx.multiplierBuff,
         oracle_penalty:  oraclePenalty,
         penalty:         0,
         speed_bonus:     speedBonus,    // extra field surfaced in the response

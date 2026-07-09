@@ -13,20 +13,28 @@
 
     <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
 
+    <!-- Prismatic Screen Flash -->
+    <div
+      v-if="showPrismaticFlash"
+      class="absolute inset-0 bg-gradient-to-r from-pink-500/20 via-cyan-500/20 to-yellow-500/20 pointer-events-none z-10 mix-blend-screen animate-pulse"
+    ></div>
+
 
 
     <!-- Floating points popup container -->
     <div class="fixed inset-0 z-50 pointer-events-none overflow-hidden">
       <transition-group name="float-pts" tag="div">
         <!-- Point Popups -->
-        <div v-for="popup in pointPopups" :key="popup.id"
-          class="fixed pointer-events-none z-[100] font-black uppercase tracking-wider transition-all" :class="[
-            popup.type === 'speedster' ? 'speedster-popup' : 'point-popup-anim',
+        <div v-for="popup in pointPopups" :key="popup.id" class="fixed pointer-events-none z-[100] font-black uppercase tracking-wider transition-all"
+          :class="[
+            popup.type === 'speedster' ? 'speedster-popup' : 
+              popup.type === 'prismatic' ? 'prismatic-explosion' : 'point-popup-anim',
             popup.type === 'typo' ? 'text-orange drop-shadow-[0_0_10px_rgba(255,165,0,0.8)]' :
               popup.type === 'wrong' ? 'text-hexred drop-shadow-[0_0_10px_rgba(230,57,70,0.8)]' :
                 popup.type === 'speedster' ? 'speedster-fast-text' :
                   popup.type === 'shield_blocked' ? 'text-gray-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' :
-                    'text-success drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]'
+                    popup.type === 'prismatic' ? '' :
+                      'text-success drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]'
           ]" :style="{
             left: `${popup.x}px`,
             top: `${popup.y}px`
@@ -34,6 +42,7 @@
           {{ popup.type === 'shield_blocked' ? 'BLOCKED' : (popup.type === 'wrong' || popup.type === 'typo' ?
             `-${Math.abs(popup.value)}` : `+${Math.abs(popup.value)}`) }}
           <span v-if="popup.type === 'speedster'" class="ml-1">FAST!</span>
+          <span v-if="popup.type === 'prismatic'" class="ml-1">BOOM! 💥</span>
         </div>
       </transition-group>
     </div>
@@ -113,11 +122,11 @@
 
       <!-- Active Core History Badges in Center -->
       <div v-if="gameStore.coreHistory.length > 0" class="hidden md:flex flex-row items-center gap-2">
-        <div v-for="(core, index) in gameStore.coreHistory" :key="core.id"
-          class="flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300"
-          :class="[
-            index === gameStore.coreHistory.length - 1 ? 'border border-white/20 opacity-100 scale-105' : 'border border-white/5 opacity-60 scale-95'
-          ]">
+        <div v-for="(core, index) in gameStore.coreHistory" :key="`${core.id}-${index}`" 
+             class="flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300"
+             :class="[
+               index === gameStore.coreHistory.length - 1 ? 'border border-white/20 opacity-100 scale-105' : 'border border-white/5 opacity-60 scale-95'
+             ]">
           <span class="text-[8px] font-bold uppercase tracking-wider mb-0.5"
             :class="[index === gameStore.coreHistory.length - 1 ? 'text-gray-300' : 'text-gray-500']">
             {{ index === gameStore.coreHistory.length - 1 && isPandoraMode ? basePandoraCoreName : `Round ${index + 1}`
@@ -461,6 +470,9 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useScoreAnimation } from '../composables/game/useScoreAnimation'
+import { useMatchTimer } from '../composables/game/useMatchTimer'
+import { useQuestionQueue } from '../composables/game/useQuestionQueue'
 import AegisShieldIndicator from '../components/game/AegisShieldIndicator.vue'
 import ComboCoreIndicator from '../components/game/ComboCoreIndicator.vue'
 import MissionCoreIndicator from '../components/game/MissionCoreIndicator.vue'
@@ -472,6 +484,7 @@ import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
 import PandoraOverlay from '../components/game/PandoraOverlay.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { useGameStore } from '../stores/gameStore'
+import { getCoreFamily } from '../game/cores/families'
 import { useMatchStore } from '../stores/matchStore'
 import {
   getCoreModule,
@@ -489,7 +502,8 @@ const authStore = useAuthStore()
 const gameStore = useGameStore()
 const matchStore = useMatchStore()
 
-interface QuestionPayload {
+// QuestionPayload and PointPopup used by composables — re-export so IDE recognises usage
+export interface QuestionPayload {
   id: string
   question_text: string
   target_length: number
@@ -500,29 +514,26 @@ interface QuestionPayload {
   topic?: string
 }
 
-interface PointPopup {
+export interface PointPopup {
   id: number
   value: number
-  type: 'correct' | 'wrong' | 'typo' | 'speedster' | 'shield_blocked'
+  type: 'correct' | 'wrong' | 'typo' | 'speedster' | 'shield_blocked' | 'prismatic'
   x: number
   y: number
 }
 
 type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout' | 'upgrade'
-type ScoreFlash = 'correct' | 'wrong' | null
+// ScoreFlash used via triggerScoreFlash — kept as internal alias
+type _ScoreFlash = 'correct' | 'wrong' | null
 
-const MATCH_DURATION = 90
+// MATCH_DURATION managed by useMatchTimer composable; kept here for documentation
+// const MATCH_DURATION = 60
 const TIMEOUT_PHASE_DURATION = 15
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
 
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
-const score = ref(0)
-const scoreFlash = ref<ScoreFlash>(null)
-const questionsAnswered = ref(0)
-const pointsEarned = ref(0)
-const pointsDeducted = ref(0)
 const typedLetters = ref<string[]>([])
 const inputRef = ref<HTMLInputElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
@@ -534,6 +545,60 @@ const sessionId = ref<string | null>(null)
 const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
 const isDev = import.meta.env.DEV
 const showTutorial = ref(false)
+
+const questionsAnswered = ref(0)
+const oracleRevealLevel = ref(0)
+const oracleTotalPenalty = ref(0)
+const questionStartTime = ref<number>(Date.now())
+
+// Initialize custom composables
+const {
+  score,
+  pointsEarned,
+  pointsDeducted,
+  scoreFlash,
+  pointPopups,
+  triggerScoreFlash,
+  spawnPointPopup,
+  updateScoreAnimated
+} = useScoreAnimation(letterSlotsRef)
+
+const {
+  timeLeft,
+  timerProgressPercent,
+  startMatchTimer,
+  stopMatchTimer,
+  addTime,
+  pauseTimerFor,
+  resetTimer
+} = useMatchTimer({
+  showTutorial: () => showTutorial.value,
+  timerSpeedMultiplier: () => timerSpeedMultiplier.value,
+  isPandoraMode: () => isPandoraMode.value,
+  isTrickster: () => isTrickster.value,
+  isChaos: () => isChaos.value,
+  onShapeshift: () => triggerShapeshift(),
+  onTimeout: () => startTimeoutPhase()
+})
+
+const {
+  questionQueue,
+  currentQuestion,
+  fetchBatch,
+  loadQuestion,
+  clearQueue
+} = useQuestionQueue({
+  fetchWithAuth,
+  matchStore,
+  gameStore,
+  gameState,
+  typedLetters,
+  oracleRevealLevel,
+  oracleTotalPenalty,
+  questionStartTime,
+  inputRef,
+  refetchThreshold: REFETCH_THRESHOLD
+})
 
 watch(() => authStore.isFirstPlay, (isFirst) => {
   if (isFirst) {
@@ -580,15 +645,20 @@ watch(() => matchStore.currentRound, (newRound, oldRound) => {
 const currentCombo = ref(0)
 const isBurningComboActive = computed(() => isComboCore.value && currentCombo.value >= 3)
 const missionProgress = ref(0)
-const isAegisMode = computed(() => effectiveCores.value.some(c => checkAegisCore(c.name)))
+const isAegisMode = computed(() => 
+  checkAegisCore(activeCoreModule.value?.name || '') ||
+  effectiveCores.value.some(c => checkAegisCore(c.name))
+)
 const maxShields = computed(() => {
-  if (effectiveCores.value.length === 0) return checkMaxShields(gameStore.activeCoreName)
-  return Math.max(...effectiveCores.value.map(c => checkMaxShields(c.name)))
+  const activeMax = checkMaxShields(activeCoreModule.value?.name || '')
+  if (effectiveCores.value.length === 0) return activeMax
+  return Math.max(activeMax, ...effectiveCores.value.map(c => checkMaxShields(c.name)))
 })
 // Aegis Shield State
 const aegisShieldCount = ref(0)
 const isShattering = ref(false)
 const showMissionCelebration = ref(false)
+const showPrismaticFlash = ref(false)
 
 // active_core_id / name sourced from gameStore (set in CoreSelectionView)
 const currentPandoraCoreId = ref<string | null>(null)
@@ -598,10 +668,19 @@ const activeCoreId = computed<string | null>(() => {
 
 // ── Core registry ──────────────────────────────────────────────────────────
 const effectiveCores = computed(() => {
-  const cores = [...gameStore.coreHistory]
+  const activeName = gameStore.activeCoreName || ''
+  const activeFamily = getCoreFamily(activeName)
 
-  if (gameStore.activeCoreId && gameStore.activeCoreName) {
-    cores.push({
+  let history = [...gameStore.coreHistory]
+
+  if (activeFamily) {
+    history = history.filter(c => getCoreFamily(c.name) === activeFamily)
+  } else {
+    history = history.filter(c => c.name === activeName)
+  }
+
+  if (gameStore.activeCoreId && gameStore.activeCoreName && !history.some(c => c.id === gameStore.activeCoreId)) {
+    history.push({
       id: gameStore.activeCoreId,
       name: gameStore.activeCoreName,
       icon: '⚙️'
@@ -610,42 +689,128 @@ const effectiveCores = computed(() => {
 
   if (isPandoraMode.value && currentPandoraCoreId.value) {
     const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
-    if (shiftedCore) {
-      cores.push(shiftedCore)
+    if (shiftedCore && !history.some(c => c.id === shiftedCore.id)) {
+      history.push(shiftedCore)
     }
   }
-  return cores
-})
 
-const activeCoreModule = computed(() => {
-  if (isPandoraMode.value && currentPandoraCoreId.value) {
-    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
-    if (shiftedCore) return getCoreModule(shiftedCore.name)
+  // Filter out older Power Cores in history if there is a more recent one
+  const getClassification = (name: string) => {
+    const found = allCores.value.find(c => c.name.toLowerCase() === name.toLowerCase())
+    return found?.classification || null
   }
-  return getCoreModule(gameStore.activeCoreName)
-})
 
-// Convenience booleans
-const isComboCore = computed(() => effectiveCores.value.some(c => checkComboCore(c.name)))
-const isOracleCore = computed(() => effectiveCores.value.some(c => checkOracleCore(c.name)))
-const isSpeedsterCore = computed(() => effectiveCores.value.some(c => checkSpeedsterCore(c.name)))
-const isMissionCore = computed(() => effectiveCores.value.some(c => checkMissionCore(c.name)))
-const isTimeWarp = computed(() => effectiveCores.value.some(c => c.name.toLowerCase() === 'time warp'))
-const isChronobreak = computed(() => effectiveCores.value.some(c => c.name.toLowerCase() === 'chronobreak'))
-const isOmniscience = computed(() => effectiveCores.value.some(c => c.name.toLowerCase() === 'omniscience'))
-const isPrismaticCombo = computed(() => effectiveCores.value.some(c => c.name.toLowerCase() === 'prismatic combo'))
-const isExodia = computed(() => effectiveCores.value.some(c => c.name.toLowerCase() === 'exodia'))
-const isSpeedDemon = computed(() => effectiveCores.value.some(c => c.name.toLowerCase() === 'speed demon'))
+  const powerCoresInHist = history.filter(c => getClassification(c.name) === 'power')
+  if (powerCoresInHist.length > 1) {
+    const latestPowerCore = powerCoresInHist[powerCoresInHist.length - 1]
+    history = history.filter(c => getClassification(c.name) !== 'power' || c.id === latestPowerCore.id)
+  }
+
+  return history
+})
 
 // ── Pandora's Box Logic ──────────────────────────────────────────────────
 const basePandoraCoreName = computed(() => {
   const baseCore = allCores.value.find(c => c.id === gameStore.activeCoreId)
   return baseCore ? baseCore.name : gameStore.activeCoreName
 })
-const isPandora = computed(() => basePandoraCoreName.value?.toLowerCase() === "pandora's box")
 const isPandoraMode = computed(() => checkPandoraCore(basePandoraCoreName.value))
 const isTrickster = computed(() => isPandoraMode.value && matchStore.currentRound === 2)
 const isChaos = computed(() => isPandoraMode.value && matchStore.currentRound === 3)
+
+const activeCoreNameDynamic = computed(() => {
+  if (isPandoraMode.value && currentPandoraCoreId.value) {
+    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
+    return shiftedCore ? shiftedCore.name : gameStore.activeCoreName
+  }
+  return gameStore.activeCoreName
+})
+
+const activeCoreModule = computed(() => {
+  return getCoreModule(activeCoreNameDynamic.value)
+})
+
+// Convenience booleans
+const getActiveName = () => activeCoreNameDynamic.value?.toLowerCase() || ''
+
+const isComboCore = computed(() => {
+  const name = getActiveName()
+  if (checkComboCore(name)) return true
+  return gameStore.coreHistory.some(c => checkComboCore(c.name))
+})
+const isOracleCore = computed(() => {
+  const name = getActiveName()
+  if (checkOracleCore(name)) return true
+  return gameStore.coreHistory.some(c => checkOracleCore(c.name))
+})
+const isSpeedsterCore = computed(() => {
+  const name = getActiveName()
+  if (checkSpeedsterCore(name)) return true
+  return gameStore.coreHistory.some(c => checkSpeedsterCore(c.name))
+})
+const isMissionCore = computed(() => {
+  const name = getActiveName()
+  if (checkMissionCore(name)) return true
+  return gameStore.coreHistory.some(c => checkMissionCore(c.name))
+})
+const isTimeWarp = computed(() => {
+  const name = getActiveName()
+  if (name === 'time warp') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'time warp')
+})
+const isChronobreak = computed(() => {
+  const name = getActiveName()
+  if (name === 'chronobreak') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'chronobreak')
+})
+
+const isPrismaticCombo = computed(() => {
+  const name = getActiveName()
+  if (name === 'prismatic combo') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'prismatic combo')
+})
+const isExodia = computed(() => {
+  const name = getActiveName()
+  if (name === 'exodia') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'exodia')
+})
+const isSpeedDemon = computed(() => {
+  const name = getActiveName()
+  if (name === 'speed demon') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'speed demon')
+})
+const isGuardianAngel = computed(() => {
+  const name = getActiveName()
+  if (name === 'guardian-angel' || name === 'guardian angel') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'guardian angel')
+})
+
+const isOracleFree = computed(() => {
+  const name = getActiveName()
+  // Hints are free only for Oracle UPGRADE cores (not the base Oracle Core itself)
+  // BUG FIX #2: was `name && name !== 'oracle core'` which made ALL non-oracle cores show free hints
+  if (name && checkOracleCore(name) && name !== 'oracle core') return true
+  return gameStore.coreHistory.some(c => {
+    const family = getCoreFamily(c.name)
+    return family === 'oracle' && c.name.toLowerCase() !== 'oracle core'
+  })
+})
+const timerSpeedMultiplier = computed(() => {
+  let mult = 1.0
+  const activeName = getActiveName()
+  
+  const hasHypercharge = activeName === 'hypercharge' || gameStore.coreHistory.some(c => c.name.toLowerCase() === 'hypercharge')
+  const hasOverdrive = activeName === 'overdrive' || gameStore.coreHistory.some(c => c.name.toLowerCase() === 'overdrive')
+  if (hasHypercharge) mult += 0.15
+  if (hasOverdrive) mult += 0.20
+
+  const hasDivineGuidance = activeName === 'divine guidance' || gameStore.coreHistory.some(c => c.name.toLowerCase() === 'divine guidance')
+  const hasOmniscienceCore = activeName === 'omniscience' || gameStore.coreHistory.some(c => c.name.toLowerCase() === 'omniscience')
+  if (hasDivineGuidance) mult -= 0.10
+  if (hasOmniscienceCore) mult -= 0.20
+
+  return Math.max(0.1, mult)
+})
 
 const isShifting = ref(false)
 const shiftAnnouncement = ref('')
@@ -666,10 +831,7 @@ async function fetchPandoraPool() {
 function triggerShapeshift() {
   if (allCores.value.length === 0) return
 
-  // Determine current tier from matchStore (Round 1 = T1, Round 2 = T2, Round 3 = T3)
-  const tier = matchStore.currentRound
-
-  // T1 names
+  // Determine T1 names via upgradePaths — Pandora always shifts to T1 regardless of round
   const upgradePaths: Record<string, string> = {
     'Combo Core': 'Radiant Combo',
     'Radiant Combo': 'Prismatic Combo',
@@ -689,8 +851,7 @@ function triggerShapeshift() {
     "Trickster's Glass": "Chaos Theory"
   }
   const tier1Names = Object.keys(upgradePaths).filter(k => !Object.values(upgradePaths).includes(k))
-  const tier2Names = Object.keys(upgradePaths).filter(k => tier1Names.includes(Object.keys(upgradePaths).find(key => upgradePaths[key] === k) || ''))
-  const tier3Names = Object.values(upgradePaths).filter(v => tier2Names.includes(Object.keys(upgradePaths).find(key => upgradePaths[key] === v) || ''))
+  // tier2Names/tier3Names intentionally omitted — Pandora only shifts to tier1Names
 
   // Pandora ALWAYS shifts between the 8 main (Tier 1) cores, regardless of round!
   const validNames = tier1Names
@@ -721,10 +882,11 @@ function triggerShapeshift() {
 // Oracle progressive reveal: 3 levels, increasing cost
 const ORACLE_MAX_LEVEL = 3
 const ORACLE_COSTS = [10, 20, 30] // cost per level: -10, -20, -30
-const oracleRevealLevel = ref(0)
-const oracleTotalPenalty = ref(0)
 
-const oracleNextCost = computed(() => ORACLE_COSTS[oracleRevealLevel.value] ?? 0)
+const oracleNextCost = computed(() => {
+  if (isOracleFree.value) return 0
+  return ORACLE_COSTS[oracleRevealLevel.value] ?? 0
+})
 
 const oracleHintText = computed(() => {
   const level = oracleRevealLevel.value
@@ -738,7 +900,7 @@ function useOracleHint() {
   if (oracleRevealLevel.value >= oracleMaxAllowed.value) return
   if (gameState.value !== 'playing') return
 
-  const cost = ORACLE_COSTS[oracleRevealLevel.value]
+  const cost = isOracleFree.value ? 0 : ORACLE_COSTS[oracleRevealLevel.value]
   oracleRevealLevel.value++
   oracleTotalPenalty.value += cost
 
@@ -756,9 +918,6 @@ const oracleMaxAllowed = computed(() => {
 
 
 
-// Floating point popups
-const pointPopups = ref<PointPopup[]>([])
-let popupIdCounter = 0
 let submitAnswerSeq = 0   // increments per answer submitted; used to discard out-of-order responses
 
 const playerAvatarUrl = computed(() =>
@@ -766,12 +925,6 @@ const playerAvatarUrl = computed(() =>
   `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(authStore.profile?.username || 'Player')}`
 )
 
-// Removed unused scoreBar derived state
-
-// ── Question queue ────────────────────────────────────────────────────────
-const questionQueue = ref<QuestionPayload[]>([])
-const isFetchingBatch = ref(false)
-const currentQuestion = ref<QuestionPayload>({ id: '', question_text: '', target_length: 0, target_hash: '', oracle_hints: ['', '', ''] })
 const matchHistory = ref<{ round: number, submitted: string, correct: string, isCorrect: boolean }[]>([])
 
 const groupedMatchHistory = computed(() => {
@@ -783,43 +936,7 @@ const groupedMatchHistory = computed(() => {
   return groups
 })
 
-let flashTimer: ReturnType<typeof setTimeout> | null = null
-
-// ── Score flash helper ────────────────────────────────────────────────────
-function triggerScoreFlash(type: ScoreFlash) {
-  if (flashTimer) clearTimeout(flashTimer)
-  scoreFlash.value = type
-  flashTimer = setTimeout(() => { scoreFlash.value = null }, 400)
-}
-
-// ── Floating popup helper ─────────────────────────────────────────────────
-function spawnPointPopup(value: number, type: 'correct' | 'wrong' | 'typo' | 'speedster' | 'shield_blocked') {
-  let x = window.innerWidth / 2 - 50
-  let y = window.innerHeight / 2 - 60
-  if (letterSlotsRef.value) {
-    const rect = letterSlotsRef.value.getBoundingClientRect()
-    x = rect.left + rect.width / 2 - 50
-    y = rect.top - 10
-  }
-
-  const id = popupIdCounter++
-  pointPopups.value.push({ id, value, type, x, y })
-  const duration = type === 'speedster' ? 1800 : 1200
-  setTimeout(() => {
-    pointPopups.value = pointPopups.value.filter(p => p.id !== id)
-  }, duration)
-}
-
-// ── Question start-time tracking (for Speedster time_taken) ───────────────
-const questionStartTime = ref<number>(Date.now())
-
 // ── Timer ──────────────────────────────────────────────────────────────────
-let matchTimerFrame: number | null = null
-let remainingMatchMs = MATCH_DURATION * 1000
-let lastTickTime = 0
-let isTimerPaused = false
-const timeLeft = ref(MATCH_DURATION)
-const timerProgressPercent = ref(100)
 let timeoutInterval: ReturnType<typeof setInterval> | null = null
 
 function stopTimeoutInterval() {
@@ -827,65 +944,6 @@ function stopTimeoutInterval() {
     clearInterval(timeoutInterval)
     timeoutInterval = null
   }
-}
-
-function startMatchTimer() {
-  if (matchTimerFrame) return
-  lastTickTime = Date.now()
-  let lastShiftTime = lastTickTime - 25000 // Trigger first shift immediately
-
-  const tick = () => {
-    const now = Date.now()
-    const dt = now - lastTickTime
-    lastTickTime = now
-
-    if (!isTimerPaused && !showTutorial.value && !isNaN(dt)) {
-      remainingMatchMs -= dt
-    }
-
-    remainingMatchMs = Math.max(0, remainingMatchMs)
-
-    timerProgressPercent.value = (remainingMatchMs / (MATCH_DURATION * 1000)) * 100
-    timeLeft.value = isNaN(remainingMatchMs) ? MATCH_DURATION : Math.ceil(remainingMatchMs / 1000)
-
-    // Shapeshifter trigger based on tier
-    if (isPandoraMode.value) {
-      let shiftInterval = 25000 // T1 Pandora: 25s
-      if (isTrickster.value) shiftInterval = 20000 // T2 upgrades: 20s
-      if (isChaos.value) shiftInterval = 15000 // T3 upgrades: 15s
-
-      if (Date.now() - lastShiftTime >= shiftInterval) {
-        lastShiftTime = Date.now()
-        triggerShapeshift()
-      }
-    }
-
-    if (remainingMatchMs > 0) {
-      matchTimerFrame = requestAnimationFrame(tick)
-    } else {
-      matchTimerFrame = null
-      timeLeft.value = 0
-      startTimeoutPhase()
-    }
-  }
-
-  matchTimerFrame = requestAnimationFrame(tick)
-}
-
-function stopMatchTimer() {
-  if (matchTimerFrame) { cancelAnimationFrame(matchTimerFrame); matchTimerFrame = null }
-}
-
-function addTime(ms: number) {
-  remainingMatchMs += ms
-}
-
-function pauseTimerFor(ms: number) {
-  isTimerPaused = true
-  setTimeout(() => {
-    isTimerPaused = false
-    lastTickTime = Date.now() // Prevent huge dt jump
-  }, ms)
 }
 
 // ── Session API ────────────────────────────────────────────────────────────
@@ -931,66 +989,7 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
   }
 }
 
-// ── Batch fetching ─────────────────────────────────────────────────────────
-const MOCK_QUESTIONS: QuestionPayload[] = [
-  { id: 'm1', question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_length: 9, target_hash: '', oracle_hints: ['D·······Y', 'D·S···E·Y', 'D·S·O·E·Y'], hint: 'The act of finding something new' },
-  { id: 'm2', question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_length: 10, target_hash: '', oracle_hints: ['C········E', 'C·N····C·E', 'C·N·I·E·C·E'], hint: 'A feeling of self-assurance' },
-  { id: 'm3', question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_length: 7, target_hash: '', oracle_hints: ['A·····E', 'A·A··Z·E', 'A·A·Y·Z·E'], hint: 'Examine methodically and in detail' },
-  { id: 'm4', question_text: 'The team celebrated their ________ after months of hard work.', target_length: 7, target_hash: '', oracle_hints: ['V·····Y', 'V·C··R·Y', 'V·C·O·R·Y'], hint: 'Winning a competition' },
-  { id: 'm5', question_text: 'She showed great ________ in the face of adversity.', target_length: 10, target_hash: '', oracle_hints: ['R········E', 'R·S····N·E', 'R·S·L·E·N·E'], hint: 'Ability to recover quickly' },
-]
 
-async function fetchBatch(): Promise<void> {
-  if (isFetchingBatch.value || gameState.value === 'timeout') return
-  isFetchingBatch.value = true
-  try {
-    const topic = matchStore.topics?.[matchStore.currentRound - 1] || 'daily-life'
-    const res = await fetchWithAuth(`/api/game/questions?topic=${topic}`)
-    if (!res.ok) throw new Error('fetch failed')
-    const data = await res.json()
-    questionQueue.value.push(...(data.questions as QuestionPayload[]))
-  } catch {
-    const shuffled = [...MOCK_QUESTIONS].sort(() => Math.random() - 0.5)
-    questionQueue.value.push(...shuffled)
-  } finally {
-    isFetchingBatch.value = false
-  }
-}
-
-// ── Question loading ──────────────────────────────────────────────────────
-async function loadQuestion() {
-  gameState.value = 'loading'
-  typedLetters.value = []
-  oracleRevealLevel.value = 0
-  oracleTotalPenalty.value = 0
-
-  if (questionQueue.value.length <= REFETCH_THRESHOLD) {
-    fetchBatch()
-  }
-
-  const next = questionQueue.value.shift()
-  if (!next) {
-    currentQuestion.value = MOCK_QUESTIONS[Math.floor(Math.random() * MOCK_QUESTIONS.length)]
-    fetchBatch()
-  } else {
-    currentQuestion.value = next
-  }
-
-  // Reset per-question start time for Speedster time_taken calculation
-  questionStartTime.value = Date.now()
-
-  gameState.value = 'playing'
-
-  if (isOmniscience.value && currentQuestion.value.target_length > 0) {
-    const firstLetter = currentQuestion.value.oracle_hints?.[0]?.charAt(0)?.toLowerCase() || '_'
-    if (firstLetter && firstLetter !== '·') {
-      typedLetters.value = [firstLetter]
-    }
-  }
-
-  await nextTick()
-  inputRef.value?.focus()
-}
 
 // ── Skip Question Logic (Enter key) ───────────────────────────────────────
 async function skipQuestion() {
@@ -1095,6 +1094,11 @@ function handleKeydown(e: KeyboardEvent) {
   if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
 
+  // Reset the input buffer on nextTick to prevent string accumulation memory bloat
+  nextTick(() => {
+    if (inputRef.value) inputRef.value.value = ''
+  })
+
   // Skip question when Enter is pressed
   if (e.key === 'Enter') {
     skipQuestion()
@@ -1168,6 +1172,9 @@ async function checkAnswer() {
       }
     }
     if (isAegisMode.value) {
+      if (isGuardianAngel.value && aegisShieldCount.value === maxShields.value) {
+        addTime(10000)
+      }
       aegisShieldCount.value = Math.min(maxShields.value, aegisShieldCount.value + 1)
     }
     triggerScoreFlash('correct')
@@ -1201,8 +1208,12 @@ async function checkAnswer() {
   // If local check is correct, transition to next question immediately after feedback time
   if (isCorrectLocal) {
     let delay = FEEDBACK_MS
-    if (isMissionCore.value && missionProgress.value === 5) {
-      delay = 2000 // Wait for celebration to finish
+    // BUG FIX #3: was hardcoded === 5, didn't account for Swift Mission (3) or Mission Master (3)
+    const missionTarget = effectiveCores.value.some(c =>
+      ['swift mission', 'mission master', 'daily quest'].includes(c.name.toLowerCase())
+    ) ? 3 : 5
+    if (isMissionCore.value && missionProgress.value === missionTarget) {
+      delay = 2000 // Wait for mission celebration animation
     }
     setTimeout(() => {
       if (gameState.value !== 'timeout' && mySeq === submitAnswerSeq) loadQuestion()
@@ -1230,18 +1241,7 @@ async function checkAnswer() {
       if (res.ok) {
         const data = await res.json()
 
-        const startScore = score.value
-        const targetScore = data.new_total_score ?? score.value
-        const duration = 500
-        const startTime = performance.now()
-
-        function animateScore(currentTime: number) {
-          const elapsed = currentTime - startTime
-          const progress = Math.min(elapsed / duration, 1)
-          score.value = Math.floor(startScore + (targetScore - startScore) * progress)
-          if (progress < 1) requestAnimationFrame(animateScore)
-        }
-        requestAnimationFrame(animateScore)
+        updateScoreAnimated(data.new_total_score ?? score.value)
 
         questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
         pointsEarned.value = data.points_earned ?? pointsEarned.value
@@ -1279,10 +1279,16 @@ async function checkAnswer() {
             // Note: Mission celebration is now handled locally for instant feedback
             if (data.breakdown?.shield_blocked) {
               spawnPointPopup(0, 'shield_blocked')
+            } else if (data.correct && isPrismaticCombo.value) {
+              spawnPointPopup(data.points_earned, 'prismatic')
+              showPrismaticFlash.value = true
+              setTimeout(() => {
+                showPrismaticFlash.value = false
+              }, 300)
             } else if (data.correct && isSpeedsterCore.value) {
               spawnPointPopup(data.points_earned, 'speedster')
             } else {
-              const popupType: 'correct' | 'wrong' | 'typo' = data.correct
+              const popupType: 'correct' | 'wrong' | 'typo' | 'prismatic' = data.correct
                 ? 'correct'
                 : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
               spawnPointPopup(
@@ -1310,9 +1316,7 @@ function resetTypingBoard() {
   gameState.value = 'timeout'
   stopTimeoutInterval()
   // NOTE: intentionally NOT resetting score, questionsAnswered, pointsEarned, pointsDeducted
-  remainingMatchMs = MATCH_DURATION * 1000
-  timeLeft.value = MATCH_DURATION
-  timerProgressPercent.value = 100
+  resetTimer()
   typedLetters.value = []
   currentCombo.value = 0
   missionProgress.value = 0
@@ -1327,7 +1331,7 @@ function resetTypingBoard() {
   scoreFlash.value = null
   pointPopups.value = []
   oracleRevealLevel.value = 0
-  questionQueue.value = []
+  clearQueue()
 }
 
 // ── US-24: Start 15-second timeout phase countdown ───────────────────────
@@ -1473,23 +1477,7 @@ function handleOutsideClick(e: MouseEvent) {
   }
 }
 
-function skipToUpgrade() {
-  if (gameState.value === 'timeout') return
-  stopMatchTimer()
-  gameState.value = 'timeout'
-  timeoutCountdown.value = 0
 
-  const sid = sessionId.value
-  const coreId = activeCoreId.value
-  const oracleLvl = oracleRevealLevel.value
-  if (sid) {
-    callTimeoutEndpoint(sid, coreId, oracleLvl)
-  }
-
-  if (!matchStore.isFinalRound()) {
-    gameState.value = 'upgrade'
-  }
-}
 
 function refocusInput() {
   if (gameState.value === 'timeout') return
@@ -1511,8 +1499,7 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   matchStore.resetMatch()
-  remainingMatchMs = MATCH_DURATION * 1000
-  timeLeft.value = MATCH_DURATION
+  resetTimer()
 
   if (!gameStore.sessionId) {
     await createSession()
@@ -1532,7 +1519,6 @@ onMounted(async () => {
 onUnmounted(() => {
   stopMatchTimer()
   stopTimeoutInterval()
-  if (flashTimer) clearTimeout(flashTimer)
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })

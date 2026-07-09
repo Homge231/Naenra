@@ -52,15 +52,6 @@ export function getCoreFamily(coreName: string): string | null {
   return null
 }
 
-export function getUpgradesForCore(coreName: string, targetTier: number): string[] {
-  const familyName = getCoreFamily(coreName)
-  if (!familyName) return []
-  const family = CORE_FAMILIES[familyName]
-  if (targetTier === 2) return family.tier2
-  if (targetTier === 3) return family.tier3
-  return []
-}
-
 export function isPowerCore(coreName: string): boolean {
   const family = getCoreFamily(coreName)
   return family ? ['power', 'balanced', 'combo', 'speedster'].includes(family) : false

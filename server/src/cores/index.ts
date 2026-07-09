@@ -12,7 +12,7 @@
 import { BaseCore, ScoringContext, ScoringResult } from './BaseCore'
 import { NoCoreStrategy } from './NoCoreStrategy'
 import { ComboCoreStrategy } from './ComboCoreStrategy'
-import { OracleCoreStrategy } from './OracleCoreStrategy'
+import { OracleCoreStrategy, OracleBlessingStrategy } from './OracleCoreStrategy'
 import { SpeedsterCoreStrategy } from './SpeedsterCoreStrategy'
 import { MissionCoreStrategy } from './MissionCoreStrategy'
 import { AegisCoreStrategy } from './AegisCoreStrategy'
@@ -34,7 +34,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'zenith core': new BalancedCoreStrategy('zenith core', false),
   'nirvana': new BalancedCoreStrategy('nirvana', false),
   'cosmic balance': new BalancedCoreStrategy('cosmic balance', false),
-  'harmony wave': new BalancedCoreStrategy('harmony wave', false),
+  // BUG FIX #5: Harmony Wave now has harmonyWaveImmunity=true (first 2 wrong answers blocked)
+  'harmony wave': new BalancedCoreStrategy('harmony wave', false, true),
   'universal harmony': new BalancedCoreStrategy('universal harmony', true),
 
   // Combo Branch
@@ -60,7 +61,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'mind reader': new OracleCoreStrategy('mind reader', true),
   'predictive strike': new OracleCoreStrategy('predictive strike', true),
   'cosmic wisdom': new OracleCoreStrategy('cosmic wisdom', true),
-  'oracle blessing': new OracleCoreStrategy('oracle blessing', true),
+  'oracle blessing': new OracleBlessingStrategy('oracle blessing'),
   'divine eye': new OracleCoreStrategy('divine eye', true),
 
   // Speedster Branch
@@ -73,6 +74,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'time freeze': new SpeedsterCoreStrategy('time freeze'),
   'warp speed': new SpeedsterCoreStrategy('warp speed'),
   'grand prix': new SpeedsterCoreStrategy('grand prix'),
+  // BUG FIX #1: Speed Demon was incorrectly using ComboCoreStrategy → now SpeedsterCoreStrategy
   'speed demon': new SpeedsterCoreStrategy('speed demon'),
   'sonic boom': new SpeedsterCoreStrategy('sonic boom'),
 
@@ -84,7 +86,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'shield mission': new AegisCoreStrategy('shield mission', 3, false, false),
   'time mission': new MissionCoreStrategy('time mission', 5),
   'bounty overlord': new MissionCoreStrategy('bounty overlord', 5),
-  'apex predator': new MissionCoreStrategy('apex predator', 1),
+  // BUG FIX #4: missionReq was 1 → triggered bonus every single correct answer → now 3
+  'apex predator': new MissionCoreStrategy('apex predator', 3),
   'mission specialist': new MissionCoreStrategy('mission specialist', 4),
   'swift mission': new MissionCoreStrategy('swift mission', 3),
   'mission master': new MissionCoreStrategy('mission master', 3),
@@ -103,17 +106,20 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'guardian angel': new AegisCoreStrategy('guardian angel', 3, false, false),
 
   // Power Branch
+  // penaltyMultiplier: T1=1.0×, T2=2.0×, T3=3.0× — consistent risk/reward escalation
   'power core': new PowerCoreStrategy('power core', 1.0),
-  'overclock core': new PowerCoreStrategy('overclock core', 1.0),
-  'supernova core': new PowerCoreStrategy('supernova core', 2.0),
-  'hypercharge': new PowerCoreStrategy('hypercharge', 1.0),
+  // T2 Power: all have 2.0× penalty
+  'overclock core': new PowerCoreStrategy('overclock core', 2.0),
+  'hypercharge': new PowerCoreStrategy('hypercharge', 2.0),
   'power surge': new PowerCoreStrategy('power surge', 2.0),
-  'brute force': new PowerCoreStrategy('brute force', 1.0),
-  'gigawatt core': new PowerCoreStrategy('gigawatt core', 1.0),
-  'desperado': new PowerCoreStrategy('desperado', 1.0),
-  'absolute power': new PowerCoreStrategy('absolute power', 1.0),
-  'overload': new PowerCoreStrategy('overload', 1.0),
-  'supermassive core': new PowerCoreStrategy('supermassive core', 1.0),
+  'brute force': new PowerCoreStrategy('brute force', 2.0),
+  'overload': new PowerCoreStrategy('overload', 2.0),
+  // T3 Power: all have 3.0× penalty
+  'supernova core': new PowerCoreStrategy('supernova core', 3.0),
+  'gigawatt core': new PowerCoreStrategy('gigawatt core', 3.0),
+  'desperado': new PowerCoreStrategy('desperado', 3.0),
+  'absolute power': new PowerCoreStrategy('absolute power', 3.0),
+  'supermassive core': new PowerCoreStrategy('supermassive core', 3.0),
 
   // Pandora Branch
   "pandora's box": new PandoraCoreStrategy(),

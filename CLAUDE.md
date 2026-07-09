@@ -269,6 +269,18 @@ Timer hits 0 →
 | multiplier_buff | float | Default 1.0 |
 | tier | int | Default 1. (1: Base, 2: Upgrade, 3: Final) |
 | upgrades_to | uuid | Self-referencing FK for evolution tree |
+| core_type | varchar(50) | 'main' | 'upgrade' (seeded) |
+| classification | varchar(50) | 'power' | 'effect' (seeded) |
+
+### `pending_registrations`
+| Column | Type | Notes |
+|---|---|---|
+| email | varchar(255) | PRIMARY KEY |
+| password | text | Plain text password for signup |
+| hashed_password | text | Bcrypt hashed password |
+| username | varchar(255) | Display user name |
+| otp | varchar(6) | Verification OTP code |
+| expires_at | timestamptz | Expiration timestamp (10 minutes) |
 
 ### `game_sessions`
 | Column | Notes |
@@ -365,6 +377,9 @@ MAIL_FROM=
 **Sprint 3 (in progress)**:
   - ELO updates after match end ✅ (Formula: expected_score = 500 + ELO/2, change = 0.05 * (score - expected_score), wins/losses stats saved)
   - Core upgrade anti-cheat validation ✅ (enforces initial core must be T1, and upgrades must be T+1 and same family)
+  - Database-backed OTP registration (horizontal scaling fix) ✅ (created `pending_registrations` table, eliminated in-memory maps)
+  - Atomic score updates via DB RPC ✅ (created `submit_answer_atomic` function to resolve Race Conditions)
+  - Frontend bug fixes (leak, animation frames, keys, input bloat) ✅ (resolved audio context leak, cancelled pending frames, composite keys for duplicate items, nextTick input flush)
   - Colyseus multiplayer rooms + matchmaking (planned)
   - Real-time opponent sync (planned)
   - **Clean up / Delete test "Skip to Core Selection" button** (added in settings menu of `GameplayView.vue`) before production
