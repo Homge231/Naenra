@@ -20,10 +20,13 @@ client/src/
   views/          # Full-page Vue views (GameplayView, CoreSelectionView, etc.)
   stores/         # Pinia stores: authStore, gameStore, errorStore
   components/     # Reusable UI: Avatar, ErrorNotification, game/PhaserBackground
+    game/
+      CoreTooltip.vue # ← [NEW] TFT-style detailed tooltip (US-37)
   game/           # Phaser init + scenes
   game/cores/     # ← [NEW] Frontend core registry (Strategy Pattern)
     BaseCore.ts   # CoreModule interface + PENDING_UUID sentinel
     registry.ts   # All core UI configs; getCoreModule(uuid) lookup
+    icons.ts      # ← [NEW] Icon registry mapping core names to SVG paths / DB override URLs (US-31)
   router/         # Vue Router with auth guards
 
 server/src/
@@ -380,9 +383,11 @@ MAIL_FROM=
   - Database-backed OTP registration (horizontal scaling fix) ✅ (created `pending_registrations` table, eliminated in-memory maps)
   - Atomic score updates via DB RPC ✅ (created `submit_answer_atomic` function to resolve Race Conditions)
   - Frontend bug fixes (leak, animation frames, keys, input bloat) ✅ (resolved audio context leak, cancelled pending frames, composite keys for duplicate items, nextTick input flush)
+  - [US-31] Custom Support Core Icons ✅ (88 vector SVG icons generated, uploaded to Supabase Storage, mapped to DB cores table)
+  - [US-37] Hover/Hold Tooltips for Cores ✅ (detailed tooltip popups on mouseover on Desktop and touch-hold on Mobile for all cores)
   - Colyseus multiplayer rooms + matchmaking (planned)
   - Real-time opponent sync (planned)
-  - **Clean up / Delete test "Skip to Core Selection" button** (added in settings menu of `GameplayView.vue`) before production
+  - **Clean up / Delete test \"Skip to Core Selection\" button** (added in settings menu of `GameplayView.vue`) before production
 
 ---
 
