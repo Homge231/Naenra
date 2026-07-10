@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getCoreFamily, getCoreTraitLabel } from '../../game/cores/families'
+import { getCoreFamily } from '../../game/cores/families'
 
 const props = defineProps<{
   core: {
@@ -97,8 +97,13 @@ const currentConfig = computed(() => {
   return FAMILY_CONFIGS[familyName.value] || FAMILY_CONFIGS.unknown
 })
 
-// Power vs Effect trait classification
-const coreTrait = computed(() => getCoreTraitLabel(props.core.name))
+// Power vs Effect trait — read directly from DB prop, no recomputation
+const coreTrait = computed(() => {
+  const c = props.core.classification ?? ''
+  if (c === 'power') return 'power'
+  if (c === 'effect') return 'effect'
+  return 'unknown'
+})
 
 const TRAIT_CONFIG = {
   power: {

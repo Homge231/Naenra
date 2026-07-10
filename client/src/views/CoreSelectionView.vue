@@ -85,14 +85,12 @@
             <!-- ⚔️/🔮 Power / Effect mini badge (top-left of card) -->
             <span
               class="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest select-none"
-              :class="getCoreTraitLabel(core.name) === 'power'
+              :class="core.classification === 'power'
                 ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
-                : getCoreTraitLabel(core.name) === 'effect'
-                  ? 'text-violet-400 bg-violet-500/10 border-violet-500/30'
-                  : 'text-gray-400 bg-gray-500/10 border-gray-500/30'"
+                : 'text-violet-400 bg-violet-500/10 border-violet-500/30'"
             >
-              {{ getCoreTraitLabel(core.name) === 'power' ? '⚔️' : getCoreTraitLabel(core.name) === 'effect' ? '🔮' : '◆' }}
-              {{ getCoreTraitLabel(core.name) === 'power' ? 'Power' : getCoreTraitLabel(core.name) === 'effect' ? 'Effect' : 'Standard' }}
+              {{ core.classification === 'power' ? '⚔️' : '🔮' }}
+              {{ core.classification === 'power' ? 'Power' : 'Effect' }}
             </span>
             <div
               class="relative w-24 h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
@@ -157,7 +155,6 @@ import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
-import { getCoreTraitLabel } from '../game/cores/families'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -208,6 +205,8 @@ interface CoreOption {
   flat_buff: number
   multiplier_buff: number
   icon: string
+  // Sourced directly from DB `cores.classification` column — 'power' | 'effect'
+  classification: string
 }
 // Icon mapping is now centralized in game/cores/icons.ts
 // Falls back to local path if icon_url not in DB response
@@ -339,7 +338,9 @@ async function fetchSupportCores() {
       description: c.description,
       flat_buff: c.flat_buff,
       multiplier_buff: c.multiplier_buff,
-      icon: getCoreIconPath(c.name, c.icon_url)
+      icon: getCoreIconPath(c.name, c.icon_url),
+      // Use DB column directly — no frontend recomputation needed
+      classification: c.classification ?? 'power'
     }))
 
     randomCores.value = getRandomCores(supportCores.value, 2)
