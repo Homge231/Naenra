@@ -61,3 +61,14 @@ export function isEffectCore(coreName: string): boolean {
   const family = getCoreFamily(coreName)
   return family ? ['aegis', 'mission', 'oracle', 'pandora'].includes(family) : false
 }
+
+/**
+ * Returns the trait classification of a core as a single string.
+ * Used by UI components to render Power/Effect badges without
+ * calling isPowerCore + isEffectCore separately.
+ */
+export function getCoreTraitLabel(coreName: string): 'power' | 'effect' | 'unknown' {
+  if (isPowerCore(coreName)) return 'power'
+  if (isEffectCore(coreName)) return 'effect'
+  return 'unknown'
+}

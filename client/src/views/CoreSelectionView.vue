@@ -24,9 +24,23 @@
         class="text-4xl md:text-5xl font-black text-white mb-3 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] tracking-widest text-center uppercase">
         Tactical Support
       </h2>
-      <p class="text-lightBlue/80 mb-12 text-sm md:text-base tracking-[0.2em] uppercase text-center font-bold">
+      <p class="text-lightBlue/80 mb-8 text-sm md:text-base tracking-[0.2em] uppercase text-center font-bold">
         Select a Support Core for this match
       </p>
+
+      <!-- ⚔️ / 🔮 Core Type Legend (new player guide) -->
+      <div id="tutorial-core-legend" class="flex items-center justify-center gap-4 mb-8 flex-wrap">
+        <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/30">
+          <span class="text-base">⚔️</span>
+          <span class="text-xs font-black uppercase tracking-widest text-orange-400">Power Core</span>
+          <span class="text-xs text-gray-400 hidden sm:inline">— Amplifies score</span>
+        </div>
+        <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/30">
+          <span class="text-base">🔮</span>
+          <span class="text-xs font-black uppercase tracking-widest text-violet-400">Effect Core</span>
+          <span class="text-xs text-gray-400 hidden sm:inline">— Special mechanics</span>
+        </div>
+      </div>
       <div v-if="loading && randomCores.length === 0" class="flex justify-center py-16">
         <svg class="animate-spin w-10 h-10 text-lightBlue" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -56,7 +70,7 @@
                 ? 'bg-white/10 border-2 border-lightBlue shadow-[0_0_40px_rgba(59,130,246,0.5)] -translate-y-4 scale-105'
                 : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-lightBlue/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-2',
               rerollingIndex === index ? 'reroll-anim pointer-events-none' : '',
-              loading && selectedCore?.id !== core.id ? 'opacity-40 grayscale' : '' // Dims the unselected card when submitting
+              loading && selectedCore?.id !== core.id ? 'opacity-40 grayscale' : ''
             ]"
             @mouseenter="showTooltip(index)"
             @mouseleave="hideTooltip"
@@ -64,10 +78,22 @@
             @touchend="handleTouchEnd(core, $event)"
             @click="submitCore(core)"
           >
-
             <div
               class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
             </div>
+
+            <!-- ⚔️/🔮 Power / Effect mini badge (top-left of card) -->
+            <span
+              class="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest select-none"
+              :class="getCoreTraitLabel(core.name) === 'power'
+                ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+                : getCoreTraitLabel(core.name) === 'effect'
+                  ? 'text-violet-400 bg-violet-500/10 border-violet-500/30'
+                  : 'text-gray-400 bg-gray-500/10 border-gray-500/30'"
+            >
+              {{ getCoreTraitLabel(core.name) === 'power' ? '⚔️' : getCoreTraitLabel(core.name) === 'effect' ? '🔮' : '◆' }}
+              {{ getCoreTraitLabel(core.name) === 'power' ? 'Power' : getCoreTraitLabel(core.name) === 'effect' ? 'Effect' : 'Standard' }}
+            </span>
             <div
               class="relative w-24 h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
               :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)] from-blue/30 to-lightBlue/20' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:from-blue/20 group-hover:to-lightBlue/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
@@ -113,8 +139,8 @@
     <!-- Tutorial CoachMark -->
     <CoachMark 
       v-if="showTutorial"
-      targetId="tutorial-core-cards"
-      message="Choose a Support Core to buff your score multiplier or get hints!"
+      targetId="tutorial-core-legend"
+      message="⚔️ Power Cores amplify your score with multipliers, combos & speed bonuses. 🔮 Effect Cores grant special mechanics like Shields, Letter Hints, and side Missions. Hover a card to see full details!"
       placement="bottom"
       @next="hideTutorialLocal"
       @skip="skipTutorialPermanently"
@@ -131,6 +157,7 @@ import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
+import { getCoreTraitLabel } from '../game/cores/families'
 
 const router = useRouter()
 const gameStore = useGameStore()

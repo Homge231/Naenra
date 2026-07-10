@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getCoreFamily } from '../../game/cores/families'
+import { getCoreFamily, getCoreTraitLabel } from '../../game/cores/families'
 
 const props = defineProps<{
   core: {
@@ -97,6 +97,35 @@ const currentConfig = computed(() => {
   return FAMILY_CONFIGS[familyName.value] || FAMILY_CONFIGS.unknown
 })
 
+// Power vs Effect trait classification
+const coreTrait = computed(() => getCoreTraitLabel(props.core.name))
+
+const TRAIT_CONFIG = {
+  power: {
+    label: 'Power Core',
+    icon: '⚔️',
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10 border-orange-500/30',
+    desc: 'Amplifies score — multipliers, flat buffs & speed bonuses.'
+  },
+  effect: {
+    label: 'Effect Core',
+    icon: '🔮',
+    color: 'text-violet-400',
+    bg: 'bg-violet-500/10 border-violet-500/30',
+    desc: 'Grants special mechanics — shields, hints, missions & chaos.'
+  },
+  unknown: {
+    label: 'Standard',
+    icon: '◆',
+    color: 'text-gray-400',
+    bg: 'bg-gray-500/10 border-gray-500/30',
+    desc: 'Base scoring — no bonus mechanics.'
+  }
+}
+
+const traitConfig = computed(() => TRAIT_CONFIG[coreTrait.value])
+
 // Roman numeral for Tier
 const tierRoman = computed(() => {
   const t = props.core.tier ?? 1
@@ -165,12 +194,19 @@ const stats = computed(() => {
   >
     <!-- Header -->
     <div class="flex items-start justify-between border-b border-white/10 pb-3">
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col gap-1">
         <h4 class="text-white text-base font-black tracking-wide uppercase">
           {{ core.name }}
         </h4>
         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
           Tier {{ tierRoman }} Core
+        </span>
+        <!-- ⚔️/🔮 Power / Effect Badge -->
+        <span
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest w-fit mt-0.5"
+          :class="[traitConfig.color, traitConfig.bg]"
+        >
+          {{ traitConfig.icon }} {{ traitConfig.label }}
         </span>
       </div>
       <!-- Family Badge -->
@@ -196,6 +232,15 @@ const stats = computed(() => {
           {{ stats.penalty }}
         </span>
       </div>
+    </div>
+
+    <!-- Core Type short description -->
+    <div
+      class="flex items-start gap-2 px-3 py-2 rounded-xl border text-[10px] leading-relaxed"
+      :class="[traitConfig.color, traitConfig.bg]"
+    >
+      <span class="mt-0.5 shrink-0">{{ traitConfig.icon }}</span>
+      <span class="text-gray-300">{{ traitConfig.desc }}</span>
     </div>
 
     <!-- Details -->
