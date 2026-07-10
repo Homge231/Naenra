@@ -157,6 +157,26 @@ If accuracy < 80% or empty (skip):
 
 ---
 
+## Core Stacking & Hybrid Synergy Mechanics
+
+Future AI agents must understand how "stacking" works in Naenra. Naenra does **not** stack cores by wearing multiple cores at once. Instead, it uses a **Replacement** model combined with **Hybrid Cores**.
+
+### 1. Upgrade = Replacement (No Mechanical Stacking)
+When a player upgrades from Round 1 (`Tier 1`) to Round 2 (`Tier 2`), the old core is completely removed from the session (`active_core_id` is overwritten).
+- Pure Upgrade Paths (e.g., `Power Strike` -> `Brute Force`) do not "stack" effects. The new core simply has higher mathematical multipliers and flat buffs. The old stats are discarded.
+
+### 2. Hybrid Synergy Cores (Structural Stacking)
+The game simulates stacking by offering "Hybrid Cores" at Tier 2 and Tier 3. These cores combine the code logic (mechanics) of two different core families into one single Strategy file.
+- Example: `Combo Shield` (Combo + Aegis).
+- A player moving from `Perfect Combo` (Round 1) to `Combo Shield` (Round 2) replaces their core. However, because `Combo Shield` internally tracks both `comboBonus` and `isShieldActive`, the player experiences a **"Mechanic Stack"** (They keep the combo mechanics AND gain shield mechanics).
+
+### 3. Mathematical Stacking
+- **Combo Stacking:** `current_combo` increments on consecutive correct answers and is multiplied by 10 (capped at 100) inside the core strategy.
+- **Oracle Penalty Stacking:** Each hint click increments `oracle_reveal_level`, which exponentially increases the score penalty (-10, -30, -60) for a single word.
+- **Score Modifiers:** Final score is `(100 + ComboBonus + FlatBuff) * MultiplierBuff`. (Note: Speedster ignores this entirely and overwrites the formula with a time-based calculation).
+
+---
+
 ## Frontend: How time_taken is Tracked
 
 ```ts
