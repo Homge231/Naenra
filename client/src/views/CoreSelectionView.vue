@@ -215,6 +215,7 @@ interface CoreOption {
   icon: string
   // Sourced directly from DB `cores.classification` column — 'power' | 'effect'
   classification: string
+  tier?: number
 }
 // Icon mapping is now centralized in game/cores/icons.ts
 // Falls back to local path if icon_url not in DB response
@@ -333,7 +334,8 @@ async function fetchSupportCores() {
       multiplier_buff: c.multiplier_buff,
       icon: getCoreIconPath(c.name, c.icon_url),
       // Use DB column directly — no frontend recomputation needed
-      classification: c.classification ?? 'power'
+      classification: c.classification ?? 'power',
+      tier: c.tier
     }))
 
     randomCores.value = getRandomCores(supportCores.value, 2)

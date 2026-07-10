@@ -58,6 +58,17 @@
             <!-- Hover shimmer overlay -->
             <div class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             
+            <!-- ⚔️/🔮 Power / Effect mini badge (top-left of card) -->
+            <span
+              class="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest select-none"
+              :class="core.classification === 'power'
+                ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+                : 'text-violet-400 bg-violet-500/10 border-violet-500/30'"
+            >
+              {{ core.classification === 'power' ? '⚔️' : '🔮' }}
+              {{ core.classification === 'power' ? 'Power' : 'Effect' }}
+            </span>
+            
             <!-- Icon circle -->
             <div class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-6 lg:mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
               :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)] from-blue/30 to-lightBlue/20' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:from-blue/20 group-hover:to-lightBlue/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
@@ -156,13 +167,8 @@ function handleTouchEnd(core: any, e: TouchEvent) {
 // Icon mapping is now centralized in game/cores/icons.ts
 
 // ── State ───────────────────────────────────────────────────────────────────
-const DEFAULT_ICON = '🔮'
-const ICON_MAP: Record<string, string> = {
-  'balanced core': '⚖️', 'combo core': '🔥', 'oracle core': '👁️', 'speedster': '⚡',
-  'mission core': '🎯', 'power core': '💪', 'aegis shield': '🛡️', "pandora's box": '🎲'
-}
 
-type CoreOption = { id: string; name: string; description: string; icon: string; flat_buff: number; multiplier_buff: number }
+type CoreOption = { id: string; name: string; description: string; icon: string; flat_buff: number; multiplier_buff: number; classification?: string; tier?: number }
 
 const upgradeCores = ref<CoreOption[]>([])
 const selectedCore = ref<CoreOption | null>(null)
@@ -224,7 +230,9 @@ async function fetchUpgradeCores() {
       description: c.description,
       flat_buff: c.flat_buff,
       multiplier_buff: c.multiplier_buff,
-      icon: ICON_MAP[c.name?.toLowerCase()] || DEFAULT_ICON
+      icon: getCoreIconPath(c.name, c.icon_url),
+      classification: c.classification,
+      tier: c.tier
     })).slice(0, 2)
   } catch (err) {
     console.error('Failed to fetch upgrade cores', err)
