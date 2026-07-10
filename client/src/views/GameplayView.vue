@@ -49,8 +49,8 @@
     <!-- Tutorial CoachMark -->
     <CoachMark 
       v-if="tutorial.isCurrentScreen('gameplay') || tutorial.isCurrentScreen('match-end')"
-      :targetId="tutorial.currentStepData.value?.targetId"
-      :message="tutorial.currentStepData.value?.message"
+      :targetId="tutorial.currentStepData.value?.targetId || ''"
+      :message="tutorial.currentStepData.value?.message || ''"
       :title="tutorial.currentStepData.value?.title"
       :icon="tutorial.currentStepData.value?.icon"
       :step="tutorial.currentStepNumber.value"
