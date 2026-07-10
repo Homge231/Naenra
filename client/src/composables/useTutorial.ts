@@ -68,19 +68,18 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     message:
       'Read the sentence above — it has a blank (---). ' +
       'Type the missing word letter by letter into the slots below. ' +
-      'Just start typing — no mouse clicks needed!',
+      'No mouse clicks needed!',
     placement: 'top',
   },
   {
     screen: 'gameplay',
     targetId: 'tutorial-typing-area',
     icon: '✅',
-    title: 'Submit with Enter',
+    title: 'Auto-Submit',
     message:
-      'Once you\'ve filled all the letter slots, press Enter to submit your answer. ' +
+      'Once you fill the final letter slot, the game automatically submits your answer. ' +
       'Correct → slots glow green and you earn points. ' +
       'Wrong → slots flash red and points are deducted.',
-    keyHints: ['⏎ Enter'],
     placement: 'top',
   },
   {
@@ -89,9 +88,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     icon: '⏭️',
     title: 'Skip a Question',
     message:
-      'Don\'t know the word? Press Escape to skip to the next question immediately. ' +
-      'Skipping costs a small score penalty, but it\'s better than wasting precious seconds!',
-    keyHints: ['Esc = Skip'],
+      'Don\'t know the word? Press Enter to skip to the next question immediately. ' +
+      'Skipping deducts points and breaks your combo, but saves precious seconds!',
+    keyHints: ['⏎ Enter = Skip'],
     placement: 'top',
   },
   {
