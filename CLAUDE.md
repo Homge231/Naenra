@@ -378,10 +378,13 @@ MAIL_FROM=
   - **Core Strategy Pattern refactor** — BE + FE both use registry/parent-child architecture
 
 **Sprint 3 (in progress)**:
+### Completed Sprint 3 Items ✅
+- **Database-driven Core Classifications**: Added `core_type` and `classification` columns to database. Removed hardcoded family lists.
+- **OTP Database Persistence**: Migrated OTP/registration transient storage to database-backed `pending_registrations` table.
+- **Registration RLS Fix**: Documented that `pending_registrations` is protected by RLS. The backend must have the correct `SUPABASE_SERVICE_KEY` (service_role) in production (e.g., Render) to bypass RLS. If the `anon` key is mistakenly used, the `/auth/register` endpoint will throw a "new row violates row-level security policy" error.
+- **Atomic Scoring Engine**: Implemented `submit_answer_atomic` RPC to prevent concurrent update Race Conditions.
   - ELO updates after match end ✅ (Formula: expected_score = 500 + ELO/2, change = 0.05 * (score - expected_score), wins/losses stats saved)
   - Core upgrade anti-cheat validation ✅ (enforces initial core must be T1, and upgrades must be T+1 and same family)
-  - Database-backed OTP registration (horizontal scaling fix) ✅ (created `pending_registrations` table, eliminated in-memory maps)
-  - Atomic score updates via DB RPC ✅ (created `submit_answer_atomic` function to resolve Race Conditions)
   - Frontend bug fixes (leak, animation frames, keys, input bloat) ✅ (resolved audio context leak, cancelled pending frames, composite keys for duplicate items, nextTick input flush)
   - [US-31] Custom Support Core Icons ✅ (88 vector SVG icons generated, uploaded to Supabase Storage, mapped to DB cores table)
   - [US-37] Hover/Hold Tooltips for Cores ✅ (detailed tooltip popups on mouseover on Desktop and touch-hold on Mobile for all cores)
