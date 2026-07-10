@@ -620,6 +620,7 @@ const THEME_MAP: Record<string, string> = {
 
 const currentBgImage = ref<string>(THEME_MAP[matchStore.topics?.[matchStore.currentRound - 1] || 'daily-life'] || THEME_MAP['daily-life'])
 const isBgFading = ref(false)
+const activeBgTimeouts = new Set<ReturnType<typeof setTimeout>>()
 
 watch(() => matchStore.currentRound, (newRound, oldRound) => {
   const newTopic = matchStore.topics?.[newRound - 1]
@@ -632,13 +633,17 @@ watch(() => matchStore.currentRound, (newRound, oldRound) => {
   else if (newRound && newRound !== oldRound) {
     isBgFading.value = true
 
-    setTimeout(() => {
+    const t1 = setTimeout(() => {
       currentBgImage.value = newBg
+      activeBgTimeouts.delete(t1)
 
-      setTimeout(() => {
+      const t2 = setTimeout(() => {
         isBgFading.value = false
+        activeBgTimeouts.delete(t2)
       }, 100)
+      activeBgTimeouts.add(t2)
     }, 500)
+    activeBgTimeouts.add(t1)
   }
 }, { immediate: true })
 
@@ -1529,6 +1534,8 @@ onUnmounted(() => {
   stopTimeoutInterval()
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  for (const t of activeBgTimeouts) clearTimeout(t)
+  activeBgTimeouts.clear()
 })
 </script>
 

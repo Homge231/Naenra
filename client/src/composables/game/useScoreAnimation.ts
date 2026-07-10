@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 
 export interface PointPopup {
   id: number
@@ -20,6 +20,7 @@ export function useScoreAnimation(letterSlotsRef: any) {
   let popupIdCounter = 0
   let activeAnimationId: number | null = null
   let flashTimer: ReturnType<typeof setTimeout> | null = null
+  const activePopupTimers = new Set<ReturnType<typeof setTimeout>>()
 
   function triggerScoreFlash(type: ScoreFlash) {
     if (flashTimer) clearTimeout(flashTimer)
@@ -39,9 +40,12 @@ export function useScoreAnimation(letterSlotsRef: any) {
     const id = popupIdCounter++
     pointPopups.value.push({ id, value, type, x, y })
     const duration = type === 'speedster' || type === 'prismatic' ? 1800 : 1200
-    setTimeout(() => {
+    
+    const timer = setTimeout(() => {
       pointPopups.value = pointPopups.value.filter(p => p.id !== id)
+      activePopupTimers.delete(timer)
     }, duration)
+    activePopupTimers.add(timer)
   }
 
   function updateScoreAnimated(newTotalScore: number) {
@@ -74,6 +78,15 @@ export function useScoreAnimation(letterSlotsRef: any) {
       activeAnimationId = null
     }
   }
+
+  onUnmounted(() => {
+    if (flashTimer) clearTimeout(flashTimer)
+    for (const timer of activePopupTimers) {
+      clearTimeout(timer)
+    }
+    activePopupTimers.clear()
+    clearActiveAnimation()
+  })
 
   return {
     score,

@@ -177,6 +177,7 @@ const loading = ref(true)
 const SELECTION_DURATION = 15
 const timeLeft = ref(SELECTION_DURATION)
 let timer: ReturnType<typeof setInterval> | null = null
+let selectTimeout: ReturnType<typeof setTimeout> | null = null
 
 function startTimer() {
   timer = setInterval(() => {
@@ -279,13 +280,18 @@ async function selectCore(core: CoreOption) {
   await updateSessionCore(core.id)
 
   // Brief visual feedback before closing the overlay
-  setTimeout(() => {
+  if (selectTimeout) clearTimeout(selectTimeout)
+  selectTimeout = setTimeout(() => {
     emit('selected', core.id)
   }, 500)
 }
 
 onMounted(() => fetchUpgradeCores())
-onUnmounted(() => stopTimer())
+onUnmounted(() => {
+  stopTimer()
+  if (touchTimeout) clearTimeout(touchTimeout)
+  if (selectTimeout) clearTimeout(selectTimeout)
+})
 </script>
 
 <style scoped>

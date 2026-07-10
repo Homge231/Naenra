@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 
 export interface UseMatchTimerOptions {
   matchDuration?: number
@@ -18,6 +18,7 @@ export function useMatchTimer(options: UseMatchTimerOptions) {
   let remainingMatchMs = MATCH_DURATION * 1000
   let lastTickTime = 0
   let isTimerPaused = false
+  let pauseTimeout: ReturnType<typeof setTimeout> | null = null
 
   const timeLeft = ref(MATCH_DURATION)
   const timerProgressPercent = ref(100)
@@ -26,6 +27,10 @@ export function useMatchTimer(options: UseMatchTimerOptions) {
     if (matchTimerFrame) {
       cancelAnimationFrame(matchTimerFrame)
       matchTimerFrame = null
+    }
+    if (pauseTimeout) {
+      clearTimeout(pauseTimeout)
+      pauseTimeout = null
     }
   }
 
@@ -86,9 +91,11 @@ export function useMatchTimer(options: UseMatchTimerOptions) {
 
   function pauseTimerFor(ms: number) {
     isTimerPaused = true
-    setTimeout(() => {
+    if (pauseTimeout) clearTimeout(pauseTimeout)
+    pauseTimeout = setTimeout(() => {
       isTimerPaused = false
       lastTickTime = Date.now()
+      pauseTimeout = null
     }, ms)
   }
 
@@ -99,6 +106,10 @@ export function useMatchTimer(options: UseMatchTimerOptions) {
     timerProgressPercent.value = 100
     isTimerPaused = false
   }
+
+  onUnmounted(() => {
+    stopMatchTimer()
+  })
 
   function getRemainingMs() {
     return remainingMatchMs

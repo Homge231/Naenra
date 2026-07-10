@@ -247,6 +247,10 @@ const rerollingIndex = ref<number | null>(null)
 const SELECTION_DURATION = 15
 const timeLeft = ref(SELECTION_DURATION)
 let selectionTimer: ReturnType<typeof setInterval> | null = null
+
+// Keep track of active timeouts for unmounting
+const activeTimeouts = new Set<ReturnType<typeof setTimeout>>()
+
 // ── Individual Reroll Logic ─────────────────────────────────────────────────
 function handleCardReroll(index: number) {
   if (rerolledSlots.value[index] || rerollingIndex.value !== null || loading.value) return
@@ -258,7 +262,7 @@ function handleCardReroll(index: number) {
     selectedCore.value = null
   }
 
-  setTimeout(() => {
+  const t1 = setTimeout(() => {
     const currentIds = randomCores.value.map(c => c.id)
     let availableCores = supportCores.value.filter(c => !currentIds.includes(c.id))
 
@@ -268,11 +272,15 @@ function handleCardReroll(index: number) {
 
     const newCore = getRandomCores(availableCores, 1)[0]
     randomCores.value.splice(index, 1, newCore)
+    activeTimeouts.delete(t1)
   }, 300)
+  activeTimeouts.add(t1)
 
-  setTimeout(() => {
+  const t2 = setTimeout(() => {
     rerollingIndex.value = null
+    activeTimeouts.delete(t2)
   }, 600)
+  activeTimeouts.add(t2)
 }
 // ── Triggers & Handlers ─────────────────────────────────────────────────────
 function startTimer() {
@@ -403,6 +411,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopTimer()
+  if (touchTimeout) clearTimeout(touchTimeout)
+  for (const t of activeTimeouts) clearTimeout(t)
+  activeTimeouts.clear()
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
