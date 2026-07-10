@@ -31,7 +31,7 @@
         </svg>
       </div>
 
-      <div v-else id="tutorial-upgrade-cards" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-stretch"
+      <div v-else id="tutorial-upgrade-cards" class="relative z-20 grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-stretch"
         :class="{ 'pointer-events-none': loading && upgradeCores.length > 0 }">
         
         <div v-for="(core, index) in upgradeCores" :key="core.id || index" class="flex flex-col items-center w-full h-full relative">
