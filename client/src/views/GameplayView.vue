@@ -584,7 +584,7 @@ const {
   pauseTimerFor,
   resetTimer
 } = useMatchTimer({
-  showTutorial: () => tutorial.isCurrentScreen('gameplay') || tutorial.isCurrentScreen('match-end'),
+  showTutorial: () => tutorial.isCurrentScreen('gameplay'),
   timerSpeedMultiplier: () => timerSpeedMultiplier.value,
   isPandoraMode: () => isPandoraMode.value,
   isTrickster: () => isTrickster.value,
