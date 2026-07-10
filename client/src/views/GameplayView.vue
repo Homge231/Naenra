@@ -53,7 +53,7 @@
       @next="skipTutorialPermanently" @skip="skipTutorialPermanently" />
 
     <!-- Pandora overlays: shift announcements and indicator -->
-    <PandoraOverlay :is-pandora-mode="isPandoraMode" :active-core-name="gameStore.activeCoreName"
+    <PandoraOverlay :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
       :shift-announcement="shiftAnnouncement" />
 
     <header v-show="gameState !== 'upgrade'"
@@ -135,8 +135,8 @@
           <span class="text-xs font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"
                 :class="[index === gameStore.coreHistory.length - 1 ? (activeCoreModule.timerColor || 'text-lightBlue') : 'text-gray-400']">
             <span>
-              <img :src="core.icon" :alt="core.name" class="w-4 h-4 inline-block object-contain" />
-            </span> {{ (index === gameStore.coreHistory.length - 1 && isPandoraMode) ? 'Shifted: ' + gameStore.activeCoreName : core.name }}
+              <img :src="(index === gameStore.coreHistory.length - 1 && isPandoraMode) ? activeCoreIconUrlDynamic : core.icon" :alt="core.name" class="w-4 h-4 inline-block object-contain" />
+            </span> {{ (index === gameStore.coreHistory.length - 1 && isPandoraMode) ? 'Shifted: ' + activeCoreNameDynamic : core.name }}
           </span>
         </div>
       </div>
@@ -497,6 +497,7 @@ import {
   isPandoraCore as checkPandoraCore,
   getMaxShields as checkMaxShields
 } from '../game/cores/registry'
+import { getCoreIconPath } from '../game/cores/icons'
 import { fetchWithAuth } from '../services/api'
 const router = useRouter()
 const authStore = useAuthStore()
@@ -725,6 +726,14 @@ const activeCoreNameDynamic = computed(() => {
     return shiftedCore ? shiftedCore.name : gameStore.activeCoreName
   }
   return gameStore.activeCoreName
+})
+
+const activeCoreIconUrlDynamic = computed(() => {
+  if (isPandoraMode.value && currentPandoraCoreId.value) {
+    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
+    return shiftedCore ? getCoreIconPath(shiftedCore.name, shiftedCore.icon_url) : getCoreIconPath(gameStore.activeCoreName || '')
+  }
+  return gameStore.activeCoreName ? getCoreIconPath(gameStore.activeCoreName) : ''
 })
 
 const activeCoreModule = computed(() => {
