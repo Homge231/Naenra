@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#18120c" />
-      <stop offset="100%" stop-color="#0b0805" />
+      <stop offset="0%" stop-color="#1b140a" />
+      <stop offset="100%" stop-color="#0c0904" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f59e0b" />
-      <stop offset="50%" stop-color="#d97706" />
-      <stop offset="100%" stop-color="#10b981" />
+      <stop offset="0%" stop-color="#FFA62B" />
+      <stop offset="50%" stop-color="#FF7B00" />
+      <stop offset="100%" stop-color="#22C55E" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#f59e0b" stop-opacity="0" />
-      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#FFA62B" stop-opacity="0" />
+      <stop offset="100%" stop-color="#FFA62B" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,19 +50,19 @@
   <g filter="url(#glow)">
     
         <!-- Master badge and laurels -->
-        <g stroke="#10b981" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="64,26 84,40 84,88 64,102 44,88 44,40" fill="#d97706" fill-opacity="0.2" stroke-width="4.5" />
+        <g stroke="#22C55E" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="64,26 84,40 84,88 64,102 44,88 44,40" fill="#FF7B00" fill-opacity="0.2" stroke-width="4.5" />
           <!-- Laurels -->
-          <path d="M32,44 Q24,68 40,88" stroke="#f59e0b" stroke-width="3" />
-          <path d="M96,44 Q104,68 88,88" stroke="#f59e0b" stroke-width="3" />
+          <path d="M32,44 Q24,68 40,88" stroke="#FFA62B" stroke-width="3" />
+          <path d="M96,44 Q104,68 88,88" stroke="#FFA62B" stroke-width="3" />
           <!-- Star of mastery -->
-          <path d="M64,48 L67,56 L76,56 L69,61 L71,70 L64,64 L57,70 L59,61 L52,56 L61,56 Z" fill="#10b981" stroke="none" />
+          <path d="M64,48 L67,56 L76,56 L69,61 L71,70 L64,64 L57,70 L59,61 L52,56 L61,56 Z" fill="#22C55E" stroke="none" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#10b981" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#f59e0b" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#22C55E" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#FFA62B" opacity="0.4" />
 </svg>

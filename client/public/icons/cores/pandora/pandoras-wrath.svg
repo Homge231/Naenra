@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#11091a" />
-      <stop offset="100%" stop-color="#050209" />
+      <stop offset="0%" stop-color="#100d18" />
+      <stop offset="100%" stop-color="#06050b" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a855f7" />
-      <stop offset="50%" stop-color="#06b6d4" />
-      <stop offset="100%" stop-color="#f43f5e" />
+      <stop offset="0%" stop-color="#FF7B00" />
+      <stop offset="50%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#E63946" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#a855f7" stop-opacity="0" />
-      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#FF7B00" stop-opacity="0" />
+      <stop offset="100%" stop-color="#FF7B00" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,14 +50,14 @@
   <g filter="url(#glow)">
     
         <!-- Demon face in fire -->
-        <g stroke="#a855f7" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="64" cy="54" r="22" fill="#06b6d4" fill-opacity="0.1" stroke-width="4" />
+        <g stroke="#FF7B00" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="64" cy="54" r="22" fill="#3B82F6" fill-opacity="0.1" stroke-width="4" />
           <!-- Demon horns -->
           <path d="M46,36 Q34,16 38,24 T46,44" stroke-width="4" />
           <path d="M82,36 Q94,16 90,24 T82,44" stroke-width="4" />
           <!-- Angry eyes -->
-          <polygon points="50,56 60,54 58,48" fill="#f43f5e" />
-          <polygon points="78,56 68,54 70,48" fill="#f43f5e" />
+          <polygon points="50,56 60,54 58,48" fill="#E63946" />
+          <polygon points="78,56 68,54 70,48" fill="#E63946" />
           <!-- Fangs -->
           <polygon points="56,72 60,64 64,72" fill="#fff" />
           <polygon points="72,72 68,64 64,72" fill="#fff" />
@@ -67,6 +67,6 @@
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#f43f5e" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#a855f7" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#E63946" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#FF7B00" opacity="0.4" />
 </svg>

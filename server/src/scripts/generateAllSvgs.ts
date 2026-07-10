@@ -60,68 +60,68 @@ const FAMILY_THEMES: Record<string, {
   glow: string
 }> = {
   balanced: {
-    primary: '#3b82f6', // blue
-    secondary: '#10b981', // green
-    accent: '#f59e0b', // gold/amber
-    stop1: '#121829',
-    stop2: '#060913',
-    glow: '#3b82f6'
+    primary: '#3B82F6', // blue
+    secondary: '#60A5FA', // lightBlue
+    accent: '#F8FAFC', // white
+    stop1: '#0F172A', // darkNavy
+    stop2: '#080c16',
+    glow: '#3B82F6'
   },
   combo: {
-    primary: '#f97316', // orange
-    secondary: '#ef4444', // red
-    accent: '#eab308', // yellow
-    stop1: '#1a0d0d',
-    stop2: '#0d0404',
-    glow: '#f97316'
+    primary: '#FF7B00', // orange
+    secondary: '#FFA62B', // lightOrange
+    accent: '#E63946', // hexred
+    stop1: '#1c0e08',
+    stop2: '#0e0704',
+    glow: '#FF7B00'
   },
   speedster: {
-    primary: '#06b6d4', // cyan
-    secondary: '#3b82f6', // blue
-    accent: '#a855f7', // purple
-    stop1: '#0a161b',
-    stop2: '#03080a',
-    glow: '#06b6d4'
+    primary: '#60A5FA', // lightBlue
+    secondary: '#3B82F6', // blue
+    accent: '#FFA62B', // lightOrange
+    stop1: '#0d1624',
+    stop2: '#050a12',
+    glow: '#60A5FA'
   },
   oracle: {
-    primary: '#8b5cf6', // violet
-    secondary: '#ec4899', // pink
-    accent: '#f59e0b', // gold
-    stop1: '#130c1e',
-    stop2: '#08040d',
-    glow: '#8b5cf6'
+    primary: '#3B82F6', // blue
+    secondary: '#FFA62B', // lightOrange
+    accent: '#F8FAFC', // white
+    stop1: '#0d1324',
+    stop2: '#050710',
+    glow: '#3B82F6'
   },
   mission: {
-    primary: '#f59e0b', // amber
-    secondary: '#d97706', // dark gold
-    accent: '#10b981', // green
-    stop1: '#18120c',
-    stop2: '#0b0805',
-    glow: '#f59e0b'
+    primary: '#FFA62B', // lightOrange
+    secondary: '#FF7B00', // orange
+    accent: '#22C55E', // success
+    stop1: '#1b140a',
+    stop2: '#0c0904',
+    glow: '#FFA62B'
   },
   aegis: {
-    primary: '#60a5fa', // light blue
-    secondary: '#93c5fd', // ice blue
-    accent: '#38bdf8', // sky blue
-    stop1: '#0f1422',
-    stop2: '#060910',
-    glow: '#60a5fa'
+    primary: '#3B82F6', // blue
+    secondary: '#60A5FA', // lightBlue
+    accent: '#F8FAFC', // white
+    stop1: '#0c1220',
+    stop2: '#050810',
+    glow: '#3B82F6'
   },
   power: {
-    primary: '#d946ef', // magenta
-    secondary: '#ec4899', // hot pink
-    accent: '#f43f5e', // rose
-    stop1: '#1c0a1b',
-    stop2: '#0b030b',
-    glow: '#d946ef'
+    primary: '#E63946', // hexred
+    secondary: '#FF7B00', // orange
+    accent: '#FFA62B', // lightOrange
+    stop1: '#20080c',
+    stop2: '#0e0305',
+    glow: '#E63946'
   },
   pandora: {
-    primary: '#a855f7', // purple
-    secondary: '#06b6d4', // cyan
-    accent: '#f43f5e', // rose
-    stop1: '#11091a',
-    stop2: '#050209',
-    glow: '#a855f7'
+    primary: '#FF7B00', // orange
+    secondary: '#3B82F6', // blue
+    accent: '#E63946', // hexred
+    stop1: '#100d18',
+    stop2: '#06050b',
+    glow: '#FF7B00'
   }
 }
 

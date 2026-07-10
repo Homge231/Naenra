@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#130c1e" />
-      <stop offset="100%" stop-color="#08040d" />
+      <stop offset="0%" stop-color="#0d1324" />
+      <stop offset="100%" stop-color="#050710" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b5cf6" />
-      <stop offset="50%" stop-color="#ec4899" />
-      <stop offset="100%" stop-color="#f59e0b" />
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#FFA62B" />
+      <stop offset="100%" stop-color="#F8FAFC" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#8b5cf6" stop-opacity="0" />
-      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#3B82F6" stop-opacity="0" />
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,19 +50,19 @@
   <g filter="url(#glow)">
     
         <!-- Vision crystal ball -->
-        <g stroke="#8b5cf6" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="64" cy="56" r="24" fill="#ec4899" fill-opacity="0.1" stroke-width="4" />
+        <g stroke="#3B82F6" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="64" cy="56" r="24" fill="#FFA62B" fill-opacity="0.1" stroke-width="4" />
           <!-- Stand -->
-          <path d="M44,88 L84,88 C80,88 80,76 64,76 C48,76 48,88 44,88 Z" fill="#8b5cf6" fill-opacity="0.2" />
+          <path d="M44,88 L84,88 C80,88 80,76 64,76 C48,76 48,88 44,88 Z" fill="#3B82F6" fill-opacity="0.2" />
           <!-- Visions inside -->
-          <path d="M52,56 Q64,48 76,56" stroke="#f59e0b" stroke-width="2.5" />
-          <circle cx="64" cy="56" r="4" fill="#f59e0b" stroke="none" />
+          <path d="M52,56 Q64,48 76,56" stroke="#F8FAFC" stroke-width="2.5" />
+          <circle cx="64" cy="56" r="4" fill="#F8FAFC" stroke="none" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#f59e0b" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#8b5cf6" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#F8FAFC" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#3B82F6" opacity="0.4" />
 </svg>

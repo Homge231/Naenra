@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#0f1422" />
-      <stop offset="100%" stop-color="#060910" />
+      <stop offset="0%" stop-color="#0c1220" />
+      <stop offset="100%" stop-color="#050810" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#60a5fa" />
-      <stop offset="50%" stop-color="#93c5fd" />
-      <stop offset="100%" stop-color="#38bdf8" />
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#F8FAFC" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#60a5fa" stop-opacity="0" />
-      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#3B82F6" stop-opacity="0" />
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,17 +50,17 @@
   <g filter="url(#glow)">
     
         <!-- Defensive crystal shield -->
-        <g stroke="#60a5fa" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M34,36 L64,26 L94,36 L94,68 C94,84 76,96 64,102 C52,96 34,84 34,68 Z" fill="#60a5fa" fill-opacity="0.15" stroke-width="5" />
+        <g stroke="#3B82F6" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M34,36 L64,26 L94,36 L94,68 C94,84 76,96 64,102 C52,96 34,84 34,68 Z" fill="#3B82F6" fill-opacity="0.15" stroke-width="5" />
           <!-- Inner shield pattern -->
-          <polygon points="64,42 82,54 64,88 46,54" stroke="#38bdf8" stroke-width="3" />
-          <circle cx="64" cy="58" r="4" fill="#38bdf8" stroke="none" />
+          <polygon points="64,42 82,54 64,88 46,54" stroke="#F8FAFC" stroke-width="3" />
+          <circle cx="64" cy="58" r="4" fill="#F8FAFC" stroke="none" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#38bdf8" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#60a5fa" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#F8FAFC" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#3B82F6" opacity="0.4" />
 </svg>

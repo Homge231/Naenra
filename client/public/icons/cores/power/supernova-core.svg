@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1c0a1b" />
-      <stop offset="100%" stop-color="#0b030b" />
+      <stop offset="0%" stop-color="#20080c" />
+      <stop offset="100%" stop-color="#0e0305" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#d946ef" />
-      <stop offset="50%" stop-color="#ec4899" />
-      <stop offset="100%" stop-color="#f43f5e" />
+      <stop offset="0%" stop-color="#E63946" />
+      <stop offset="50%" stop-color="#FF7B00" />
+      <stop offset="100%" stop-color="#FFA62B" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#d946ef" stop-opacity="0" />
-      <stop offset="100%" stop-color="#d946ef" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#E63946" stop-opacity="0" />
+      <stop offset="100%" stop-color="#E63946" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,24 +50,24 @@
   <g filter="url(#glow)">
     
         <!-- Star explosion -->
-        <g stroke="#f43f5e" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="64" cy="64" r="16" fill="#f43f5e" stroke-width="4.5" />
+        <g stroke="#FFA62B" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="64" cy="64" r="16" fill="#FFA62B" stroke-width="4.5" />
           <!-- Exploding rays -->
           <line x1="64" y1="36" x2="64" y2="12" stroke-width="5" />
           <line x1="64" y1="92" x2="64" y2="116" stroke-width="5" />
           <line x1="36" y1="64" x2="12" y2="64" stroke-width="5" />
           <line x1="92" y1="64" x2="116" y2="64" stroke-width="5" />
           <!-- Diagonals -->
-          <line x1="44" y1="44" x2="24" y2="24" stroke="#ec4899" stroke-width="4" />
-          <line x1="84" y1="84" x2="104" y2="104" stroke="#ec4899" stroke-width="4" />
-          <line x1="44" y1="84" x2="24" y2="104" stroke="#ec4899" stroke-width="4" />
-          <line x1="84" y1="44" x2="104" y2="24" stroke="#ec4899" stroke-width="4" />
+          <line x1="44" y1="44" x2="24" y2="24" stroke="#FF7B00" stroke-width="4" />
+          <line x1="84" y1="84" x2="104" y2="104" stroke="#FF7B00" stroke-width="4" />
+          <line x1="44" y1="84" x2="24" y2="104" stroke="#FF7B00" stroke-width="4" />
+          <line x1="84" y1="44" x2="104" y2="24" stroke="#FF7B00" stroke-width="4" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#f43f5e" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#d946ef" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#FFA62B" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#E63946" opacity="0.4" />
 </svg>

@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#0a161b" />
-      <stop offset="100%" stop-color="#03080a" />
+      <stop offset="0%" stop-color="#0d1624" />
+      <stop offset="100%" stop-color="#050a12" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#06b6d4" />
-      <stop offset="50%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#a855f7" />
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="50%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#FFA62B" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#06b6d4" stop-opacity="0" />
-      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#60A5FA" stop-opacity="0" />
+      <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,20 +50,20 @@
   <g filter="url(#glow)">
     
         <!-- Rewind / Shattered time -->
-        <g stroke="#06b6d4" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <g stroke="#60A5FA" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="64" cy="64" r="28" stroke-dasharray="6,4" />
           <!-- Counter-clockwise circular arrow -->
           <path d="M84,44 A28,28 0 1,0 84,84" stroke-width="4.5" />
-          <polygon points="84,32 94,46 76,46" fill="#06b6d4" stroke="none" />
+          <polygon points="84,32 94,46 76,46" fill="#60A5FA" stroke="none" />
           <!-- Rewind double triangles -->
-          <polygon points="68,64 80,52 80,76" fill="#a855f7" />
-          <polygon points="52,64 64,52 64,76" fill="#a855f7" />
+          <polygon points="68,64 80,52 80,76" fill="#FFA62B" />
+          <polygon points="52,64 64,52 64,76" fill="#FFA62B" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#a855f7" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#06b6d4" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#FFA62B" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#60A5FA" opacity="0.4" />
 </svg>

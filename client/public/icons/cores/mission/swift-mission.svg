@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#18120c" />
-      <stop offset="100%" stop-color="#0b0805" />
+      <stop offset="0%" stop-color="#1b140a" />
+      <stop offset="100%" stop-color="#0c0904" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f59e0b" />
-      <stop offset="50%" stop-color="#d97706" />
-      <stop offset="100%" stop-color="#10b981" />
+      <stop offset="0%" stop-color="#FFA62B" />
+      <stop offset="50%" stop-color="#FF7B00" />
+      <stop offset="100%" stop-color="#22C55E" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#f59e0b" stop-opacity="0" />
-      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#FFA62B" stop-opacity="0" />
+      <stop offset="100%" stop-color="#FFA62B" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,18 +50,18 @@
   <g filter="url(#glow)">
     
         <!-- Winged target / Swift icon -->
-        <g stroke="#f59e0b" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="64" cy="64" r="16" fill="#d97706" fill-opacity="0.1" stroke-width="4" />
+        <g stroke="#FFA62B" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="64" cy="64" r="16" fill="#FF7B00" fill-opacity="0.1" stroke-width="4" />
           <!-- Target wings -->
-          <path d="M48,64 L20,48 L28,68 L48,68 Z" fill="#10b981" />
-          <path d="M80,64 L108,48 L100,68 L80,68 Z" fill="#10b981" />
-          <circle cx="64" cy="64" r="6" fill="#f59e0b" />
+          <path d="M48,64 L20,48 L28,68 L48,68 Z" fill="#22C55E" />
+          <path d="M80,64 L108,48 L100,68 L80,68 Z" fill="#22C55E" />
+          <circle cx="64" cy="64" r="6" fill="#FFA62B" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#10b981" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#f59e0b" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#22C55E" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#FFA62B" opacity="0.4" />
 </svg>

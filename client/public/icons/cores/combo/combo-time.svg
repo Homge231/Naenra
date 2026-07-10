@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1a0d0d" />
-      <stop offset="100%" stop-color="#0d0404" />
+      <stop offset="0%" stop-color="#1c0e08" />
+      <stop offset="100%" stop-color="#0e0704" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f97316" />
-      <stop offset="50%" stop-color="#ef4444" />
-      <stop offset="100%" stop-color="#eab308" />
+      <stop offset="0%" stop-color="#FF7B00" />
+      <stop offset="50%" stop-color="#FFA62B" />
+      <stop offset="100%" stop-color="#E63946" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#f97316" stop-opacity="0" />
-      <stop offset="100%" stop-color="#f97316" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#FF7B00" stop-opacity="0" />
+      <stop offset="100%" stop-color="#FF7B00" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,20 +50,20 @@
   <g filter="url(#glow)">
     
         <!-- Hourglass of combo -->
-        <g stroke="#f97316" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <g stroke="#FF7B00" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <line x1="44" y1="36" x2="84" y2="36" stroke-width="5" />
           <line x1="44" y1="92" x2="84" y2="92" stroke-width="5" />
-          <path d="M48,36 L52,54 C54,58 60,62 64,62 C68,62 74,58 76,54 L80,36" stroke="#ef4444" />
-          <path d="M48,92 L52,74 C54,70 60,66 64,66 C68,66 74,70 76,74 L80,92" stroke="#ef4444" />
+          <path d="M48,36 L52,54 C54,58 60,62 64,62 C68,62 74,58 76,54 L80,36" stroke="#FFA62B" />
+          <path d="M48,92 L52,74 C54,70 60,66 64,66 C68,66 74,70 76,74 L80,92" stroke="#FFA62B" />
           <!-- Sand flow of fire -->
-          <circle cx="64" cy="64" r="3" fill="#eab308" stroke="none" />
-          <polygon points="64,48 60,84 68,84" fill="#eab308" fill-opacity="0.5" stroke="none" />
+          <circle cx="64" cy="64" r="3" fill="#E63946" stroke="none" />
+          <polygon points="64,48 60,84 68,84" fill="#E63946" fill-opacity="0.5" stroke="none" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#eab308" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#f97316" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#E63946" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#FF7B00" opacity="0.4" />
 </svg>

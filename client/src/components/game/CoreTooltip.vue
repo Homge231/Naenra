@@ -29,59 +29,59 @@ const FAMILY_CONFIGS: Record<string, {
   displayName: string
 }> = {
   balanced: {
-    color: 'text-blue-400',
+    color: 'text-lightBlue',
     bg: 'from-blue-950/90 to-slate-950/90',
     border: 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]',
-    dot: 'bg-blue-400',
+    dot: 'bg-blue-500',
     displayName: 'Balanced'
   },
   combo: {
-    color: 'text-orange-400',
+    color: 'text-lightOrange',
     bg: 'from-orange-950/90 to-slate-950/90',
-    border: 'border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.3)]',
+    border: 'border-orange-500/50 shadow-[0_0_15px_rgba(255,123,0,0.3)]',
     dot: 'bg-orange-500',
     displayName: 'Combo'
   },
   speedster: {
-    color: 'text-cyan-400',
-    bg: 'from-cyan-950/90 to-slate-950/90',
-    border: 'border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]',
-    dot: 'bg-cyan-400',
+    color: 'text-lightBlue',
+    bg: 'from-blue-950/90 to-slate-950/90',
+    border: 'border-lightBlue/50 shadow-[0_0_15px_rgba(96,165,250,0.3)]',
+    dot: 'bg-lightBlue',
     displayName: 'Speedster'
   },
   oracle: {
-    color: 'text-violet-400',
-    bg: 'from-violet-950/90 to-slate-950/90',
-    border: 'border-violet-500/50 shadow-[0_0_15px_rgba(139,92,246,0.3)]',
-    dot: 'bg-violet-400',
+    color: 'text-lightBlue',
+    bg: 'from-blue-950/90 to-slate-950/90',
+    border: 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]',
+    dot: 'bg-blue-500',
     displayName: 'Oracle'
   },
   mission: {
-    color: 'text-amber-400',
-    bg: 'from-amber-950/90 to-slate-950/90',
-    border: 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]',
-    dot: 'bg-amber-500',
+    color: 'text-lightOrange',
+    bg: 'from-orange-950/90 to-slate-950/90',
+    border: 'border-lightOrange/50 shadow-[0_0_15px_rgba(255,166,43,0.3)]',
+    dot: 'bg-lightOrange',
     displayName: 'Mission'
   },
   aegis: {
-    color: 'text-sky-400',
-    bg: 'from-sky-950/90 to-slate-950/90',
-    border: 'border-sky-500/50 shadow-[0_0_15px_rgba(56,189,248,0.3)]',
-    dot: 'bg-sky-400',
+    color: 'text-lightBlue',
+    bg: 'from-blue-950/90 to-slate-950/90',
+    border: 'border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.3)]',
+    dot: 'bg-blue-500',
     displayName: 'Aegis'
   },
   power: {
-    color: 'text-pink-400',
-    bg: 'from-pink-950/90 to-slate-950/90',
-    border: 'border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)]',
-    dot: 'bg-pink-400',
+    color: 'text-hexred',
+    bg: 'from-red-950/90 to-slate-950/90',
+    border: 'border-hexred/50 shadow-[0_0_15px_rgba(230,57,70,0.3)]',
+    dot: 'bg-hexred',
     displayName: 'Power'
   },
   pandora: {
-    color: 'text-purple-400',
-    bg: 'from-purple-950/90 to-slate-950/90',
-    border: 'border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.3)]',
-    dot: 'bg-purple-400',
+    color: 'text-lightOrange',
+    bg: 'from-orange-950/90 to-slate-950/90',
+    border: 'border-orange-500/50 shadow-[0_0_15px_rgba(255,123,0,0.3)]',
+    dot: 'bg-orange-500',
     displayName: 'Pandora'
   },
   unknown: {

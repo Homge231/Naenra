@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#1c0a1b" />
-      <stop offset="100%" stop-color="#0b030b" />
+      <stop offset="0%" stop-color="#20080c" />
+      <stop offset="100%" stop-color="#0e0305" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#d946ef" />
-      <stop offset="50%" stop-color="#ec4899" />
-      <stop offset="100%" stop-color="#f43f5e" />
+      <stop offset="0%" stop-color="#E63946" />
+      <stop offset="50%" stop-color="#FF7B00" />
+      <stop offset="100%" stop-color="#FFA62B" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#d946ef" stop-opacity="0" />
-      <stop offset="100%" stop-color="#d946ef" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#E63946" stop-opacity="0" />
+      <stop offset="100%" stop-color="#E63946" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,21 +50,21 @@
   <g filter="url(#glow)">
     
         <!-- Skull with crossed bullets/guns -->
-        <g stroke="#d946ef" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="64" cy="52" r="14" fill="#ec4899" fill-opacity="0.1" />
-          <rect x="52" y="62" width="24" height="12" fill="#ec4899" fill-opacity="0.1" />
+        <g stroke="#E63946" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="64" cy="52" r="14" fill="#FF7B00" fill-opacity="0.1" />
+          <rect x="52" y="62" width="24" height="12" fill="#FF7B00" fill-opacity="0.1" />
           <!-- Eye sockets -->
-          <circle cx="56" cy="52" r="3.5" fill="#f43f5e" stroke="none" />
-          <circle cx="72" cy="52" r="3.5" fill="#f43f5e" stroke="none" />
+          <circle cx="56" cy="52" r="3.5" fill="#FFA62B" stroke="none" />
+          <circle cx="72" cy="52" r="3.5" fill="#FFA62B" stroke="none" />
           <!-- Crossed weapons -->
-          <line x1="34" y1="84" x2="94" y2="36" stroke-width="4.5" stroke="#f43f5e" />
-          <line x1="94" y1="84" x2="34" y2="36" stroke-width="4.5" stroke="#f43f5e" />
+          <line x1="34" y1="84" x2="94" y2="36" stroke-width="4.5" stroke="#FFA62B" />
+          <line x1="94" y1="84" x2="34" y2="36" stroke-width="4.5" stroke="#FFA62B" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#f43f5e" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#d946ef" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#FFA62B" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#E63946" opacity="0.4" />
 </svg>

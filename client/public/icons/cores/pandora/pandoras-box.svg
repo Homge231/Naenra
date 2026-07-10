@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#11091a" />
-      <stop offset="100%" stop-color="#050209" />
+      <stop offset="0%" stop-color="#100d18" />
+      <stop offset="100%" stop-color="#06050b" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a855f7" />
-      <stop offset="50%" stop-color="#06b6d4" />
-      <stop offset="100%" stop-color="#f43f5e" />
+      <stop offset="0%" stop-color="#FF7B00" />
+      <stop offset="50%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#E63946" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#a855f7" stop-opacity="0" />
-      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#FF7B00" stop-opacity="0" />
+      <stop offset="100%" stop-color="#FF7B00" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,21 +50,21 @@
   <g filter="url(#glow)">
     
         <!-- Ornate chaos cube -->
-        <g stroke="#a855f7" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <g stroke="#FF7B00" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <!-- 3D Cube shape -->
-          <polygon points="64,26 94,42 94,76 64,94 34,76 34,42" fill="#06b6d4" fill-opacity="0.1" stroke-width="5" />
+          <polygon points="64,26 94,42 94,76 64,94 34,76 34,42" fill="#3B82F6" fill-opacity="0.1" stroke-width="5" />
           <line x1="64" y1="94" x2="64" y2="58" stroke-width="4" />
           <line x1="34" y1="42" x2="64" y2="58" stroke-width="4" />
           <line x1="94" y1="42" x2="64" y2="58" stroke-width="4" />
           <!-- Swirling chaos trails out -->
-          <path d="M64,52 Q72,30 92,26" stroke="#f43f5e" stroke-width="3" />
-          <path d="M64,52 Q56,30 36,26" stroke="#f43f5e" stroke-width="3" />
+          <path d="M64,52 Q72,30 92,26" stroke="#E63946" stroke-width="3" />
+          <path d="M64,52 Q56,30 36,26" stroke="#E63946" stroke-width="3" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#f43f5e" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#a855f7" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#E63946" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#FF7B00" opacity="0.4" />
 </svg>

@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#121829" />
-      <stop offset="100%" stop-color="#060913" />
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#080c16" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6" />
-      <stop offset="50%" stop-color="#10b981" />
-      <stop offset="100%" stop-color="#f59e0b" />
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#F8FAFC" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#3b82f6" stop-opacity="0" />
-      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#3B82F6" stop-opacity="0" />
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,9 +50,9 @@
   <g filter="url(#glow)">
     
         <!-- Mirrored geometric balance -->
-        <g stroke="#3b82f6" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="64,32 92,60 36,60" stroke="#10b981" />
-          <polygon points="64,96 36,68 92,68" stroke="#f59e0b" />
+        <g stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="64,32 92,60 36,60" stroke="#60A5FA" />
+          <polygon points="64,96 36,68 92,68" stroke="#F8FAFC" />
           <line x1="30" y1="64" x2="98" y2="64" stroke-width="2" stroke-dasharray="4,4" />
         </g>
       
@@ -60,6 +60,6 @@
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#f59e0b" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#3b82f6" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#F8FAFC" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#3B82F6" opacity="0.4" />
 </svg>

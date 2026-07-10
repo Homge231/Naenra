@@ -2,21 +2,21 @@
   <defs>
     <!-- Background Gradient -->
     <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#130c1e" />
-      <stop offset="100%" stop-color="#08040d" />
+      <stop offset="0%" stop-color="#0d1324" />
+      <stop offset="100%" stop-color="#050710" />
     </radialGradient>
 
     <!-- Glowing Border Gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b5cf6" />
-      <stop offset="50%" stop-color="#ec4899" />
-      <stop offset="100%" stop-color="#f59e0b" />
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="50%" stop-color="#FFA62B" />
+      <stop offset="100%" stop-color="#F8FAFC" />
     </linearGradient>
 
     <!-- Inner Glow Gradient -->
     <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="70%" stop-color="#8b5cf6" stop-opacity="0" />
-      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#3B82F6" stop-opacity="0" />
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.25" />
     </radialGradient>
 
     <!-- Symbol Glow Filter -->
@@ -50,20 +50,20 @@
   <g filter="url(#glow)">
     
         <!-- Ancient book -->
-        <g stroke="#8b5cf6" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="34" y="36" width="60" height="52" rx="4" fill="#ec4899" fill-opacity="0.15" stroke-width="4" />
+        <g stroke="#3B82F6" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="34" y="36" width="60" height="52" rx="4" fill="#FFA62B" fill-opacity="0.15" stroke-width="4" />
           <line x1="64" y1="36" x2="64" y2="88" stroke-width="4" />
           <!-- Mystic symbol on pages -->
-          <circle cx="48" cy="62" r="5" stroke="#f59e0b" />
-          <line x1="76" y1="54" x2="84" y2="54" stroke="#f59e0b" stroke-width="3" />
-          <line x1="76" y1="62" x2="84" y2="62" stroke="#f59e0b" stroke-width="3" />
-          <line x1="76" y1="70" x2="82" y2="70" stroke="#f59e0b" stroke-width="3" />
+          <circle cx="48" cy="62" r="5" stroke="#F8FAFC" />
+          <line x1="76" y1="54" x2="84" y2="54" stroke="#F8FAFC" stroke-width="3" />
+          <line x1="76" y1="62" x2="84" y2="62" stroke="#F8FAFC" stroke-width="3" />
+          <line x1="76" y1="70" x2="82" y2="70" stroke="#F8FAFC" stroke-width="3" />
         </g>
       
   </g>
 
   <!-- Small geometric accent details -->
   <circle cx="64" cy="22" r="1.5" fill="#fff" opacity="0.8" />
-  <circle cx="34" cy="98" r="1" fill="#f59e0b" opacity="0.4" />
-  <circle cx="94" cy="98" r="1" fill="#8b5cf6" opacity="0.4" />
+  <circle cx="34" cy="98" r="1" fill="#F8FAFC" opacity="0.4" />
+  <circle cx="94" cy="98" r="1" fill="#3B82F6" opacity="0.4" />
 </svg>
