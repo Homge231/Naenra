@@ -26,9 +26,9 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
   },
 
   // ── Combo Branch ───────────────────────────────────────────────────────────
-  'combo core': {
-    id:           'combo-core',
-    name:         'Combo Core',
+  'perfect combo': {
+    id:           'perfect-combo',
+    name:         'Perfect Combo',
     timerColor:   'text-lightOrange',
     timerClass:   '',
     timerIconClass: '',
@@ -52,9 +52,9 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
   },
 
   // ── Oracle Branch ──────────────────────────────────────────────────────────
-  'oracle core': {
-    id:           'oracle-core',
-    name:         'Oracle Core',
+  'argus eyes': {
+    id:           'argus-eyes',
+    name:         'Argus Eyes',
     timerColor:   'text-lightOrange',
     timerClass:   '',
     timerIconClass: '',
@@ -107,9 +107,9 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
   },
 
   // ── Mission Branch ─────────────────────────────────────────────────────────
-  'mission core': {
-    id:           'mission-core',
-    name:         'Mission Core',
+  'mission impossible': {
+    id:           'mission-impossible',
+    name:         'Mission Impossible',
     timerColor:   'text-lightOrange',
     timerClass:   '',
     timerIconClass: '',
@@ -159,9 +159,9 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
   },
 
   // ── Balanced Branch ────────────────────────────────────────────────────────
-  'balanced core': {
-    id:           'balanced-core',
-    name:         'Balanced Core',
+  'balance': {
+    id:           'balance',
+    name:         'Balance',
     timerColor:   'text-lightOrange',
     timerClass:   '',
     timerIconClass: '',
@@ -185,9 +185,9 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
   },
 
   // ── Power Branch ───────────────────────────────────────────────────────────
-  'power core': {
-    id:           'power-core',
-    name:         'Power Core',
+  'power strike': {
+    id:           'power-strike',
+    name:         'Power Strike',
     timerColor:   'text-lightOrange',
     timerClass:   '',
     timerIconClass: '',
@@ -352,7 +352,7 @@ export function isComboCore(name: string | null | undefined): boolean {
   if (!name) return false
   const key = name.trim().toLowerCase()
   return [
-    'combo core',
+    'perfect combo',
     'radiant combo',
     'prismatic combo',
     'combo time',
