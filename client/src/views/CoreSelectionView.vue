@@ -107,6 +107,7 @@
           </div>
 
           <button @click="handleCardReroll(index)"
+            :id="index === 0 ? 'tutorial-reroll' : undefined"
             :disabled="rerolledSlots[index] || rerollingIndex !== null || loading"
             class="group relative px-6 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 shadow-lg disabled:cursor-not-allowed"
             :class="rerolledSlots[index]
@@ -136,12 +137,17 @@
 
     <!-- Tutorial CoachMark -->
     <CoachMark 
-      v-if="showTutorial"
-      targetId="tutorial-core-legend"
-      message="⚔️ Power Cores amplify your score with multipliers, combos & speed bonuses. 🔮 Effect Cores grant special mechanics like Shields, Letter Hints, and side Missions. Hover a card to see full details!"
-      placement="bottom"
-      @next="hideTutorialLocal"
-      @skip="skipTutorialPermanently"
+      v-if="tutorial.isCurrentScreen('core-select')"
+      :targetId="tutorial.currentStepData.value?.targetId"
+      :message="tutorial.currentStepData.value?.message"
+      :title="tutorial.currentStepData.value?.title"
+      :icon="tutorial.currentStepData.value?.icon"
+      :step="tutorial.currentStepNumber.value"
+      :totalSteps="tutorial.totalSteps"
+      :keyHints="tutorial.currentStepData.value?.keyHints"
+      :placement="tutorial.currentStepData.value?.placement"
+      @next="tutorial.next"
+      @skip="tutorial.complete"
     />
   </div>
 </template>
@@ -155,10 +161,12 @@ import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
+import { useTutorial } from '../composables/useTutorial'
 
 const router = useRouter()
 const gameStore = useGameStore()
 const authStore = useAuthStore()
+const tutorial = useTutorial()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
 // ── Hover & Touch-Hold Tooltip Logic ─────────────────────────────────────────
@@ -228,22 +236,9 @@ const selectedCore = ref<CoreOption | null>(null)
 const loading = ref(true)
 const errorMsg = ref('')
 
-const showTutorial = ref(false)
+const errorMsg = ref('')
 
-watch(() => authStore.isFirstPlay, (isFirst) => {
-  if (isFirst) {
-    showTutorial.value = true
-  }
-}, { immediate: true })
-
-function hideTutorialLocal() {
-  showTutorial.value = false
-}
-
-async function skipTutorialPermanently() {
-  showTutorial.value = false
-  await authStore.skipTutorial()
-}
+// Wait, we still need to pause the timer when tutorial is active, so we use tutorial.isCurrentScreen('core-select')
 
 // ── Reroll State (Independent per card) ─────────────────────────────────────
 const rerolledSlots = ref([false, false])
@@ -284,7 +279,7 @@ function handleCardReroll(index: number) {
 function startTimer() {
   if (selectionTimer) return
   selectionTimer = setInterval(() => {
-    if (showTutorial.value) return // Pause timer while tutorial is active
+    if (tutorial.isCurrentScreen('core-select')) return // Pause timer while tutorial is active
 
     if (timeLeft.value <= 1) {
       timeLeft.value = 0

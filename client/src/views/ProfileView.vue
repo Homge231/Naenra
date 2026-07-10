@@ -103,6 +103,16 @@
             <div class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
             <span class="relative z-10">Edit Profile</span>
           </button>
+          
+          <button
+            @click="handleReplayTutorial"
+            class="w-full mt-2 bg-darkNavy/50 border border-lightBlue/30 text-lightBlue font-black py-3 rounded-xl hover:bg-lightBlue/10 hover:border-lightBlue transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Replay Tutorial
+          </button>
         </div>
 
         <!-- Edit mode -->
@@ -147,9 +157,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useTutorial } from '../composables/useTutorial'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const tutorial = useTutorial()
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
@@ -185,7 +197,14 @@ const displayAvatar = computed(() => {
   return fallbackAvatar.value
 })
 
-// Removed local fetchProfile in favor of authStore.fetchProfile()
+function handleReplayTutorial() {
+  tutorial.resetTutorial()
+  router.push('/game')
+}
+
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
 
 function enterEditMode() {
   form.value.username = profile.value.username

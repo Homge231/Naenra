@@ -47,9 +47,19 @@
     </div>
 
     <!-- Tutorial CoachMark -->
-    <CoachMark v-if="showTutorial" targetId="tutorial-typing-area"
-      message="Type the target word as fast as you can. Mistakes will cost you points!" placement="top"
-      @next="skipTutorialPermanently" @skip="skipTutorialPermanently" />
+    <CoachMark 
+      v-if="tutorial.isCurrentScreen('gameplay') || tutorial.isCurrentScreen('match-end')"
+      :targetId="tutorial.currentStepData.value?.targetId"
+      :message="tutorial.currentStepData.value?.message"
+      :title="tutorial.currentStepData.value?.title"
+      :icon="tutorial.currentStepData.value?.icon"
+      :step="tutorial.currentStepNumber.value"
+      :totalSteps="tutorial.totalSteps"
+      :keyHints="tutorial.currentStepData.value?.keyHints"
+      :placement="tutorial.currentStepData.value?.placement"
+      @next="tutorial.next"
+      @skip="tutorial.complete"
+    />
 
     <!-- Pandora overlays: shift announcements and indicator -->
     <PandoraOverlay :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
@@ -141,7 +151,7 @@
       </div>
 
       <div class="flex items-center gap-8">
-        <div
+        <div id="tutorial-score-area"
           class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
           <span class="text-xs font-bold text-orange tracking-[0.2em] uppercase">Score</span>
           <span class="text-xl font-black text-white tabular-nums">{{ score }}</span>
@@ -167,7 +177,7 @@
           </span>
           <!-- Round Indicator Preparation -->
           <div class="absolute -bottom-6 w-full text-center whitespace-nowrap">
-            <span
+            <span id="tutorial-round-indicator"
               class="text-[9px] font-bold text-gray-500 uppercase tracking-widest bg-darkBlue/50 px-2 py-0.5 rounded-full border border-white/5">
               Round {{ matchStore.currentRound }}/{{ matchStore.maxRounds }}
             </span>
@@ -309,7 +319,7 @@
     <div v-show="gameState !== 'upgrade'" class="relative z-20 h-2 w-full flex bg-black/50">
       <div class="h-full rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]" :class="[
         timeLeft <= 10 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-blue to-lightBlue'
-      ]" :style="{ width: `${showTutorial ? 0 : timerProgressPercent}%` }">
+      ]" :style="{ width: `${tutorial.isCurrentScreen('gameplay') ? 0 : timerProgressPercent}%` }">
       </div>
     </div>
 
@@ -348,7 +358,7 @@
     <transition name="timeout-overlay">
       <div v-if="gameState === 'timeout'" class="absolute inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-xl"></div>
-        <div
+        <div id="tutorial-match-result"
           class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-2xl w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[90vh]">
           <p class="text-xs font-bold text-hexred tracking-[0.4em] uppercase mb-4 drop-shadow-md">
             {{ matchStore.isFinalRound() ? 'Match Ended' : 'Round Ended' }}
@@ -462,7 +472,7 @@
 
     <!-- US-24: input is disabled during the 15s timeout phase AND in the final timeout state -->
     <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
-      spellcheck="false" :disabled="gameState === 'timeout' || showTutorial" @keydown="handleKeydown" />
+      spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay') || tutorial.isCurrentScreen('match-end')" @keydown="handleKeydown" />
   </div>
 </template>
 
@@ -480,9 +490,9 @@ import CoreUpgradeOverlay from '../components/game/CoreUpgradeOverlay.vue'
 import OracleCoreIndicator from '../components/game/OracleCoreIndicator.vue'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import Avatar from '../components/Avatar.vue'
-import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
 import PandoraOverlay from '../components/game/PandoraOverlay.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
+import { useTutorial } from '../composables/useTutorial'
 import { useGameStore } from '../stores/gameStore'
 import { getCoreFamily } from '../game/cores/families'
 import { useMatchStore } from '../stores/matchStore'
@@ -545,7 +555,8 @@ const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
 const isDev = import.meta.env.DEV
-const showTutorial = ref(false)
+
+const tutorial = useTutorial()
 
 const questionsAnswered = ref(0)
 const oracleRevealLevel = ref(0)
@@ -573,7 +584,7 @@ const {
   pauseTimerFor,
   resetTimer
 } = useMatchTimer({
-  showTutorial: () => showTutorial.value,
+  showTutorial: () => tutorial.isCurrentScreen('gameplay') || tutorial.isCurrentScreen('match-end'),
   timerSpeedMultiplier: () => timerSpeedMultiplier.value,
   isPandoraMode: () => isPandoraMode.value,
   isTrickster: () => isTrickster.value,
@@ -600,17 +611,6 @@ const {
   inputRef,
   refetchThreshold: REFETCH_THRESHOLD
 })
-
-watch(() => authStore.isFirstPlay, (isFirst) => {
-  if (isFirst) {
-    showTutorial.value = true
-  }
-}, { immediate: true })
-
-async function skipTutorialPermanently() {
-  showTutorial.value = false
-  await authStore.skipTutorial()
-}
 
 const THEME_MAP: Record<string, string> = {
   'daily-life': '/bg-daily-life.png',

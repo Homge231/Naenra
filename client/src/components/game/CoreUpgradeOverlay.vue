@@ -31,7 +31,7 @@
         </svg>
       </div>
 
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-stretch"
+      <div v-else id="tutorial-upgrade-cards" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-stretch"
         :class="{ 'pointer-events-none': loading && upgradeCores.length > 0 }">
         
         <div v-for="(core, index) in upgradeCores" :key="core.id || index" class="flex flex-col items-center w-full h-full relative">
@@ -79,8 +79,23 @@
     <div class="absolute bottom-0 left-0 z-20 h-2 w-full flex bg-black/50">
       <div class="h-full transition-all duration-1000 ease-linear rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]"
         :class="timeLeft <= 5 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-orange to-lightOrange'"
-        :style="{ width: `${(timeLeft / SELECTION_DURATION) * 100}%` }"></div>
+        :style="{ width: `${tutorial.isCurrentScreen('upgrade') ? 0 : (timeLeft / SELECTION_DURATION) * 100}%` }"></div>
     </div>
+
+    <!-- Tutorial CoachMark -->
+    <CoachMark 
+      v-if="tutorial.isCurrentScreen('upgrade')"
+      :targetId="tutorial.currentStepData.value?.targetId"
+      :message="tutorial.currentStepData.value?.message"
+      :title="tutorial.currentStepData.value?.title"
+      :icon="tutorial.currentStepData.value?.icon"
+      :step="tutorial.currentStepNumber.value"
+      :totalSteps="tutorial.totalSteps"
+      :keyHints="tutorial.currentStepData.value?.keyHints"
+      :placement="tutorial.currentStepData.value?.placement"
+      @next="tutorial.next"
+      @skip="tutorial.complete"
+    />
 
   </div>
 </template>
@@ -91,12 +106,15 @@ import { useGameStore } from '../../stores/gameStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { getCoreIconPath } from '../../game/cores/icons'
 import CoreTooltip from './CoreTooltip.vue'
+import CoachMark from '../tutorial/CoachMark.vue'
+import { useTutorial } from '../../composables/useTutorial'
 
 const emit = defineEmits<{ (e: 'selected', coreId: string): void }>()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
 const gameStore = useGameStore()
 const matchStore = useMatchStore()
+const tutorial = useTutorial()
 
 // ── Hover & Touch-Hold Tooltip Logic ─────────────────────────────────────────
 const activeTooltipIndex = ref<number | null>(null)
@@ -156,6 +174,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 function startTimer() {
   timer = setInterval(() => {
+    if (tutorial.isCurrentScreen('upgrade')) return // Pause timer while tutorial is active
+
     if (timeLeft.value <= 1) {
       timeLeft.value = 0
       stopTimer()

@@ -5,6 +5,11 @@ const props = defineProps<{
   targetId: string
   message: string
   placement?: 'top' | 'bottom' | 'left' | 'right' | 'center'
+  title?: string
+  icon?: string
+  step?: number
+  totalSteps?: number
+  keyHints?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -106,25 +111,57 @@ watch(() => props.targetId, () => {
 
       <!-- Popover Box -->
       <div 
-        class="absolute flex flex-col gap-3 bg-gray-900 border border-white/20 p-5 rounded-xl shadow-2xl max-w-sm z-[101]"
+        class="absolute flex flex-col gap-4 bg-gray-900 border border-white/20 p-5 rounded-xl shadow-2xl max-w-sm z-[101]"
         :style="popoverStyle"
       >
-        <p class="text-white text-sm font-medium leading-relaxed">
-          {{ message }}
-        </p>
-
-        <div class="flex items-center gap-3 mt-2">
-          <button 
-            @click="emit('next')"
-            class="flex-1 bg-white text-black font-bold text-xs uppercase tracking-wider py-2 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Got It!
-          </button>
+        <!-- Header: Step counter and Skip button -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-2">
+          <div class="flex items-center gap-2">
+            <span v-if="props.icon" class="text-xl">{{ props.icon }}</span>
+            <span v-if="props.step && props.totalSteps" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-white/10 px-2 py-0.5 rounded-full">
+              Step {{ props.step }}/{{ props.totalSteps }}
+            </span>
+          </div>
           <button 
             @click="emit('skip')"
-            class="px-4 py-2 text-white/50 hover:text-white font-medium text-xs uppercase tracking-wider transition-colors"
+            class="text-[10px] text-gray-500 hover:text-white font-bold uppercase tracking-widest transition-colors"
           >
             Skip Tutorial
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div>
+          <h3 v-if="props.title" class="text-white text-lg font-black tracking-wide mb-2">
+            {{ props.title }}
+          </h3>
+          <p class="text-gray-300 text-sm font-medium leading-relaxed">
+            {{ message }}
+          </p>
+        </div>
+
+        <!-- Key Hints -->
+        <div v-if="props.keyHints && props.keyHints.length > 0" class="flex gap-2 mt-1">
+          <span v-for="hint in props.keyHints" :key="hint" class="bg-black border border-white/20 text-gray-300 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded shadow-inner">
+            {{ hint }}
+          </span>
+        </div>
+
+        <!-- Footer / Next Button -->
+        <div class="flex items-center justify-between mt-1">
+          <!-- Progress Dots (Optional visual flair) -->
+          <div v-if="props.totalSteps" class="flex gap-1">
+            <div v-for="i in props.totalSteps" :key="i" class="w-1.5 h-1.5 rounded-full"
+                 :class="i === props.step ? 'bg-lightBlue' : i < (props.step || 0) ? 'bg-white/40' : 'bg-white/10'">
+            </div>
+          </div>
+          <div v-else></div> <!-- spacer -->
+
+          <button 
+            @click="emit('next')"
+            class="bg-white text-black font-black text-xs uppercase tracking-wider px-6 py-2.5 rounded-lg hover:bg-gray-200 transition-colors shadow-lg"
+          >
+            Got It! &rarr;
           </button>
         </div>
       </div>
