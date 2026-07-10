@@ -236,8 +236,6 @@ const selectedCore = ref<CoreOption | null>(null)
 const loading = ref(true)
 const errorMsg = ref('')
 
-const errorMsg = ref('')
-
 // Wait, we still need to pause the timer when tutorial is active, so we use tutorial.isCurrentScreen('core-select')
 
 // ── Reroll State (Independent per card) ─────────────────────────────────────

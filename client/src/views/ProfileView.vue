@@ -221,10 +221,6 @@ function cancelEdit() {
   successMsg.value = ''
 }
 
-function triggerFileInput() {
-  fileInputRef.value?.click()
-}
-
 function handleFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
