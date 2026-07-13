@@ -3,24 +3,40 @@ import { BaseCore, ScoringContext, ScoringResult, BASE_POINTS } from './BaseCore
 export class PhoenixCoreStrategy extends BaseCore {
   public readonly coreName: string
   private basePointsOverride: number
+  private bonusAmount: number
+  private requiredMisses: number
+  private nullifyPenalty: boolean
 
   constructor(
     coreName: string,
+    bonusAmount: number = 200,
+    requiredMisses: number = 1,
+    nullifyPenalty: boolean = false,
     basePointsOverride: number = BASE_POINTS
   ) {
     super()
     this.coreName = coreName
+    this.bonusAmount = bonusAmount
+    this.requiredMisses = requiredMisses
+    this.nullifyPenalty = nullifyPenalty
     this.basePointsOverride = basePointsOverride
   }
 
+  private hasConsecutiveMisses(history: boolean[], amount: number): boolean {
+    // history includes the current answer (which is true since this is calculateCorrect)
+    // we need to look at the 'amount' answers *before* the current one.
+    // e.g. amount = 2, history = [..., false, false, true]
+    if (history.length <= amount) return false
+    for (let i = 1; i <= amount; i++) {
+      if (history[history.length - 1 - i] !== false) return false
+    }
+    return true
+  }
+
   calculateCorrect(ctx: ScoringContext): ScoringResult {
-    // Phoenix Core logic: +200 bonus points if the previous answer was wrong
     let phoenixBonus = 0
-    if (ctx.answerHistory.length >= 2) {
-      const previousAnswerWasCorrect = ctx.answerHistory[ctx.answerHistory.length - 2]
-      if (!previousAnswerWasCorrect) {
-        phoenixBonus = 200
-      }
+    if (this.hasConsecutiveMisses(ctx.answerHistory, this.requiredMisses)) {
+      phoenixBonus = this.bonusAmount
     }
 
     const oraclePenalty = this._oraclePenalty(ctx)
@@ -33,7 +49,7 @@ export class PhoenixCoreStrategy extends BaseCore {
       pointsDelta: finalScore,
       breakdown: {
         base: this.basePointsOverride,
-        combo_bonus: phoenixBonus, // we hijack combo_bonus for the phoenix bonus to show in UI
+        combo_bonus: phoenixBonus,
         flat_buff: ctx.flatBuff,
         multiplier_buff: ctx.multiplierBuff,
         oracle_penalty: oraclePenalty,
@@ -44,7 +60,9 @@ export class PhoenixCoreStrategy extends BaseCore {
 
   calculateWrong(ctx: ScoringContext): ScoringResult {
     const oraclePenalty = this._oraclePenalty(ctx)
-    const pointsDelta = -(ctx.wrongPenalty + oraclePenalty)
+    // If nullifyPenalty is true, the wrong penalty becomes 0
+    const appliedPenalty = this.nullifyPenalty ? 0 : ctx.wrongPenalty
+    const pointsDelta = -(appliedPenalty + oraclePenalty)
 
     return {
       pointsDelta,
@@ -54,7 +72,7 @@ export class PhoenixCoreStrategy extends BaseCore {
         flat_buff: 0,
         multiplier_buff: 0,
         oracle_penalty: oraclePenalty,
-        penalty: ctx.wrongPenalty
+        penalty: appliedPenalty
       }
     }
   }

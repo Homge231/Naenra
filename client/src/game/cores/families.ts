@@ -41,13 +41,13 @@ export const CORE_FAMILIES: Record<string, { tier1: string[], tier2: string[], t
   },
   'phoenix': {
     tier1: ['Phoenix Core'],
-    tier2: [],
-    tier3: []
+    tier2: ['Phoenix Flame', 'Rebirth Core', 'Ashes to Ashes'],
+    tier3: ['Immortal Phoenix', 'Eternal Rebirth', 'Supernova Ashes']
   },
   'highroller': {
     tier1: ['High Roller'],
-    tier2: [],
-    tier3: []
+    tier2: ['Jackpot', 'Safe Bet', 'Double or Nothing'],
+    tier3: ['All In', 'House Advantage', 'Russian Roulette']
   }
 }
 

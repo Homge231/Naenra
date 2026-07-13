@@ -3,13 +3,22 @@ import { BaseCore, ScoringContext, ScoringResult, BASE_POINTS } from './BaseCore
 export class HighRollerStrategy extends BaseCore {
   public readonly coreName: string
   private basePointsOverride: number
+  private winChance: number
+  private winMultiplier: number
+  private loseMultiplier: number
 
   constructor(
     coreName: string,
+    winChance: number = 0.5,
+    winMultiplier: number = 2,
+    loseMultiplier: number = 0.5,
     basePointsOverride: number = BASE_POINTS
   ) {
     super()
     this.coreName = coreName
+    this.winChance = winChance
+    this.winMultiplier = winMultiplier
+    this.loseMultiplier = loseMultiplier
     this.basePointsOverride = basePointsOverride
   }
 
@@ -21,16 +30,12 @@ export class HighRollerStrategy extends BaseCore {
       (this.basePointsOverride + ctx.flatBuff) * ctx.multiplierBuff
     )
     
-    // High Roller logic: 50% chance for 2x, 50% chance for 0.5x
-    const isLucky = Math.random() < 0.5
-    const multiplier = isLucky ? 2 : 0.5
+    const isLucky = Math.random() < this.winChance
+    const multiplier = isLucky ? this.winMultiplier : this.loseMultiplier
     
     let finalScore = Math.floor(baseScore * multiplier)
     finalScore -= oraclePenalty
 
-    // UI will use combo_bonus to represent the "gamble" outcome if we want to show it,
-    // or we can just let it be baked into multiplier_buff visually.
-    // For simplicity, we just adjust the final score.
     return {
       pointsDelta: finalScore,
       breakdown: {

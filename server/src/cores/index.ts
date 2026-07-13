@@ -26,8 +26,23 @@ import { HighRollerStrategy } from './HighRollerStrategy'
 // Key = lowercase core name as stored in the DB `cores.name` column.
 
 const CORE_REGISTRY: Record<string, BaseCore> = {
-  'phoenix core': new PhoenixCoreStrategy('phoenix core'),
-  'high roller': new HighRollerStrategy('high roller'),
+  // Phoenix Branch
+  'phoenix core': new PhoenixCoreStrategy('phoenix core', 200, 1, false),
+  'phoenix flame': new PhoenixCoreStrategy('phoenix flame', 400, 1, false),
+  'rebirth core': new PhoenixCoreStrategy('rebirth core', 200, 1, true),
+  'ashes to ashes': new PhoenixCoreStrategy('ashes to ashes', 800, 2, false),
+  'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 800, 1, false),
+  'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 400, 1, true),
+  'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 1500, 2, false),
+
+  // High Roller Branch
+  'high roller': new HighRollerStrategy('high roller', 0.5, 2, 0.5),
+  'jackpot': new HighRollerStrategy('jackpot', 0.3, 3, 0.5),
+  'safe bet': new HighRollerStrategy('safe bet', 0.8, 1.5, 0.5),
+  'double or nothing': new HighRollerStrategy('double or nothing', 0.5, 2, 0),
+  'all in': new HighRollerStrategy('all in', 0.1, 10, 0.1),
+  'house advantage': new HighRollerStrategy('house advantage', 0.7, 2, 0.5),
+  'russian roulette': new HighRollerStrategy('russian roulette', 1/6, 12, 0),
   // Balanced Branch
   'balance': new BalancedCoreStrategy('balance', false),
   'balanced core': new BalancedCoreStrategy('balanced core', false),
