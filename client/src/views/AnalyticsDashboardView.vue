@@ -64,8 +64,15 @@
           <div v-for="item in analyticsData" :key="item.topic" class="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-6 hover:border-lightBlue/30 transition-colors group">
             <div class="flex justify-between items-end mb-4">
               <div>
-                <h3 class="text-xl font-bold uppercase tracking-wider text-white group-hover:text-lightBlue transition-colors">{{ formatTopicName(item.topic) }}</h3>
-                <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">{{ item.correctAnswers }} / {{ item.totalQuestions }} Correct</p>
+                <h3 class="text-xl font-bold uppercase tracking-wider text-white group-hover:text-lightBlue transition-colors flex items-center gap-2">
+                  {{ formatTopicName(item.topic) }}
+                  <span class="text-[10px] px-2 py-0.5 rounded border uppercase tracking-widest font-black" :class="getMasteryClass(item.accuracy)">
+                    {{ getMasteryLabel(item.accuracy) }}
+                  </span>
+                </h3>
+                <p class="text-[10px] text-gray-500 tracking-widest uppercase mt-1">
+                  {{ item.correctAnswers }} / {{ item.totalQuestions }} Correct • {{ item.uniqueWordsCount || 0 }} Unique Words
+                </p>
               </div>
               <div class="text-right">
                 <span class="text-3xl font-black italic" :class="getAccuracyColorClass(item.accuracy)">{{ item.accuracy }}%</span>
@@ -80,6 +87,16 @@
                    :style="{ width: `${item.accuracy}%` }">
                    <!-- Inner glow -->
                    <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent"></div>
+              </div>
+            </div>
+
+            <!-- Weakest Words -->
+            <div v-if="item.weakestWords && item.weakestWords.length > 0" class="mt-4 pt-4 border-t border-white/5">
+              <p class="text-[10px] text-gray-400 tracking-widest uppercase mb-2">Needs Improvement</p>
+              <div class="flex flex-wrap gap-2">
+                <div v-for="w in item.weakestWords" :key="w.word" class="px-2 py-1 bg-hexred/10 border border-hexred/30 rounded text-xs text-white uppercase tracking-wider font-bold shadow-[0_0_10px_rgba(230,57,70,0.2)]">
+                  {{ w.word }} <span class="text-hexred/80 ml-1 font-mono text-[10px]">{{ w.incorrect }} misses</span>
+                </div>
               </div>
             </div>
           </div>
@@ -104,6 +121,8 @@ interface TopicAnalytics {
   accuracy: number
   totalQuestions: number
   correctAnswers: number
+  uniqueWordsCount: number
+  weakestWords: { word: string; incorrect: number }[]
 }
 
 const loading = ref(true)
@@ -150,6 +169,18 @@ function getAccuracyBgClass(accuracy: number): string {
   if (accuracy >= 80) return 'bg-success shadow-[0_0_15px_rgba(16,185,129,0.5)]'
   if (accuracy >= 50) return 'bg-orange shadow-[0_0_15px_rgba(251,146,60,0.5)]'
   return 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.5)]'
+}
+
+function getMasteryLabel(accuracy: number): string {
+  if (accuracy >= 80) return 'Master'
+  if (accuracy >= 50) return 'Proficient'
+  return 'Novice'
+}
+
+function getMasteryClass(accuracy: number): string {
+  if (accuracy >= 80) return 'text-success border-success/30 bg-success/10'
+  if (accuracy >= 50) return 'text-orange border-orange/30 bg-orange/10'
+  return 'text-hexred border-hexred/30 bg-hexred/10'
 }
 
 onMounted(() => {
