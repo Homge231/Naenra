@@ -638,9 +638,14 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // If there is an Aegis core in history that would block damage, let it override the primary penalty!
+    // If there is an Aegis core in history (or they have ghost shields from Pandora) that would block damage, let it override the primary penalty!
     if (!isCorrect) {
-      const aegisCore = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'AegisCoreStrategy')
+      let aegisCore = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'AegisCoreStrategy')
+      // If Pandora shifted away from Aegis Shield but the player still has earned shields, default to Aegis Shield logic to block the damage
+      if (!aegisCore && ctx.currentShields && ctx.currentShields > 0) {
+        aegisCore = "aegis shield"
+      }
+      
       if (aegisCore && aegisCore !== scoringCore.name) {
          const aegisResult = runScoring(isCorrect, aegisCore, ctx)
          if (aegisResult.breakdown.shield_blocked) {
