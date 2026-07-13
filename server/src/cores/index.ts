@@ -40,6 +40,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'universal harmony': new BalancedCoreStrategy('universal harmony', true),
 
   // Combo Branch
+  'perfect combo': new ComboCoreStrategy('perfect combo', 100),
   'combo core': new ComboCoreStrategy('combo core', 100),
   'radiant combo': new ComboCoreStrategy('radiant combo', 200),
   'prismatic combo': new ComboCoreStrategy('prismatic combo', 300),
@@ -53,6 +54,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'super combo': new ComboCoreStrategy('super combo', 250),
 
   // Oracle Branch
+  'argus eyes': new OracleCoreStrategy('argus eyes', false),
   'oracle core': new OracleCoreStrategy('oracle core', false),
   'clairvoyance': new OracleCoreStrategy('clairvoyance', true),
   'omniscience': new OracleCoreStrategy('omniscience', true),
@@ -80,6 +82,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'sonic boom': new SpeedsterCoreStrategy('sonic boom'),
 
   // Mission Branch
+  'mission impossible': new MissionCoreStrategy('mission impossible', 5),
   'mission core': new MissionCoreStrategy('mission core', 5),
   'bounty hunter': new MissionCoreStrategy('bounty hunter', 5),
   'exodia': new MissionCoreStrategy('exodia', 10),
@@ -108,6 +111,7 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
 
   // Power Branch
   // penaltyMultiplier: T1=1.0×, T2=2.0×, T3=3.0× — consistent risk/reward escalation
+  'power strike': new PowerCoreStrategy('power strike', 1.0),
   'power core': new PowerCoreStrategy('power core', 1.0),
   // T2 Power: all have 2.0× penalty
   'overclock core': new PowerCoreStrategy('overclock core', 2.0),
