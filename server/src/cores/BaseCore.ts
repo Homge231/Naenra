@@ -40,6 +40,10 @@ export interface ScoringContext {
   initialShieldCount?: number
   /** Names of all cores in the session's upgrade/history stack */
   historyCoreNames?: string[]
+  /** (US-33) Client-reported shield count before this answer (especially useful for Pandora shifting) */
+  currentShields?: number
+  /** (US-33) Client-reported mission progress before this answer */
+  missionProgress?: number
 }
 
 /**

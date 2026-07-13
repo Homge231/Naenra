@@ -379,7 +379,9 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       oracle_reveal_level,
       core_history_names,
       secondary_core_id,
-      player_id
+      player_id,
+      current_shields,
+      mission_progress
     } = req.body
 
     if (player_id && player_id !== playerId) {
@@ -581,7 +583,9 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       multiplierBuff:    scoringCore.multiplier_buff,
       answerHistory,
       initialShieldCount,
-      historyCoreNames
+      historyCoreNames,
+      currentShields:    typeof current_shields === 'number' ? Math.floor(current_shields) : undefined,
+      missionProgress:   typeof mission_progress === 'number' ? Math.floor(mission_progress) : undefined
     }
 
     // Always run the primary scoring core logic
@@ -727,6 +731,37 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       } else {
         throw answerErr
       }
+    }
+
+    // ── 9.5 Record Vocabulary Tracking (US-33) ────────────────────────────────
+    try {
+      const { data: existingStats, error: fetchErr } = await supabase
+        .from('user_vocab_stats')
+        .select('correct_count, incorrect_count')
+        .eq('user_id', playerId)
+        .eq('word_id', question_id)
+        .maybeSingle()
+        
+      if (fetchErr) {
+        console.error('Error fetching user_vocab_stats:', fetchErr)
+      } else {
+        const correctCount = (existingStats?.correct_count || 0) + (isCorrect ? 1 : 0)
+        const incorrectCount = (existingStats?.incorrect_count || 0) + (!isCorrect ? 1 : 0)
+        
+        const { error: upsertErr } = await supabase.from('user_vocab_stats').upsert({
+          user_id: playerId,
+          word_id: question_id,
+          correct_count: correctCount,
+          incorrect_count: incorrectCount,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,word_id' })
+        
+        if (upsertErr) {
+          console.error('Error upserting user_vocab_stats:', upsertErr)
+        }
+      }
+    } catch (vocabErr) {
+      console.error('Error tracking vocabulary:', vocabErr)
     }
 
     // ── 10. Update session totals atomically ──────────────────────────────────

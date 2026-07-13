@@ -25,6 +25,7 @@ import { BalancedCoreStrategy } from './BalancedCoreStrategy'
 
 const CORE_REGISTRY: Record<string, BaseCore> = {
   // Balanced Branch
+  'balance': new BalancedCoreStrategy('balance', false),
   'balanced core': new BalancedCoreStrategy('balanced core', false),
   'harmony core': new BalancedCoreStrategy('harmony core', false),
   'perfect harmony': new BalancedCoreStrategy('perfect harmony', true),

@@ -29,11 +29,26 @@ export class MissionCoreStrategy extends BaseCore {
     const hist = ctx.answerHistory || []
     
     let consecutiveCorrect = 0
-    for (let i = hist.length - 1; i >= 0; i--) {
-      if (hist[i] === true) {
-        consecutiveCorrect++
-      } else {
-        break
+    if (ctx.missionProgress !== undefined) {
+      consecutiveCorrect = ctx.missionProgress + (isCorrect ? 1 : 0)
+      if (!isCorrect) {
+        // Shield Mission Special: streak does NOT break if protected by a shield
+        const historyLower = ctx.historyCoreNames?.map(n => n.toLowerCase()) || []
+        const isShieldMission = this.coreName === 'shield mission' || historyLower.includes('shield mission')
+        const currentShields = ctx.currentShields || 0
+        if (isShieldMission && currentShields > 0) {
+          consecutiveCorrect = ctx.missionProgress
+        } else {
+          consecutiveCorrect = 0
+        }
+      }
+    } else {
+      for (let i = hist.length - 1; i >= 0; i--) {
+        if (hist[i] === true) {
+          consecutiveCorrect++
+        } else {
+          break
+        }
       }
     }
 

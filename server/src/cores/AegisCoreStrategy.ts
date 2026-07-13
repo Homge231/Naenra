@@ -67,10 +67,16 @@ export class AegisCoreStrategy extends BaseCore {
     const oraclePenalty = this._oraclePenalty(ctx)
     // Calculate shields right BEFORE this answer
     const historyBeforeThisAnswer = ctx.answerHistory.slice(0, -1)
-    const { shields: currentShields } = this.getShieldAndStreak(ctx.initialShieldCount || 0, historyBeforeThisAnswer)
+    const currentShields = ctx.currentShields !== undefined 
+      ? ctx.currentShields 
+      : this.getShieldAndStreak(ctx.initialShieldCount || 0, historyBeforeThisAnswer).shields
     
     // Calculate final shields and streak after this answer
-    const { shields: finalShields, streak: finalStreak } = this.getShieldAndStreak(ctx.initialShieldCount || 0, ctx.answerHistory)
+    const nextHistory = ctx.currentShields !== undefined ? [true] : ctx.answerHistory
+    const { shields: finalShields, streak: finalStreak } = this.getShieldAndStreak(
+      ctx.currentShields !== undefined ? ctx.currentShields : (ctx.initialShieldCount || 0), 
+      nextHistory
+    )
     
     const historyLower = ctx.historyCoreNames?.map(n => n.toLowerCase()) || []
     
@@ -117,10 +123,16 @@ export class AegisCoreStrategy extends BaseCore {
     
     // Calculate shields right BEFORE this wrong answer
     const historyBeforeThisAnswer = ctx.answerHistory.slice(0, -1)
-    const { shields: currentShields } = this.getShieldAndStreak(ctx.initialShieldCount || 0, historyBeforeThisAnswer)
+    const currentShields = ctx.currentShields !== undefined 
+      ? ctx.currentShields 
+      : this.getShieldAndStreak(ctx.initialShieldCount || 0, historyBeforeThisAnswer).shields
 
     // Calculate final shields and streak after this wrong answer
-    const { shields: finalShields, streak: finalStreak } = this.getShieldAndStreak(ctx.initialShieldCount || 0, ctx.answerHistory)
+    const nextHistory = ctx.currentShields !== undefined ? [false] : ctx.answerHistory
+    const { shields: finalShields, streak: finalStreak } = this.getShieldAndStreak(
+      ctx.currentShields !== undefined ? ctx.currentShields : (ctx.initialShieldCount || 0), 
+      nextHistory
+    )
 
     const historyLower = ctx.historyCoreNames?.map(n => n.toLowerCase()) || []
 

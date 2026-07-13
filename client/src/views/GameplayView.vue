@@ -3,7 +3,8 @@
     class="h-screen w-full overflow-hidden relative font-sans flex flex-col select-none text-white transition-all duration-75"
     :class="{
       'sepia hue-rotate-[180deg] blur-[2px] scale-[1.02] saturate-200 contrast-150 animate-pulse': isShifting,
-      'exodia-shake': showMissionCelebration && isExodia
+      'exodia-shake': showMissionCelebration && isExodia,
+      'chaos-shift': isChaos
     }" @click="refocusInput">
     <PhaserBackground :image-url="currentBgImage" class="transition-opacity duration-500 ease-in-out"
       :class="{ 'opacity-0': isBgFading, 'opacity-100': !isBgFading }" />
@@ -1028,6 +1029,8 @@ async function skipQuestion() {
   const questionId = currentQuestion.value.id
   const capturedOracleLevel = oracleRevealLevel.value
   const capturedCombo = currentCombo.value
+  const capturedShields = aegisShieldCount.value
+  const capturedMission = missionProgress.value
 
   // Immediate local feedback
   gameState.value = 'wrong'
@@ -1063,7 +1066,9 @@ async function skipQuestion() {
             secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
             core_history_names: gameStore.coreHistory.map(c => c.name),
             oracle_reveal_level: capturedOracleLevel,
-            time_taken: timeTaken
+            time_taken: timeTaken,
+            current_shields: capturedShields,
+            mission_progress: capturedMission
           })
         })
         if (res.ok) {
@@ -1148,6 +1153,8 @@ async function checkAnswer() {
   const questionId = currentQuestion.value.id
   const capturedOracleLevel = oracleRevealLevel.value
   const capturedCombo = currentCombo.value
+  const capturedShields = aegisShieldCount.value
+  const capturedMission = missionProgress.value
 
   const hashVal = await sha256(typed)
   const isCorrectLocal = hashVal === currentQuestion.value.target_hash
@@ -1247,7 +1254,9 @@ async function checkAnswer() {
           core_history_names: gameStore.coreHistory.map(c => c.name),
           core_history: gameStore.coreHistory.map(c => c.id),
           oracle_reveal_level: capturedOracleLevel,
-          time_taken: timeTaken
+          time_taken: timeTaken,
+          current_shields: capturedShields,
+          mission_progress: capturedMission
         })
       })
 
