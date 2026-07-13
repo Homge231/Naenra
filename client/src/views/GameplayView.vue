@@ -664,12 +664,6 @@ const maxShields = computed(() => {
 // Aegis Shield State
 const aegisShieldCount = ref(0)
 
-watch([maxShields, isAegisMode], ([newMax, isAegis]) => {
-  if (isAegis && aegisShieldCount.value < newMax) {
-    aegisShieldCount.value = newMax
-  }
-}, { immediate: true })
-
 const isShattering = ref(false)
 const showMissionCelebration = ref(false)
 const showPrismaticFlash = ref(false)
@@ -832,6 +826,12 @@ const timerSpeedMultiplier = computed(() => {
 
   return Math.max(0.1, mult)
 })
+
+watch([maxShields, isAegisMode], ([newMax, isAegis]) => {
+  if (isAegis && aegisShieldCount.value < newMax) {
+    aegisShieldCount.value = newMax
+  }
+}, { immediate: true })
 
 const isShifting = ref(false)
 const shiftAnnouncement = ref('')
