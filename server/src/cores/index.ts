@@ -19,11 +19,15 @@ import { AegisCoreStrategy } from './AegisCoreStrategy'
 import { PandoraCoreStrategy } from './PandoraCoreStrategy'
 import { PowerCoreStrategy } from './PowerCoreStrategy'
 import { BalancedCoreStrategy } from './BalancedCoreStrategy'
+import { PhoenixCoreStrategy } from './PhoenixCoreStrategy'
+import { HighRollerStrategy } from './HighRollerStrategy'
 
 // ── Registry ──────────────────────────────────────────────────────────────────
 // Key = lowercase core name as stored in the DB `cores.name` column.
 
 const CORE_REGISTRY: Record<string, BaseCore> = {
+  'phoenix core': new PhoenixCoreStrategy('phoenix core'),
+  'high roller': new HighRollerStrategy('high roller'),
   // Balanced Branch
   'balance': new BalancedCoreStrategy('balance', false),
   'balanced core': new BalancedCoreStrategy('balanced core', false),

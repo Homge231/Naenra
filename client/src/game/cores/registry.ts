@@ -25,6 +25,24 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
     popupType:    'correct',
   },
 
+  // ── New Tier 1 Cores (US-29) ───────────────────────────────────────────────
+  'phoenix core': {
+    id:           '11111111-1111-1111-1111-111111111111',
+    name:         'Phoenix Core',
+    timerColor:   'text-hexred',
+    timerClass:   'drop-shadow-[0_0_10px_rgba(230,57,70,0.8)]',
+    timerIconClass: '',
+    popupType:    'correct',
+  },
+  'high roller': {
+    id:           '22222222-2222-2222-2222-222222222222',
+    name:         'High Roller',
+    timerColor:   'text-purple-400',
+    timerClass:   'drop-shadow-[0_0_10px_rgba(168,85,247,0.8)]',
+    timerIconClass: '',
+    popupType:    'correct',
+  },
+
   // ── Combo Branch ───────────────────────────────────────────────────────────
   'perfect combo': {
     id:           'perfect-combo',
