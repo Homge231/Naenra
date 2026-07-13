@@ -625,6 +625,30 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       breakdown.flat_buff = (breakdown.flat_buff || 0) + 50
     }
 
+    // Trickster's Glass: Skipping a question (submitting empty) costs 0 points.
+    const hasTrickstersGlass = historyCoreNames.some(name => name.toLowerCase() === "trickster's glass")
+    if (hasTrickstersGlass && !isCorrect && normalizedAnswer === '') {
+      pointsDelta = 0
+      breakdown.penalty = 0
+      breakdown.oracle_penalty = 0
+    }
+
+    // Chaos Theory: Random bonus between +100 and +500 on correct answers
+    const hasChaosTheory = historyCoreNames.some(name => name.toLowerCase() === 'chaos theory')
+    if (hasChaosTheory && isCorrect) {
+      const chaosPts = Math.floor(Math.random() * 401) + 100 // 100 to 500
+      pointsDelta += chaosPts
+      breakdown.flat_buff = (breakdown.flat_buff || 0) + chaosPts
+    }
+
+    // Butterfly Effect: Multiplier scales with combo
+    const hasButterflyEffect = historyCoreNames.some(name => name.toLowerCase() === 'butterfly effect')
+    if (hasButterflyEffect && isCorrect) {
+      const bonusMult = 1 + (combo * 0.1) // e.g., combo 0 = 1.0, combo 1 = 1.1, combo 5 = 1.5
+      pointsDelta = Math.floor(pointsDelta * bonusMult)
+      breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * bonusMult
+    }
+
     // Stack Mission progress if there is a Mission core in history
     const missionCoreName = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'MissionCoreStrategy')
     if (missionCoreName && missionCoreName !== scoringCore.name) {
