@@ -433,13 +433,10 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     }
 
     // ── 4. Fetch core buffs ───────────────────────────────────────────────────
-    // If Pandora mode, grab the buffs for the newly shifted core submitted by the client
-    const coreIdToFetch = isPandora ? submittedCoreId : sessionCoreId
-
     const { data: coreRow, error: coreErr } = await supabase
       .from('cores')
       .select('id, name, flat_buff, multiplier_buff, core_type, classification, tier')
-      .eq('id', coreIdToFetch)
+      .eq('id', sessionCoreId)
       .single()
 
     if (coreErr || !coreRow) {
@@ -449,28 +446,31 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
 
     const core: CoreRow = coreRow as CoreRow
 
-    // ── 3. Anti-cheat: validate submitted core matches session core, or is a valid Pandora shift ──
+    // ── 3. Anti-cheat: validate submitted core matches session core ──
     if (sessionCoreId !== submittedCoreId) {
-      if (!isPandora) {
-        res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
-        return
-      }
-      const family = getCoreFamily(core.name)
-      if (core.tier !== 1 || core.core_type !== 'main' || family === 'pandora') {
-        res.status(403).json({ error: 'Cheat detected: Shifted core is not a valid Tier 1 main core or is a Pandora variant.' })
-        return
-      }
+      res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
+      return
     }
 
-    // Handle Chaos Theory dual core fetching
+    // Handle Pandora's Box shifted core fetching
     let secondaryCore: CoreRow | null = null
-    if (sessionCoreName === 'chaos theory' && secondary_core_id) {
+    if (isPandora && secondary_core_id) {
       const { data: secCore } = await supabase
         .from('cores')
-        .select('id, name, flat_buff, multiplier_buff, core_type, classification')
+        .select('id, name, flat_buff, multiplier_buff, core_type, classification, tier')
         .eq('id', secondary_core_id)
         .single()
-      if (secCore) secondaryCore = secCore as CoreRow
+      
+      if (secCore) {
+        secondaryCore = secCore as CoreRow
+        
+        // Anti-cheat: Validate that the shifted core is a valid Tier 1 main core
+        const family = getCoreFamily(secondaryCore.name)
+        if (secondaryCore.tier !== 1 || secondaryCore.core_type !== 'main' || family === 'pandora') {
+          res.status(403).json({ error: 'Cheat detected: Shifted core is not a valid Tier 1 main core or is a Pandora variant.' })
+          return
+        }
+      }
     }
 
     // ── 5. Fetch question & evaluate answer ──────────────────────────────────
