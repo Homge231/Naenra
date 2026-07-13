@@ -528,6 +528,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       const strategy = getCoreStrategy(name)
       return strategy.constructor.name === 'AegisCoreStrategy' || 
              strategy.constructor.name === 'MissionCoreStrategy' ||
+             strategy.constructor.name === 'PhoenixCoreStrategy' ||
              // Harmony Wave needs history to count wrong answers for its 2-miss immunity
              name.toLowerCase() === 'harmony wave'
     })

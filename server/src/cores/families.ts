@@ -38,6 +38,16 @@ export const CORE_FAMILIES: Record<string, { tier1: string[], tier2: string[], t
     tier1: ["Pandora's Box"],
     tier2: ["Trickster's Glass", 'Chaos Prism', 'Warp Reality', "Pandora's Curse", "Pandora's Mirror"],
     tier3: ['Chaos Theory', 'Butterfly Effect', "Pandora's Wrath", 'Cosmic Entropy', 'Reality Collapse']
+  },
+  'phoenix': {
+    tier1: ['Phoenix Core'],
+    tier2: ['Phoenix Flame', 'Rebirth Core', 'Ashes to Ashes'],
+    tier3: ['Immortal Phoenix', 'Eternal Rebirth', 'Supernova Ashes']
+  },
+  'highroller': {
+    tier1: ['High Roller'],
+    tier2: ['Jackpot', 'Safe Bet', 'Double or Nothing'],
+    tier3: ['All In', 'House Advantage', 'Russian Roulette']
   }
 }
 
