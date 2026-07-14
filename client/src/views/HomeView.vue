@@ -46,10 +46,12 @@
           <p class="text-[10px] text-lightOrange font-mono font-bold">ELO: {{ elo }}</p>
         </div>
         <div class="w-px h-6 bg-white/20 mx-2 transform skew-x-12"></div>
-        <button @click="router.push('/analytics')" class="transform skew-x-12 text-gray-400 hover:text-lightBlue transition-colors mr-2"
-          title="Vocab Analytics">
+        <button @click="router.push('/analytics')"
+          class="transform skew-x-12 text-gray-400 hover:text-lightBlue transition-colors mr-2" title="Vocab Analytics">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+            </path>
           </svg>
         </button>
         <button @click="handleLogout" class="transform skew-x-12 text-gray-400 hover:text-hexred transition-colors"
@@ -109,9 +111,19 @@
         </div>
 
         <div class="flex gap-4 mt-8">
-          <button
-            class="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 text-gray-400 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors">
-            Unranked 1v1
+          <!-- Replace the existing Unranked 1v1 button with this -->
+          <button @click="goToCustomRoom" :disabled="isJoiningCustom"
+            class="flex items-center justify-center gap-2 px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 text-gray-400 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+
+            <!-- Loading Spinner -->
+            <svg v-if="isJoiningCustom" class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+
+            <span>{{ isJoiningCustom ? 'CONNECTING...' : 'Unranked 1v1' }}</span>
           </button>
           <button
             class="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/5 text-gray-400 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors">
@@ -156,7 +168,17 @@ const avatarUrl = computed(() =>
 )
 
 const elo = computed(() => authStore.profile?.elo ?? 0)
-
+const isJoiningCustom = ref(false)
+function goToCustomRoom() {
+  isJoiningCustom.value = true
+  
+ 
+  setTimeout(() => {
+    router.push('/room/custom').finally(() => {
+      isJoiningCustom.value = false 
+    })
+  }, 600)
+}
 function handleLogout() {
   authStore.logout()
   router.push('/')
