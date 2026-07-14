@@ -371,52 +371,11 @@ export function playOracleHint() {
 // ── 8. Core BGM Layer (Drone) ───────────────────────────────────────────
 
 export function updateCoreDrone(coreName: string) {
-  if (!audioCtx || !masterGainNode) return;
-
-  if (droneOsc) {
-    droneOsc.stop();
-    droneOsc.disconnect();
-    droneOsc = null;
-  }
-  if (droneGain) {
-    droneGain.disconnect();
-    droneGain = null;
-  }
-
-  const name = coreName.toLowerCase();
-  
-  if (name.includes('balance') || name.includes('harmony') || name.includes('nirvana') || name.includes('equilibrium')) {
-    // No drone for balance
-    return;
-  }
-
-  droneOsc = audioCtx.createOscillator();
-  droneGain = audioCtx.createGain();
-  
-  droneGain.gain.setValueAtTime(0, audioCtx.currentTime);
-  droneGain.gain.linearRampToValueAtTime(0.02, audioCtx.currentTime + 2.0); // fade in
-
-  // Set drone theme based on core name
-  if (name.includes('strike') || name.includes('force') || name.includes('overclock') || name.includes('power')) {
-    droneOsc.type = 'sawtooth';
-    droneOsc.frequency.value = 55; // Deep bass A1
-  } else if (name.includes('shield') || name.includes('aegis') || name.includes('guardian') || name.includes('indomitable')) {
-    droneOsc.type = 'triangle';
-    droneOsc.frequency.value = 110; // Metallic A2
-  } else if (name.includes('mission') || name.includes('bounty') || name.includes('exodia')) {
-    droneOsc.type = 'square';
-    droneOsc.frequency.value = 110; // Tension A2
-  } else {
-    droneOsc.type = 'sine';
-    droneOsc.frequency.value = 220; // Default ambient A3
-  }
-
-  droneOsc.connect(droneGain);
-  droneGain.connect(masterGainNode);
-  droneOsc.start();
+  // Disabled background drone as per user feedback
 }
 
 export function stopCoreDrone() {
+  // Disabled background drone as per user feedback
   if (droneGain && audioCtx) {
     droneGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.0);
     setTimeout(() => {
