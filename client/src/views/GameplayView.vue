@@ -152,6 +152,17 @@
       </div>
 
       <div class="flex items-center gap-8">
+        <!-- Sound Toggle -->
+        <button @click.stop="audioService.toggleSound()" class="hover:opacity-80 transition-opacity focus:outline-none" title="Toggle Sound">
+          <svg v-if="audioService.isEnabled.value" class="w-6 h-6 text-lightBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"></path>
+          </svg>
+          <svg v-else class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h2.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
+          </svg>
+        </button>
+
         <div id="tutorial-score-area"
           class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
           <span class="text-xs font-bold text-orange tracking-[0.2em] uppercase">Score</span>
