@@ -20,5 +20,5 @@ router.post('/submit-answer', authMiddleware, submitAnswer)
 router.post('/timeout',       authMiddleware, timeoutSession)
 router.post('/abandon',       authMiddleware, abandonSession)
 router.put('/session/core',   authMiddleware, updateSessionCore)
-router.post('/feedback', submitFeedback);
+router.post('/feedback',      authMiddleware, submitFeedback);
 export default router

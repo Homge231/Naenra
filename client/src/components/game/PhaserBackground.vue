@@ -7,16 +7,14 @@
 
     <div class="absolute inset-0 bg-darkNavy/60 backdrop-blur-[2px]"></div>
 
-    <div id="phaser-container" class="absolute inset-0 pointer-events-none"></div>
+    <div id="phaser-container" class="absolute inset-0 pointer-events-none" :class="{ 'opacity-0': vfxEnabled === false }"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 
-defineProps<{
-  imageUrl: string
-}>()
+
 
 let phaserGame: import('phaser').Game | null = null
 let cancelled = false
@@ -70,8 +68,33 @@ const initPhaser = async () => {
   phaserGame = new Phaser.Game(config)
 }
 
+const props = defineProps<{
+  imageUrl: string
+  vfxEnabled?: boolean
+}>()
+
+watch(() => props.vfxEnabled, (newVal) => {
+  if (phaserGame && phaserGame.scene) {
+    // If scene is not ready yet, this might fail, but it's safe if we catch or check.
+    const scene = phaserGame.scene.getScene('MagicScene')
+    if (scene) {
+      if (newVal === false) {
+        scene.scene.pause()
+      } else {
+        scene.scene.resume()
+      }
+    }
+  }
+})
+
 onMounted(() => {
-  initPhaser()
+  initPhaser().then(() => {
+    // Apply initial state if vfx is off initially
+    if (props.vfxEnabled === false && phaserGame && phaserGame.scene) {
+      const scene = phaserGame.scene.getScene('MagicScene')
+      if (scene) scene.scene.pause()
+    }
+  })
 })
 
 onUnmounted(() => {
