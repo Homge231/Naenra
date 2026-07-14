@@ -14,6 +14,9 @@ const supabase = createClient(
 const MATCH_DURATION_MS = 100_000                             // 100-second match
 const PANDORA_CORE_ID = '00000000-0000-0000-0000-000000000010' // Pandora's Box
 
+// In-memory timer store for Anti-Cheat (time_taken validation)
+const sessionTimers = new Map<string, number>()
+
 const TYPO_ACCURACY_THRESHOLD = 0.8   // >= 80% similarity counts as a "typo"
 const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misses
 const WRONG_PENALTY_PER_CHAR = 10     // -10 pts per wrong/missing character for standard misses
@@ -338,6 +341,9 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
     const themes = ['daily-life', 'cafe', 'travel']
     const randomTheme = themes[Math.floor(Math.random() * themes.length)]
 
+    // Start anti-cheat timer for the first question (adding 3s buffer for countdown)
+    sessionTimers.set(data.id, Date.now() + 3000)
+
     res.status(201).json({
       session_id: data.id,
       theme: randomTheme,
@@ -398,10 +404,6 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       res.status(400).json({ error: 'session_id, question_id and answer are required.' })
       return
     }
-
-    const combo = typeof current_combo === 'number' && current_combo >= 0
-      ? Math.floor(current_combo)
-      : 0
 
     // ── 2. Fetch session (verify ownership & status) ──────────────────────────
     const { data: session, error: sessErr } = await supabase
@@ -544,17 +546,55 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         answerHistory = historyData.map(r => r.correct)
       }
     }
+    // Calculate combo strictly from server history (ignore client current_combo)
+    const historyBeforeThisAnswer = answerHistory.slice() // copy array before pushing current answer
+    let serverCombo = 0
+    for (const isCorr of historyBeforeThisAnswer) {
+      if (isCorr) serverCombo++
+      else serverCombo = 0
+    }
+
     answerHistory.push(isCorrect)
 
     // ── 8. Calculate score via core strategy registry ────────────────────────
-    const timeTaken = typeof time_taken === 'number' && time_taken >= 0 ? Math.floor(time_taken) : 0
     
+    // Anti-Cheat: Validate time_taken against actual server-side time
+    const now = Date.now()
+    const lastTime = sessionTimers.get(session_id) || now
+    const actualTimeTaken = Math.max(0, now - lastTime)
+    
+    let serverTimeTaken = typeof time_taken === 'number' && time_taken >= 0 ? Math.floor(time_taken) : 0
+    // If client claims a time much faster than physically possible on the server, clamp it.
+    // Allow a 1500ms grace period for network latency and rendering.
+    if (serverTimeTaken < actualTimeTaken - 1500) {
+      serverTimeTaken = Math.max(0, actualTimeTaken - 1500)
+    }
+    sessionTimers.set(session_id, now)
+
     // Fetch details of all cores in the family history
     const { data: dbCores } = await supabase
       .from('cores')
-      .select('id, name, flat_buff, multiplier_buff, core_type, classification')
+      .select('id, name, flat_buff, multiplier_buff, core_type, classification, tier')
       .in('name', historyCoreNames)
-    const coreRows = (dbCores && dbCores.length > 0 ? dbCores : [core]) as CoreRow[]
+    let coreRows = (dbCores && dbCores.length > 0 ? dbCores : [core]) as CoreRow[]
+
+    // Anti-Cheat: Validate and sanitize historyCoreNames to ensure only ONE core per tier
+    const sanitizedHistoryNames: string[] = []
+    const seenTiers = new Set<number>()
+    // Sort coreRows by tier descending so the highest tier (active core) gets priority
+    coreRows.sort((a, b) => (b.tier || 1) - (a.tier || 1))
+    
+    for (const r of coreRows) {
+      if (r.name === core.name || r.name === secondaryCore?.name) {
+         sanitizedHistoryNames.push(r.name)
+         seenTiers.add(r.tier || 1)
+      } else if (!seenTiers.has(r.tier || 1)) {
+         sanitizedHistoryNames.push(r.name)
+         seenTiers.add(r.tier || 1)
+      }
+    }
+    historyCoreNames = sanitizedHistoryNames
+    coreRows = coreRows.filter(r => sanitizedHistoryNames.includes(r.name))
 
     // Determine the primary scoring core.
     // If the active core is Pandora (and has shape-shifted), we use the shifted secondary core for calculation.
@@ -580,9 +620,9 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     }
 
     const ctx = {
-      timeTaken,
+      timeTaken:         serverTimeTaken,
       totalTime:         MATCH_DURATION_MS,
-      combo,
+      combo:             serverCombo,
       wrongPenalty,
       oracleRevealLevel,
       flatBuff:          scoringCore.flat_buff,
@@ -590,8 +630,8 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       answerHistory,
       initialShieldCount,
       historyCoreNames,
-      currentShields:    typeof current_shields === 'number' ? Math.floor(current_shields) : undefined,
-      missionProgress:   typeof mission_progress === 'number' ? Math.floor(mission_progress) : undefined,
+      currentShields:    undefined, // Force AegisCoreStrategy to compute from history
+      missionProgress:   undefined, // Force MissionCoreStrategy to compute from history
       targetWord:        question.target_word
     }
 

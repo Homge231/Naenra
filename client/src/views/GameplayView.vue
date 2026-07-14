@@ -509,6 +509,7 @@ import {
 } from '../game/cores/registry'
 import { getCoreIconPath } from '../game/cores/icons'
 import { fetchWithAuth } from '../services/api'
+import { audioService } from '../services/audioService'
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
@@ -1034,6 +1035,7 @@ async function skipQuestion() {
   const capturedMission = missionProgress.value
 
   // Immediate local feedback
+  audioService.playSkip()
   gameState.value = 'wrong'
   currentCombo.value = 0
   if (isMissionCore.value) {
@@ -1161,6 +1163,7 @@ async function checkAnswer() {
   const isCorrectLocal = hashVal === currentQuestion.value.target_hash
 
   if (isCorrectLocal) {
+    audioService.playCorrect()
     gameState.value = 'correct'
     currentCombo.value++
 
@@ -1200,6 +1203,7 @@ async function checkAnswer() {
     }
     triggerScoreFlash('correct')
   } else {
+    audioService.playSkip()
     gameState.value = 'wrong'
     currentCombo.value = 0
     if (isMissionCore.value) {
