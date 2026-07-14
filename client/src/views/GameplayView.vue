@@ -153,7 +153,7 @@
 
       <div class="flex items-center gap-8">
         <!-- Sound Toggle -->
-        <button @click.stop="audioService.toggleSound()" class="hover:opacity-80 transition-opacity focus:outline-none" title="Toggle Sound">
+        <button @click="audioService.toggleSound(); refocusInput()" class="hover:opacity-80 transition-opacity focus:outline-none" title="Toggle Sound">
           <svg v-if="audioService.isEnabled.value" class="w-6 h-6 text-lightBlue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"></path>
           </svg>
