@@ -661,7 +661,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
 
     // Future Sight: +50 points (scaled by current multiplier) if correct in under 4s
     const hasFutureSight = historyCoreNames.some(name => name.toLowerCase() === 'future sight')
-    if (hasFutureSight && isCorrect && timeTaken <= 4000 && scoringCore.name.toLowerCase() !== 'future sight') {
+    if (hasFutureSight && isCorrect && serverTimeTaken <= 4000 && scoringCore.name.toLowerCase() !== 'future sight') {
       const bonus = Math.floor(50 * (breakdown.multiplier_buff || 1))
       pointsDelta += bonus
       breakdown.flat_buff = (breakdown.flat_buff || 0) + 50
@@ -686,7 +686,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     // Butterfly Effect: Multiplier scales with combo
     const hasButterflyEffect = historyCoreNames.some(name => name.toLowerCase() === 'butterfly effect')
     if (hasButterflyEffect && isCorrect) {
-      const bonusMult = 1 + (combo * 0.1) // e.g., combo 0 = 1.0, combo 1 = 1.1, combo 5 = 1.5
+      const bonusMult = 1 + (serverCombo * 0.1) // e.g., combo 0 = 1.0, combo 1 = 1.1, combo 5 = 1.5
       pointsDelta = Math.floor(pointsDelta * bonusMult)
       breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * bonusMult
     }
@@ -744,7 +744,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
       else if (baseName === "butterfly effect") {
         // Passive: high combo (5+) doubles points on a correct answer
-        if (isCorrect && combo >= 5) {
+        if (isCorrect && serverCombo >= 5) {
           pointsDelta = Math.floor(pointsDelta * 2.0)
           breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * 2.0
         }
