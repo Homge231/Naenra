@@ -1,6 +1,6 @@
 <template>
   <transition name="wind-fade">
-    <div class="speedster-wind-container pointer-events-none" style="border: 4px solid red; background: rgba(255,0,0,0.1);">
+    <div v-if="active && playing" class="speedster-wind-container pointer-events-none">
       <span class="wind-streak ws1"></span>
       <span class="wind-streak ws2"></span>
       <span class="wind-streak ws3"></span>
@@ -23,7 +23,7 @@ defineProps<{
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 30;
   overflow: hidden;
   border-radius: inherit;
 }
