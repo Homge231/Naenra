@@ -6,7 +6,7 @@
       'exodia-shake': showMissionCelebration && isExodia,
       'chaos-shift': isChaos
     }" @click="refocusInput">
-    <PhaserBackground v-if="settingsStore.vfxEnabled" :image-url="currentBgImage" class="transition-opacity duration-500 ease-in-out"
+    <PhaserBackground :vfx-enabled="settingsStore.vfxEnabled" :image-url="currentBgImage" class="transition-opacity duration-500 ease-in-out"
       :class="{ 'opacity-0': isBgFading, 'opacity-100': !isBgFading }" />
 
     <div class="absolute inset-0 bg-black/45 pointer-events-none z-0"></div>
@@ -254,7 +254,7 @@
                 ref="letterSlotsRef">
 
                 <!-- Speedster wind streak overlay component -->
-                <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay" :playing="gameState === 'playing'" />
+                <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled" :playing="gameState === 'playing'" />
 
                 <div
                   class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none"
