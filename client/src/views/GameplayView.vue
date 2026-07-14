@@ -1524,6 +1524,14 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
   }
 }
 
+watch(() => settingsStore.isSettingsOpen, (isOpen) => {
+  if (!isOpen && gameState.value === 'playing') {
+    nextTick(() => {
+      refocusInput()
+    })
+  }
+})
+
 onMounted(async () => {
   if (isAegisMode.value && aegisShieldCount.value < maxShields.value) {
     aegisShieldCount.value = maxShields.value
