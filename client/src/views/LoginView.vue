@@ -22,6 +22,10 @@
         </p>
       </div>
 
+      <div v-if="sessionInvalidatedMessage" class="bg-hexred/10 border border-hexred/50 rounded-xl px-4 py-3 mb-6 text-hexred text-sm font-bold text-center tracking-wider">
+        {{ sessionInvalidatedMessage }}
+      </div>
+
       <div v-if="successMessage" class="bg-success/10 border border-success/50 rounded-xl px-4 py-3 mb-6 text-success text-sm font-bold text-center tracking-wider">
         {{ successMessage }}
       </div>
@@ -208,14 +212,16 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const mode = ref<'login' | 'register'>('login')
 const loading = ref(false)
 const successMessage = ref('')
+const sessionInvalidatedMessage = ref('')
 const rememberMe = ref(false)
 
 const REMEMBER_ME_KEY = 'arena_remember_me'
@@ -233,6 +239,13 @@ onMounted(() => {
   if (remembered === 'true' && savedEmail) {
     form.email = savedEmail
     rememberMe.value = true
+  }
+
+  // Show banner if user was force-logged-out because their account
+  // logged in from another tab/device (see fetchWithAuth in services/api.ts)
+  if (route.query.reason === 'session_invalidated') {
+    sessionInvalidatedMessage.value = 'Account have been Log In in Different Tab, Please Try Again.'
+    router.replace({ query: {} })
   }
 })
 

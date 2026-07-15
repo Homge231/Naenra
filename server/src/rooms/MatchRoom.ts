@@ -31,16 +31,25 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
     try {
       const decoded = verifyToken(options.token);
-      
-      // Fetch user profile from Supabase database
+
+      // Fetch user profile from Supabase database, including current session_version
       const { data: profile } = await supabase
         .from("players")
-        .select("username, avatar_url")
+        .select("username, avatar_url, session_version")
         .eq("id", decoded.id)
         .single();
-      
-      const name = profile?.username || "Player";
-      const avatar = profile?.avatar_url?.trim()
+
+      if (!profile) {
+        throw new Error("Account not found");
+      }
+
+      // Reject connection if this token was invalidated by a newer login elsewhere
+      if (profile.session_version !== decoded.sessionVersion) {
+        throw new Error("Session expired due to login elsewhere");
+      }
+
+      const name = profile.username || "Player";
+      const avatar = profile.avatar_url?.trim()
         ? profile.avatar_url
         : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
 

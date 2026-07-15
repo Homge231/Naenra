@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
+import { fetchWithAuth } from '../services/api'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
@@ -8,7 +9,6 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<any>(null)
   const profile = ref<any>(null)
   const loading = ref(true)
-  const sessionInvalidated = ref(false)
 
   const isLoggedIn = computed(() => !!user.value)
   const isFirstPlay = computed(() => profile.value?.is_first_play ?? false)
@@ -22,15 +22,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Central place to react to any 401 with error === 'SessionInvalidated'
-  function handleSessionInvalidated() {
-    sessionInvalidated.value = true
-    localStorage.removeItem('arena_token')
-    user.value = null
-    profile.value = null
-    supabase.auth.signOut().catch(() => {})
-  }
-
   async function skipTutorial() {
     if (profile.value) {
       profile.value.is_first_play = false
@@ -39,16 +30,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token) return
 
     try {
-      const res = await fetch(`${SERVER_URL}/auth/skip-tutorial`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.status === 401) {
-        const data = await res.json().catch(() => null)
-        if (data?.error === 'SessionInvalidated') {
-          handleSessionInvalidated()
-        }
-      }
+      // fetchWithAuth handles 401 (including SessionInvalidated) globally
+      await fetchWithAuth('/auth/skip-tutorial', { method: 'POST' })
     } catch (err) {
       console.error('Failed to skip tutorial:', err)
     }
@@ -107,6 +90,8 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
+  // Not routed through fetchWithAuth: no arena_token exists yet at this point,
+  // this call is what produces the token in the first place.
   async function exchangeTokenAfterOAuth() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) return
@@ -119,7 +104,6 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
       if (res.ok && data.token) {
         localStorage.setItem('arena_token', data.token)
-        sessionInvalidated.value = false
         await fetchProfile()
       }
     } catch (err) {
@@ -127,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Not routed through fetchWithAuth: pre-auth endpoint, no token to attach.
   async function registerWithEmail(email: string, password: string): Promise<{ success: boolean }> {
     try {
       const res = await fetch(`${SERVER_URL}/auth/register`, {
@@ -142,6 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Not routed through fetchWithAuth: pre-auth endpoint, no token to attach.
   async function loginWithEmail(
     email: string,
     password: string
@@ -155,7 +141,6 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
       if (!res.ok) return { success: false, error: data.error }
       localStorage.setItem('arena_token', data.token)
-      sessionInvalidated.value = false
       user.value = { id: data.user.id, email: data.user.email }
       await fetchProfile()
       return { success: true }
@@ -176,16 +161,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token) return
 
     try {
-      const res = await fetch(`${SERVER_URL}/api/user/profile`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.status === 401) {
-        const data = await res.json().catch(() => null)
-        if (data?.error === 'SessionInvalidated') {
-          handleSessionInvalidated()
-        }
-        return
-      }
+      // fetchWithAuth handles 401 (including SessionInvalidated) globally
+      const res = await fetchWithAuth('/api/user/profile')
       if (!res.ok) return
       const data = await res.json()
       profile.value = data
@@ -195,7 +172,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user, profile, loading, isLoggedIn, isFirstPlay, sessionInvalidated,
+    user, profile, loading, isLoggedIn, isFirstPlay,
     init, loginWithGoogle, loginWithEmail,
     registerWithEmail, logout, fetchProfile,
     exchangeTokenAfterOAuth, skipTutorial
