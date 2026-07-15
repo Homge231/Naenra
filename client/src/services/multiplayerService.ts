@@ -12,7 +12,7 @@ export let currentRoom: Room | null = null;
 export async function createMatchRoom(options: any = {}) {
   try {
     currentRoom = await colyseusClient.create("match_room", options);
-    console.log("Created room successfully!", currentRoom.id);
+    console.log("Created room successfully!", currentRoom.roomId);
     setupRoomListeners(currentRoom);
     return currentRoom;
   } catch (e) {
@@ -24,7 +24,7 @@ export async function createMatchRoom(options: any = {}) {
 export async function joinMatchRoomById(roomId: string, options: any = {}) {
   try {
     currentRoom = await colyseusClient.joinById(roomId, options);
-    console.log("Joined room successfully!", currentRoom.id);
+    console.log("Joined room successfully!", currentRoom.roomId);
     setupRoomListeners(currentRoom);
     return currentRoom;
   } catch (e) {

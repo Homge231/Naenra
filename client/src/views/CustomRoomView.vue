@@ -53,14 +53,30 @@
             <div class="flex flex-col md:flex-row items-center justify-center gap-10 md:gap-20 w-full mb-16">
 
                 <div class="flex flex-col items-center transform transition-transform duration-500 hover:scale-105">
-                    <div
-                        class="w-32 h-32 md:w-44 md:h-44 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/20 p-2 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
-                        <img :src="player1?.avatar" :alt="player1?.name"
-                            class="w-full h-full rounded-xl object-cover bg-darkNavy" />
-                    </div>
-                    <p class="mt-6 text-2xl font-black tracking-widest uppercase text-white drop-shadow-md">
-                        {{ player1?.name }}
-                    </p>
+                    <template v-if="player1">
+                        <div
+                            class="w-32 h-32 md:w-44 md:h-44 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/20 p-2 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+                            <img :src="player1.avatar" :alt="player1.name"
+                                class="w-full h-full rounded-xl object-cover bg-darkNavy" />
+                        </div>
+                        <p class="mt-6 text-2xl font-black tracking-widest uppercase text-white drop-shadow-md">
+                            {{ player1.name }}
+                        </p>
+                    </template>
+                    <template v-else>
+                        <div
+                            class="w-32 h-32 md:w-44 md:h-44 rounded-2xl bg-black/40 backdrop-blur-md border-2 border-dashed border-white/10 flex items-center justify-center p-2 shadow-inner">
+                            <svg class="w-12 h-12 text-gray-600 animate-pulse" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                </path>
+                            </svg>
+                        </div>
+                        <p class="mt-6 text-sm font-bold tracking-[0.2em] uppercase text-gray-500 animate-pulse">
+                            Loading...
+                        </p>
+                    </template>
                 </div>
 
                 <div class="flex flex-col items-center justify-center relative">
@@ -147,8 +163,8 @@ onMounted(async () => {
         } else {
             // Create new room
             const room = await createMatchRoom(options)
-            roomId.value = room.id
-            router.replace({ query: { id: room.id } })
+            roomId.value = room.roomId
+            router.replace({ query: { id: room.roomId } })
         }
 
         if (currentRoom) {

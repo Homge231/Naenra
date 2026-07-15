@@ -601,8 +601,6 @@ export interface PointPopup {
 }
 
 type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout' | 'upgrade'
-// ScoreFlash used via triggerScoreFlash — kept as internal alias
-type _ScoreFlash = 'correct' | 'wrong' | null
 
 // MATCH_DURATION managed by useMatchTimer composable; kept here for documentation
 // const MATCH_DURATION = 60
