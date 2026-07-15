@@ -106,24 +106,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { createMatchRoom, joinMatchRoomById, leaveMatchRoom, currentRoom } from '../services/multiplayerService'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const generateRandomId = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let result = ''
-    for (let i = 0; i < 4; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return `NRA-${result}`
-}
-
-const roomId = ref((route.query.id as string) || generateRandomId())
+const roomId = ref(route.query.id as string || 'Loading...')
 const copied = ref(false)
 
 const copyRoomId = async () => {
@@ -141,18 +133,46 @@ const participants = ref<{ id: string, name: string, avatar: string }[]>([])
 const player1 = computed(() => participants.value[0] || null)
 const player2 = computed(() => participants.value[1] || null)
 
-onMounted(() => {
-    if (!route.query.id) {
-        router.replace({ query: { id: roomId.value } })
+onMounted(async () => {
+    const options = {
+        id: authStore.profile?.id || `guest_${Math.floor(Math.random() * 1000)}`,
+        name: authStore.profile?.username || 'Guest',
+        avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Guest`
     }
 
-    participants.value = [
-        {
-            id: 'usr_123',
-            name: authStore.profile?.username || 'You',
-            avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Host`
+    try {
+        if (route.query.id) {
+            // Join existing room
+            await joinMatchRoomById(route.query.id as string, options)
+        } else {
+            // Create new room
+            const room = await createMatchRoom(options)
+            roomId.value = room.id
+            router.replace({ query: { id: room.id } })
         }
-    ]
+
+        if (currentRoom) {
+            currentRoom.onStateChange((state: any) => {
+                const newParticipants: { id: string, name: string, avatar: string }[] = []
+                state.players.forEach((player: any) => {
+                    newParticipants.push({
+                        id: player.id,
+                        name: player.name,
+                        avatar: player.avatar
+                    })
+                })
+                participants.value = newParticipants
+            })
+        }
+    } catch (err) {
+        console.error("Failed to join or create room:", err)
+        alert("Could not connect to the room!")
+        router.push('/home')
+    }
+})
+
+onUnmounted(() => {
+    leaveMatchRoom()
 })
 </script>
 

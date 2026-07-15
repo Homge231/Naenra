@@ -48,7 +48,18 @@ app.use('/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/game', gameRoutes)
 
+import { Server } from 'colyseus'
+import { WebSocketTransport } from '@colyseus/ws-transport'
+import { MatchRoom } from './rooms/MatchRoom'
 
-httpServer.listen(3000, () => {
-  console.log('Server running on port 3000')
+const gameServer = new Server({
+  transport: new WebSocketTransport({
+    server: httpServer
+  })
+})
+
+gameServer.define('match_room', MatchRoom)
+
+gameServer.listen(3000).then(() => {
+  console.log('Colyseus Server running on port 3000')
 })
