@@ -6,6 +6,19 @@ const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
 const endpoint = serverUrl.replace(/^http/, "ws");
 
 export const colyseusClient = new Client(endpoint);
+
+// Patch colyseus.js v0.16 to be compatible with colyseus server v0.17+
+const originalConsume = (colyseusClient as any).consumeSeatReservation.bind(colyseusClient);
+(colyseusClient as any).consumeSeatReservation = function(response: any, rootSchema: any, reuseRoomInstance: any) {
+  if (response && !response.room && response.name) {
+    response.room = {
+      name: response.name,
+      roomId: response.roomId
+    };
+  }
+  return originalConsume(response, rootSchema, reuseRoomInstance);
+};
+
 export let currentRoom: Room<MatchState> | null = null;
 
 export async function createMatchRoom(options: any = {}) {
