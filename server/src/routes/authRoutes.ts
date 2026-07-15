@@ -37,8 +37,6 @@ function decryptPassword(text: string): string {
 const router = Router()
 
 // ── Helper: check provider type from players table (fast, no admin API) ──────
-// hashed_password === '' means Google-only (set during OAuth upsert)
-// hashed_password is a bcrypt hash means email account exists
 async function getPlayerProviderInfo(email: string): Promise<{
   exists: boolean
   hasEmailAuth: boolean
@@ -53,12 +51,7 @@ async function getPlayerProviderInfo(email: string): Promise<{
 
   if (!player) return { exists: false, hasEmailAuth: false, hasGoogleAuth: false, playerId: null }
 
-  // hashed_password is '' for pure Google accounts
-  // hashed_password is a bcrypt hash for email-registered accounts
   const hasEmailAuth = player.hashed_password !== '' && player.hashed_password !== null
-  // If the account exists but has no password hash, it was created via Google
-  // If it has a password hash, it was email-registered (may also have Google linked)
-  // We determine Google by checking identities only when needed
   const hasGoogleAuth = !hasEmailAuth
 
   return { exists: true, hasEmailAuth, hasGoogleAuth, playerId: player.id }
@@ -96,7 +89,6 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Clean up expired registrations first
     await supabase
       .from('pending_registrations')
       .delete()
@@ -104,7 +96,6 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const otp = generateOTP()
 
-    // Upsert pending registration details
     const encryptedPassword = encryptPassword(password)
     const { error: insertErr } = await supabase
       .from('pending_registrations')
@@ -142,13 +133,11 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
   }
 
   try {
-    // Clean up expired registrations first
     await supabase
       .from('pending_registrations')
       .delete()
       .lt('expires_at', new Date().toISOString())
 
-    // Fetch the pending registration
     const { data: pending, error: selectErr } = await supabase
       .from('pending_registrations')
       .select('*')
@@ -160,7 +149,6 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       return
     }
 
-    // Verify OTP code
     if (pending.otp !== otp) {
       res.status(400).json({ error: 'Invalid or expired OTP' })
       return
@@ -181,7 +169,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
     }
 
     // The database trigger automatically creates the row, so we just update it
-    const { error: upsertError } = await supabase
+    const { data: updatedPlayer, error: upsertError } = await supabase
       .from('players')
       .update({
         email: pending.email,
@@ -190,16 +178,18 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
         elo: 0,
         wins: 0,
         losses: 0,
-        total_matches: 0
+        total_matches: 0,
+        session_version: 1
       })
       .eq('id', authData.user.id)
+      .select('session_version')
+      .single()
 
     if (upsertError) {
       res.status(400).json({ error: 'NEW CODE RUNNING BUT UPSERT FAILED: ' + upsertError.message })
       return
     }
-    
-    // Delete the pending registration since it's verified
+
     await supabase
       .from('pending_registrations')
       .delete()
@@ -208,7 +198,8 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
     const token = generateToken({
       id: authData.user.id,
       email: authData.user.email || '',
-      username: pending.username
+      username: pending.username,
+      sessionVersion: updatedPlayer.session_version
     })
 
     res.status(201).json({
@@ -238,7 +229,6 @@ router.post('/resend-otp', async (req: Request, res: Response) => {
   }
 
   try {
-    // Clean up expired registrations first
     await supabase
       .from('pending_registrations')
       .delete()
@@ -256,7 +246,7 @@ router.post('/resend-otp', async (req: Request, res: Response) => {
     }
 
     const otp = generateOTP()
-    
+
     const { error: updateErr } = await supabase
       .from('pending_registrations')
       .update({
@@ -294,8 +284,6 @@ router.get('/check-email', async (req: Request, res: Response) => {
       return
     }
 
-    // Dual-auth: has both email password and Google → treat as email provider for login
-    // Pure Google: no password hash → provider = 'google'
     res.json({
       exists: true,
       provider: hasEmailAuth ? 'email' : 'google'
@@ -320,16 +308,13 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
-    // Fast check using hashed_password column — no admin API call needed
     const { exists, hasEmailAuth, hasGoogleAuth } = await getPlayerProviderInfo(email)
 
     if (exists && hasGoogleAuth && !hasEmailAuth) {
-      // Pure Google account — no password set
       res.status(401).json({ error: 'This account uses Google sign-in. Please use the Google button to log in.' })
       return
     }
 
-    // Attempt Supabase email login (works for email-only AND dual-auth accounts)
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -346,10 +331,21 @@ router.post('/login', async (req: Request, res: Response) => {
       .eq('id', authData.user.id)
       .single()
 
+    // Atomically increment session_version to invalidate any other active session
+    const { data: versionResult, error: versionError } = await supabase
+      .rpc('increment_session_version', { player_id: authData.user.id })
+
+    if (versionError) {
+      console.error('session_version increment error:', versionError)
+    }
+
+    const newSessionVersion = versionResult ?? ((profile?.session_version ?? 0) + 1)
+
     const token = generateToken({
       id: authData.user.id,
       email: authData.user.email || '',
-      username: profile?.username || ''
+      username: profile?.username || '',
+      sessionVersion: newSessionVersion
     })
 
     res.json({
@@ -392,30 +388,27 @@ router.post('/token', async (req: Request, res: Response) => {
       .single()
 
     if (!profile) {
-      // Brand-new Google user — insert player row
       const { error: insertError } = await supabase.from('players').insert({
         id: user.id,
         email: user.email,
         username: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Player',
-        hashed_password: '',   // empty string = Google-only marker
+        hashed_password: '',
         avatar_url: user.user_metadata?.avatar_url || null,
         elo: 0,
         wins: 0,
         losses: 0,
-        total_matches: 0
+        total_matches: 0,
+        session_version: 0
       })
       if (insertError) {
         console.error('players insert error in /auth/token:', insertError)
       }
     } else if (profile.hashed_password === '' && user.user_metadata?.avatar_url && !profile.avatar_url) {
-      // Existing Google account — update avatar if missing
       await supabase
         .from('players')
         .update({ avatar_url: user.user_metadata.avatar_url })
         .eq('id', user.id)
     }
-    // NOTE: if profile.hashed_password is a bcrypt hash, the user registered with
-    // email first and then linked Google — keep everything as-is, don't overwrite.
 
     const { data: freshProfile } = await supabase
       .from('players')
@@ -423,13 +416,24 @@ router.post('/token', async (req: Request, res: Response) => {
       .eq('id', user.id)
       .single()
 
+    // Atomically increment session_version to invalidate any other active session
+    const { data: versionResult, error: versionError } = await supabase
+      .rpc('increment_session_version', { player_id: user.id })
+
+    if (versionError) {
+      console.error('session_version increment error:', versionError)
+    }
+
+    const newSessionVersion = versionResult ?? ((freshProfile?.session_version ?? 0) + 1)
+
     const token = generateToken({
       id: user.id,
       email: user.email || '',
-      username: freshProfile?.username || user.user_metadata?.full_name || ''
+      username: freshProfile?.username || user.user_metadata?.full_name || '',
+      sessionVersion: newSessionVersion
     })
 
-    res.json({ token, user: freshProfile })
+    res.json({ token, user: { ...freshProfile, session_version: newSessionVersion } })
   } catch (err) {
     console.error('token error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -464,12 +468,12 @@ router.post('/skip-tutorial', authMiddleware, async (req: AuthRequest, res: Resp
       .from('players')
       .update({ is_first_play: false })
       .eq('id', req.user!.id)
-      
+
     if (error) {
       console.error('Failed to skip tutorial:', error)
       return res.status(500).json({ error: 'Failed to update preference' })
     }
-    
+
     res.json({ message: 'Tutorial skipped permanently' })
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' })
