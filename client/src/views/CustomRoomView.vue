@@ -180,9 +180,9 @@ onMounted(async () => {
                 participants.value = newParticipants
             })
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error("Failed to join or create room:", err)
-        alert("Could not connect to the room!")
+        alert("Could not connect to the room! Error: " + (err.message || err))
         router.push('/home')
     }
 })

@@ -60,6 +60,8 @@ const gameServer = new Server({
 
 gameServer.define('match_room', MatchRoom)
 
-gameServer.listen(3000).then(() => {
-  console.log('Colyseus Server running on port 3000')
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000
+
+gameServer.listen(PORT).then(() => {
+  console.log(`Colyseus Server running on port ${PORT}`)
 })
