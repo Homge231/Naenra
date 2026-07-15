@@ -20,7 +20,13 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   async onAuth(client: Client, options: any, request: any) {
     console.log("onAuth started", options);
     if (!options.token) {
-      throw new Error("Missing authentication token");
+      // Allow guest users if no token is provided
+      const guestName = options.name || "Guest";
+      return {
+        id: options.id || `guest_${Math.floor(Math.random() * 1000)}`,
+        name: guestName,
+        avatar: options.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(guestName)}`
+      };
     }
 
     try {
