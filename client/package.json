@@ -9,9 +9,10 @@
     "start": "serve -s dist"
   },
   "dependencies": {
+    "@colyseus/schema": "^4.0.27",
+    "@colyseus/sdk": "^0.17.43",
     "@supabase/supabase-js": "^2.108.1",
     "axios": "^1.18.1",
-    "colyseus.js": "^0.16.22",
     "gsap": "^3.15.0",
     "howler": "^2.2.4",
     "jsdom": "^29.1.1",

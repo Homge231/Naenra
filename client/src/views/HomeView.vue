@@ -124,7 +124,7 @@
           <div class="group h-12 w-full flex items-center rounded-md bg-white/10 border border-white/20 hover:border-lightBlue hover:bg-white/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 overflow-hidden focus-within:border-lightBlue focus-within:bg-white/20 focus-within:shadow-[0_0_20px_rgba(59,130,246,0.4)]">
             <input v-model="joinCode" @keyup.enter="joinExistingRoom" type="text" placeholder="ENTER CODE..."
               class="bg-transparent text-white pl-5 pr-2 h-full w-full outline-none uppercase tracking-widest text-sm placeholder:text-gray-400"
-              maxlength="8" />
+              maxlength="12" />
             <button @click="joinExistingRoom" :disabled="!joinCode || isJoiningCustom"
               class="h-full px-5 text-gray-200 hover:text-white hover:bg-white/20 font-bold text-sm uppercase tracking-widest transition-colors border-l border-white/20 group-hover:border-lightBlue/50 focus-within:border-lightBlue/50 disabled:opacity-50 disabled:cursor-not-allowed">
               Join
