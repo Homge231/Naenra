@@ -164,6 +164,7 @@ import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useTutorial } from '../composables/useTutorial'
+import { initAudio } from '../composables/game/useAudioEngine'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -390,6 +391,10 @@ async function submitCore(core: CoreOption) {
   // Instantly highlight the selected card for visual feedback
   selectedCore.value = core
   loading.value = true
+  
+  // Unlock audio context on user interaction
+  initAudio()
+  
   stopTimer()
 
   gameStore.activeCoreId = core.id
