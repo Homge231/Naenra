@@ -20,13 +20,10 @@ client/src/
   views/          # Full-page Vue views (GameplayView, CoreSelectionView, etc.)
   stores/         # Pinia stores: authStore, gameStore, errorStore
   components/     # Reusable UI: Avatar, ErrorNotification, game/PhaserBackground
-    game/
-      CoreTooltip.vue # ← [NEW] TFT-style detailed tooltip (US-37)
   game/           # Phaser init + scenes
   game/cores/     # ← [NEW] Frontend core registry (Strategy Pattern)
     BaseCore.ts   # CoreModule interface + PENDING_UUID sentinel
     registry.ts   # All core UI configs; getCoreModule(uuid) lookup
-    icons.ts      # ← [NEW] Icon registry mapping core names to SVG paths / DB override URLs (US-31)
   router/         # Vue Router with auth guards
 
 server/src/
@@ -57,7 +54,8 @@ Every "Support Core" (game power-up) has unique scoring logic and unique visual 
 2. Register it in `server/src/cores/index.ts` — one line: `'your core name': new YourCoreStrategy()`
 
 **Frontend:**
-1. Add one entry to `client/src/game/cores/registry.ts` keyed by the lowercase name.
+1. Get the UUID from Supabase after creating the `cores` row
+2. Add one entry to `client/src/game/cores/registry.ts`
 
 `gameController.ts` and `GameplayView.vue` **never need to be touched** for new cores.
 
@@ -82,10 +80,7 @@ interface ScoringContext {
 | `'no core'` | `NoCoreStrategy` | `floor((100 + flat_buff) × multiplier_buff)` |
 | `'combo core'` | `ComboCoreStrategy` | `floor((100 + comboBonus + flat_buff) × multiplier_buff)` |
 | `'oracle core'` | `OracleCoreStrategy` | Same as No Core minus oracle hint penalty |
-| `'speedster'` | `SpeedsterCoreStrategy` | `100 + max(0, floor((1 − timeTaken/8000) × 150))` |
-| `'mission core'`| `MissionCoreStrategy` | Flat +500 bonus upon completing 5 correct answers in a row |
-| `'aegis shield'`| `AegisCoreStrategy` | Tracks correct answers (max 3 stacks). Deducts stack instead of points on miss. |
-| `'pandora''s box'` | `PandoraCoreStrategy` | Meta-core (shifts frontend active core). Acts as NoCore if answered before shift. |
+| `'speedster'` | `SpeedsterCoreStrategy` | `100 + floor((1 − timeTaken/60000) × 200)` |
 
 Registry lookup: `getCoreStrategy(core.name)` — **case-insensitive, trimmed**. Unknown names fall back to `NoCoreStrategy` with a `console.warn`.
 
@@ -105,16 +100,13 @@ interface CoreModule {
 
 ### Frontend — Registered cores (`client/src/game/cores/registry.ts`)
 
-Keyed by the core `name` (lowercase). UUIDs are no longer hardcoded on the frontend.
-
-| Key | Core name | Special effects |
+| UUID | Core name | Special effects |
 |---|---|---|
-| `'no core'` | No Core | None |
-| `'combo core'` | Combo Core | None |
-| `'oracle core'` | Oracle Core | None (Oracle uses its own template block) |
-| `'speedster'` | Speedster | Cyan timer glow, wind-streak overlay, "+N FAST!" popup |
-| `'pandora\'s box'` | Pandora's Box | Purple pulse timer, shifts core every 25s, "PANDORA SHIFTS TO X" text |
-| `'aegis shield'` | Aegis Shield | Cyan timer, glowing 3-orb stack tracker UI, "BLOCKED!" popup on miss |
+| `00000000-0000-0000-0000-000000000001` | No Core | None |
+| `00000000-0000-0000-0000-000000000005` | Combo Core | None |
+| `00000000-0000-0000-0000-000000000006` | Oracle Core | None (Oracle uses its own template block) |
+| `PENDING` | Speedster | Cyan timer glow, wind-streak overlay, "+N FAST!" popup |
+
 
 ### How GameplayView.vue uses the registry
 
@@ -155,11 +147,11 @@ Accuracy uses Levenshtein edit distance. Empty answer = full skip = worst case.
 ### Speedster formula (US-17.1)
 
 ```
-speedBonus  = max(0, floor( (1 − timeTaken / 8000) × 150 ))
+speedBonus  = floor( (1 − timeTaken / 60000) × 200 )
 pointsDelta = 100 + speedBonus            -- ignores flat_buff and multiplier_buff
 ```
 
-Answer in 1s → ~231 pts. Answer in 3s → ~193 pts. Answer in 8s+ → 100 pts.
+Answer in 1s → ~297 pts. Answer in 30s → ~200 pts. Answer in 59s → ~103 pts.
 
 ---
 
@@ -266,24 +258,12 @@ Timer hits 0 →
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid | Seeded stable UUIDs |
-| name | text | Matched by BE/FE registries (case-insensitive) |
+| name | text | Matched by BE registry (case-insensitive) |
 | description | text | nullable |
 | flat_buff | int | Default 0 |
 | multiplier_buff | float | Default 1.0 |
-| tier | int | Default 1. (1: Base, 2: Upgrade, 3: Final) |
-| upgrades_to | uuid | Self-referencing FK for evolution tree |
-| core_type | varchar(50) | 'main' | 'upgrade' (seeded) |
-| classification | varchar(50) | 'power' | 'effect' (seeded) |
 
-### `pending_registrations`
-| Column | Type | Notes |
-|---|---|---|
-| email | varchar(255) | PRIMARY KEY |
-| password | text | Plain text password for signup |
-| hashed_password | text | Bcrypt hashed password |
-| username | varchar(255) | Display user name |
-| otp | varchar(6) | Verification OTP code |
-| expires_at | timestamptz | Expiration timestamp (10 minutes) |
+> **Speedster** is not yet in the DB. Once inserted, copy its UUID to `registry.ts`.
 
 ### `game_sessions`
 | Column | Notes |
@@ -370,30 +350,18 @@ MAIL_FROM=
 
 **Sprint 2 — Scoring Engine Upgrade ✅** — Core system, Levenshtein penalty, multiplier/flat_buff formula, `submit-answer` v2
 
-**Sprint 2 — US-17 Speedster Core ✅** (fully wired — Supabase UUID `00000000-0000-0000-0000-000000000007`):
+**Sprint 2 — US-17 Speedster Core ✅** (FE only, BE needs Supabase row):
   - `SpeedsterCoreStrategy` — time-based scoring
   - `time_taken` tracked FE-side, sent in every answer payload
   - Wind-streak visual effects + cyan timer glow
   - "+N FAST!" floating popup
   - **Core Strategy Pattern refactor** — BE + FE both use registry/parent-child architecture
 
-**Sprint 3 (in progress)**:
-### Completed Sprint 3 Items ✅
-- **Database-driven Core Classifications**: Added `core_type` and `classification` columns to database. Removed hardcoded family lists.
-- **OTP Database Persistence**: Migrated OTP/registration transient storage to database-backed `pending_registrations` table.
-- **Registration RLS Fix**: Documented that `pending_registrations` is protected by RLS. The backend must have the correct `SUPABASE_SERVICE_KEY` (service_role) in production (e.g., Render) to bypass RLS. If the `anon` key is mistakenly used, the `/auth/register` endpoint will throw a "new row violates row-level security policy" error.
-- **Atomic Scoring Engine**: Implemented `submit_answer_atomic` RPC to prevent concurrent update Race Conditions.
-  - ELO updates after match end ✅ (Formula: expected_score = 500 + ELO/2, change = 0.05 * (score - expected_score), wins/losses stats saved)
-  - Core upgrade anti-cheat validation ✅ (enforces initial core must be T1, and upgrades must be T+1 and same family)
-  - Frontend bug fixes (leak, animation frames, keys, input bloat) ✅ (resolved audio context leak, cancelled pending frames, composite keys for duplicate items, nextTick input flush)
-  - [US-31] Custom Support Core Icons ✅ (88 vector SVG icons generated, uploaded to Supabase Storage, mapped to DB cores table)
-  - [US-37] Hover/Hold Tooltips for Cores ✅ (detailed tooltip popups on mouseover on Desktop and touch-hold on Mobile for all cores)
-  - **Pandora Core Redesign** ✅ (Rebalanced Pandora cores: Trickster's Glass skip cost 0, Chaos Theory +100-500 random bonus, Butterfly Effect +0.1x multiplier per combo)
-  - **[US-34] Vocabulary Analytics Dashboard** ✅ (Created `/analytics` view grouping `user_vocab_stats` by topic, showing unique words count, mastery badges, and top 3 weakest words per topic)
-  - **Core System Standardization (v1)** ✅ (Refactored scoring engine to strictly implement Hybrid Matrix for T2 -> T3 upgrades: Power/Effect merge buffs, matching classifications are completely replaced. Updated FE badges for Anchor, Power, Effect)
-  - Colyseus multiplayer rooms + matchmaking (planned)
-  - Real-time opponent sync (planned)
-  - **Clean up / Delete test \"Skip to Core Selection\" button** (added in settings menu of `GameplayView.vue`) before production
+**Sprint 3 (next)**:
+  - Create Speedster row in Supabase → update `PENDING_UUID` in `registry.ts`
+  - Colyseus multiplayer rooms + matchmaking
+  - Real-time opponent sync
+  - ELO updates after match end
 
 ---
 
@@ -417,6 +385,6 @@ MAIL_FROM=
 - Always use tools to read files before editing them
 - Never describe changes — make them
 - After adding a new core, update this file's core registry tables
-- `PENDING_UUID` in `registry.ts` has been replaced — Speedster UUID is `00000000-0000-0000-0000-000000000007`
+- `PENDING_UUID` in `registry.ts` must be replaced once the Supabase `cores` row for Speedster is created
 - Do not add `if/else` branches to `gameController.ts` for new cores — use the strategy registry
 - Do not add hardcoded core UUIDs to `GameplayView.vue` — use `activeCoreModule` from the registry

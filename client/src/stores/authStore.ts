@@ -4,21 +4,39 @@ import { supabase } from '../lib/supabase'
 import { fetchWithAuth } from '../services/api'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+const SESSION_POLL_INTERVAL_MS = 20000
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<any>(null)
   const profile = ref<any>(null)
   const loading = ref(true)
+  let sessionPollTimer: ReturnType<typeof setInterval> | null = null
 
   const isLoggedIn = computed(() => !!user.value)
   const isFirstPlay = computed(() => profile.value?.is_first_play ?? false)
 
-  // Removes #access_token=... fragment from the address bar after Supabase
-  // has already read it into its internal session storage.
   function cleanOAuthUrlFragment() {
     if (window.location.hash.includes('access_token')) {
       const cleanUrl = window.location.pathname + window.location.search
       window.history.replaceState({}, document.title, cleanUrl)
+    }
+  }
+
+  function startSessionPolling() {
+    stopSessionPolling()
+    sessionPollTimer = setInterval(() => {
+      if (localStorage.getItem('arena_token')) {
+        fetchProfile()
+      } else {
+        stopSessionPolling()
+      }
+    }, SESSION_POLL_INTERVAL_MS)
+  }
+
+  function stopSessionPolling() {
+    if (sessionPollTimer) {
+      clearInterval(sessionPollTimer)
+      sessionPollTimer = null
     }
   }
 
@@ -30,7 +48,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token) return
 
     try {
-      // fetchWithAuth handles 401 (including SessionInvalidated) globally
       await fetchWithAuth('/auth/skip-tutorial', { method: 'POST' })
     } catch (err) {
       console.error('Failed to skip tutorial:', err)
@@ -61,17 +78,23 @@ export const useAuthStore = defineStore('auth', () => {
     if (user.value || localStorage.getItem('arena_token')) await fetchProfile()
     loading.value = false
 
+    if (localStorage.getItem('arena_token')) {
+      startSessionPolling()
+    }
+
     supabase.auth.onAuthStateChange(async (event, session) => {
       user.value = session?.user ?? null
       if (event === 'SIGNED_IN' && user.value) {
         await exchangeTokenAfterOAuth()
         cleanOAuthUrlFragment()
         await fetchProfile()
+        startSessionPolling()
       }
       if (event === 'SIGNED_OUT') {
         // Only clear if no arena token — email login users keep their session
         if (!localStorage.getItem('arena_token')) {
           profile.value = null
+          stopSessionPolling()
         }
       }
     })
@@ -143,6 +166,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('arena_token', data.token)
       user.value = { id: data.user.id, email: data.user.email }
       await fetchProfile()
+      startSessionPolling()
       return { success: true }
     } catch {
       return { success: false, error: 'Server error' }
@@ -150,6 +174,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    stopSessionPolling()
     await supabase.auth.signOut()
     localStorage.removeItem('arena_token')
     user.value = null

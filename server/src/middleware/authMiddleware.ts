@@ -19,14 +19,20 @@ export async function authMiddleware(
   const authHeader = req.headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Unauthorized', message: 'Missing or malformed token' })
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Missing or malformed token'
+    })
     return
   }
 
   const token = authHeader.split(' ')[1]
 
   if (!token) {
-    res.status(401).json({ error: 'Unauthorized', message: 'Token is missing' })
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Token is missing'
+    })
     return
   }
 
@@ -40,23 +46,38 @@ export async function authMiddleware(
       .single()
 
     if (error || !player) {
-      res.status(401).json({ error: 'Unauthorized', message: 'Account not found' })
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Account not found'
+      })
       return
     }
 
     if (player.session_version !== decoded.sessionVersion) {
-      res.status(401).json({ error: 'Unauthorized', message: 'Session expired due to login elsewhere' })
+      res.status(401).json({
+        error: 'SessionInvalidated',
+        message: 'Session expired due to login elsewhere'
+      })
       return
     }
 
     req.user = decoded
     next()
   } catch (error: any) {
-    if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
-      res.status(401).json({ error: 'Unauthorized', message: 'Token is invalid or expired' })
+    if (
+      error.name === 'TokenExpiredError' ||
+      error.name === 'JsonWebTokenError'
+    ) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Token is invalid or expired'
+      })
       return
     }
 
-    res.status(403).json({ error: 'Forbidden', message: 'Token verification failed' })
+    res.status(403).json({
+      error: 'Forbidden',
+      message: 'Token verification failed'
+    })
   }
 }

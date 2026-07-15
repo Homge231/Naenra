@@ -331,15 +331,16 @@ router.post('/login', async (req: Request, res: Response) => {
       .eq('id', authData.user.id)
       .single()
 
-    // Atomically increment session_version to invalidate any other active session
     const { data: versionResult, error: versionError } = await supabase
       .rpc('increment_session_version', { player_id: authData.user.id })
 
-    if (versionError) {
+    if (versionError || versionResult === null || versionResult === undefined) {
       console.error('session_version increment error:', versionError)
+      res.status(500).json({ error: 'Failed to establish session' })
+      return
     }
 
-    const newSessionVersion = versionResult ?? ((profile?.session_version ?? 0) + 1)
+    const newSessionVersion = versionResult
 
     const token = generateToken({
       id: authData.user.id,
@@ -402,6 +403,8 @@ router.post('/token', async (req: Request, res: Response) => {
       })
       if (insertError) {
         console.error('players insert error in /auth/token:', insertError)
+        res.status(500).json({ error: 'Failed to provision player profile', detail: insertError.message })
+        return
       }
     } else if (profile.hashed_password === '' && user.user_metadata?.avatar_url && !profile.avatar_url) {
       await supabase
@@ -410,26 +413,33 @@ router.post('/token', async (req: Request, res: Response) => {
         .eq('id', user.id)
     }
 
-    const { data: freshProfile } = await supabase
+    const { data: freshProfile, error: freshError } = await supabase
       .from('players')
       .select('*')
       .eq('id', user.id)
       .single()
 
-    // Atomically increment session_version to invalidate any other active session
+    if (freshError || !freshProfile) {
+      console.error('players fetch error in /auth/token:', freshError)
+      res.status(500).json({ error: 'Failed to load player profile' })
+      return
+    }
+
     const { data: versionResult, error: versionError } = await supabase
       .rpc('increment_session_version', { player_id: user.id })
 
-    if (versionError) {
+    if (versionError || versionResult === null || versionResult === undefined) {
       console.error('session_version increment error:', versionError)
+      res.status(500).json({ error: 'Failed to establish session' })
+      return
     }
 
-    const newSessionVersion = versionResult ?? ((freshProfile?.session_version ?? 0) + 1)
+    const newSessionVersion = versionResult
 
     const token = generateToken({
       id: user.id,
       email: user.email || '',
-      username: freshProfile?.username || user.user_metadata?.full_name || '',
+      username: freshProfile.username || user.user_metadata?.full_name || '',
       sessionVersion: newSessionVersion
     })
 
