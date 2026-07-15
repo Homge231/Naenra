@@ -18,6 +18,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   }
 
   async onAuth(client: Client, options: any, request: any) {
+    console.log("onAuth started", options);
     if (!options.token) {
       throw new Error("Missing authentication token");
     }
@@ -32,14 +33,10 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         .eq("id", decoded.id)
         .single();
       
-      const { data: { user } } = await supabase.auth.admin.getUserById(decoded.id);
-      const userMeta = user?.user_metadata || {};
-      const gmailAvatar = userMeta.avatar_url || userMeta.picture || "";
-
-      const name = profile?.username || userMeta.full_name || "Player";
+      const name = profile?.username || "Player";
       const avatar = profile?.avatar_url?.trim()
         ? profile.avatar_url
-        : gmailAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
+        : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
 
       return {
         id: decoded.id,
@@ -47,6 +44,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         avatar
       };
     } catch (e: any) {
+      console.error("onAuth error!", e);
       throw new Error("Invalid token or failed to fetch profile: " + e.message);
     }
   }
