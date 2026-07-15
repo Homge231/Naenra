@@ -151,6 +151,7 @@ const player2 = computed(() => participants.value[1] || null)
 
 onMounted(async () => {
     const options = {
+        token: localStorage.getItem('arena_token'),
         id: authStore.profile?.id || `guest_${Math.floor(Math.random() * 1000)}`,
         name: authStore.profile?.username || 'Guest',
         avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Guest`
