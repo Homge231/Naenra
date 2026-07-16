@@ -79,12 +79,8 @@ router.post('/register', async (req: Request, res: Response) => {
   try {
     const { exists, hasEmailAuth, hasGoogleAuth } = await getPlayerProviderInfo(email)
 
-    if (exists) {
-      if (hasGoogleAuth && !hasEmailAuth) {
-        res.status(409).json({ error: 'This email is linked to a Google account. Please sign in with Google.' })
-      } else {
-        res.status(409).json({ error: 'Email already registered' })
-      }
+    if (exists && hasEmailAuth) {
+      res.status(409).json({ error: 'Email already registered' })
       return
     }
 
@@ -172,40 +168,68 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
 
     otpAttempts.delete(email)
 
-    const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!'
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: pending.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { full_name: pending.username }
-    })
-
-    if (authError) {
-      console.error('AuthError:', authError.message)
-      res.status(400).json({ error: authError.message })
-      return
-    }
-
-    // The database trigger automatically creates the row, so we just update it
-    const { data: updatedPlayer, error: upsertError } = await supabase
+    const { data: existingPlayer } = await supabase
       .from('players')
-      .update({
-        email: pending.email,
-        username: pending.username,
-        hashed_password: pending.hashed_password,
-        elo: 0,
-        wins: 0,
-        losses: 0,
-        total_matches: 0,
-        session_version: 1
-      })
-      .eq('id', authData.user.id)
-      .select('session_version')
-      .single()
+      .select('id, session_version')
+      .eq('email', pending.email)
+      .maybeSingle()
 
-    if (upsertError) {
-      res.status(400).json({ error: 'NEW CODE RUNNING BUT UPSERT FAILED: ' + upsertError.message })
-      return
+    let userId = ''
+    let sessionVersion = 1
+
+    if (existingPlayer) {
+      userId = existingPlayer.id
+      const { data: updatedPlayer, error: updateError } = await supabase
+        .from('players')
+        .update({ hashed_password: pending.hashed_password })
+        .eq('id', userId)
+        .select('session_version')
+        .single()
+      
+      if (updateError) {
+        res.status(400).json({ error: 'Failed to link password: ' + updateError.message })
+        return
+      }
+      sessionVersion = updatedPlayer.session_version
+    } else {
+      const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!'
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: pending.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { full_name: pending.username }
+      })
+
+      if (authError) {
+        console.error('AuthError:', authError.message)
+        res.status(400).json({ error: authError.message })
+        return
+      }
+      
+      userId = authData.user.id
+
+      // The database trigger automatically creates the row, so we just update it
+      const { data: updatedPlayer, error: upsertError } = await supabase
+        .from('players')
+        .update({
+          email: pending.email,
+          username: pending.username,
+          hashed_password: pending.hashed_password,
+          elo: 0,
+          wins: 0,
+          losses: 0,
+          total_matches: 0,
+          session_version: 1
+        })
+        .eq('id', userId)
+        .select('session_version')
+        .single()
+
+      if (upsertError) {
+        res.status(400).json({ error: 'NEW CODE RUNNING BUT UPSERT FAILED: ' + upsertError.message })
+        return
+      }
+      sessionVersion = updatedPlayer.session_version
     }
 
     await supabase
@@ -214,21 +238,21 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       .eq('email', email)
 
     const token = generateToken({
-      id: authData.user.id,
-      email: authData.user.email || '',
+      id: userId,
+      email: pending.email || '',
       username: pending.username,
-      sessionVersion: updatedPlayer.session_version
+      sessionVersion: sessionVersion
     })
 
     res.status(201).json({
       message: 'Account verified successfully',
       token,
       user: {
-        id: authData.user.id,
-        email: authData.user.email,
+        id: userId,
+        email: pending.email,
         username: pending.username,
         elo: 0,
-        session_version: updatedPlayer.session_version
+        session_version: sessionVersion
       }
     })
 
