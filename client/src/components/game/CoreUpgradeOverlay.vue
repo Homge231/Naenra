@@ -177,8 +177,9 @@ function handleTouchEnd(core: any, e: TouchEvent) {
 type CoreOption = { id: string; name: string; description: string; icon: string; flat_buff: number; multiplier_buff: number; classification?: string; tier?: number }
 
 const upgradeCores = ref<CoreOption[]>([])
-const selectedCore = ref<CoreOption | null>(null)
 const loading = ref(true)
+const selectedCore = ref<CoreOption | null>(null)
+const offeredCoresSignature = ref<string>('')
 
 const SELECTION_DURATION = 15
 const timeLeft = ref(SELECTION_DURATION)
@@ -230,6 +231,11 @@ async function fetchUpgradeCores() {
     })
     if (!res.ok) throw new Error('failed')
     const data = await res.json()
+    
+    // Store signature for anti-cheat verification
+    if (data.signature) {
+      offeredCoresSignature.value = data.signature
+    }
 
     upgradeCores.value = (data.cores ?? []).map((c: any) => ({
       id: c.id,
@@ -258,7 +264,11 @@ async function updateSessionCore(coreId: string) {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
-      body: JSON.stringify({ session_id: gameStore.sessionId, new_core_id: coreId })
+      body: JSON.stringify({ 
+        session_id: gameStore.sessionId, 
+        new_core_id: coreId,
+        signature: offeredCoresSignature.value
+      })
     })
 
     if (!res.ok) {

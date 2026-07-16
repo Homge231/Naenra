@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { AuthRequest } from '../middleware/authMiddleware'
 import { createClient } from '@supabase/supabase-js'
+import { generateSignature, verifySignature } from '../utils/jwt'
 import crypto from 'crypto'
 import { runScoring, getCoreStrategy } from '../cores/index'
 import { getUpgradesForCore, getCoreFamily } from '../cores/families'
@@ -280,7 +281,12 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
       }
     }
 
-    res.status(200).json({ cores: offeredCores })
+    let signature: string | undefined
+    if (previous_core_id) {
+      signature = generateSignature({ offered: offeredCores.map(c => c.id) })
+    }
+
+    res.status(200).json({ cores: offeredCores, signature })
   } catch (err) {
     console.error('getCores error:', err)
     res.status(500).json({ error: 'Failed to fetch cores.' })
@@ -1014,11 +1020,16 @@ export async function abandonSession(req: AuthRequest, res: Response): Promise<v
 export async function updateSessionCore(req: AuthRequest, res: Response): Promise<void> {
   try {
     const playerId = req.user!.id
-    if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
+    const { session_id, new_core_id, signature } = req.body
 
-    const { session_id, new_core_id } = req.body
-    if (!session_id || !new_core_id) {
-      res.status(400).json({ error: 'session_id and new_core_id are required.' })
+    if (!session_id || !new_core_id || !signature) {
+      res.status(400).json({ error: 'session_id, new_core_id, and signature are required.' })
+      return
+    }
+
+    const payload = verifySignature(signature)
+    if (!payload || !Array.isArray(payload.offered) || !payload.offered.includes(new_core_id)) {
+      res.status(403).json({ error: 'Invalid core upgrade. This core was not offered to you.' })
       return
     }
 

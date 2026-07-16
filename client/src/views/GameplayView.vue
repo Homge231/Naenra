@@ -507,11 +507,6 @@
       @keydown="handleKeydown" />
     <FeedbackOverlay :is-visible="showFeedback" @close="showFeedback = false" @success="handleFeedbackSuccess" />
 
-    <!-- US-24: input is disabled... -->
-    <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
-      spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay')"
-      @keydown="handleKeydown" />
-
   </div>
 
 </template>
@@ -820,8 +815,7 @@ const isComboCore = computed(() => {
 })
 const isOracleCore = computed(() => {
   const name = getActiveName()
-  if (checkOracleCore(name)) return true
-  return gameStore.coreHistory.some(c => checkOracleCore(c.name))
+  return checkOracleCore(name)
 })
 const isSpeedsterCore = computed(() => {
   const name = getActiveName()

@@ -124,12 +124,21 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 })
 
+// In-memory brute-force protection for OTP verification
+const otpAttempts = new Map<string, { count: number; lockedUntil: number }>()
+
 // POST /auth/verify-otp
 router.post('/verify-otp', async (req: Request, res: Response) => {
   const { email, otp } = req.body
 
   if (!email || !otp) {
     res.status(400).json({ error: 'Email and OTP are required' })
+    return
+  }
+
+  const record = otpAttempts.get(email)
+  if (record && record.lockedUntil > Date.now()) {
+    res.status(429).json({ error: 'Too many attempts. Please try again later.' })
     return
   }
 
@@ -151,9 +160,18 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
     }
 
     if (pending.otp !== otp) {
-      res.status(400).json({ error: 'Invalid or expired OTP' })
+      const attempts = (record?.count || 0) + 1
+      if (attempts >= 5) {
+        otpAttempts.set(email, { count: attempts, lockedUntil: Date.now() + 10 * 60 * 1000 })
+        res.status(429).json({ error: 'Too many attempts. Please try again in 10 minutes.' })
+      } else {
+        otpAttempts.set(email, { count: attempts, lockedUntil: 0 })
+        res.status(400).json({ error: 'Invalid or expired OTP' })
+      }
       return
     }
+
+    otpAttempts.delete(email)
 
     const rawPassword = decryptPassword(pending.password)
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
