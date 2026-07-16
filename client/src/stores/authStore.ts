@@ -193,6 +193,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function exchangeTokenAfterOAuth() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.access_token) return
+
+    // Drop any existing realtime subscription before the server-side kick
+    // broadcast fires (same race-condition guard as loginWithEmail).
+    unsubscribeSessionChanges()
+    currentSessionVersion.value = null
+
     try {
       const res = await fetch(`${SERVER_URL}/auth/token`, {
         method: 'POST',
@@ -236,6 +242,14 @@ export const useAuthStore = defineStore('auth', () => {
     email: string,
     password: string
   ): Promise<{ success: boolean; error?: string }> {
+    // Drop any existing realtime subscription + clear session version BEFORE
+    // the login request fires. The server broadcasts session_invalidated
+    // (to kick old tabs) before it sends the login response. If this tab
+    // still has an old channel subscription alive during that window, it
+    // would hear its own kick event and log itself out immediately.
+    unsubscribeSessionChanges()
+    currentSessionVersion.value = null
+
     try {
       const res = await fetch(`${SERVER_URL}/auth/login`, {
         method: 'POST',
