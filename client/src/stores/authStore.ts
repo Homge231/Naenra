@@ -44,32 +44,33 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // ── Realtime subscription: instant kick when session_version changes ────
+  // ── Realtime subscription (Broadcast): instant kick when a new login happens ──
+  // Uses Broadcast instead of postgres_changes because postgres_changes requires
+  // a valid Supabase Auth session on the client to pass RLS (auth.uid() = id).
+  // Email/password login users never get a Supabase Auth session (they only
+  // hold the custom arena_token JWT), so postgres_changes silently never fires
+  // for them. Broadcast has no such dependency — the server pushes the event
+  // directly using the service_role key.
   function subscribeToSessionChanges(userId: string) {
     unsubscribeSessionChanges()
 
     realtimeChannel = supabase
-      .channel(`session-watch-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'players',
-          filter: `id=eq.${userId}`
-        },
-        (payload: any) => {
-          const newVersion = payload.new?.session_version
-          if (
-            typeof newVersion === 'number' &&
-            currentSessionVersion.value !== null &&
-            newVersion !== currentSessionVersion.value
-          ) {
-            forceLogoutDueToNewSession()
-          }
+      .channel(`session-kick:${userId}`)
+      .on('broadcast', { event: 'session_invalidated' }, (payload: any) => {
+        const newVersion = payload.payload?.session_version
+        if (
+          typeof newVersion === 'number' &&
+          currentSessionVersion.value !== null &&
+          newVersion !== currentSessionVersion.value
+        ) {
+          forceLogoutDueToNewSession()
         }
-      )
-      .subscribe()
+      })
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('[Realtime] session-kick channel failed:', status)
+        }
+      })
   }
 
   function unsubscribeSessionChanges() {

@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import dotenv from 'dotenv'
 import { supabase } from '../config/supabase'
+import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
 dotenv.config()
 
 const ENCRYPTION_KEY = crypto.createHash('sha256').update(process.env.SUPABASE_SERVICE_KEY || 'default-secret').digest()
@@ -209,7 +210,8 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
         id: authData.user.id,
         email: authData.user.email,
         username: pending.username,
-        elo: 0
+        elo: 0,
+        session_version: updatedPlayer.session_version
       }
     })
 
@@ -342,6 +344,11 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const newSessionVersion = versionResult
 
+    // Instantly kick any other active session for this account via Realtime broadcast.
+    // Uses service_role internally, so it doesn't depend on the client having a
+    // Supabase Auth session (unlike RLS-gated postgres_changes).
+    await broadcastSessionInvalidated(authData.user.id, newSessionVersion)
+
     const token = generateToken({
       id: authData.user.id,
       email: authData.user.email || '',
@@ -358,7 +365,8 @@ router.post('/login', async (req: Request, res: Response) => {
         username: profile?.username,
         avatar_url: profile?.avatar_url,
         elo: profile?.elo ?? 0,
-        is_first_play: profile?.is_first_play ?? true
+        is_first_play: profile?.is_first_play ?? true,
+        session_version: newSessionVersion
       }
     })
 
@@ -435,6 +443,9 @@ router.post('/token', async (req: Request, res: Response) => {
     }
 
     const newSessionVersion = versionResult
+
+    // Instantly kick any other active session for this account via Realtime broadcast.
+    await broadcastSessionInvalidated(user.id, newSessionVersion)
 
     const token = generateToken({
       id: user.id,
