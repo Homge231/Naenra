@@ -83,7 +83,13 @@ export const useAuthStore = defineStore('auth', () => {
   function forceLogoutDueToNewSession() {
     stopSessionPolling()
     unsubscribeSessionChanges()
-    localStorage.removeItem('arena_token')
+    // Do NOT remove arena_token from localStorage here.
+    // By the time this fires, the new login (on another tab) may have already
+    // written its fresh token into the shared localStorage. Removing it blindly
+    // would wipe that new session and log out the OTHER tab too.
+    // Instead, use sessionStorage (tab-scoped) to tell init() on the next load
+    // that this specific tab was force-kicked and should not auto-restore.
+    sessionStorage.setItem('arena_force_logged_out', '1')
     user.value = null
     profile.value = null
     currentSessionVersion.value = null
@@ -117,6 +123,15 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function init() {
+    // If this tab was force-kicked by a new login on another tab/device,
+    // do not auto-restore the session from localStorage — the token stored
+    // there now belongs to the new session and is not ours to use.
+    if (sessionStorage.getItem('arena_force_logged_out')) {
+      sessionStorage.removeItem('arena_force_logged_out')
+      loading.value = false
+      return
+    }
+
     const token = localStorage.getItem('arena_token')
 
     const { data: { session } } = await supabase.auth.getSession()
