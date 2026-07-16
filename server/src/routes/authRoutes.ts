@@ -414,7 +414,10 @@ router.post('/token', async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to provision player profile', detail: insertError.message })
         return
       }
-    } else if (profile.hashed_password === '' && user.user_metadata?.avatar_url && !profile.avatar_url) {
+    } else if (profile.hashed_password === '' && user.user_metadata?.avatar_url) {
+      // Always sync the latest Google avatar URL on every OAuth login.
+      // Google CDN URLs can change or expire, so we must update every time —
+      // not just the first time — to prevent stale/broken avatars.
       await supabase
         .from('players')
         .update({ avatar_url: user.user_metadata.avatar_url })

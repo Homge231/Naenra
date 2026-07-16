@@ -190,6 +190,15 @@ onMounted(async () => {
         await new Promise(resolve => setTimeout(resolve, 50))
     }
 
+    // For Google OAuth users: exchangeTokenAfterOAuth() sets the arena_token
+    // asynchronously. If we have a Supabase session but no arena_token yet,
+    // wait briefly for it to be populated to avoid joining as a Guest.
+    const maxWaitMs = 3000
+    const startTime = Date.now()
+    while (!localStorage.getItem('arena_token') && authStore.isLoggedIn && Date.now() - startTime < maxWaitMs) {
+        await new Promise(resolve => setTimeout(resolve, 50))
+    }
+
     const options = {
         token: localStorage.getItem('arena_token'),
         id: authStore.profile?.id || `guest_${Math.floor(Math.random() * 1000)}`,
