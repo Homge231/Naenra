@@ -14,6 +14,13 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       client.send("pong", "Server acknowledges ping!");
     });
 
+    this.onMessage("updateMetadata", (client, message) => {
+      console.log(`Update metadata from ${client.sessionId}:`, message);
+      if (message.vocabularyLevel) this.state.metadata.vocabularyLevel = message.vocabularyLevel;
+      if (message.difficulty) this.state.metadata.difficulty = message.difficulty;
+      if (message.topic) this.state.metadata.topic = message.topic;
+    });
+
     console.log(`MatchRoom created: ${this.roomId}`);
   }
 

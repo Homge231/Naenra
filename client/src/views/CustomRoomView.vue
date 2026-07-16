@@ -17,7 +17,17 @@
 
         <!-- Room Code ở góc trên bên phải -->
         <div class="absolute top-8 right-8 z-50 flex flex-col items-end gap-1.5">
-            <p class="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">Room Code</p>
+            <div class="flex items-center gap-2 mb-1">
+                <button @click="isRoomSettingsOpen = true"
+                    class="p-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-lg shadow-2xl group hover:bg-white/10 transition-all duration-300 focus:outline-none"
+                    title="Room Settings">
+                    <svg class="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+                <p class="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">Room Code</p>
+            </div>
             <div
                 class="flex items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-2.5 rounded-lg shadow-2xl group hover:bg-white/10 transition-all duration-300">
                 <span class="text-2xl font-mono font-black text-white tracking-widest drop-shadow-md">
@@ -118,6 +128,13 @@
                 </div>
             </div>
         </main>
+
+        <RoomSettingsOverlay 
+            :isOpen="isRoomSettingsOpen"
+            :metadata="roomMetadata"
+            @close="isRoomSettingsOpen = false"
+            @save="saveRoomSettings"
+        />
     </div>
 </template>
 
@@ -126,6 +143,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { createMatchRoom, joinMatchRoomById, leaveMatchRoom, currentRoom } from '../services/multiplayerService'
+import RoomSettingsOverlay from '../components/game/RoomSettingsOverlay.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -133,6 +151,18 @@ const authStore = useAuthStore()
 
 const roomId = ref(route.query.id as string || 'Loading...')
 const copied = ref(false)
+const isRoomSettingsOpen = ref(false)
+const roomMetadata = ref({
+    vocabularyLevel: 'Normal',
+    difficulty: 'Standard',
+    topic: 'Any'
+})
+
+const saveRoomSettings = (newMetadata: { vocabularyLevel: string, difficulty: string, topic: string }) => {
+    if (currentRoom) {
+        currentRoom.send('updateMetadata', newMetadata)
+    }
+}
 
 const copyRoomId = async () => {
     try {
@@ -190,6 +220,15 @@ onMounted(async () => {
                         }
                     })
                     participants.value = newParticipants
+                    
+                    const meta = state.toJSON().metadata
+                    if (meta) {
+                        roomMetadata.value = {
+                            vocabularyLevel: meta.vocabularyLevel || 'Normal',
+                            difficulty: meta.difficulty || 'Standard',
+                            topic: meta.topic || 'Any'
+                        }
+                    }
                 } catch (e) {
                     console.error("Error parsing room state:", e)
                 }
