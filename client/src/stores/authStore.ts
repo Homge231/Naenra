@@ -143,6 +143,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  let isExchanging = false
+
   async function init() {
     // If this tab was force-kicked by a new login on another tab/device,
     // do not auto-restore the session from localStorage — the token stored
@@ -169,9 +171,14 @@ export const useAuthStore = defineStore('auth', () => {
       // would increment session_version again, instantly invalidating the stored
       // token and causing 401 UNAUTHORIZED on the very next API call.
       const hasArenaToken = !!localStorage.getItem('arena_token')
-      if (isFreshOAuthRedirect || !hasArenaToken) {
-        await exchangeTokenAfterOAuth()
-        cleanOAuthUrlFragment()
+      if ((isFreshOAuthRedirect || !hasArenaToken) && !isExchanging) {
+        isExchanging = true
+        try {
+          await exchangeTokenAfterOAuth()
+          cleanOAuthUrlFragment()
+        } finally {
+          isExchanging = false
+        }
       }
     }
 
@@ -210,11 +217,16 @@ export const useAuthStore = defineStore('auth', () => {
         // not on routine token refreshes (Supabase fires SIGNED_IN every ~1h).
         const isFreshOAuthRedirect = window.location.hash.includes('access_token')
         const hasArenaToken = !!localStorage.getItem('arena_token')
-        if (isFreshOAuthRedirect || !hasArenaToken) {
-          await exchangeTokenAfterOAuth()
-          cleanOAuthUrlFragment()
-          await fetchProfile()
-          startSessionPolling()
+        if ((isFreshOAuthRedirect || !hasArenaToken) && !isExchanging) {
+          isExchanging = true
+          try {
+            await exchangeTokenAfterOAuth()
+            cleanOAuthUrlFragment()
+            await fetchProfile()
+            startSessionPolling()
+          } finally {
+            isExchanging = false
+          }
         }
       }
       if (event === 'SIGNED_OUT') {

@@ -665,7 +665,8 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       currentShields:    typeof current_shields === 'number' ? current_shields : undefined,
       missionProgress:   typeof mission_progress === 'number' ? mission_progress : undefined,
       secondaryCoreName: secondaryCore?.name,
-      targetWord:        question.target_word
+      targetWord:        question.target_word,
+      penaltyType:       penaltyType
     }
 
     // Always run the primary scoring core logic
@@ -717,61 +718,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // ── Apply Pandora Base Passive Effects ────────────────────────────────────
-    if (isPandora) {
-      const baseName = sessionCoreName.toLowerCase()
-      
-      if (baseName === "pandora's curse") {
-        if (isCorrect) pointsDelta *= 2
-        else pointsDelta = -Math.abs(pointsDelta) * 2
-      } 
-      else if (baseName === "pandora's mirror") {
-        if (!isCorrect && penaltyType === 'typo') {
-          // Reflects close typos as positive points
-          pointsDelta = Math.abs(pointsDelta)
-        }
-      } 
-      else if (baseName === "trickster's glass") {
-        // Passive: wrong answers deal only half the usual penalty
-        if (!isCorrect) {
-          pointsDelta = Math.ceil(pointsDelta / 2) // pointsDelta is negative, ceil = less damage
-        }
-      }
-      else if (baseName === "butterfly effect") {
-        // Passive: high combo (5+) doubles points on a correct answer
-        if (isCorrect && serverCombo >= 5) {
-          pointsDelta = Math.floor(pointsDelta * 2.0)
-          breakdown.multiplier_buff = (breakdown.multiplier_buff || 1) * 2.0
-        }
-      }
-      else if (baseName === "chaos prism") {
-        if (isCorrect) pointsDelta += 50
-      } 
-      else if (baseName === "warp reality") {
-        if (isCorrect) pointsDelta = Math.floor(pointsDelta * 1.5)
-      } 
-      else if (baseName === "cosmic entropy") {
-        if (isCorrect) {
-          const mult = 1.0 + Math.random() * 4.0
-          pointsDelta = Math.floor(pointsDelta * mult)
-        }
-      } 
-      else if (baseName === "reality collapse") {
-        if (isCorrect) {
-          pointsDelta = Math.random() > 0.5 ? pointsDelta * 2 : Math.floor(pointsDelta / 2)
-        }
-      } 
-      else if (baseName === "pandora's wrath") {
-        if (isCorrect) {
-          // Correct answers give +500 flat points
-          pointsDelta += 500
-          breakdown.flat_buff = (breakdown.flat_buff || 0) + 500
-        } else {
-          // Destroys incorrect answers, granting flat +200 points instead of losing points.
-          pointsDelta = 200
-        }
-      }
-    }
+    // Pandora Base Passive Effects are now handled inside PandoraCoreStrategy.ts
 
     // ── 9. Record the answer (unique per session+question) ────────────────────
     const { error: answerErr } = await supabase
@@ -797,30 +744,54 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
 
     // ── 9.5 Record Vocabulary Tracking (US-33) ────────────────────────────────
     try {
-      const { data: existingStats, error: fetchErr } = await supabase
-        .from('user_vocab_stats')
-        .select('correct_count, incorrect_count')
-        .eq('user_id', playerId)
-        .eq('word_id', question_id)
-        .maybeSingle()
-        
-      if (fetchErr) {
-        console.error('Error fetching user_vocab_stats:', fetchErr)
-      } else {
-        const correctCount = (existingStats?.correct_count || 0) + (isCorrect ? 1 : 0)
-        const incorrectCount = (existingStats?.incorrect_count || 0) + (!isCorrect ? 1 : 0)
-        
-        const { error: upsertErr } = await supabase.from('user_vocab_stats').upsert({
-          user_id: playerId,
-          word_id: question_id,
-          correct_count: correctCount,
-          incorrect_count: incorrectCount,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id,word_id' })
-        
-        if (upsertErr) {
-          console.error('Error upserting user_vocab_stats:', upsertErr)
+      let updated = false
+      let attempts = 0
+      while (!updated && attempts < 3) {
+        const { data: existingStats, error: fetchErr } = await supabase
+          .from('user_vocab_stats')
+          .select('correct_count, incorrect_count')
+          .eq('user_id', playerId)
+          .eq('word_id', question_id)
+          .maybeSingle()
+          
+        if (fetchErr) {
+          console.error('Error fetching user_vocab_stats:', fetchErr)
+          break
         }
+
+        if (!existingStats) {
+          const { error: insErr } = await supabase.from('user_vocab_stats').insert({
+            user_id: playerId,
+            word_id: question_id,
+            correct_count: isCorrect ? 1 : 0,
+            incorrect_count: !isCorrect ? 1 : 0,
+            updated_at: new Date().toISOString()
+          })
+          if (!insErr) {
+            updated = true
+          } else if (insErr.code !== '23505') {
+            break // Break if error is not unique violation
+          }
+        } else {
+          const correctCount = existingStats.correct_count + (isCorrect ? 1 : 0)
+          const incorrectCount = existingStats.incorrect_count + (!isCorrect ? 1 : 0)
+          
+          const { data: updData, error: updErr } = await supabase.from('user_vocab_stats').update({
+            correct_count: correctCount,
+            incorrect_count: incorrectCount,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', playerId)
+          .eq('word_id', question_id)
+          .eq('correct_count', existingStats.correct_count)
+          .eq('incorrect_count', existingStats.incorrect_count)
+          .select('user_id')
+
+          if (!updErr && updData && updData.length > 0) {
+            updated = true
+          }
+        }
+        attempts++
       }
     } catch (vocabErr) {
       console.error('Error tracking vocabulary:', vocabErr)
@@ -915,43 +886,55 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
 
     const finalScore = Math.max(0, (session.score ?? 0) - oraclePenalty)
 
-    // Fetch player profile to get current Elo and stats
-    const { data: playerProfile } = await supabase
-      .from('players')
-      .select('elo, wins, losses, total_matches')
-      .eq('id', playerId)
-      .single()
-
     let newElo = 0
     let eloDelta = 0
 
-    if (playerProfile) {
-      const currentElo = playerProfile.elo ?? 0
-      const wins = playerProfile.wins ?? 0
-      const losses = playerProfile.losses ?? 0
-      const totalMatches = playerProfile.total_matches ?? 0
-
-      // Expected score based on current Elo
-      const expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
-      
-      // Calculate Elo change: K-factor = 0.05 of the score difference
-      eloDelta = Math.floor(0.05 * (finalScore - expectedScore))
-      
-      // Clamp the delta to avoid extreme shifts
-      eloDelta = Math.max(-100, Math.min(150, eloDelta))
-      
-      newElo = Math.max(0, currentElo + eloDelta)
-      const isWin = finalScore >= expectedScore
-
-      await supabase
+    let updated = false
+    let attempts = 0
+    while (!updated && attempts < 3) {
+      const { data: playerProfile } = await supabase
         .from('players')
-        .update({
-          elo: newElo,
-          wins: wins + (isWin ? 1 : 0),
-          losses: losses + (isWin ? 0 : 1),
-          total_matches: totalMatches + 1
-        })
+        .select('elo, wins, losses, total_matches')
         .eq('id', playerId)
+        .single()
+
+      if (playerProfile) {
+        const currentElo = playerProfile.elo ?? 0
+        const wins = playerProfile.wins ?? 0
+        const losses = playerProfile.losses ?? 0
+        const totalMatches = playerProfile.total_matches ?? 0
+
+        // Expected score based on current Elo
+        const expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
+        
+        // Calculate Elo change: K-factor = 0.05 of the score difference
+        eloDelta = Math.floor(0.05 * (finalScore - expectedScore))
+        
+        // Clamp the delta to avoid extreme shifts
+        eloDelta = Math.max(-100, Math.min(150, eloDelta))
+        
+        newElo = Math.max(0, currentElo + eloDelta)
+        const isWin = finalScore >= expectedScore
+
+        const { data: updData, error: updErr } = await supabase
+          .from('players')
+          .update({
+            elo: newElo,
+            wins: wins + (isWin ? 1 : 0),
+            losses: losses + (isWin ? 0 : 1),
+            total_matches: totalMatches + 1
+          })
+          .eq('id', playerId)
+          .eq('elo', currentElo)
+          .select('id')
+
+        if (!updErr && updData && updData.length > 0) {
+          updated = true
+        }
+      } else {
+        break // player not found
+      }
+      attempts++
     }
 
     const { error: updateErr } = await supabase

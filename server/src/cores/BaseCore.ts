@@ -57,6 +57,8 @@ export interface ScoringContext {
   secondaryCoreName?: string
   /** The target word for this question, used to determine base points based on length */
   targetWord: string
+  /** The calculated penalty type (if incorrect) */
+  penaltyType?: 'none' | 'typo' | 'wrong' | 'skipped' | null
 }
 
 /**

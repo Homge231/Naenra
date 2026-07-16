@@ -79,6 +79,35 @@ export class PandoraCoreStrategy extends BaseCore {
       newResult.breakdown.multiplier_buff = (newResult.breakdown.multiplier_buff || 1) * factor
     }
 
+    if (this.coreName === "pandora's curse") {
+      if (isCorrect) newResult.pointsDelta *= 2
+      else newResult.pointsDelta = -Math.abs(newResult.pointsDelta) * 2
+    }
+
+    if (this.coreName === "pandora's mirror") {
+      if (!isCorrect && ctx.penaltyType === 'typo' && newResult.pointsDelta < 0) {
+        // Reflects close typos as positive points.
+        newResult.pointsDelta = Math.abs(newResult.pointsDelta)
+      }
+    }
+
+    if (this.coreName === 'chaos prism') {
+      if (isCorrect) newResult.pointsDelta += 50
+    }
+
+    if (this.coreName === 'warp reality') {
+      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 1.5)
+    }
+
+    if (this.coreName === "pandora's wrath") {
+      if (isCorrect) {
+        newResult.pointsDelta += 500
+        newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + 500
+      } else {
+        newResult.pointsDelta = 200
+      }
+    }
+
     return newResult
   }
 }

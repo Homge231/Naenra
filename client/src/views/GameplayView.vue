@@ -1107,7 +1107,6 @@ async function skipQuestion() {
       missionProgress.value = 0
     }
   }
-  if (isAegisMode.value) aegisShieldCount.value = Math.max(0, aegisShieldCount.value - 1)
   typedLetters.value = []
   triggerScoreFlash('wrong')
 
@@ -1275,9 +1274,6 @@ async function checkAnswer() {
       missionProgress.value = (missionProgress.value + 1)
       if (missionProgress.value === targetStreak) {
         showMissionCelebration.value = true
-        if (activeName === 'shield mission') {
-          aegisShieldCount.value = maxShields.value
-        }
         setTimeout(() => {
           showMissionCelebration.value = false
           missionProgress.value = 0
@@ -1286,12 +1282,7 @@ async function checkAnswer() {
         missionProgress.value = 1
       }
     }
-    if (isAegisMode.value) {
-      if (isGuardianAngel.value && aegisShieldCount.value === maxShields.value) {
-        addTime(10000)
-      }
-      aegisShieldCount.value = Math.min(maxShields.value, aegisShieldCount.value + 1)
-    }
+
     triggerScoreFlash('correct')
   } else {
     audioService.playSkip()
@@ -1305,9 +1296,7 @@ async function checkAnswer() {
         missionProgress.value = 0
       }
     }
-    if (isAegisMode.value) {
-      aegisShieldCount.value = Math.max(0, aegisShieldCount.value - 1)
-    }
+
     triggerScoreFlash('wrong')
   }
 
@@ -1392,7 +1381,6 @@ async function checkAnswer() {
         }
         
         if (data.shield_delta) {
-          aegisShieldCount.value = Math.min(maxShields.value, aegisShieldCount.value + data.shield_delta)
           if (data.shield_delta > 0) {
             spawnPointPopup(0, 'custom', '+1 SHIELD!')
           }
