@@ -53,7 +53,11 @@ export async function authMiddleware(
       return
     }
 
-    if (player.session_version !== decoded.sessionVersion) {
+    // Treat tokens issued before sessionVersion was added as version 0.
+    const tokenVersion = decoded.sessionVersion ?? 0
+    const dbVersion    = player.session_version   ?? 0
+
+    if (dbVersion !== 0 && tokenVersion !== dbVersion) {
       res.status(401).json({
         error: 'SessionInvalidated',
         message: 'Session expired due to login elsewhere'
