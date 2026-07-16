@@ -380,6 +380,10 @@ async function createSession(coreId: string) {
     if (data.theme) {
       currentBgImage.value = getBackgroundImage(data.theme)
     }
+    if (data.active_core) {
+      gameStore.activeCoreId = data.active_core.id
+      gameStore.activeCoreName = data.active_core.name
+    }
   } catch (err) {
     console.error('Error creating Session:', err)
   }

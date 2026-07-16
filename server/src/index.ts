@@ -19,7 +19,7 @@ app.use(cors({
     'https://naenra.xyz',
     'https://www.naenra.xyz',
     'https://axonproject.onrender.com',
-    'http://localhost:5173'
+    ...(process.env.NODE_ENV !== 'production' ? ['http://localhost:5173'] : [])
   ],
   credentials: true
 }))

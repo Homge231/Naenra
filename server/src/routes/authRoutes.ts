@@ -97,12 +97,10 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const otp = generateOTP()
 
-    const encryptedPassword = encryptPassword(password)
     const { error: insertErr } = await supabase
       .from('pending_registrations')
       .upsert({
         email,
-        password: encryptedPassword,
         hashed_password: hashedPassword,
         username,
         otp,
@@ -173,10 +171,10 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
 
     otpAttempts.delete(email)
 
-    const rawPassword = decryptPassword(pending.password)
+    const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!'
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: pending.email,
-      password: rawPassword,
+      password: tempPassword,
       email_confirm: true,
       user_metadata: { full_name: pending.username }
     })
@@ -335,24 +333,25 @@ router.post('/login', async (req: Request, res: Response) => {
       return
     }
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
+    const { data: player } = await supabase
+      .from('players')
+      .select('id, email, username, avatar_url, hashed_password, is_first_play, elo')
+      .eq('email', email)
+      .single()
 
-    if (authError || !authData.user) {
+    if (!player || !player.hashed_password) {
       res.status(401).json({ error: 'Invalid email or password' })
       return
     }
 
-    const { data: profile } = await supabase
-      .from('players')
-      .select('*, is_first_play')
-      .eq('id', authData.user.id)
-      .single()
+    const isValid = await bcrypt.compare(password, player.hashed_password)
+    if (!isValid) {
+      res.status(401).json({ error: 'Invalid email or password' })
+      return
+    }
 
     const { data: versionResult, error: versionError } = await supabase
-      .rpc('increment_session_version', { player_id: authData.user.id })
+      .rpc('increment_session_version', { player_id: player.id })
 
     if (versionError || versionResult === null || versionResult === undefined) {
       console.error('session_version increment error:', versionError)
@@ -363,14 +362,12 @@ router.post('/login', async (req: Request, res: Response) => {
     const newSessionVersion = versionResult
 
     // Instantly kick any other active session for this account via Realtime broadcast.
-    // Uses service_role internally, so it doesn't depend on the client having a
-    // Supabase Auth session (unlike RLS-gated postgres_changes).
-    await broadcastSessionInvalidated(authData.user.id, newSessionVersion)
+    await broadcastSessionInvalidated(player.id, newSessionVersion)
 
     const token = generateToken({
-      id: authData.user.id,
-      email: authData.user.email || '',
-      username: profile?.username || '',
+      id: player.id,
+      email: player.email || '',
+      username: player.username || '',
       sessionVersion: newSessionVersion
     })
 
@@ -378,12 +375,12 @@ router.post('/login', async (req: Request, res: Response) => {
       message: 'Login successful',
       token,
       user: {
-        id: authData.user.id,
-        email: authData.user.email,
-        username: profile?.username,
-        avatar_url: profile?.avatar_url,
-        elo: profile?.elo ?? 0,
-        is_first_play: profile?.is_first_play ?? true,
+        id: player.id,
+        email: player.email,
+        username: player.username,
+        avatar_url: player.avatar_url,
+        elo: player.elo ?? 0,
+        is_first_play: player.is_first_play ?? true,
         session_version: newSessionVersion
       }
     })

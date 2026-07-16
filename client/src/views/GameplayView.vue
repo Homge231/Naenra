@@ -1262,40 +1262,14 @@ async function checkAnswer() {
       pauseTimerFor(3000)
     }
 
-    if (isMissionCore.value) {
-      const activeName = effectiveCores.value[0]?.name.toLowerCase() || ''
-      let targetStreak = 5
-      if (['daily quest', 'apex predator', 'swift mission', 'mission master', 'shield mission'].includes(activeName)) {
-        targetStreak = 3
-      } else if (activeName === 'mission specialist') {
-        targetStreak = 4
-      }
-
-      missionProgress.value = (missionProgress.value + 1)
-      if (missionProgress.value === targetStreak) {
-        showMissionCelebration.value = true
-        setTimeout(() => {
-          showMissionCelebration.value = false
-          missionProgress.value = 0
-        }, 2000)
-      } else if (missionProgress.value > targetStreak) {
-        missionProgress.value = 1
-      }
-    }
+    // Mission logic has been removed from client prediction and moved entirely to the backend.
 
     triggerScoreFlash('correct')
   } else {
     audioService.playSkip()
     gameState.value = 'wrong'
     currentCombo.value = 0
-    if (isMissionCore.value) {
-      const isShieldMission = effectiveCores.value.some(c => c.name.toLowerCase() === 'shield mission')
-      if (isShieldMission && aegisShieldCount.value > 0) {
-        // Streak is protected by active shield
-      } else {
-        missionProgress.value = 0
-      }
-    }
+    // Mission streak drop logic is now handled by the backend
 
     triggerScoreFlash('wrong')
   }
@@ -1363,7 +1337,12 @@ async function checkAnswer() {
           aegisShieldCount.value = data.breakdown.final_shield_count
         }
         if (data.breakdown?.mission_streak !== undefined) {
-          missionProgress.value = data.breakdown.mission_streak
+          if (data.breakdown.mission_completed === 1) {
+            // Optimistically fill the last star for the celebration
+            missionProgress.value = missionProgress.value + 1
+          } else {
+            missionProgress.value = data.breakdown.mission_streak
+          }
         }
 
         // --- Core Effect Engine (v2) Handlers ---
@@ -1688,7 +1667,9 @@ onMounted(async () => {
   }
 
   // Ensure we start a fresh match if navigating here from outside
-  matchStore.resetMatch()
+  if (!gameStore.sessionId) {
+    matchStore.resetMatch()
+  }
   resetTimer()
 
   if (!gameStore.sessionId) {

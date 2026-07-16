@@ -291,12 +291,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Not routed through fetchWithAuth: pre-auth endpoint, no token to attach.
-  async function registerWithEmail(email: string, password: string): Promise<{ success: boolean }> {
+  async function registerWithEmail(email: string, password: string, username: string): Promise<{ success: boolean }> {
     try {
       const res = await fetch(`${SERVER_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, username: email.split('@')[0] })
+        body: JSON.stringify({ email, password, username })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)

@@ -479,8 +479,7 @@ export function isComboCore(name: string | null | undefined): boolean {
     'combo mastery',
     'combo focus',
     'super combo',
-    'combo shield',
-    'speed demon'
+    'combo shield'
   ].includes(key)
 }
 

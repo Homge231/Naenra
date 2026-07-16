@@ -12,7 +12,7 @@ const supabase = createClient(
 )
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const MATCH_DURATION_MS = 100_000                             // 100-second match
+const MATCH_DURATION_MS = 60_000                             // 60-second match
 const PANDORA_CORE_ID = '00000000-0000-0000-0000-000000000010' // Pandora's Box
 
 // In-memory timer store for Anti-Cheat (time_taken validation)
