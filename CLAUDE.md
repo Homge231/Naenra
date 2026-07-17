@@ -105,7 +105,7 @@ interface CoreModule {
 | `00000000-0000-0000-0000-000000000001` | No Core | None |
 | `00000000-0000-0000-0000-000000000005` | Combo Core | None |
 | `00000000-0000-0000-0000-000000000006` | Oracle Core | None (Oracle uses its own template block) |
-| `PENDING` | Speedster | Cyan timer glow, wind-streak overlay, "+N FAST!" popup |
+| `00000000-0000-0000-0000-000000000007` | Speedster | Cyan timer glow, wind-streak overlay, "+N FAST!" popup |
 
 
 ### How GameplayView.vue uses the registry
@@ -357,8 +357,16 @@ MAIL_FROM=
   - "+N FAST!" floating popup
   - **Core Strategy Pattern refactor** — BE + FE both use registry/parent-child architecture
 
+**Sprint 2.5 — Bug Fixes & Stability ✅**:
+  - Fixed Aegis Shield starting with 2/3 shields (reset to 0 shields by default).
+  - Fixed `getCoreIconPath` crash that caused the upgrade screen to be skipped when local assets were missing.
+  - Implemented `@error` image fallback in UI for broken `icon_url` paths, swapping to `default.svg`.
+  - Fixed Oracle Core (Argus Eyes) penalty bypass by removing Tier 1 from `upgradedOracleNames`.
+  - Fixed Phoenix Core bonus point calculation (changed from 200 to 100 to yield a 200 total instead of 300).
+  - Fixed Session State Leak bug where returning to Home and starting a new match would skip to Round 3 (now correctly clears `gameStore.sessionId` on `goHome` and `submitCore`).
+
 **Sprint 3 (next)**:
-  - Create Speedster row in Supabase → update `PENDING_UUID` in `registry.ts`
+  - Create Speedster row in Supabase (DONE, UUID updated)
   - Colyseus multiplayer rooms + matchmaking
   - Real-time opponent sync
   - ELO updates after match end
@@ -385,6 +393,6 @@ MAIL_FROM=
 - Always use tools to read files before editing them
 - Never describe changes — make them
 - After adding a new core, update this file's core registry tables
-- `PENDING_UUID` in `registry.ts` must be replaced once the Supabase `cores` row for Speedster is created
+- Speedster UUID is `00000000-0000-0000-0000-000000000007` and has been updated in `registry.ts`.
 - Do not add `if/else` branches to `gameController.ts` for new cores — use the strategy registry
 - Do not add hardcoded core UUIDs to `GameplayView.vue` — use `activeCoreModule` from the registry

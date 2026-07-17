@@ -215,6 +215,12 @@ Speedster is fully wired. The next focus is Sprint 3.
 4. **Colyseus multiplayer** — create rooms in `server/src/index.ts`, sync opponent score/progress via WebSocket
 5. **Real-time opponent UI** — add opponent score bar + letter-slot shadow in `GameplayView.vue`
 
+### Recent Bug Fixes (Sprint 2.5)
+
+- **Session State Leak**: Fixed an issue where returning to `Home` and starting a new match would skip straight to Round 3. We now correctly clear `gameStore.sessionId` on `goHome` and `submitCore`.
+- **Image Fallbacks**: If an `icon_url` from the database is broken or missing, the `<img>` tags in the UI now use an `@error` handler to automatically fallback to `/icons/cores/default.svg`.
+- **Core Balances**: Phoenix base bonus was reduced to 100 (totaling 200). Aegis Shield now correctly initializes with 0 shields (no hardcoded overrides). Tier 1 Oracle (Argus Eyes) no longer bypasses the hint penalty.
+
 ---
 
 ## Rules for AI Agents
