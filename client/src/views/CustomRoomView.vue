@@ -1,9 +1,7 @@
 <template>
-    <div
-        class="h-screen w-full bg-darkNavy text-white relative flex flex-col items-center justify-center font-sans overflow-hidden">
+    <div class="h-screen w-full bg-darkNavy text-white relative flex flex-col items-center justify-center font-sans overflow-hidden">
         <div class="absolute inset-0 cyber-grid opacity-30 pointer-events-none z-0"></div>
 
-        <!-- NEW: Nút Icon Abandon Room ở góc trên bên trái -->
         <div class="absolute top-8 left-8 z-50 flex flex-col items-start gap-1.5">
             <p class="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">Leave</p>
             <button @click="router.push('/home')"
@@ -15,7 +13,6 @@
             </button>
         </div>
 
-        <!-- Room Code ở góc trên bên phải -->
         <div class="absolute top-8 right-8 z-50 flex flex-col items-end gap-1.5">
             <p class="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase">Room Code</p>
             <div
@@ -62,13 +59,13 @@
                 Custom Room
             </h1>
 
-            <!-- Khu vực 2 thẻ Avatar đã được giải phóng khỏi nút Abandon -->
             <div class="flex flex-col md:flex-row items-center justify-center gap-10 md:gap-20 w-full mb-16">
 
                 <div class="flex flex-col items-center transform transition-transform duration-500 hover:scale-105">
                     <template v-if="player1">
                         <div
-                            class="w-32 h-32 md:w-44 md:h-44 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/20 p-2 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+                            class="w-32 h-32 md:w-44 md:h-44 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/20 p-2 shadow-[0_0_30px_rgba(59,130,246,0.15)] relative">
+                            <div class="absolute -top-3 -right-3 bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-lg">Host</div>
                             <img :src="player1.avatar" :alt="player1.name"
                                 class="w-full h-full rounded-xl object-cover bg-darkNavy" />
                         </div>
@@ -130,6 +127,23 @@
                     </template>
                 </div>
             </div>
+
+            <div class="mt-4 flex flex-col items-center" v-if="isHost">
+                <button 
+                    :disabled="!canStartGame"
+                    @click="initiateMatch"
+                    class="px-10 py-4 bg-gradient-to-r from-orange to-hexred text-white font-black text-xl md:text-2xl tracking-widest uppercase rounded-xl shadow-[0_0_20px_rgba(230,57,70,0.4)] disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 disabled:hover:scale-100 transition-all duration-300 focus:outline-none">
+                    Play Game
+                </button>
+                <p v-if="!canStartGame" class="mt-3 text-sm text-gray-400 uppercase tracking-widest">
+                    Waiting for opponent...
+                </p>
+            </div>
+            <div class="mt-4 flex flex-col items-center" v-else>
+                <p v-if="canStartGame" class="text-xl font-bold text-orange animate-pulse tracking-widest uppercase">
+                    Waiting for host to start...
+                </p>
+            </div>
         </main>
 
         <RoomSettingsOverlay 
@@ -167,6 +181,9 @@ const saveRoomSettings = (newMetadata: { vocabularyLevel: string, difficulty: st
     }
 }
 
+// Track the current user's ID securely to determine host status later
+const currentUserId = ref(authStore.profile?.id || `guest_${Math.floor(Math.random() * 1000)}`)
+
 const copyRoomId = async () => {
     try {
         await navigator.clipboard.writeText(roomId.value)
@@ -181,6 +198,25 @@ const participants = ref<{ id: string, name: string, avatar: string }[]>([])
 
 const player1 = computed(() => participants.value[0] || null)
 const player2 = computed(() => participants.value[1] || null)
+
+// --- NEW COMPUTED PROPERTIES FOR US-43 ---
+// Determine if the current user is the host (usually the first player in the room payload)
+const isHost = computed(() => {
+    return player1.value?.id === currentUserId.value
+})
+
+// Sub-task: FE Button Conditional Lock
+const canStartGame = computed(() => {
+    return participants.value.length === 2
+})
+
+// Sub-task: FE Match Start Event
+const initiateMatch = () => {
+    if (currentRoom && canStartGame.value) {
+        // Emit an execution signal up to the WebSocket channel
+        currentRoom.send('start_match')
+    }
+}
 
 onMounted(async () => {
     // Wait for the auth store to finish loading the profile.
@@ -201,7 +237,7 @@ onMounted(async () => {
 
     const options = {
         token: localStorage.getItem('arena_token'),
-        id: authStore.profile?.id || `guest_${Math.floor(Math.random() * 1000)}`,
+        id: currentUserId.value,
         name: authStore.profile?.username || 'Guest',
         avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Guest`
     }
@@ -218,6 +254,7 @@ onMounted(async () => {
         }
 
         if (currentRoom) {
+            // 1. Listen for standard state changes
             currentRoom.onStateChange((state: any) => {
                 try {
                     const newParticipants: { id: string, name: string, avatar: string }[] = []
@@ -244,6 +281,12 @@ onMounted(async () => {
                 } catch (e) {
                     console.error("Error parsing room state:", e)
                 }
+            })
+
+            // 2. Listen for the server broadcast that the match has officially started
+            // This ensures BOTH players are pushed to GameplayView simultaneously.
+            currentRoom.onMessage('match_started', () => {
+                router.push('/gameplay') // Adjust this route if your gameplay view uses a different path
             })
         }
     } catch (err: any) {

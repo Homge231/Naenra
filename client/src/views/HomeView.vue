@@ -138,7 +138,7 @@
 
           <button @click="startMatchmaking"
             class="h-12 w-full flex items-center justify-center rounded-md bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-lightBlue hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 font-bold text-sm tracking-widest uppercase">
-            Single Player (Test)
+            Single Player 
           </button>
 
         </div>
