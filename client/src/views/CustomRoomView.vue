@@ -268,6 +268,16 @@ onMounted(async () => {
                             })
                         }
                     })
+                    // Sort participants so that the host is always player1
+                    const hostId = state.toJSON().hostId
+                    if (hostId) {
+                        newParticipants.sort((a, b) => {
+                            if (a.id === hostId) return -1
+                            if (b.id === hostId) return 1
+                            return 0
+                        })
+                    }
+
                     participants.value = newParticipants
                     
                     const meta = state.toJSON().metadata

@@ -77,6 +77,10 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     const name = client.auth?.name || "Anonymous";
     const avatar = client.auth?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
 
+    if (this.state.players.size === 0) {
+      this.state.hostId = id;
+    }
+
     this.state.players.set(client.sessionId, new Player(id, name, avatar));
   }
 
