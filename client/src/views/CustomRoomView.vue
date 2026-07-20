@@ -182,7 +182,7 @@ const saveRoomSettings = (newMetadata: { vocabularyLevel: string, difficulty: st
 }
 
 // Track the current user's ID securely to determine host status later
-const currentUserId = ref(authStore.profile?.id || `guest_${Math.floor(Math.random() * 1000)}`)
+const currentUserId = computed(() => authStore.profile?.id)
 
 const copyRoomId = async () => {
     try {
