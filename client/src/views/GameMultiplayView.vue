@@ -1788,17 +1788,13 @@ onMounted(async () => {
     })
     currentRoom.onMessage('start_next_round', () => {
       isWaitingForNextRound.value = false
-      if (matchStore.round === 1 && !gameStore.sessionId) {
-        startFirstRound()
-      } else {
-        restartMatch()
-      }
+      restartMatch()
     })
   }
 
   if (!activeCoreId.value) {
     if (isMultiplayer.value) {
-      gameState.value = 'upgrade'
+      router.replace('/core/multiplayer')
       return
     } else {
       router.replace('/core')
