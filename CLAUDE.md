@@ -84,6 +84,8 @@ interface ScoringContext {
 
 Registry lookup: `getCoreStrategy(core.name)` — **case-insensitive, trimmed**. Unknown names fall back to `NoCoreStrategy` with a `console.warn`.
 
+> Note: Jira (project `IN`, Sprint 3) tracks the full Support Core rollout at **6 tactical cores** across Combo, Speed, Oracle, Aegis/Shield, Mission, and Pandora branches. The table above lists strategies confirmed present in this file at last update — verify `server/src/cores/index.ts` directly before assuming full parity with the Jira scope.
+
 ### Frontend — CoreModule interface (`client/src/game/cores/BaseCore.ts`)
 
 ```ts
@@ -107,6 +109,7 @@ interface CoreModule {
 | `00000000-0000-0000-0000-000000000006` | Oracle Core | None (Oracle uses its own template block) |
 | `00000000-0000-0000-0000-000000000007` | Speedster | Cyan timer glow, wind-streak overlay, "+N FAST!" popup |
 
+> Không đủ dữ liệu để xác minh UUID entries for Aegis/Shield, Mission, and Pandora branch cores — confirm against `registry.ts` and the Supabase `cores` table before relying on this list for those branches.
 
 ### How GameplayView.vue uses the registry
 
@@ -220,6 +223,8 @@ Password Reset → resetPasswordForEmail → redirectTo /reset-password → upda
 ```
 
 Token: `localStorage.arena_token` (7-day JWT)
+
+> Session hardening in progress (Sprint 5): a `session_version` column + `increment_session_version` RPC + JWT payload check has been added to enforce single active session per player, invalidating prior sessions on new login via Supabase Realtime Broadcast (REST API). A race condition in `fetchWithAuth` — where a stale 401 from a pre-login request clears a freshly written valid token — is under active investigation. Verify current state directly in `authMiddleware` / `fetchWithAuth` before assuming this is fully resolved.
 
 ---
 
@@ -344,32 +349,35 @@ MAIL_FROM=
 
 ## Sprint Status
 
-**Sprint 1 ✅** — Auth: register+OTP, email/password login, Google OAuth, password reset, JWT middleware, ProfileView
+> Source of truth: Jira project `IN` (Intern_Project — AXONACTIVE), cloudId `169b52ba-e4c2-43ae-b78f-6f300cb11e96`. Verified 2026-07-20.
 
-**Sprint 2 ✅** — Gameplay: 60s match, letter slots, score system, batch question loading, session lifecycle, anti-cheat
+**Sprint 1 ✅ — closed (2026-06-15 → 2026-06-21)** — 14 issues, 14 Done
+Goal: secure foundation — complete auth system (Email & Google) and protected Matchmaking Lobby.
+Covers: register+OTP, email/password login, Google OAuth, password reset, JWT middleware, ProfileView.
 
-**Sprint 2 — Scoring Engine Upgrade ✅** — Core system, Levenshtein penalty, multiplier/flat_buff formula, `submit-answer` v2
+**Sprint 2 ✅ — closed (2026-06-22 → 2026-06-29)** — 18 issues, 17 Done / 1 To Do
+Goal: fully playable core game loop — infinite question generation, time-out mechanism, responsive typing UI.
+Covers: 60s match, letter slots, score system, batch question loading, session lifecycle, anti-cheat, Core Strategy Pattern refactor (BE + FE), Levenshtein penalty, Speedster Core (FE effects + BE strategy).
 
-**Sprint 2 — US-17 Speedster Core ✅** (FE only, BE needs Supabase row):
-  - `SpeedsterCoreStrategy` — time-based scoring
-  - `time_taken` tracked FE-side, sent in every answer payload
-  - Wind-streak visual effects + cyan timer glow
-  - "+N FAST!" floating popup
-  - **Core Strategy Pattern refactor** — BE + FE both use registry/parent-child architecture
-
-**Sprint 2.5 — Bug Fixes & Stability ✅**:
+**Sprint 2.5 — Bug Fixes & Stability ✅** *(untracked in Jira sprint field — carried in-repo)*:
   - Fixed Aegis Shield starting with 2/3 shields (reset to 0 shields by default).
   - Fixed `getCoreIconPath` crash that caused the upgrade screen to be skipped when local assets were missing.
   - Implemented `@error` image fallback in UI for broken `icon_url` paths, swapping to `default.svg`.
   - Fixed Oracle Core (Argus Eyes) penalty bypass by removing Tier 1 from `upgradedOracleNames`.
   - Fixed Phoenix Core bonus point calculation (changed from 200 to 100 to yield a 200 total instead of 300).
-  - Fixed Session State Leak bug where returning to Home and starting a new match would skip to Round 3 (now correctly clears `gameStore.sessionId` on `goHome` and `submitCore`).
+  - Fixed Session State Leak bug where returning to Home and starting a new match would skip to Round 3.
 
-**Sprint 3 (next)**:
-  - Create Speedster row in Supabase (DONE, UUID updated)
-  - Colyseus multiplayer rooms + matchmaking
-  - Real-time opponent sync
-  - ELO updates after match end
+**Sprint 3: Support Core ✅ — closed (2026-06-29 → 2026-07-06)** — 44 issues, 35 Done / 2 Waiting Integration / 7 To Do
+Goal: 15-second Support Core Selection phase, secure server-side scoring engine, integrate 6 tactical Support Cores with dynamic visual feedback.
+
+**Sprint 4: Core Loop Completion ✅ — closed (2026-07-06 → 2026-07-13)** — 47 issues, 32 Done / 15 To Do
+Goal: package Single-player experience into a complete 3-Round loop (Core Selection → Typing → 15s Recap), dynamic topic-based backgrounds, secure sessions via User ID, automated AI question generator for weekly fresh content.
+
+**Sprint 5: Single-Player Polish 🔄 — active (2026-07-13 → 2026-07-20)** — 54 issues, 16 Done / 36 To Do / 2 In Review
+Goal: wrap up Single-player mode (vocabulary analytics, beginner tutorials, core tooltips), establish real-time server infrastructure (WebSockets/Colyseus.js) to lay groundwork for 1v1 matchmaking.
+In-progress work observed in this sprint's scope: Colyseus client/server version alignment (`@colyseus/sdk` for v0.17+), room-ID input handling, single active session enforcement (`session_version` + Supabase Realtime Broadcast), `fetchWithAuth` stale-401 race condition.
+
+> ⚠️ Correction from prior revision of this doc: the previous "Sprint 3 (next)" entry describing Colyseus multiplayer / ELO / real-time opponent sync as upcoming work was inaccurate against Jira. That scope actually falls under Sprint 4–5 (session security, real-time infra groundwork), and ELO/full multiplayer matchmaking is **not yet confirmed as scheduled to a specific sprint** — không đủ dữ liệu để xác minh a committed sprint number for ELO-post-match and full Colyseus matchmaking rooms; verify against current Jira backlog before planning against it.
 
 ---
 
@@ -396,3 +404,4 @@ MAIL_FROM=
 - Speedster UUID is `00000000-0000-0000-0000-000000000007` and has been updated in `registry.ts`.
 - Do not add `if/else` branches to `gameController.ts` for new cores — use the strategy registry
 - Do not add hardcoded core UUIDs to `GameplayView.vue` — use `activeCoreModule` from the registry
+- Cross-check sprint/status claims against Jira project `IN` before stating them as fact; do not carry forward stale sprint plans without verification.
