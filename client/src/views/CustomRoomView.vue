@@ -144,6 +144,11 @@
                     Waiting for host to start...
                 </p>
             </div>
+            
+            <!-- DEBUG INFO -->
+            <div class="mt-8 text-xs text-gray-500 font-mono text-center">
+                User ID: {{ currentUserId || 'null' }} | Host ID: {{ roomHostId || 'null' }} | Match: {{ roomHostId === currentUserId }}
+            </div>
         </main>
 
         <RoomSettingsOverlay 
