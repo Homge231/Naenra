@@ -1,5 +1,11 @@
 import { Schema, type, MapSchema } from "@colyseus/schema";
 
+export class RoomMetadata extends Schema {
+  @type("string") vocabularyLevel: string = "Normal";
+  @type("string") difficulty: string = "Standard";
+  @type("string") topic: string = "Any";
+}
+
 export class Player extends Schema {
   @type("string") id: string;
   @type("string") name: string;
@@ -17,5 +23,7 @@ export class Player extends Schema {
 
 export class MatchState extends Schema {
   @type("string") status: string = "waiting"; // waiting, playing, finished
+  @type("string") hostId: string = ""; // Identifies the room host
   @type({ map: Player }) players = new MapSchema<Player>();
+  @type(RoomMetadata) metadata = new RoomMetadata();
 }
