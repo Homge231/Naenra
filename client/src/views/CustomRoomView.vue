@@ -298,7 +298,7 @@ onMounted(async () => {
             // 2. Listen for the server broadcast that the match has officially started
             // This ensures BOTH players are pushed to GameplayView simultaneously.
             currentRoom.onMessage('match_started', () => {
-                router.push('/game')
+                router.push('/game/multiplayer')
             })
         }
     } catch (err: any) {

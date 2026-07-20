@@ -26,6 +26,11 @@ const router = createRouter({
       meta: { requiresAuth: true } 
     },
     { 
+      path: '/game/multiplayer', 
+      component: () => import('../views/GameplayView.vue'), 
+      meta: { requiresAuth: true } 
+    },
+    { 
       path: '/shop', 
       component: () => import('../views/ShopView.vue'), 
       meta: { requiresAuth: true } 
