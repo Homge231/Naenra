@@ -73,9 +73,9 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   onJoin(client: Client, options: any) {
     console.log(`${client.sessionId} joined ${this.roomId}`);
 
-    const id = client.auth?.id || client.sessionId;
-    const name = client.auth?.name || "Anonymous";
-    const avatar = client.auth?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
+    const id = options.id || client.auth?.id || client.userData?.id || client.sessionId;
+    const name = options.name || client.auth?.name || client.userData?.name || "Anonymous";
+    const avatar = options.avatar || client.auth?.avatar || client.userData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
 
     if (this.state.players.size === 0) {
       this.state.hostId = id;
