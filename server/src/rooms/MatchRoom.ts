@@ -26,7 +26,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     this.onMessage("start_match", (client) => {
       console.log(`Received start_match from ${client.sessionId}`);
       if (this.state.players.size === 2) {
-        this.state.status = "playing";
+        this.state.status = "starting";
         this.broadcast("match_started");
       }
     });
@@ -53,6 +53,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       console.log(`Player ${client.sessionId} ready for next round. (${this.readyPlayers.size}/${this.state.players.size})`);
       if (this.readyPlayers.size >= this.state.players.size) {
         this.readyPlayers.clear();
+        this.state.status = "playing";
         this.broadcast("start_next_round");
       }
     });
@@ -120,7 +121,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     this.finishedPlayers.delete(client.sessionId);
     this.readyPlayers.delete(client.sessionId);
     
-    if (this.state.status === "playing") {
+    if (this.state.status === "playing" || this.state.status === "starting") {
       this.broadcast("opponent_left");
     }
   }

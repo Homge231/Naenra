@@ -672,10 +672,10 @@ const waitingForOpponent = ref(false)
 const isWaitingForNextRound = ref(false)
 
 function updateOpponentData(state: any) {
-  if (!state || !state.players) return
+  if (!state || !state.players || !currentRoom) return
   let foundOpponent = false
-  state.players.forEach((player: any) => {
-    if (player.id !== currentUserId.value) {
+  state.players.forEach((player: any, sId: string) => {
+    if (sId !== currentRoom.sessionId) {
       opponentScore.value = player.score || 0
       opponentName.value = player.name || 'Opponent'
       opponentAvatar.value = player.avatar || ''
