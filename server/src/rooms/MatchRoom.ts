@@ -36,6 +36,8 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       if (player) {
         player.score = message.score;
         console.log(`Updated player ${player.name} score to ${player.score}`);
+      } else {
+        console.warn(`[MatchRoom] player not found for sessionId: ${client.sessionId}`);
       }
     });
 

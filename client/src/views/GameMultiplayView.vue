@@ -667,23 +667,29 @@ const isMultiplayer = computed(() => route.path === '/game/multiplayer')
 const opponentName = ref('')
 const opponentAvatar = ref('')
 const opponentScore = ref(0)
+const opponentSessionId = ref('')
 const currentUserId = computed(() => authStore.user?.id || authStore.profile?.id)
 const waitingForOpponent = ref(false)
 const isWaitingForNextRound = ref(false)
 
 function updateOpponentData(state: any) {
   if (!state || !state.players || !currentRoom) return
-  let foundOpponent = false
-  state.players.forEach((player: any, sId: string) => {
-    if (sId !== currentRoom.sessionId) {
-      opponentScore.value = player.score || 0
-      opponentName.value = player.name || 'Opponent'
-      opponentAvatar.value = player.avatar || ''
-      foundOpponent = true
-      console.log(`[Multiplayer] Updated opponent ${player.name} score to: ${player.score}`)
-    }
-  })
-  if (!foundOpponent) {
+  
+  if (!opponentSessionId.value) {
+    state.players.forEach((player: any, sId: string) => {
+      if (sId !== currentRoom.sessionId) {
+        opponentSessionId.value = sId
+      }
+    })
+  }
+
+  const opponent = opponentSessionId.value ? state.players.get(opponentSessionId.value) : null
+  if (opponent) {
+    opponentScore.value = opponent.score || 0
+    opponentName.value = opponent.name || 'Opponent'
+    opponentAvatar.value = opponent.avatar || ''
+    console.log(`[Multiplayer] Updated opponent ${opponent.name} score to: ${opponent.score}`)
+  } else {
     opponentName.value = 'Waiting...'
     opponentScore.value = 0
   }
