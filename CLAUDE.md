@@ -134,11 +134,11 @@ Timer 0 → POST /api/game/timeout → status='timeout', score locked
 | 2.5 Bug Fixes | closed (untracked in Jira) | — | — | See below |
 | 3: Support Core | closed | 06-29→07-06 | 44 (35D/2WI/7TD) | 15s core select, server scoring, 6 tactical cores |
 | 4: Core Loop Completion | closed | 07-06→07-13 | 47 (32D/15TD) | 3-Round loop, dynamic backgrounds, session security, AI question gen |
-| 5: Single-Player Polish | 🔄 active | 07-13→07-20 | 54 (16D/36TD/2IR) | Analytics/tutorials/tooltips + WS/Colyseus groundwork for 1v1 |
+| 5: Single-Player Polish | completed (dev) | 07-13→07-20 | (Pending Jira Sync) | Analytics/tutorials/tooltips + WS/Colyseus groundwork for 1v1 |
 
 Sprint 2.5 fixes: Aegis Shield 0-shield default, `getCoreIconPath` crash fix, `@error` icon fallback→default.svg, Oracle Tier-1 penalty-bypass fix, Phoenix bonus 200→100 (total 200 not 300), Session State Leak fix (clear `gameStore.sessionId` on goHome/submitCore).
 
-Sprint 5 in-flight: Colyseus `@colyseus/sdk` v0.17+ alignment, room-ID input handling, single-session enforcement, `fetchWithAuth` race condition.
+Sprint 5 fixes & groundwork: `session_version` enforcement, `fetchWithAuth` race condition resolved, Colyseus `@colyseus/sdk` v0.17+ alignment done. Multiplayer base (Custom Rooms, Game loop, Real-time event broadcasting/Toast UI) complete.
 
 ⚠️ ELO-post-match and full Colyseus matchmaking rooms are **not confirmed scheduled to any sprint** — không đủ dữ liệu để xác minh; check Jira backlog before planning against them.
 
