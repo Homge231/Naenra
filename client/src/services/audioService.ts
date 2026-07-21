@@ -1,4 +1,4 @@
-import { isSpeedsterCore, isOracleCore } from '../game/cores/registry';
+import { getCoreFamily } from '../game/cores/families';
 
 const CORE_SFX_MAP: Record<string, string> = {
   // Example specific mappings (you can add more IDs here)
@@ -123,13 +123,15 @@ class AudioService {
   getCoreBgmPath(coreName: string | null | undefined): string {
     if (!coreName) return '';
     
-    if (isSpeedsterCore(coreName)) {
+    const family = getCoreFamily(coreName);
+    
+    if (family === 'speedster') {
       return '/audio/speedster.mp3';
     }
-    if (isOracleCore(coreName)) {
+    if (family === 'oracle') {
       return '/audio/Oracle.mp3';
     }
-    if (coreName.toLowerCase().includes('balance')) {
+    if (family === 'balanced') {
       return '/audio/balance.mp3';
     }
     
