@@ -671,6 +671,9 @@ let toastIdCounter = 0
 
 function addToast(message: string, icon: string, type: 'combo' | 'skip') {
   const id = ++toastIdCounter
+  if (toasts.value.length >= 3) {
+    toasts.value.shift()
+  }
   toasts.value.push({ id, message, icon, type })
   setTimeout(() => {
     toasts.value = toasts.value.filter(t => t.id !== id)
@@ -1804,6 +1807,14 @@ watch(activeCoreModule, (newCore) => {
   // BGM is handled elsewhere
 }, { immediate: true })
 
+watch(() => gameState.value, (newState) => {
+  if (newState === 'upgrade') {
+    audioService.playBGM('/audio/core_selection.mp3')
+  } else if (newState === 'playing') {
+    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+  }
+})
+
 watch(() => currentCombo.value, (newVal) => {
   const isComboActive = effectiveCores.value.some(c => c.name.toLowerCase().includes('combo') || c.name.toLowerCase().includes('strike') || c.name.toLowerCase().includes('power'))
   
@@ -1868,6 +1879,11 @@ onMounted(async () => {
   }
   await fetchBatch()
   await loadQuestion()
+
+  if (gameState.value !== 'upgrade') {
+    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+  }
+
   sendScoreUpdate(0)
   startMatchTimer()
   document.addEventListener('click', handleOutsideClick)
