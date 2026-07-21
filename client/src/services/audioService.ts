@@ -94,14 +94,14 @@ class AudioService {
     
     const vol = this.getVolume();
     // Usually BGM should be slightly quieter than SFX
-    this.bgmAudio.volume = Math.max(0, vol * 0.7); 
+    this.bgmAudio.volume = Math.max(0, vol * 0.35); 
     
     this.bgmAudio.play().catch(e => console.warn('BGM play failed:', e));
   }
 
   setMasterVolume(vol: number) {
     if (this.bgmAudio) {
-      this.bgmAudio.volume = Math.max(0, vol * 0.7);
+      this.bgmAudio.volume = Math.max(0, vol * 0.35);
     }
   }
 
