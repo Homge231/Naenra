@@ -542,8 +542,6 @@ import {
   playJackpot,
   playShieldGain,
   playShieldBreak,
-  updateCoreDrone,
-  stopCoreDrone,
   playSpeedWhoosh,
   playPandoraWarp,
   playPandoraTransform,
@@ -1632,11 +1630,7 @@ watch(aegisShieldCount, (newVal, oldVal) => {
 })
 
 watch(activeCoreModule, (newCore) => {
-  if (newCore) {
-    updateCoreDrone(newCore.name)
-  } else {
-    stopCoreDrone()
-  }
+  // BGM is handled by gameState watcher
 }, { immediate: true })
 
 watch(() => currentCombo.value, (newVal) => {
@@ -1697,7 +1691,6 @@ onUnmounted(() => {
   audioService.stopBGM()
   stopMatchTimer()
   stopTimeoutInterval()
-  stopCoreDrone()
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   for (const t of activeBgTimeouts) clearTimeout(t)
