@@ -550,6 +550,19 @@
       @keydown="handleKeydown" />
     <FeedbackOverlay :is-visible="showFeedback" @close="showFeedback = false" @success="handleFeedbackSuccess" />
 
+    <!-- Opponent Toast Notifications Stack -->
+    <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2 pointer-events-none">
+      <transition-group name="toast-slide">
+        <div v-for="toast in toasts" :key="toast.id" 
+             class="bg-darkNavy/90 border border-white/10 shadow-lg rounded-lg px-4 py-3 flex items-center gap-3 backdrop-blur-sm min-w-[200px]">
+          <span class="text-xl">{{ toast.icon }}</span>
+          <span class="text-sm font-bold tracking-widest uppercase" :class="toast.type === 'combo' ? 'text-orange' : 'text-hexred'">
+            {{ toast.message }}
+          </span>
+        </div>
+      </transition-group>
+    </div>
+
   </div>
 
 </template>
@@ -645,6 +658,24 @@ type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout' | 'upgr
 const TIMEOUT_PHASE_DURATION = 15
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
+
+// ── Toast Notifications Stack ──────────────────────────────────────────────
+interface Toast {
+  id: number
+  message: string
+  icon: string
+  type: 'combo' | 'skip'
+}
+const toasts = ref<Toast[]>([])
+let toastIdCounter = 0
+
+function addToast(message: string, icon: string, type: 'combo' | 'skip') {
+  const id = ++toastIdCounter
+  toasts.value.push({ id, message, icon, type })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+  }, 2000)
+}
 
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
@@ -1184,6 +1215,9 @@ async function skipQuestion() {
 
   // Immediate local feedback
   audioService.playSkip()
+  if (currentRoom) {
+    currentRoom.send('player_skip')
+  }
   gameState.value = 'wrong'
   currentCombo.value = 0
   if (isMissionCore.value) {
@@ -1338,6 +1372,9 @@ async function checkAnswer() {
     audioService.playCorrect()
     gameState.value = 'correct'
     currentCombo.value++
+    if (currentRoom && currentCombo.value > 0 && currentCombo.value % 5 === 0) {
+      currentRoom.send('player_combo', { combo: currentCombo.value })
+    }
 
     // Core specific time modifiers
     if (isTimeWarp.value) {
@@ -1796,6 +1833,12 @@ onMounted(async () => {
     currentRoom.onMessage('start_next_round', () => {
       isWaitingForNextRound.value = false
       restartMatch()
+    })
+    currentRoom.onMessage('opponent_combo', (data: { combo: number }) => {
+      addToast(`Opponent hit Combo x${data.combo}!`, '🔥', 'combo')
+    })
+    currentRoom.onMessage('opponent_skip', () => {
+      addToast('Opponent skipped a word!', '❌', 'skip')
     })
   }
 
@@ -2380,4 +2423,18 @@ onUnmounted(() => {
     opacity: 0;
   }
 }
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translateX(50px);
+}
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
 </style>
