@@ -1,10 +1,16 @@
 import { getCoreFamily } from '../game/cores/families';
 
-const CORE_SFX_MAP: Record<string, string> = {
-  // Example specific mappings (you can add more IDs here)
-  '11111111-1111-1111-1111-111111111111': '/audio/cores/phoenix_activate.wav',
+const FAMILY_SFX_MAP: Record<string, string> = {
+  'phoenix': '/audio/cores/phoenix_activate.wav',
   'speedster': '/audio/cores/speedster_activate.wav',
-  'perfect-combo': '/audio/cores/combo_activate.wav'
+  'combo': '/audio/cores/combo_activate.wav',
+  'balanced': '/audio/cores/balance_activate.wav',
+  'oracle': '/audio/cores/oracle_activate.wav',
+  'aegis': '/audio/cores/aegis_activate.wav',
+  'mission': '/audio/cores/mission_activate.wav',
+  'power': '/audio/cores/power_activate.wav',
+  'pandora': '/audio/cores/pandora_activate.wav',
+  'highroller': '/audio/cores/highroller_activate.wav'
 };
 
 class AudioService {
@@ -68,12 +74,16 @@ class AudioService {
     this.playSound(this.rerollAudio);
   }
 
-  playCoreActivation(coreId: string) {
-    let audio = this.coreAudioCache[coreId];
+  playCoreActivation(coreName: string) {
+    if (!coreName) return;
+    const family = getCoreFamily(coreName);
+    const cacheKey = family || 'default';
+    
+    let audio = this.coreAudioCache[cacheKey];
     if (!audio) {
-      const path = CORE_SFX_MAP[coreId] || '/audio/cores/default_activate.wav';
-      audio = new Audio(path);
-      this.coreAudioCache[coreId] = audio;
+      const path = family ? FAMILY_SFX_MAP[family] : null;
+      audio = new Audio(path || '/audio/cores/default_activate.wav');
+      this.coreAudioCache[cacheKey] = audio;
     }
     this.playSound(audio);
   }

@@ -290,7 +290,7 @@ async function selectCore(core: CoreOption) {
   loading.value = true
   
   audioService.playClick()
-  audioService.playCoreActivation(core.id)
+  audioService.playCoreActivation(core.name)
   
   stopTimer()
 
