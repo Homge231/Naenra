@@ -13,6 +13,19 @@ const FAMILY_SFX_MAP: Record<string, string> = {
   'highroller': '/audio/cores/highroller_activate.wav'
 };
 
+const FAMILY_BGM_MAP: Record<string, string> = {
+  'combo': '/audio/combo.mp3',
+  'speedster': '/audio/speedster.mp3',
+  'oracle': '/audio/Oracle.mp3',
+  'mission': '/audio/mission imposiblle.mp3',
+  'aegis': '/audio/aegile shield.mp3',
+  'balanced': '/audio/balance.mp3',
+  'power': '/audio/power strike.mp3',
+  'pandora': '/audio/pandora.mp3',
+  'phoenix': '/audio/phoenix.mp3',
+  'highroller': '/audio/high roller.mp3'
+};
+
 class AudioService {
   private correctAudio: HTMLAudioElement;
   private skipAudio: HTMLAudioElement;
@@ -134,18 +147,10 @@ class AudioService {
     if (!coreName) return '';
     
     const family = getCoreFamily(coreName);
-    
-    if (family === 'speedster') {
-      return '/audio/speedster.mp3';
-    }
-    if (family === 'oracle') {
-      return '/audio/Oracle.mp3';
-    }
-    if (family === 'balanced') {
-      return '/audio/balance.mp3';
+    if (family && FAMILY_BGM_MAP[family]) {
+      return FAMILY_BGM_MAP[family];
     }
     
-    // Default to empty for cores that don't have music yet
     return '';
   }
 }

@@ -54,6 +54,9 @@ export const CORE_FAMILIES: Record<string, { tier1: string[], tier2: string[], t
 export function getCoreFamily(coreName: string): string | null {
   const normalized = coreName.trim().toLowerCase()
   for (const [familyName, family] of Object.entries(CORE_FAMILIES)) {
+    if (familyName.toLowerCase() === normalized) {
+      return familyName
+    }
     const allNames = [...family.tier1, ...family.tier2, ...family.tier3].map(n => n.toLowerCase())
     if (allNames.includes(normalized)) {
       return familyName
