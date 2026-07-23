@@ -564,6 +564,35 @@
       @keydown="handleKeydown" />
     <FeedbackOverlay :is-visible="showFeedback" @close="showFeedback = false" @success="handleFeedbackSuccess" />
 
+    <!-- Reconnecting Overlay (Self Disconnected) -->
+    <transition name="fade">
+      <div v-if="isSelfReconnecting"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md">
+        <div class="bg-darkNavy/90 border border-hexred/40 p-8 rounded-2xl shadow-2xl max-w-sm w-full flex flex-col items-center text-center gap-4">
+          <div class="relative w-20 h-20 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border-4 border-hexred/20 animate-ping"></div>
+            <div class="w-16 h-16 rounded-full border-4 border-hexred border-t-transparent animate-spin"></div>
+            <span class="absolute font-mono text-2xl font-black text-white">{{ selfReconnectTimerSeconds }}s</span>
+          </div>
+          <h2 class="text-xl font-black text-white tracking-wide uppercase">Mất kết nối mạng</h2>
+          <p class="text-xs text-gray-300">Đang tự động kết nối lại vào room... (Grace period: 15s)</p>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Opponent Reconnecting Banner -->
+    <transition name="fade">
+      <div v-if="opponentReconnecting" class="fixed inset-x-0 top-20 z-40 flex justify-center px-4">
+        <div class="bg-yellow-500/20 backdrop-blur-md border border-yellow-500/40 px-6 py-3 rounded-xl shadow-xl flex items-center gap-3">
+          <span class="animate-spin text-yellow-400 text-xl">⏳</span>
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-yellow-400 uppercase tracking-widest">Đối thủ bị ngắt kết nối</span>
+            <span class="text-xs text-gray-200">Đang chờ đối thủ kết nối lại... (<span class="font-mono font-bold text-white">{{ opponentReconnectTimerSeconds }}s</span>)</span>
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- Opponent Toast Notifications Stack -->
     <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2 pointer-events-none">
       <transition-group name="toast-slide">
@@ -588,7 +617,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useScoreAnimation } from '../composables/game/useScoreAnimation'
 import { useMatchTimer } from '../composables/game/useMatchTimer'
 import { useQuestionQueue } from '../composables/game/useQuestionQueue'
-import { currentRoom, leaveMatchRoom } from '../services/multiplayerService'
+import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
 import OpponentWidget from '../components/game/OpponentWidget.vue'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import AegisShieldIndicator from '../components/game/AegisShieldIndicator.vue'
@@ -1963,34 +1992,142 @@ watch(() => currentCombo.value, (newVal) => {
   }
 })
 
+// ── RECONNECTION STATE & HANDLERS ──
+const isSelfReconnecting = ref(false)
+const selfReconnectTimerSeconds = ref(15)
+let selfReconnectInterval: ReturnType<typeof setInterval> | null = null
+
+const opponentReconnecting = ref(false)
+const opponentReconnectTimerSeconds = ref(15)
+let opponentReconnectInterval: ReturnType<typeof setInterval> | null = null
+
+function startOpponentReconnectCountdown(timeout: number = 15) {
+  opponentReconnecting.value = true
+  opponentReconnectTimerSeconds.value = timeout
+  stopMatchTimer()
+
+  if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
+  opponentReconnectInterval = setInterval(() => {
+    if (opponentReconnectTimerSeconds.value > 1) {
+      opponentReconnectTimerSeconds.value--
+    } else {
+      if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
+    }
+  }, 1000)
+}
+
+function clearOpponentReconnectCountdown() {
+  opponentReconnecting.value = false
+  if (opponentReconnectInterval) {
+    clearInterval(opponentReconnectInterval)
+    opponentReconnectInterval = null
+  }
+}
+
+async function attemptSelfReconnect() {
+  const token = getSavedReconnectionToken()
+  if (!token) return
+
+  isSelfReconnecting.value = true
+  selfReconnectTimerSeconds.value = 15
+  stopMatchTimer()
+
+  if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+  selfReconnectInterval = setInterval(() => {
+    if (selfReconnectTimerSeconds.value > 1) {
+      selfReconnectTimerSeconds.value--
+    } else {
+      if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+      isSelfReconnecting.value = false
+      alert("Mất kết nối quá 15s. Bạn đã thua trận đấu (Forfeit).")
+      goHome()
+    }
+  }, 1000)
+
+  const tryConnect = async () => {
+    if (!isSelfReconnecting.value) return
+    try {
+      const room = await reconnectMatchRoom(token)
+      if (room) {
+        if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+        isSelfReconnecting.value = false
+        setupRoomEventHandlers(room)
+        startMatchTimer()
+        addToast("Đã khôi phục kết nối!", "⚡", "text-emerald-400")
+      }
+    } catch (e) {
+      console.warn("Reconnecting attempt failed, retrying...", e)
+      if (isSelfReconnecting.value && selfReconnectTimerSeconds.value > 0) {
+        setTimeout(tryConnect, 2000)
+      }
+    }
+  }
+
+  tryConnect()
+}
+
+function setupRoomEventHandlers(room: any) {
+  if (!room) return
+
+  if (activeCoreId.value) {
+    room.send("update_core", { coreId: activeCoreId.value })
+  }
+  updateOpponentData(room.state)
+
+  room.onStateChange((state: any) => {
+    updateOpponentData(state)
+  })
+
+  room.onMessage('opponent_reconnecting', (data: { timeout: number }) => {
+    startOpponentReconnectCountdown(data?.timeout || 15)
+  })
+
+  room.onMessage('opponent_reconnected', () => {
+    clearOpponentReconnectCountdown()
+    startMatchTimer()
+    addToast('Đối thủ đã kết nối lại!', '⚡', 'text-emerald-400')
+  })
+
+  room.onMessage('opponent_forfeit', () => {
+    clearOpponentReconnectCountdown()
+    stopMatchTimer()
+    addToast('Đối thủ quá thời gian kết nối. Bạn thắng (Forfeit)!', '🏆', 'text-yellow-400')
+    startTimeoutPhase()
+  })
+
+  room.onMessage('opponent_left', () => {
+    alert("Your opponent has left the match! You will be returned to the main menu.")
+    goHome()
+  })
+
+  room.onMessage('start_recap_countdown', () => {
+    waitingForOpponent.value = false
+    runRecapCountdown()
+  })
+
+  room.onMessage('start_next_round', () => {
+    isWaitingForNextRound.value = false
+    restartMatch()
+  })
+
+  room.onMessage('opponent_milestone', (data: { type: string, message: string, icon: string, color: string }) => {
+    addToast(data.message, data.icon, data.color)
+  })
+
+  room.onMessage('opponent_skip', () => {
+    addToast('Opponent skipped a word!', '❌', 'text-hexred')
+  })
+
+  room.onLeave((code: number) => {
+    if (code !== 1000 && isMultiplayer.value) {
+      attemptSelfReconnect()
+    }
+  })
+}
+
 onMounted(async () => {
   if (isMultiplayer.value && currentRoom) {
-    if (activeCoreId.value) {
-      currentRoom.send("update_core", { coreId: activeCoreId.value })
-    }
-    updateOpponentData(currentRoom.state)
-    currentRoom.onStateChange((state) => {
-      updateOpponentData(state)
-    })
-    await fetchPandoraPool()
-    currentRoom.onMessage('opponent_left', () => {
-      alert("Your opponent has left the match! You will be returned to the main menu.")
-      goHome()
-    })
-    currentRoom.onMessage('start_recap_countdown', () => {
-      waitingForOpponent.value = false
-      runRecapCountdown()
-    })
-    currentRoom.onMessage('start_next_round', () => {
-      isWaitingForNextRound.value = false
-      restartMatch()
-    })
-    currentRoom.onMessage('opponent_milestone', (data: { type: string, message: string, icon: string, color: string }) => {
-      addToast(data.message, data.icon, data.color)
-    })
-    currentRoom.onMessage('opponent_skip', () => {
-      addToast('Opponent skipped a word!', '❌', 'text-hexred')
-    })
+    setupRoomEventHandlers(currentRoom)
   }
 
   if (!activeCoreId.value) {
@@ -2032,6 +2169,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+  if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
   leaveMatchRoom()
   stopMatchTimer()
   stopTimeoutInterval()
