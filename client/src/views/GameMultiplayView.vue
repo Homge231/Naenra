@@ -758,17 +758,7 @@ const opponentSessionId = ref('')
 const currentUserId = computed(() => authStore.user?.id || authStore.profile?.id)
 const waitingForOpponent = ref(false)
 const isWaitingForNextRound = ref(false)
-// Lookup the core details from the master list
-const opponentCoreDetails = computed(() => {
-  if (!opponentActiveCoreId.value || allCores.value.length === 0) return null
-  return allCores.value.find(c => c.id === opponentActiveCoreId.value) || null
-})
 
-// Resolve the correct icon URL
-const opponentCoreIconUrl = computed(() => {
-  if (!opponentCoreDetails.value) return ''
-  return getCoreIconPath(opponentCoreDetails.value.name, opponentCoreDetails.value.icon_url)
-})
 function handleOpponentTouchStart() {
   if (opponentTouchTimer) clearTimeout(opponentTouchTimer)
 
@@ -1170,11 +1160,7 @@ const oracleHintText = computed(() => {
   if (level === 0) return ''
   return currentQuestion.value.oracle_hints?.[level - 1] || ''
 })
-// --- Opponent Core State ---
-const opponentActiveCoreId = ref<string | null>(null)
-const showOpponentCoreTooltip = ref(false)
-let opponentTouchTimer: ReturnType<typeof setTimeout> | null = null
-const HOLD_DELAY_MS = 500 // 500ms delay to differentiate a hold from a tap
+
 // ── Skip Question Logic  ───────────────────────────────────────────
 
 
