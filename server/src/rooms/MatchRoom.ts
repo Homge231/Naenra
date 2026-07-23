@@ -41,6 +41,14 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       }
     });
 
+    this.onMessage("player_milestone", (client, message: { type: string, message: string, icon: string, color: string }) => {
+      this.broadcast("opponent_milestone", message, { except: client });
+    });
+
+    this.onMessage("player_skip", (client) => {
+      this.broadcast("opponent_skip", {}, { except: client });
+    });
+
     this.onMessage("finished_round", (client) => {
       this.finishedPlayers.add(client.sessionId);
       console.log(`Player ${client.sessionId} finished round. (${this.finishedPlayers.size}/${this.state.players.size})`);

@@ -542,8 +542,6 @@ import {
   playJackpot,
   playShieldGain,
   playShieldBreak,
-  updateCoreDrone,
-  stopCoreDrone,
   playSpeedWhoosh,
   playPandoraWarp,
   playPandoraTransform,
@@ -1632,11 +1630,7 @@ watch(aegisShieldCount, (newVal, oldVal) => {
 })
 
 watch(activeCoreModule, (newCore) => {
-  if (newCore) {
-    updateCoreDrone(newCore.name)
-  } else {
-    stopCoreDrone()
-  }
+  // BGM is handled by gameState watcher
 }, { immediate: true })
 
 watch(() => currentCombo.value, (newVal) => {
@@ -1648,6 +1642,14 @@ watch(() => currentCombo.value, (newVal) => {
     playComboTone(newVal)
   } else if (newVal === 0) {
     playComboBreak()
+  }
+})
+
+watch(() => gameState.value, (newState) => {
+  if (newState === 'upgrade') {
+    audioService.playBGM('/audio/core_selection.mp3')
+  } else if (newState === 'playing') {
+    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
   }
 })
 
@@ -1675,15 +1677,20 @@ onMounted(async () => {
   }
   await fetchBatch()
   await loadQuestion()
+  
+  if (gameState.value !== 'upgrade') {
+    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+  }
+  
   startMatchTimer()
   document.addEventListener('click', handleOutsideClick)
   window.addEventListener('beforeunload', handleBeforeUnload)
 })
 
 onUnmounted(() => {
+  audioService.stopBGM()
   stopMatchTimer()
   stopTimeoutInterval()
-  stopCoreDrone()
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   for (const t of activeBgTimeouts) clearTimeout(t)

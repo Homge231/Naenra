@@ -38,5 +38,4 @@ ELO update post-match; full Colyseus multiplayer rooms/opponent sync (WS infra g
 6. Server is source of truth for scores.
 7. Anti-cheat (`active_core_id` check in `submitAnswer()`) must not be weakened.
 8. `time_taken` always sent from FE regardless of core.
-9. Speedster UUID `00000000-0000-0000-0000-000000000007` is final — don't revert to `PENDING_UUID`.
-10. Don't state a sprint assignment unless Jira-verified.
+9. Don't state a sprint assignment unless Jira-verified.

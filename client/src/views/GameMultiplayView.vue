@@ -357,7 +357,7 @@
     </div>
 
     <!-- Right-Side Indicators Container -->
-    <div class="absolute top-28 right-8 z-20 flex flex-col items-end gap-4 transition-all duration-300">
+    <div class="absolute top-52 right-8 z-20 flex flex-col items-end gap-4 transition-all duration-300">
 
       <!-- Combo indicator: only visible when active core is the Combo Core -->
       <transition name="fade-scale">
@@ -554,6 +554,19 @@
       @keydown="handleKeydown" />
     <FeedbackOverlay :is-visible="showFeedback" @close="showFeedback = false" @success="handleFeedbackSuccess" />
 
+    <!-- Opponent Toast Notifications Stack -->
+    <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2 pointer-events-none">
+      <transition-group name="toast-slide">
+        <div v-for="toast in toasts" :key="toast.id" 
+             class="bg-darkNavy/90 border border-white/10 shadow-lg rounded-lg px-4 py-3 flex items-center gap-3 backdrop-blur-sm min-w-[200px]">
+          <span class="text-xl">{{ toast.icon }}</span>
+          <span class="text-sm font-bold tracking-widest uppercase" :class="toast.color">
+            {{ toast.message }}
+          </span>
+        </div>
+      </transition-group>
+    </div>
+
   </div>
 
 </template>
@@ -592,8 +605,6 @@ import {
   playJackpot,
   playShieldGain,
   playShieldBreak,
-  updateCoreDrone,
-  stopCoreDrone,
   playSpeedWhoosh,
   playPandoraWarp,
   playPandoraTransform,
@@ -652,6 +663,27 @@ type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout' | 'upgr
 const TIMEOUT_PHASE_DURATION = 15
 const FEEDBACK_MS = 1000
 const REFETCH_THRESHOLD = 5
+
+// ── Toast Notifications Stack ──────────────────────────────────────────────
+interface Toast {
+  id: number
+  message: string
+  icon: string
+  color: string
+}
+const toasts = ref<Toast[]>([])
+let toastIdCounter = 0
+
+function addToast(message: string, icon: string, color: string) {
+  const id = ++toastIdCounter
+  if (toasts.value.length >= 3) {
+    toasts.value.shift()
+  }
+  toasts.value.push({ id, message, icon, color })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+  }, 2000)
+}
 
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
@@ -713,7 +745,7 @@ function updateOpponentData(state: any) {
 
   if (!opponentSessionId.value) {
     state.players.forEach((player: any, sId: string) => {
-      if (sId !== currentRoom.sessionId) {
+      if (sId !== currentRoom?.sessionId) {
         opponentSessionId.value = sId
       }
     })
@@ -1224,6 +1256,9 @@ async function skipQuestion() {
 
   // Immediate local feedback
   audioService.playSkip()
+  if (currentRoom) {
+    currentRoom.send('player_skip')
+  }
   gameState.value = 'wrong'
   currentCombo.value = 0
   if (isMissionCore.value) {
@@ -1378,6 +1413,19 @@ async function checkAnswer() {
     audioService.playCorrect()
     gameState.value = 'correct'
     currentCombo.value++
+    
+    if (currentRoom) {
+      const family = getCoreFamily(gameStore.activeCoreName || '')
+      if (family === 'combo' && currentCombo.value > 0 && currentCombo.value % 5 === 0) {
+        currentRoom.send('player_milestone', { type: 'combo', message: 'Opponent is on fire!', icon: '🔥', color: 'text-orange' })
+      } else if (family === 'oracle' && currentQuestion.value.target_length >= 9) {
+        currentRoom.send('player_milestone', { type: 'long_word', message: 'Opponent cleared a long word!', icon: '🤯', color: 'text-purple-400' })
+      } else if (family !== 'combo' && family !== 'oracle' && family !== 'aegis') {
+        if (elapsed < 2500) {
+          currentRoom.send('player_milestone', { type: 'massive_hit', message: 'Opponent scored a massive hit!', icon: '🚀', color: 'text-lightBlue' })
+        }
+      }
+    }
 
     // Core specific time modifiers
     if (isTimeWarp.value) {
@@ -1800,16 +1848,26 @@ watch(aegisShieldCount, (newVal, oldVal) => {
     playShieldGain(newVal === maxShields.value)
   } else if (newVal < oldVal) {
     playShieldBreak()
+    if (currentRoom) {
+      const family = getCoreFamily(gameStore.activeCoreName || '')
+      if (family === 'aegis') {
+        currentRoom.send('player_milestone', { type: 'shield_break', message: "Opponent's shield broke!", icon: '🛡️', color: 'text-gray-400' })
+      }
+    }
   }
 })
 
 watch(activeCoreModule, (newCore) => {
-  if (newCore) {
-    updateCoreDrone(newCore.name)
-  } else {
-    stopCoreDrone()
-  }
+  // BGM is handled elsewhere
 }, { immediate: true })
+
+watch(() => gameState.value, (newState) => {
+  if (newState === 'upgrade') {
+    audioService.playBGM('/audio/core_selection.mp3')
+  } else if (newState === 'playing') {
+    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+  }
+})
 
 watch(() => currentCombo.value, (newVal) => {
   const isComboActive = effectiveCores.value.some(c => c.name.toLowerCase().includes('combo') || c.name.toLowerCase().includes('strike') || c.name.toLowerCase().includes('power'))
@@ -1840,6 +1898,12 @@ onMounted(async () => {
     currentRoom.onMessage('start_next_round', () => {
       isWaitingForNextRound.value = false
       restartMatch()
+    })
+    currentRoom.onMessage('opponent_milestone', (data: { type: string, message: string, icon: string, color: string }) => {
+      addToast(data.message, data.icon, data.color)
+    })
+    currentRoom.onMessage('opponent_skip', () => {
+      addToast('Opponent skipped a word!', '❌', 'text-hexred')
     })
   }
 
@@ -1872,6 +1936,11 @@ onMounted(async () => {
 
   await fetchBatch()
   await loadQuestion()
+
+  if (gameState.value !== 'upgrade') {
+    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+  }
+
   sendScoreUpdate(0)
   startMatchTimer()
   document.addEventListener('click', handleOutsideClick)
@@ -1882,7 +1951,6 @@ onUnmounted(() => {
   leaveMatchRoom()
   stopMatchTimer()
   stopTimeoutInterval()
-  stopCoreDrone()
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   for (const t of activeBgTimeouts) clearTimeout(t)
@@ -2430,4 +2498,18 @@ onUnmounted(() => {
     opacity: 0;
   }
 }
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translateX(50px);
+}
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
 </style>
