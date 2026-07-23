@@ -784,10 +784,13 @@ function handleOpponentTouchEnd() {
 function updateOpponentData(state: any) {
   if (!state || !state.players || !currentRoom) return
 
+  const currentSessionId = currentRoom?.sessionId
+  if (!currentSessionId) return
+
   let foundOpponent = false
 
   state.players.forEach((player: any, sId: string) => {
-    if (sId !== currentRoom.sessionId) {
+    if (sId !== currentSessionId) {
       opponentScore.value = player.score || 0
       opponentName.value = player.name || 'Opponent'
       opponentAvatar.value = player.avatar || ''
@@ -1781,9 +1784,8 @@ async function restartMatch() {
     return
   }
 
-  // Next Round — also reset opponent core history so Round 2/3 builds fresh
+  // Next Round
   currentPandoraCoreId.value = null
-  opponentCoresHistory.value = []
   matchStore.incrementRound()
   resetTypingBoard()
 
@@ -1829,6 +1831,7 @@ async function playAgain() {
   gameStore.coreHistory = []
   gameStore.activeCoreId = null
   gameStore.activeCoreName = null
+  opponentCoresHistory.value = []
 
   stopMatchTimer()
   resetTypingBoard()
