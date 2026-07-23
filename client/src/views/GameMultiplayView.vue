@@ -1755,10 +1755,14 @@ function goToUpgrade() {
   }
 }
 
-function handleUpgradeSelected(_newCoreId: string) {
+function handleUpgradeSelected(newCoreId: string) {
+  const chosenCoreId = newCoreId || gameStore.activeCoreId || ''
   if (isMultiplayer.value) {
     isWaitingForNextRound.value = true
     if (currentRoom) {
+      if (chosenCoreId) {
+        currentRoom.send("update_core", { coreId: chosenCoreId })
+      }
       currentRoom.send("ready_next_round")
     }
   } else {
@@ -1780,6 +1784,10 @@ async function restartMatch() {
   currentPandoraCoreId.value = null
   matchStore.incrementRound()
   resetTypingBoard()
+
+  if (isMultiplayer.value && currentRoom && activeCoreId.value) {
+    currentRoom.send("update_core", { coreId: activeCoreId.value })
+  }
 
   // Transition to loading and fetch next batch
   // Note: We DO NOT call createSession() here so the backend continues the same session!
