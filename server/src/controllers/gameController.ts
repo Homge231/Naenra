@@ -882,6 +882,8 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
 
     let newElo = 0
     let eloDelta = 0
+    let currentElo = 0
+    let expectedScore = 500
 
     let updated = false
     let attempts = 0
@@ -893,13 +895,13 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
         .single()
 
       if (playerProfile) {
-        const currentElo = playerProfile.elo ?? 0
+        currentElo = playerProfile.elo ?? 0
         const wins = playerProfile.wins ?? 0
         const losses = playerProfile.losses ?? 0
         const totalMatches = playerProfile.total_matches ?? 0
 
         // Expected score based on current Elo
-        const expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
+        expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
         
         // Calculate Elo change: K-factor = 0.05 of the score difference
         eloDelta = Math.floor(0.05 * (finalScore - expectedScore))
@@ -950,7 +952,10 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
       score: finalScore,
       questions_answered: session.questions_answered ?? 0,
       elo_change: eloDelta,
-      new_elo: newElo
+      new_elo: newElo,
+      old_elo: currentElo,
+      expected_score: expectedScore,
+      is_win: finalScore >= expectedScore
     })
   } catch (err) {
     console.error('timeoutSession error:', err)

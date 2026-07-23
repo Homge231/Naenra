@@ -400,7 +400,7 @@
 
 
     <transition name="timeout-overlay">
-      <div v-if="gameState === 'timeout'" class="absolute inset-0 z-50 flex items-center justify-center">
+      <div v-if="gameState === 'timeout' && !showMatchResult" class="absolute inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-xl"></div>
         <div id="tutorial-match-result"
           class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-2xl w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[90vh]">
@@ -563,6 +563,29 @@
     <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
       spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay')"
       @keydown="handleKeydown" />
+
+    <!-- Match Result Overlay (Final Round) -->
+    <MatchResultOverlay
+      :is-visible="showMatchResult && matchStore.isFinalRound()"
+      :is-victory="matchResult?.isVictory ?? false"
+      :player-score="score"
+      :player-name="authStore.profile?.username ?? 'Player'"
+      :player-avatar="playerAvatarUrl"
+      :questions-answered="questionsAnswered"
+      :elo-change="matchResult?.eloChange ?? 0"
+      :new-elo="matchResult?.newElo ?? 0"
+      :old-elo="matchResult?.oldElo ?? 0"
+      :match-history="matchHistory"
+      :match-duration-ms="Date.now() - matchStartTime"
+      :opponent-score="isMultiplayer ? opponentScore : (matchResult?.expectedScore ?? 500)"
+      :opponent-name="isMultiplayer ? opponentName : 'EXPECTED'"
+      :opponent-avatar="isMultiplayer ? opponentAvatar : undefined"
+      :is-multiplayer="isMultiplayer"
+      @play-again="playAgain"
+      @go-home="goHome"
+      @show-feedback="showFeedback = true"
+    />
+
     <FeedbackOverlay :is-visible="showFeedback" @close="showFeedback = false" @success="handleFeedbackSuccess" />
 
     <!-- Opponent Toast Notifications Stack -->
@@ -598,6 +621,7 @@ import MissionCoreIndicator from '../components/game/MissionCoreIndicator.vue'
 import CoreUpgradeOverlay from '../components/game/CoreUpgradeOverlay.vue'
 import OracleCoreIndicator from '../components/game/OracleCoreIndicator.vue'
 import FeedbackOverlay from '../components/game/FeedbackOverlay.vue'
+import MatchResultOverlay from '../components/game/MatchResultOverlay.vue'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import Avatar from '../components/Avatar.vue'
 import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
@@ -642,6 +666,15 @@ const authStore = useAuthStore()
 const gameStore = useGameStore()
 const matchStore = useMatchStore()
 const showFeedback = ref(false);
+const matchResult = ref<{
+  isVictory: boolean
+  eloChange: number
+  newElo: number
+  oldElo: number
+  expectedScore: number
+} | null>(null)
+const showMatchResult = ref(false)
+const matchStartTime = ref(Date.now())
 
 const handleFeedbackSuccess = () => {
   console.log('Feedback đã được gửi!');
@@ -1274,6 +1307,16 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       score.value = data.score ?? score.value
       sendScoreUpdate(score.value)
       questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+      
+      // Store result for match result overlay
+      matchResult.value = {
+        isVictory: isMultiplayer.value ? score.value > opponentScore.value : (data.is_win ?? false),
+        eloChange: data.elo_change ?? 0,
+        newElo: data.new_elo ?? 0,
+        oldElo: data.old_elo ?? 0,
+        expectedScore: data.expected_score ?? 500
+      }
+      setTimeout(() => { showMatchResult.value = true }, 1500)
     }
   } catch (err) {
     console.error(err)
@@ -1786,6 +1829,7 @@ async function restartMatch() {
 }
 
 async function playAgain() {
+  showMatchResult.value = false
   if (gameState.value === 'loading') return
 
   if (isMultiplayer.value && currentRoom) {

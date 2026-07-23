@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isVisible" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+  <div v-if="isVisible" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm">
     <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 w-[90%] max-w-md shadow-2xl text-white">
       <h2 class="text-2xl font-bold mb-4 text-center">Match Complete!</h2>
       <p class="text-gray-200 text-center mb-6">How was your experience?</p>
@@ -67,11 +67,8 @@ const submit = async () => {
     const response = await fetchWithAuth('/api/game/feedback', {
       method: 'POST',
       body: JSON.stringify({
-        // Dùng 1 UUID giả để test lọt qua Supabase. 
-        // Sau khi test thành công, bạn nhớ đổi lại thành ID thật của user nhé!
         user_id: "123e4567-e89b-12d3-a456-426614174000", 
         
-        // Tạo session_id giả bằng timestamp để tránh bị lỗi "Trùng lặp feedback" khi test nhiều lần
         session_id: "test-session-" + Date.now(), 
         
         rating: rating.value,
