@@ -2,68 +2,90 @@
   <transition name="widget-fade">
     <div 
       v-if="visible"
-      class="absolute top-24 right-6 md:right-10 z-30 flex items-center gap-4 bg-darkNavy/40 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-105"
+      ref="widgetRef"
+      class="absolute top-24 right-6 md:right-10 z-30 flex flex-col items-end gap-2"
     >
-      <!-- Opponent Profile Info -->
-      <div class="flex items-center gap-3">
-        <div class="relative w-12 h-12 rounded-xl overflow-hidden border border-white/20 bg-black/40">
-          <img v-if="avatar" :src="avatar" :alt="name" class="w-full h-full object-cover" />
-          <span v-else class="text-white font-black text-xl flex items-center justify-center h-full">?</span>
+      <!-- Main Opponent Floating HUD Bar (Click/Tap Wrapper) -->
+      <div 
+        class="flex items-center gap-4 bg-darkNavy/40 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-105 cursor-pointer select-none"
+        @click="toggleCorePopup"
+      >
+        <!-- Opponent Profile Info -->
+        <div class="flex items-center gap-3">
+          <div class="relative w-12 h-12 rounded-xl overflow-hidden border border-white/20 bg-black/40">
+            <img v-if="avatar" :src="avatar" :alt="name" class="w-full h-full object-cover" />
+            <span v-else class="text-white font-black text-xl flex items-center justify-center h-full">?</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-[9px] font-bold text-orange tracking-[0.2em] uppercase flex items-center gap-1">
+              Opponent
+              <span v-if="coreDetails" class="text-[8px] text-lightBlue">✦ Core</span>
+            </span>
+            <span class="text-sm font-black text-white tracking-wide truncate max-w-[120px]">{{ name }}</span>
+          </div>
         </div>
-        <div class="flex flex-col">
-          <span class="text-[9px] font-bold text-orange tracking-[0.2em] uppercase">Opponent</span>
-          <span class="text-sm font-black text-white tracking-wide truncate max-w-[120px]">{{ name }}</span>
-        </div>
-      </div>
-      
-      <!-- Score Divider -->
-      <div class="w-[1px] h-10 bg-white/10"></div>
-      
-      <!-- Opponent Score -->
-      <div class="flex flex-col items-center min-w-[60px]">
-        <span class="text-[9px] font-bold text-lightBlue tracking-[0.2em] uppercase">Score</span>
-        <span 
-          class="text-2xl font-black text-white tabular-nums drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] transition-all duration-200"
-          :class="{ 'score-pop': isScoreChanging }"
-        >
-          {{ score }}
-        </span>
-      </div>
-
-      <!-- Opponent Active Core Icon -->
-      <template v-if="coreDetails">
+        
+        <!-- Score Divider -->
         <div class="w-[1px] h-10 bg-white/10"></div>
-
-        <div class="relative flex items-center justify-center">
-          <img
-            :src="coreIcon"
-            :alt="coreDetails.name"
-            class="w-10 h-10 object-contain cursor-pointer drop-shadow-md transition-transform hover:scale-110 active:scale-95 bg-white/5 p-1 rounded-lg border border-white/10"
-            @mouseenter="showTooltip = true"
-            @mouseleave="hideTooltip"
-            @touchstart.passive="startHold"
-            @touchend="hideTooltip"
-            @touchcancel="hideTooltip"
-            @dragstart.prevent
-            @contextmenu.prevent="() => false"
-          />
-
-          <transition name="fade">
-            <CoreTooltip
-              v-if="showTooltip"
-              :core="coreDetails"
-              position="bottom"
-              class="!right-0 !left-auto !translate-x-0"
-            />
-          </transition>
+        
+        <!-- Opponent Score -->
+        <div class="flex flex-col items-center min-w-[60px]">
+          <span class="text-[9px] font-bold text-lightBlue tracking-[0.2em] uppercase">Score</span>
+          <span 
+            class="text-2xl font-black text-white tabular-nums drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] transition-all duration-200"
+            :class="{ 'score-pop': isScoreChanging }"
+          >
+            {{ score }}
+          </span>
         </div>
-      </template>
+
+        <!-- Chevron / Indicator Icon for Pop-up -->
+        <div v-if="coreDetails" class="ml-1 text-xs text-gray-400 transition-transform duration-200" :class="{ 'rotate-180 text-orange': isCorePopupOpen }">
+          ▼
+        </div>
+      </div>
+
+      <!-- Pop-up Container for Selection Core Icon(s) -->
+      <transition name="fade">
+        <div
+          v-if="isCorePopupOpen && coreDetails"
+          class="relative bg-darkNavy/90 backdrop-blur-xl border border-white/20 p-3 rounded-xl shadow-2xl flex items-center gap-3 z-40"
+        >
+          <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Active Core:</span>
+
+          <!-- Opponent Active Core Icon inside Pop-up Container -->
+          <div class="relative flex items-center justify-center">
+            <img
+              :src="coreIcon"
+              :alt="coreDetails.name"
+              class="w-10 h-10 object-contain cursor-pointer drop-shadow-md transition-transform hover:scale-110 active:scale-95 bg-white/5 p-1 rounded-lg border border-white/15"
+              @mouseenter="showTooltip = true"
+              @mouseleave="hideTooltip"
+              @touchstart.passive="startHold"
+              @touchend="hideTooltip"
+              @touchcancel="hideTooltip"
+              @dragstart.prevent
+              @contextmenu.prevent="() => false"
+            />
+
+            <!-- Single-Player Tooltip Component Reuse -->
+            <transition name="fade">
+              <CoreTooltip
+                v-if="showTooltip"
+                :core="coreDetails"
+                position="bottom"
+                class="!right-0 !left-auto !translate-x-0"
+              />
+            </transition>
+          </div>
+        </div>
+      </transition>
     </div>
   </transition>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import CoreTooltip from './CoreTooltip.vue'
 
 const props = defineProps<{
@@ -85,9 +107,31 @@ const props = defineProps<{
 }>()
 
 const isScoreChanging = ref(false)
+const isCorePopupOpen = ref(false)
 const showTooltip = ref(false)
+const widgetRef = ref<HTMLElement | null>(null)
 let holdTimer: ReturnType<typeof setTimeout> | null = null
 const HOLD_DELAY_MS = 500
+
+function toggleCorePopup() {
+  if (!props.coreDetails) return
+  isCorePopupOpen.value = !isCorePopupOpen.value
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (widgetRef.value && !widgetRef.value.contains(event.target as Node)) {
+    isCorePopupOpen.value = false
+    showTooltip.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleClickOutside)
+})
 
 watch(() => props.score, (newVal, oldVal) => {
   if (newVal !== oldVal) {
