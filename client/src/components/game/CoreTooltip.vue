@@ -2,18 +2,24 @@
 import { computed } from 'vue'
 import { getCoreFamily } from '../../game/cores/families'
 
-const props = defineProps<{
-  core: {
-    id: string
-    name: string
-    description: string
-    flat_buff?: number
-    multiplier_buff?: number
-    tier?: number
-    core_type?: string
-    classification?: string
+const props = withDefaults(
+  defineProps<{
+    core: {
+      id: string
+      name: string
+      description: string
+      flat_buff?: number
+      multiplier_buff?: number
+      tier?: number
+      core_type?: string
+      classification?: string
+    }
+    position?: 'top' | 'bottom'
+  }>(),
+  {
+    position: 'top'
   }
-}>()
+)
 
 // Determine core family
 const familyName = computed(() => {
@@ -204,8 +210,12 @@ const stats = computed(() => {
 
 <template>
   <div 
-    class="absolute z-[100] bottom-full left-1/2 -translate-x-1/2 mb-6 w-80 p-5 rounded-2xl border backdrop-blur-md text-left flex flex-col gap-4 shadow-2xl transition-all duration-300 pointer-events-none select-none bg-gradient-to-br"
-    :class="[currentConfig.bg, currentConfig.border]"
+    class="absolute z-[100] left-1/2 -translate-x-1/2 w-80 p-5 rounded-2xl border backdrop-blur-md text-left flex flex-col gap-4 shadow-2xl transition-all duration-300 pointer-events-none select-none bg-gradient-to-br"
+    :class="[
+      currentConfig.bg,
+      currentConfig.border,
+      position === 'bottom' ? 'top-full mt-3' : 'bottom-full mb-6'
+    ]"
   >
     <!-- Header -->
     <div class="flex items-start justify-between border-b border-white/10 pb-3">
@@ -271,9 +281,14 @@ const stats = computed(() => {
 
     <!-- Speech bubble pointer arrow -->
     <div 
+      v-if="position === 'bottom'"
+      class="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px]"
+      :class="currentConfig.pointerBorder.replace('border-t-', 'border-b-')"
+    ></div>
+    <div 
+      v-else
       class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px]"
       :class="currentConfig.pointerBorder"
-      style="border-top-color: inherit;"
     ></div>
   </div>
 </template>

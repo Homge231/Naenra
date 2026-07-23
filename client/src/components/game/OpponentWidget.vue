@@ -52,7 +52,8 @@
             <CoreTooltip
               v-if="showTooltip"
               :core="coreDetails"
-              class="!absolute !top-full !bottom-auto !right-0 !left-auto !-translate-x-0 !mt-3 !mb-0"
+              position="bottom"
+              class="!right-0 !left-auto !translate-x-0"
             />
           </transition>
         </div>

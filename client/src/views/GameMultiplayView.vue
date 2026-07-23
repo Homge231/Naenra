@@ -179,7 +179,7 @@
             <CoreTooltip
               v-if="hoveredRoundCoreIndex === index && getCoreDetailsByItem(core)"
               :core="getCoreDetailsByItem(core)!"
-              class="!absolute !top-full !mt-2 !left-1/2 !-translate-x-1/2 z-50 pointer-events-none"
+              position="bottom"
             />
           </transition>
         </div>
