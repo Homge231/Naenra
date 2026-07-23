@@ -11,38 +11,16 @@
     <div class="absolute inset-0 bg-black/45 pointer-events-none z-0"></div>
 
     <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
-    <div v-if="isMultiplayer" class="absolute top-4 left-4 z-30 flex items-center gap-3">
-
-      <OpponentWidget :visible="isMultiplayer" :name="opponentName" :avatar="opponentAvatar" :score="opponentScore" />
-
-      <div v-if="opponentCoreDetails" class="relative flex items-center justify-center">
-
-        <img :src="opponentCoreIconUrl" :alt="opponentCoreDetails.name"
-          class="w-10 h-10 object-contain cursor-help drop-shadow-md transition-transform hover:scale-110 active:scale-95 bg-black/40 p-1.5 rounded-xl border border-white/10"
-          @mouseenter="showOpponentCoreTooltip = true" @mouseleave="showOpponentCoreTooltip = false"
-          @touchstart.passive="handleOpponentTouchStart" @touchend="handleOpponentTouchEnd"
-          @touchcancel="handleOpponentTouchEnd" @contextmenu.prevent="() => false" />
-
-        <transition name="fade">
-          <div v-if="showOpponentCoreTooltip"
-            class="absolute top-full mt-3 left-0 z-50 bg-darkNavy/95 border border-white/20 p-4 rounded-xl shadow-2xl w-64 pointer-events-none backdrop-blur-xl">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange via-hexred to-transparent"></div>
-
-            <h4 class="text-sm font-black uppercase tracking-widest text-orange mb-1 drop-shadow-sm">
-              {{ opponentCoreDetails.name }}
-            </h4>
-
-            <div class="text-[10px] text-lightBlue font-mono uppercase tracking-wider mb-2">
-              Stats: {{ opponentCoreDetails.stats || 'N/A' }}
-            </div>
-
-            <p class="text-xs text-gray-300 leading-relaxed font-medium">
-              {{ opponentCoreDetails.description }}
-            </p>
-          </div>
-        </transition>
-      </div>
-    </div>
+    <!-- Opponent Widget (self-positions at top-right, includes core icon + tooltip) -->
+    <OpponentWidget
+      v-if="isMultiplayer"
+      :visible="isMultiplayer"
+      :name="opponentName"
+      :avatar="opponentAvatar"
+      :score="opponentScore"
+      :core-icon="opponentCoreIconUrl"
+      :core-details="opponentCoreDetails"
+    />
     <!-- Dice Roll Shift Overlay  -->
     <transition name="fade">
       <div v-if="isShifting"
