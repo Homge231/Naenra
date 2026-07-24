@@ -23,10 +23,8 @@
         Select a Support Core for Round {{ matchStore.currentRound + 1 }}
       </p>
 
-      <!-- Current Active Cores Overview (Main Core + Upgrade Cores) -->
       <div v-if="gameStore.coreHistory.length > 0" class="mb-8 flex flex-wrap items-center justify-center gap-3">
-        <!-- Main Core -->
-        <div v-if="gameStore.coreHistory[0]" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-md shadow-lg">
+        <div v-if="gameStore.coreHistory[0]" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white/5 border border-emerald-500/30 backdrop-blur shadow-lg">
           <img :src="gameStore.coreHistory[0].icon" :alt="gameStore.coreHistory[0].name" @error="$event.target.src = '/icons/cores/default.svg'" class="w-6 h-6 object-contain" />
           <div class="text-left">
             <p class="text-[9px] font-black uppercase text-emerald-400 tracking-wider">Main Core</p>
@@ -34,8 +32,7 @@
           </div>
         </div>
 
-        <!-- Upgrade Cores -->
-        <div v-for="(uCore, uIdx) in gameStore.coreHistory.slice(1)" :key="`${uCore.id}-${uIdx}`" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 backdrop-blur-md shadow-lg">
+        <div v-for="(uCore, uIdx) in gameStore.coreHistory.slice(1)" :key="`${uCore.id}-${uIdx}`" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white/5 border border-blue-500/30 backdrop-blur shadow-lg">
           <img :src="uCore.icon" :alt="uCore.name" @error="$event.target.src = '/icons/cores/default.svg'" class="w-6 h-6 object-contain" />
           <div class="text-left">
             <p class="text-[9px] font-black uppercase text-blue-400 tracking-wider">Upgrade {{ uIdx + 1 }}</p>
@@ -57,7 +54,6 @@
         
         <div v-for="(core, index) in upgradeCores" :key="core.id || index" class="flex flex-col items-center w-full h-full relative">
           
-          <!-- Core detailed stats Tooltip -->
           <transition name="fade">
             <CoreTooltip v-if="activeTooltipIndex === index" :core="core" />
           </transition>
@@ -67,7 +63,7 @@
             :class="[
               settingsStore.vfxEnabled ? 'tech-border' : 'border border-white/20',
               selectedCore?.id === core.id
-                ? (settingsStore.vfxEnabled ? 'bg-white/10 border-2 border-lightBlue shadow-[0_0_40px_rgba(59,130,246,0.5)] -translate-y-4 scale-105' : 'bg-white/20 border-2 border-lightBlue -translate-y-4 scale-105')
+                ? (settingsStore.vfxEnabled ? 'bg-white/20 border-2 border-lightBlue shadow-[0_0_40px_rgba(59,130,246,0.5)] -translate-y-4 scale-105' : 'bg-white/20 border-2 border-lightBlue -translate-y-4 scale-105')
                 : (settingsStore.vfxEnabled ? 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-lightBlue/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-2' : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-lightBlue/50 hover:-translate-y-2'),
               loading && selectedCore?.id !== core.id && upgradeCores.length > 0 ? 'opacity-40 grayscale' : ''
             ]"
@@ -77,10 +73,8 @@
             @touchend="handleTouchEnd(core, $event)"
           >
             
-            <!-- Hover shimmer overlay -->
             <div class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             
-            <!-- Main / Upgrade Core mini badge (top-left of card) -->
             <span
               class="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest select-none"
               :class="core.classification === 'main'
@@ -92,9 +86,8 @@
               {{ core.classification === 'main' ? 'MAIN CORE' : (core.classification === 'power' ? 'UPGRADE CORE • POWER' : 'UPGRADE CORE • EFFECT') }}
             </span>
             
-            <!-- Icon circle -->
             <div class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-6 lg:mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
-              :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)] from-blue/30 to-lightBlue/20' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:from-blue/20 group-hover:to-lightBlue/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
+              :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
               <img :src="core.icon" :alt="core.name"
                 @error="$event.target.src = '/icons/cores/default.svg'"
                 class="w-12 h-12 lg:w-16 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300" />
@@ -108,7 +101,7 @@
               Upgrade Core (Tier {{ core.tier || 2 }})
             </span>
 
-            <p class="text-base text-gray-300/80 leading-relaxed max-w-[250px]">{{ core.description }}</p>
+            <p class="text-base text-gray-300/80 leading-relaxed max-w-[250px] z-10">{{ core.description }}</p>
           </div>
 
         </div>
@@ -121,7 +114,6 @@
         :style="{ width: `${tutorial.isCurrentScreen('upgrade') ? 0 : (timeLeft / SELECTION_DURATION) * 100}%` }"></div>
     </div>
 
-    <!-- Tutorial CoachMark -->
     <CoachMark 
       v-if="tutorial.isCurrentScreen('upgrade')"
       :targetId="tutorial.currentStepData.value?.targetId || ''"
