@@ -288,7 +288,7 @@ function renderMarkdown(text: string): string {
 /* ── Root container ──────────────────────────── */
 .ai-chat-root {
   position: fixed;
-  bottom: 1.5rem;
+  bottom: 5.5rem;
   right: 1.5rem;
   z-index: 9990;
   display: flex;
