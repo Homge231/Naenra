@@ -214,5 +214,66 @@ ${weakWordsList}
 3. **Core Synergies:** Equip **Oracle Core** to reveal hints on tough words, or **Combo Core** to maximize your high accuracy streaks!`
 }
 
+export async function generateChatResponse(
+  username: string,
+  prompt: string,
+  history?: { role: 'user' | 'model'; message: string }[]
+): Promise<string> {
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      if (!ai) {
+        ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+      }
+
+      const systemContext = `You are Naenra Assistant, a friendly and knowledgeable AI helper for Naenra — a competitive vocabulary typing arena game.
+Player username: "${username}".
+
+You can help with:
+- Game mechanics (60s timed matches, scoring, ELO ranking system, rounds)
+- Support Cores (Combo Core, Oracle Core, Speedster Core and their strategies)
+- Vocabulary learning tips and typing speed improvement
+- Rank progression (Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster)
+- General questions about the Naenra platform
+
+GUIDELINES:
+1. Be concise, friendly, and encouraging — like a helpful teammate.
+2. For greetings or small talk, reply naturally and briefly.
+3. If asked about something completely unrelated to Naenra/typing/vocabulary (e.g., recipes, weather, unrelated coding), politely redirect back to Naenra topics.
+4. Format responses with markdown for readability. Keep answers under 120 words unless a detailed explanation is needed.`
+
+      let fullPrompt = systemContext
+
+      if (history && history.length > 0) {
+        fullPrompt += `\n\nCONVERSATION HISTORY:\n` +
+          history.map(h => `${h.role === 'user' ? username : 'Assistant'}: ${h.message}`).join('\n')
+      }
+
+      fullPrompt += `\n\n${username}: ${prompt}\nAssistant:`
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: fullPrompt,
+        config: { temperature: 0.7 }
+      })
+
+      if (response.text) return response.text
+    } catch (error) {
+      console.warn('Gemini API failed for chat, using fallback:', error)
+    }
+  }
+
+  // --- FALLBACK ---
+  const q = prompt.trim().toLowerCase()
+  if (['hi', 'hello', 'hey', 'yo', 'chào'].some(g => q === g || q.startsWith(g + ' '))) {
+    return `👋 Xin chào **${username}**! Tôi là Naenra Assistant. Hỏi tôi bất cứ điều gì về game, Support Cores, ELO hay từ vựng nhé!`
+  }
+  if (q.includes('core') || q.includes('combo') || q.includes('oracle') || q.includes('speedster')) {
+    return `⚡ **Support Cores:**\n- **Combo Core**: Nhân điểm khi chuỗi đúng liên tiếp\n- **Oracle Core**: Hé lộ gợi ý chữ cái giúp vượt từ khó\n- **Speedster Core**: Thưởng điểm cho tốc độ gõ cao\n\nChọn Core phù hợp với điểm mạnh của bạn để tối đa điểm số!`
+  }
+  if (q.includes('elo') || q.includes('rank') || q.includes('hạng')) {
+    return `🏆 **Bảng Xếp Hạng Naenra:**\nBronze → Silver → Gold → Platinum → Diamond → Master → **Grandmaster** (8000+ ELO)\n\nELO tăng khi thắng trận và giảm khi thua. Hãy chọn Core phù hợp để tối ưu điểm số mỗi trận!`
+  }
+  return `🤖 **Naenra Assistant** sẵn sàng hỗ trợ **${username}**! Hỏi tôi về Support Cores, chiến thuật gõ phím, ELO hay bất cứ điều gì liên quan đến Naenra nhé.`
+}
 
 

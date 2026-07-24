@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import { createClient } from '@supabase/supabase-js'
 import { AuthRequest } from '../middleware/authMiddleware'
-import { generateCoachAnalysis } from '../services/aiService'
+import { generateCoachAnalysis, generateChatResponse } from '../services/aiService'
 import dotenv from 'dotenv'
 dotenv.config()
 
@@ -235,5 +235,22 @@ export const getAiCoachAnalysis = async (req: AuthRequest, res: Response): Promi
   } catch (error: any) {
     console.error('getAiCoachAnalysis error:', error)
     return res.status(500).json({ error: error.message || 'Failed to generate AI analysis' })
+  }
+}
+
+export const getAiChatResponse = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const { prompt, history } = req.body
+
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+      return res.status(400).json({ error: 'prompt is required' })
+    }
+
+    const username = req.user?.username || req.user?.email?.split('@')[0] || 'Player'
+    const reply = await generateChatResponse(username, prompt.trim(), history)
+    return res.status(200).json({ reply })
+  } catch (error: any) {
+    console.error('getAiChatResponse error:', error)
+    return res.status(500).json({ error: error.message || 'Failed to get AI response' })
   }
 }

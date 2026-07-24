@@ -154,6 +154,9 @@
 
     <!-- AI Coach Floating Widget (Bottom-Left) -->
     <AiCoachWidget />
+
+    <!-- AI Chat Assistant Floating Widget (Bottom-Right) -->
+    <AIChatWidget />
   </div>
 </template>
 
@@ -163,6 +166,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { audioService } from '../services/audioService'
 import AiCoachWidget from '../components/AiCoachWidget.vue'
+import AIChatWidget from '../components/AIChatWidget.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

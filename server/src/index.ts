@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
 import gameRoutes from './routes/gameRoutes'
+import aiRoutes from './routes/aiRoutes'
 import rateLimit from 'express-rate-limit'
 import { initQuestionCron } from './cron/questionCron'
 dotenv.config()
@@ -48,6 +49,7 @@ app.use('/auth/verify-otp', authLimiter)
 app.use('/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/game', gameRoutes)
+app.use('/api/ai', aiRoutes)
 
 import { Server } from 'colyseus'
 import { WebSocketTransport } from '@colyseus/ws-transport'
