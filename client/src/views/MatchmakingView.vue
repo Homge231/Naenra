@@ -181,14 +181,12 @@ async function startQueueConnection() {
       router.push('/match-found')
     }
 
-    // 1. Listen to Colyseus schema status change (100% guaranteed state sync)
-    if (room.listen) {
-      room.listen("status", (newStatus) => {
-        if (newStatus === "starting" || newStatus === "playing") {
-          handleMatchStarted()
-        }
-      })
-    }
+    // 1. Listen to Colyseus schema status change
+    room.onStateChange((state) => {
+      if (state && (state.status === "starting" || state.status === "playing")) {
+        handleMatchStarted()
+      }
+    })
 
     // 2. Listen to broadcast message
     room.onMessage('match_started', () => {
