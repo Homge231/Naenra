@@ -2116,6 +2116,18 @@ function setupRoomEventHandlers(room: any) {
 }
 
 onMounted(async () => {
+  if (isMultiplayer.value && !currentRoom) {
+    const token = getSavedReconnectionToken()
+    if (token) {
+      try {
+        console.log('[GameMultiplayView] Reconnecting to room with saved token...')
+        await reconnectMatchRoom(token)
+      } catch (e) {
+        console.warn('[GameMultiplayView] Reconnection failed:', e)
+      }
+    }
+  }
+
   if (isMultiplayer.value && currentRoom) {
     setupRoomEventHandlers(currentRoom)
   }
