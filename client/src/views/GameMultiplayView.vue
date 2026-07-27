@@ -635,7 +635,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useScoreAnimation } from '../composables/game/useScoreAnimation'
 import { useMatchTimer } from '../composables/game/useMatchTimer'
@@ -2183,13 +2183,17 @@ onMounted(async () => {
 onUnmounted(() => {
   if (selfReconnectInterval) clearInterval(selfReconnectInterval)
   if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
-  leaveMatchRoom()
   stopMatchTimer()
   stopTimeoutInterval()
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   for (const t of activeBgTimeouts) clearTimeout(t)
   activeBgTimeouts.clear()
+})
+
+onBeforeRouteLeave((to, from, next) => {
+  leaveMatchRoom()
+  next()
 })
 
 

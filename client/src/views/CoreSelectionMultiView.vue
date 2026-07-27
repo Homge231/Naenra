@@ -168,6 +168,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { onBeforeRouteLeave } from 'vue-router'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
 import { useAuthStore } from '../stores/authStore'
@@ -501,11 +502,14 @@ onUnmounted(() => {
   for (const t of activeTimeouts) clearTimeout(t)
   activeTimeouts.clear()
   window.removeEventListener('beforeunload', handleBeforeUnload)
+})
 
+onBeforeRouteLeave((to, from, next) => {
   const isMatchPlaying = currentRoom?.state?.status === 'playing'
   if (!navigatingToGame.value && !isMatchPlaying) {
     leaveMatchRoom()
   }
+  next()
 })
 </script>
 
