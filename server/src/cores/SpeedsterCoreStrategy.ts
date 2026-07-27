@@ -78,12 +78,8 @@ export class SpeedsterCoreStrategy extends BaseCore {
 
     let finalShieldCount: number | undefined = undefined
     if (this.coreName === 'speed shield') {
-      if (safeTaken < 3000) {
-        shieldDelta = 1
-        finalShieldCount = Math.min(3, currentShields + 1)
-      } else {
-        finalShieldCount = currentShields
-      }
+      shieldDelta = 1
+      finalShieldCount = Math.min(3, currentShields + 1)
     }
 
     if (this.coreName === 'time warp') {
