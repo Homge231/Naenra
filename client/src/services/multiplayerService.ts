@@ -9,6 +9,7 @@ export const colyseusClient = new Client(endpoint);
 
 
 export let currentRoom: Room<MatchState> | null = null;
+export let queueRoom: Room | null = null;
 
 function saveReconnectionToken(room: Room) {
   if (room && room.reconnectionToken) {
@@ -22,6 +23,17 @@ function clearReconnectionToken() {
 
 export function getSavedReconnectionToken(): string | null {
   return sessionStorage.getItem('naenra_reconnection_token');
+}
+
+export async function joinOrCreateQueueRoom(options: any = {}) {
+  try {
+    queueRoom = await colyseusClient.joinOrCreate("queue_room", options);
+    console.log("Joined queue room successfully!", queueRoom.roomId);
+    return queueRoom;
+  } catch (e) {
+    console.error("JoinOrCreate queue room error:", e);
+    throw e;
+  }
 }
 
 export async function joinOrCreateMatchRoom(options: any = {}) {

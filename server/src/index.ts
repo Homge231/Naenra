@@ -54,6 +54,7 @@ app.use('/api/ai', aiRoutes)
 import { Server } from 'colyseus'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { MatchRoom } from './rooms/MatchRoom'
+import { QueueRoom } from './rooms/QueueRoom'
 
 const gameServer = new Server({
   transport: new WebSocketTransport({
@@ -62,6 +63,7 @@ const gameServer = new Server({
 })
 
 gameServer.define('match_room', MatchRoom)
+gameServer.define('queue_room', QueueRoom)
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000
 

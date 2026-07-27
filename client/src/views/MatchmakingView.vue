@@ -113,7 +113,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { audioService } from '../services/audioService'
-import { joinOrCreateMatchRoom, currentRoom, leaveMatchRoom } from '../services/multiplayerService'
+import { joinOrCreateQueueRoom, queueRoom, joinMatchRoomById } from '../services/multiplayerService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -172,31 +172,23 @@ async function startQueueConnection() {
   }
 
   try {
-    const room = await joinOrCreateMatchRoom(options)
+    const room = await joinOrCreateQueueRoom(options)
 
-    const handleMatchStarted = () => {
+    room.onMessage('match_found', async ({ roomId }: { roomId: string }) => {
       if (navigatingToGame.value) return
       navigatingToGame.value = true
       stopTimer()
-      router.push('/match-found')
-    }
-
-    // 1. Listen to Colyseus schema status change
-    room.onStateChange((state) => {
-      if (state && (state.status === "starting" || state.status === "playing")) {
-        handleMatchStarted()
+      
+      try {
+        await joinMatchRoomById(roomId, options)
+        router.push('/match-found')
+      } catch (err) {
+        console.error("Failed to join match room after finding match:", err)
+        navigatingToGame.value = false
+        // Could show a toast/alert here
       }
     })
 
-    // 2. Listen to broadcast message
-    room.onMessage('match_started', () => {
-      handleMatchStarted()
-    })
-
-    // 3. Immediate check if room state is already starting or full
-    if (room.state && (room.state.status === "starting" || (room.state.players && room.state.players.size === 2))) {
-      handleMatchStarted()
-    }
   } catch (err: any) {
     console.error('Failed to join matchmaking room:', err)
   } finally {
@@ -209,13 +201,13 @@ function cancelMatchmaking() {
   stopTimer()
 
   // Emit cancel_queue event to Colyseus server if connected to a match room
-  if (currentRoom) {
+  if (queueRoom) {
     try {
-      currentRoom.send('cancel_queue', { userId: authStore.user?.id })
+      queueRoom.send('cancel_queue', { userId: authStore.user?.id })
     } catch (e) {
       console.warn('Error sending cancel_queue:', e)
     }
-    leaveMatchRoom()
+    queueRoom.leave()
   }
 
   // Return to Lobby (/home)
