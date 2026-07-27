@@ -480,6 +480,8 @@ onMounted(async () => {
       return
     }
 
+    currentRoom.removeAllListeners()
+
     currentRoom.onStateChange((state) => {
       if (state) {
         const players = state.players ? Array.from(state.players.values()) : []

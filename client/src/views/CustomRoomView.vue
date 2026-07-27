@@ -247,8 +247,12 @@ onMounted(async () => {
 
     try {
         if (route.query.id) {
-            // Join existing room
-            await joinMatchRoomById(route.query.id as string, options)
+            // Join existing room only if we aren't already in it
+            if (!currentRoom || currentRoom.roomId !== route.query.id) {
+                await joinMatchRoomById(route.query.id as string, options)
+            } else {
+                console.log("Already connected to custom room.")
+            }
         } else {
             // Create new room
             const room = await createMatchRoom(options)
@@ -257,6 +261,9 @@ onMounted(async () => {
         }
 
         if (currentRoom) {
+            // Remove previous listeners if any
+            currentRoom.removeAllListeners()
+
             // 1. Listen for standard state changes
             currentRoom.onStateChange((state: any) => {
                 try {

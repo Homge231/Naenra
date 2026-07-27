@@ -28,6 +28,16 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       }
     });
 
+    this.onMessage("return_to_lobby", (client) => {
+      console.log(`Received return_to_lobby from ${client.sessionId}`);
+      this.state.status = "waiting";
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        player.isReady = false;
+        player.score = 0;
+      }
+    });
+
     this.onMessage("cancel_queue", (client) => {
       console.log(`Received cancel_queue from ${client.sessionId}`);
       client.leave();

@@ -1852,8 +1852,14 @@ async function playAgain() {
 
   if (isMultiplayer.value && currentRoom) {
     const rId = currentRoom.roomId
-    leaveMatchRoom()
-    router.push(`/room/custom?id=${rId}`)
+    if (currentRoom.state?.isCustom) {
+      // For custom rooms, tell server to reset to lobby state instead of disconnecting
+      currentRoom.send('return_to_lobby')
+      router.push(`/room/custom?id=${rId}`)
+    } else {
+      leaveMatchRoom()
+      router.push('/home')
+    }
     return
   }
 
@@ -2060,6 +2066,8 @@ async function attemptSelfReconnect() {
 
 function setupRoomEventHandlers(room: any) {
   if (!room) return
+  
+  room.removeAllListeners()
 
   if (activeCoreId.value) {
     room.send("update_core", { coreId: activeCoreId.value })
@@ -2203,7 +2211,11 @@ onUnmounted(() => {
 })
 
 onBeforeRouteLeave((to, from, next) => {
-  leaveMatchRoom()
+  if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom) {
+    // Do not leave room, we are just returning to lobby
+  } else {
+    leaveMatchRoom()
+  }
   next()
 })
 
