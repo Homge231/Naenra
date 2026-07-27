@@ -462,11 +462,18 @@ onMounted(async () => {
       if (navigatingToGame.value) return
       waitingForOpponent.value = false
       navigatingToGame.value = true
-      router.push('/game/multiplayer')
+      router.replace('/game/multiplayer')
     }
 
-    if (currentRoom.state && currentRoom.state.status === 'playing') {
-      console.log('[CoreSelectionMultiView] Match is already playing! Redirecting to gameplay...')
+    const myPlayer = currentRoom.state?.players?.get(currentRoom.sessionId)
+    const isAlreadyChosen = myPlayer && Boolean(myPlayer.activeCoreId)
+    const isAlreadyPlaying = currentRoom.state && (currentRoom.state.status === 'playing' || currentRoom.state.status === 'starting')
+
+    if (isAlreadyChosen || isAlreadyPlaying) {
+      console.log('[CoreSelectionMultiView] Player already selected a core or match in progress! Redirecting to gameplay...')
+      if (myPlayer?.activeCoreId) {
+        gameStore.activeCoreId = myPlayer.activeCoreId
+      }
       handleStartGame()
       return
     }
