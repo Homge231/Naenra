@@ -5,9 +5,12 @@ import { supabase } from "../config/supabase";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
+  private isCustomRoom: boolean = false;
 
   onCreate(options: any) {
     this.state = new MatchState();
+    this.isCustomRoom = options.isCustom === true;
+
 
     this.onMessage("updateMetadata", (client, message) => {
       console.log(`Update metadata from ${client.sessionId}:`, message);
@@ -144,9 +147,13 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     this.state.players.set(client.sessionId, new Player(id, name, avatar));
 
     if (this.state.players.size === 2) {
-      console.log(`[MatchRoom ${this.roomId}] 2 players joined! Auto-starting match...`);
-      this.state.status = "starting";
-      this.broadcast("match_started");
+      if (!this.isCustomRoom) {
+        console.log(`[MatchRoom ${this.roomId}] 2 players joined! Auto-starting match...`);
+        this.state.status = "starting";
+        this.broadcast("match_started");
+      } else {
+        console.log(`[MatchRoom ${this.roomId}] 2 players joined custom room. Waiting for host to start...`);
+      }
     }
   }
 

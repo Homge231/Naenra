@@ -241,7 +241,8 @@ onMounted(async () => {
         token: localStorage.getItem('arena_token'),
         id: currentUserId.value,
         name: authStore.profile?.username || 'Guest',
-        avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Guest`
+        avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Guest`,
+        isCustom: true
     }
 
     try {
