@@ -2130,6 +2130,13 @@ onMounted(async () => {
         console.warn('[GameMultiplayView] Reconnection failed:', e)
       }
     }
+    
+    // If still no currentRoom after attempt, the player has forfeited
+    if (!currentRoom) {
+      console.warn('[GameMultiplayView] No active room found. Kicking to home.')
+      router.replace('/home')
+      return
+    }
   }
 
   if (isMultiplayer.value && currentRoom) {

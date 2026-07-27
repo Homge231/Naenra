@@ -454,6 +454,13 @@ onMounted(async () => {
         console.warn('[CoreSelectionMultiView] Reconnection failed:', e)
       }
     }
+    
+    // If still no currentRoom after attempt, the player has forfeited
+    if (!currentRoom) {
+      console.warn('[CoreSelectionMultiView] No active room found. Kicking to home.')
+      router.replace('/home')
+      return
+    }
   }
 
   if (currentRoom) {
