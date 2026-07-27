@@ -28,27 +28,22 @@ A web-based typing esports arena built with Vue 3 + TypeScript frontend and an E
 
 ```
 client/src/
-  views/              # Full-page components (Gameplay, CoreSelection, Login, Profile…)
-  stores/             # Pinia: authStore, gameStore, errorStore
+  views/              # Gameplay, CoreSelection, CustomRoom, GameMultiplay, AnalyticsDashboard, Profile, Login…
+  stores/             # Pinia: authStore, gameStore, matchStore, settingsStore, errorStore
+  composables/        # useTutorial, useErrorBoundary, game/ (useAudioEngine, useMatchTimer, useQuestionQueue, useScoreAnimation)
   components/         # Avatar, ErrorNotification, game/PhaserBackground
   game/               # Phaser init + scenes
-  game/cores/         # Frontend core registry (Strategy Pattern)
-    BaseCore.ts       # CoreModule interface
-    registry.ts       # All core UI configs — THE only file to edit for a new core (FE)
+  game/cores/         # Frontend core registry (Strategy Pattern): BaseCore, registry, families, icons
   router/             # Vue Router with auth guards
 
 server/src/
-  controllers/        # gameController.ts, userController.ts
-  routes/             # authRoutes, userRoutes, gameRoutes
-  middleware/         # JWT auth middleware
+  controllers/        # gameController.ts, userController.ts, feedbackController.ts
+  routes/             # authRoutes, userRoutes, gameRoutes, aiRoutes
+  middleware/         # JWT auth middleware & session version check
+  rooms/              # Colyseus rooms: MatchRoom.ts
+  services/           # aiService.ts (Gemini question generator)
   utils/              # jwt.ts, otp.ts, mailer.ts
-  cores/              # Backend scoring strategy system (Strategy Pattern)
-    BaseCore.ts       # Abstract class + ScoringContext / ScoringResult types
-    NoCoreStrategy.ts
-    ComboCoreStrategy.ts
-    OracleCoreStrategy.ts
-    SpeedsterCoreStrategy.ts
-    index.ts          # Registry + runScoring() — THE only file to edit for a new core (BE)
+  cores/              # Backend scoring strategy system (12 Core Families)
 ```
 
 ---
@@ -91,7 +86,7 @@ MAIL_FROM=
 
 ## Gameplay
 
-Each match is **90 seconds**. Players receive an infinite stream of fill-in-the-blank questions. Correct answers earn points; wrong answers lose points based on how many letters were wrong (Levenshtein distance). A **Support Core** chosen before the match changes how points are calculated for the entire session.
+Each match is **60–90 seconds**. Players receive an infinite stream of fill-in-the-blank questions. Correct answers earn points; wrong answers lose points based on how many letters were wrong (Levenshtein distance). A **Support Core** chosen before the match changes how points are calculated for the entire session.
 
 ### Support Core System
 
@@ -100,12 +95,16 @@ Cores are the central mechanic that differentiates player strategies. Each core 
 | Core | Scoring behaviour |
 |---|---|
 | **No Core** | `floor( (100 + flat_buff) × multiplier_buff )` |
-| **Combo Core** | Same as No Core + up to +100 bonus for answer streaks |
-| **Oracle Core** | Lets you reveal letter hints at −10/−30/−60 point cost per level |
-| **Speedster** | `100 + max(0, floor( (1 − timeTaken/8s) × 150 ))` — faster = more points |
+| **Combo Core** | Base points + up to +100 bonus for answer streaks |
+| **Oracle Core** | Reveal letter hints at −10/−30/−60 point cost per level |
+| **Speedster** | `100 + max(0, floor( (1 − timeTaken/60s) × 200 ))` — faster = more points |
 | **Mission Core**| Answer 5 correctly in a row for a flat bonus of +500 points |
-| **Pandora's Box**| Periodically shapeshifts into another core entirely during the match! |
+| **Pandora's Box**| Periodically shapeshifts into another core entirely during the match |
 | **Aegis Shield**| Answering correctly builds a shield (max 3) that deflects wrong answer penalties |
+| **Phoenix Core**| Second chance mechanic: converts loss penalty into comeback points on revival |
+| **High Roller**| High risk/reward multiplier based on streak bets |
+| **Balanced Core**| Consistent score scaling across all round stages |
+| **Power Core**| High flat score boosts with increased penalty multipliers |
 
 At the end of Round 1 and Round 2, players can upgrade their Base Core to Tier 2 and Tier 3 evolutions (e.g. Speedster → Time Warp → Chronobreak) via a Core Upgrade interface.
 

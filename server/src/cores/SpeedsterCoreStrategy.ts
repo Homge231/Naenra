@@ -63,14 +63,34 @@ export class SpeedsterCoreStrategy extends BaseCore {
       baseTotal *= 2
     }
 
+    let currentShields = ctx.currentShields
+    if (currentShields === undefined) {
+      let shields = ctx.initialShieldCount || 0
+      for (const isCorr of ctx.answerHistory.slice(0, -1)) {
+        if (isCorr) {
+          shields = Math.min(shields + 1, 3)
+        } else {
+          shields = Math.max(0, shields - 1)
+        }
+      }
+      currentShields = shields
+    }
+
+    let finalShieldCount: number | undefined = undefined
+    if (this.coreName === 'speed shield') {
+      if (safeTaken < 3000) {
+        shieldDelta = 1
+        finalShieldCount = Math.min(3, currentShields + 1)
+      } else {
+        finalShieldCount = currentShields
+      }
+    }
+
     if (this.coreName === 'time warp') {
       timerDelta = 2000
     }
     if (this.coreName === 'time freeze') {
       pauseTimerMs = 1000
-    }
-    if (this.coreName === 'speed shield' && safeTaken < 3000) {
-      shieldDelta = 1
     }
     if (this.coreName === 'sonic boom') {
       const isCorrect = typeof ctx.wrongPenalty === 'number' && ctx.wrongPenalty > 0 ? false : true;
@@ -93,46 +113,50 @@ export class SpeedsterCoreStrategy extends BaseCore {
 
     const total = Math.floor(baseTotal * ctx.multiplierBuff) - oraclePenalty
 
+    const breakdownObj: ScoringResult['breakdown'] = {
+      base:            getBasePoints(ctx.targetWord),
+      combo_bonus:     0,             // Speedster ignores combo
+      flat_buff:       ctx.flatBuff,
+      multiplier_buff: ctx.multiplierBuff,
+      oracle_penalty:  oraclePenalty,
+      penalty:         0,
+      speed_bonus:     speedBonus,    // extra field surfaced in the response
+      time_taken_ms:   ctx.timeTaken,
+    }
+
+    if (typeof finalShieldCount === 'number') {
+      breakdownObj.finalShieldCount = finalShieldCount
+    }
+
     return {
       pointsDelta: Math.max(0, total),  // never go negative on a correct answer
       timerDelta: timerDelta > 0 ? timerDelta : undefined,
       pauseTimerMs: pauseTimerMs > 0 ? pauseTimerMs : undefined,
       shieldDelta: shieldDelta > 0 ? shieldDelta : undefined,
-      breakdown: {
-        base:            getBasePoints(ctx.targetWord),
-        combo_bonus:     0,             // Speedster ignores combo
-        flat_buff:       ctx.flatBuff,
-        multiplier_buff: ctx.multiplierBuff,
-        oracle_penalty:  oraclePenalty,
-        penalty:         0,
-        speed_bonus:     speedBonus,    // extra field surfaced in the response
-        time_taken_ms:   ctx.timeTaken,
-      },
+      breakdown: breakdownObj,
     }
   }
 
   calculateWrong(ctx: ScoringContext): ScoringResult {
     const oraclePenalty = this._oraclePenalty(ctx)
 
-    if (this.coreName === 'speed shield') {
+    if (this.coreName === 'speed shield' || ctx.historyCoreNames?.includes('speed shield')) {
       // Calculate current shields if not explicitly provided
       let currentShields = ctx.currentShields
       if (currentShields === undefined) {
         let shields = ctx.initialShieldCount || 0
-        let streak = 0
-        for (const isCorrect of ctx.answerHistory) {
+        for (const isCorrect of ctx.answerHistory.slice(0, -1)) {
           if (isCorrect) {
-            streak++
             shields = Math.min(shields + 1, 3)
           } else {
             shields = Math.max(0, shields - 1)
-            streak = 0
           }
         }
         currentShields = shields
       }
 
-      if (currentShields > 0) {
+      const activeShields = currentShields || 0
+      if (activeShields > 0) {
         return {
           pointsDelta: -oraclePenalty, // consume a shield instead of normal penalty
           forgiveMistake: true,
@@ -145,7 +169,7 @@ export class SpeedsterCoreStrategy extends BaseCore {
             oracle_penalty: oraclePenalty,
             penalty: 0,
             shield_blocked: 1,
-            finalShieldCount: currentShields - 1
+            finalShieldCount: activeShields - 1
           }
         }
       }

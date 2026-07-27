@@ -694,20 +694,24 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // If there is an Aegis core in history (or they have ghost shields from Pandora) that would block damage, let it override the primary penalty!
+    // If there is an Aegis core or Speed Shield in history (or they have ghost shields from Pandora) that would block damage, let it override the primary penalty!
     if (!isCorrect) {
-      let aegisCore = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'AegisCoreStrategy')
-      // If Pandora shifted away from Aegis Shield but the player still has earned shields, default to Aegis Shield logic to block the damage
-      if (!aegisCore && ctx.currentShields && ctx.currentShields > 0) {
-        aegisCore = "aegis shield"
+      let shieldCore = historyCoreNames.find(name => {
+        const strat = getCoreStrategy(name)
+        return strat.constructor.name === 'AegisCoreStrategy' || name.toLowerCase() === 'speed shield'
+      })
+      // If Pandora/Upgrade shifted away from Aegis Shield / Speed Shield but the player still has earned shields, default to shield logic to block the damage
+      if (!shieldCore && ctx.currentShields && ctx.currentShields > 0) {
+        shieldCore = historyCoreNames.includes('speed shield') ? 'speed shield' : 'aegis shield'
       }
       
-      if (aegisCore && aegisCore !== scoringCore.name) {
-         const aegisResult = runScoring(isCorrect, aegisCore, ctx)
-         if (aegisResult.breakdown.shield_blocked) {
+      if (shieldCore && shieldCore !== scoringCore.name) {
+         const shieldResult = runScoring(isCorrect, shieldCore, ctx)
+         if (shieldResult.breakdown.shield_blocked) {
            // Shield successfully blocked! Override the penalty result.
-           pointsDelta = aegisResult.pointsDelta
-           breakdown = aegisResult.breakdown
+           pointsDelta = shieldResult.pointsDelta
+           breakdown = shieldResult.breakdown
+           forgiveMistake = shieldResult.forgiveMistake
          }
       }
     }

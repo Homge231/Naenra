@@ -9,18 +9,20 @@
 ## Architecture
 ```
 client/src/
-  views/          # GameplayView, CoreSelectionView, HomeView, ProfileView, LoginView, VerifyOTPView, ForgotPasswordView, ResetPasswordView
-  stores/         # authStore, gameStore, errorStore
+  views/          # GameplayView, CoreSelectionView, CoreSelectionMultiView, CustomRoomView, GameMultiplayView, AnalyticsDashboardView, HomeView, ProfileView, LoginView, VerifyOTPView, ForgotPasswordView, ResetPasswordView
+  stores/         # authStore, gameStore, matchStore, settingsStore, errorStore
+  composables/    # useTutorial.ts, useErrorBoundary.ts, game/ (useAudioEngine, useMatchTimer, useQuestionQueue, useScoreAnimation)
   components/     # Avatar, ErrorNotification, game/PhaserBackground
-  game/cores/     # FE core registry (Strategy Pattern): BaseCore.ts (CoreModule iface + PENDING_UUID), registry.ts (uuid→config)
+  game/cores/     # FE core registry (Strategy Pattern): BaseCore.ts, registry.ts, families.ts, icons.ts
   router/         # auth guards
 
 server/src/
-  controllers/    # gameController.ts (getQuestion(s), getCores, createSession, submitAnswer, timeoutSession, abandonSession)
-                  # userController.ts (getUserProfile, updateUserProfile — rank from elo)
-  middleware/     # authMiddleware (JWT)
+  controllers/    # gameController.ts, userController.ts, feedbackController.ts
+  middleware/     # authMiddleware (JWT + session_version check)
+  rooms/          # Colyseus rooms: MatchRoom.ts
+  services/       # aiService.ts (Gemini question generator)
   utils/          # jwt.ts, otp.ts, mailer.ts
-  cores/          # BE scoring strategy system: BaseCore.ts (ScoringContext/Result types), NoCore/Combo/Oracle/SpeedsterCoreStrategy.ts, index.ts (registry + runScoring())
+  cores/          # BE scoring strategy system: BaseCore.ts, families.ts, index.ts (12 core families)
 ```
 
 ## Core System — Strategy Pattern (MOST IMPORTANT)
