@@ -113,7 +113,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { audioService } from '../services/audioService'
-import { currentRoom, leaveMatchRoom } from '../services/multiplayerService'
+import { joinOrCreateMatchRoom, currentRoom, leaveMatchRoom } from '../services/multiplayerService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -121,6 +121,8 @@ const authStore = useAuthStore()
 // Timer State
 const secondsElapsed = ref(0)
 let timerInterval: ReturnType<typeof setInterval> | null = null
+const isConnecting = ref(false)
+const navigatingToGame = ref(false)
 
 const username = computed(() =>
   authStore.profile?.username ||
@@ -160,6 +162,37 @@ function stopTimer() {
   }
 }
 
+async function startQueueConnection() {
+  isConnecting.value = true
+  const options = {
+    token: localStorage.getItem('arena_token'),
+    id: authStore.user?.id,
+    name: username.value,
+    avatar: avatarUrl.value
+  }
+
+  try {
+    const room = await joinOrCreateMatchRoom(options)
+
+    if (room.state && room.state.players && room.state.players.size === 2) {
+      navigatingToGame.value = true
+      stopTimer()
+      router.push('/core/multiplayer')
+      return
+    }
+
+    room.onMessage('match_started', () => {
+      navigatingToGame.value = true
+      stopTimer()
+      router.push('/core/multiplayer')
+    })
+  } catch (err: any) {
+    console.error('Failed to join matchmaking room:', err)
+  } finally {
+    isConnecting.value = false
+  }
+}
+
 function cancelMatchmaking() {
   audioService.playClick()
   stopTimer()
@@ -180,10 +213,14 @@ function cancelMatchmaking() {
 
 onMounted(() => {
   startTimer()
+  startQueueConnection()
 })
 
 onUnmounted(() => {
   stopTimer()
+  if (!navigatingToGame.value) {
+    leaveMatchRoom()
+  }
 })
 </script>
 

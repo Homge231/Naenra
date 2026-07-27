@@ -24,6 +24,19 @@ export function getSavedReconnectionToken(): string | null {
   return sessionStorage.getItem('naenra_reconnection_token');
 }
 
+export async function joinOrCreateMatchRoom(options: any = {}) {
+  try {
+    currentRoom = await colyseusClient.joinOrCreate<MatchState>("match_room", options);
+    console.log("Joined or created match room successfully!", currentRoom.roomId);
+    saveReconnectionToken(currentRoom);
+    setupRoomListeners(currentRoom);
+    return currentRoom;
+  } catch (e) {
+    console.error("JoinOrCreate room error:", e);
+    throw e;
+  }
+}
+
 export async function createMatchRoom(options: any = {}) {
   try {
     currentRoom = await colyseusClient.create<MatchState>("match_room", options);

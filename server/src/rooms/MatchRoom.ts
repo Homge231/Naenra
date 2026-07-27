@@ -26,6 +26,11 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       }
     });
 
+    this.onMessage("cancel_queue", (client) => {
+      console.log(`Received cancel_queue from ${client.sessionId}`);
+      client.leave();
+    });
+
     this.onMessage("update_score", (client, message: { score: number }) => {
       const player = this.state.players.get(client.sessionId);
       if (player) {
@@ -125,6 +130,12 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     }
 
     this.state.players.set(client.sessionId, new Player(id, name, avatar));
+
+    if (this.state.players.size === 2) {
+      console.log(`[MatchRoom ${this.roomId}] 2 players joined! Auto-starting match...`);
+      this.state.status = "starting";
+      this.broadcast("match_started");
+    }
   }
 
   async onLeave(client: Client, code?: number) {
