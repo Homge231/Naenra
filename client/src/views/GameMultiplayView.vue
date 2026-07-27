@@ -2133,13 +2133,17 @@ onMounted(async () => {
   }
 
   if (!activeCoreId.value) {
-    if (isMultiplayer.value && currentRoom) {
-      const myPlayer = currentRoom.state?.players?.get(currentRoom.sessionId)
+    const savedCoreId = localStorage.getItem('naenra_active_core_id')
+    const savedCoreName = localStorage.getItem('naenra_active_core_name')
+    if (savedCoreId) {
+      gameStore.setActiveCore(savedCoreId, savedCoreName || '')
+    } else if (isMultiplayer.value) {
+      const myPlayer = currentRoom?.state?.players?.get(currentRoom.sessionId)
       if (myPlayer && myPlayer.activeCoreId) {
         console.log('[GameMultiplayView] Restored activeCoreId from server room state:', myPlayer.activeCoreId)
-        gameStore.activeCoreId = myPlayer.activeCoreId
+        gameStore.setActiveCore(myPlayer.activeCoreId, 'Support Core')
       } else {
-        router.replace('/core/multiplayer')
+        router.replace('/home')
         return
       }
     } else {

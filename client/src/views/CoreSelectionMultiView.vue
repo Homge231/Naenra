@@ -390,14 +390,13 @@ async function createSession(coreId: string) {
     const data = await res.json()
 
     if (data.session_id) {
-      gameStore.sessionId = data.session_id
+      gameStore.setSessionId(data.session_id)
     }
     if (data.theme) {
       currentBgImage.value = getBackgroundImage(data.theme)
     }
     if (data.active_core) {
-      gameStore.activeCoreId = data.active_core.id
-      gameStore.activeCoreName = data.active_core.name
+      gameStore.setActiveCore(data.active_core.id, data.active_core.name)
     }
   } catch (err) {
     console.error('Error creating Session:', err)
@@ -418,10 +417,9 @@ async function submitCore(core: CoreOption) {
   
   stopTimer()
 
-  gameStore.activeCoreId = core.id
-  gameStore.activeCoreName = core.name
+  gameStore.setActiveCore(core.id, core.name)
   gameStore.coreHistory = [{ id: core.id, name: core.name, icon: core.icon }]
-  gameStore.sessionId = null
+  gameStore.setSessionId(null)
   
   const matchStore = useMatchStore()
   matchStore.resetMatch()
