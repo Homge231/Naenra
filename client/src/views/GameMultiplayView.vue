@@ -648,6 +648,8 @@ import ComboCoreIndicator from '../components/game/ComboCoreIndicator.vue'
 import MissionCoreIndicator from '../components/game/MissionCoreIndicator.vue'
 import CoreUpgradeOverlay from '../components/game/CoreUpgradeOverlay.vue'
 import OracleCoreIndicator from '../components/game/OracleCoreIndicator.vue'
+
+const isForfeitWin = ref(false)
 import FeedbackOverlay from '../components/game/FeedbackOverlay.vue'
 import MatchResultOverlay from '../components/game/MatchResultOverlay.vue'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
@@ -1318,7 +1320,7 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       
       // Store result for match result overlay
       matchResult.value = {
-        isVictory: isMultiplayer.value ? score.value > opponentScore.value : (data.is_win ?? false),
+        isVictory: isForfeitWin.value || (isMultiplayer.value ? score.value > opponentScore.value : (data.is_win ?? false)),
         eloChange: data.elo_change ?? 0,
         newElo: data.new_elo ?? 0,
         oldElo: data.old_elo ?? 0,
@@ -2082,6 +2084,8 @@ function setupRoomEventHandlers(room: any) {
     clearOpponentReconnectCountdown()
     stopMatchTimer()
     addToast('The opponent has timed out. You win (Forfeit)!', '🏆', 'text-yellow-400')
+    isForfeitWin.value = true
+    matchStore.currentRound = 3 // Force end of match
     startTimeoutPhase()
   })
 

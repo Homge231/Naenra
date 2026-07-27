@@ -493,6 +493,13 @@ onMounted(async () => {
       leaveMatchRoom()
       router.push('/home')
     })
+    
+    currentRoom.onMessage('opponent_forfeit', () => {
+      if (navigatingToGame.value) return
+      alert("Đối thủ đã thoát. Trận đấu bị hủy!")
+      leaveMatchRoom()
+      router.push('/home')
+    })
   }
 })
 
