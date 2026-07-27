@@ -26,14 +26,14 @@ import { HighRollerStrategy } from './HighRollerStrategy'
 // Key = lowercase core name as stored in the DB `cores.name` column.
 
 const CORE_REGISTRY: Record<string, BaseCore> = {
-  // Phoenix Branch
-  'phoenix': new PhoenixCoreStrategy('phoenix', 100, 1, false),
-  'phoenix flame': new PhoenixCoreStrategy('phoenix flame', 400, 1, false),
-  'rebirth': new PhoenixCoreStrategy('rebirth', 200, 1, true),
-  'ashes to ashes': new PhoenixCoreStrategy('ashes to ashes', 0, 1, false, 0.5, 3.0),
-  'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 800, 1, false),
-  'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 400, 1, true),
-  'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 0, 1, false, 1.0, 5.0),
+  // Phoenix Branch (Accumulated Debt Rebirth Mechanic)
+  'phoenix': new PhoenixCoreStrategy('phoenix', 0, 0, 0, 0, 0),
+  'phoenix flame': new PhoenixCoreStrategy('phoenix flame', 0.25, 0, 0, 0, 50),
+  'rebirth': new PhoenixCoreStrategy('rebirth', 0, 0.5, 0, 0, 0),
+  'ashes to ashes': new PhoenixCoreStrategy('ashes to ashes', 0, 0, 0.5, 3.0, 0),
+  'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 0.50, 0, 0, 0, 150),
+  'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 1.0, 1.0, 0, 0, 0),
+  'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 0.50, 0, 1.0, 5.0, 100),
 
   // High Roller Branch
   'high roller': new HighRollerStrategy('high roller', 0.5, 2, 0.5),

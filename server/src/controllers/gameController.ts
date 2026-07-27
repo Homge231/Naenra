@@ -543,15 +543,18 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
              name.toLowerCase() === 'harmony wave'
     })
     
+    let answerHistoryDeltas: number[] = []
+
     if (needsHistory) {
       const { data: historyData } = await supabase
         .from('game_session_answers')
-        .select('correct')
+        .select('correct, points_delta')
         .eq('session_id', session_id)
         .order('created_at', { ascending: true })
       
       if (historyData) {
         answerHistory = historyData.map(r => r.correct)
+        answerHistoryDeltas = historyData.map(r => r.points_delta || 0)
       }
     }
     // Calculate combo strictly from server history (ignore client current_combo)
@@ -654,6 +657,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       flatBuff:          activeFlatBuff,
       multiplierBuff:    activeMultBuff,
       answerHistory,
+      answerHistoryDeltas,
       initialShieldCount,
       historyCoreNames,
       currentShields:    typeof current_shields === 'number' ? current_shields : undefined,

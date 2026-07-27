@@ -45,6 +45,8 @@ export interface ScoringContext {
   multiplierBuff: number
   /** The sequence of correct/wrong answers in the current session (includes the current answer) */
   answerHistory: boolean[]
+  /** Points delta sequence corresponding to answerHistory */
+  answerHistoryDeltas?: number[]
   /** Cross-round persistence: the player's shield count when the session started */
   initialShieldCount?: number
   /** Names of all cores in the session's upgrade/history stack */
