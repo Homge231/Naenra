@@ -6,21 +6,21 @@ import { BaseCore, ScoringContext, ScoringResult, getBasePoints } from './BaseCo
  * Mechanic:
  * - Accumulates all lost penalty points from skipped/wrong answers into a debt pool.
  * - When the next answer is answered CORRECTLY, Phoenix recovers 100% of the accumulated
- *   penalty debt + awards base correct points (+ upgrade specific bonuses).
+ *   penalty debt + awards base correct points (+ upgrade specific bonuses/shields).
  */
 export class PhoenixCoreStrategy extends BaseCore {
   public readonly coreName: string
   
-  private debtBonusRate: number      // Extra bonus rate on top of recovered debt (e.g. 0.25 = +25% bonus)
-  private nullifyPenaltyRate: number // Rate of wrong penalty nullified (e.g. 0.5 = 50% penalty, 1.0 = 0 penalty)
-  private scalingPerMiss: number     // Multiplier added per miss (e.g. 0.5 or 1.0)
-  private maxMultiplier: number      // Cap for scaling multiplier (e.g. 3.0 or 5.0)
-  private extraFlatBonus: number     // Extra flat bonus on rebirth (e.g. +50, +100, +150)
+  private debtBonusRate: number          // Extra bonus rate on top of recovered debt (e.g. 0.30 = +30% bonus)
+  private grantShieldsOnRebirth: number  // Number of Aegis shields granted upon rebirth (e.g. 1 for Rebirth, 2 for Eternal Rebirth)
+  private scalingPerMiss: number         // Multiplier added per miss (e.g. 0.4 or 0.8)
+  private maxMultiplier: number          // Cap for scaling multiplier (e.g. 2.6 or 4.2)
+  private extraFlatBonus: number         // Extra flat bonus on rebirth (e.g. +50, +150)
 
   constructor(
     coreName: string,
     debtBonusRate: number = 0,
-    nullifyPenaltyRate: number = 0,
+    grantShieldsOnRebirth: number = 0,
     scalingPerMiss: number = 0,
     maxMultiplier: number = 0,
     extraFlatBonus: number = 0
@@ -28,7 +28,7 @@ export class PhoenixCoreStrategy extends BaseCore {
     super()
     this.coreName = coreName.toLowerCase()
     this.debtBonusRate = debtBonusRate
-    this.nullifyPenaltyRate = nullifyPenaltyRate
+    this.grantShieldsOnRebirth = grantShieldsOnRebirth
     this.scalingPerMiss = scalingPerMiss
     this.maxMultiplier = maxMultiplier
     this.extraFlatBonus = extraFlatBonus
@@ -78,26 +78,41 @@ export class PhoenixCoreStrategy extends BaseCore {
 
     let finalScore = Math.floor((basePts + ctx.flatBuff + rebirthFlat + totalDebtRefund) * dynamicMult) - oraclePenalty
 
+    let shieldDelta = 0
+    let finalShieldCount: number | undefined = undefined
+
+    if (missCount > 0 && this.grantShieldsOnRebirth > 0) {
+      shieldDelta = this.grantShieldsOnRebirth
+      const currentShields = ctx.currentShields || 0
+      finalShieldCount = Math.min(3, currentShields + this.grantShieldsOnRebirth)
+    }
+
+    const breakdownObj: ScoringResult['breakdown'] = {
+      base: basePts,
+      combo_bonus: totalDebtRefund + rebirthFlat,
+      flat_buff: ctx.flatBuff,
+      multiplier_buff: dynamicMult,
+      oracle_penalty: oraclePenalty,
+      penalty: 0,
+      phoenix_debt_refund: totalDebtRefund,
+      phoenix_miss_count: missCount
+    }
+
+    if (typeof finalShieldCount === 'number') {
+      breakdownObj.finalShieldCount = finalShieldCount
+    }
+
     return {
       pointsDelta: Math.max(0, finalScore),
-      breakdown: {
-        base: basePts,
-        combo_bonus: totalDebtRefund + rebirthFlat,
-        flat_buff: ctx.flatBuff,
-        multiplier_buff: dynamicMult,
-        oracle_penalty: oraclePenalty,
-        penalty: 0,
-        phoenix_debt_refund: totalDebtRefund,
-        phoenix_miss_count: missCount
-      }
+      shieldDelta: shieldDelta > 0 ? shieldDelta : undefined,
+      breakdown: breakdownObj
     }
   }
 
   calculateWrong(ctx: ScoringContext): ScoringResult {
     const oraclePenalty = this._oraclePenalty(ctx)
-    // Reduce wrong penalty by nullifyPenaltyRate
-    const penaltyRatio = Math.max(0, 1 - this.nullifyPenaltyRate)
-    const appliedPenalty = Math.floor(ctx.wrongPenalty * penaltyRatio)
+    // Full penalty is applied so it gets accumulated into debt for the rebirth recovery!
+    const appliedPenalty = ctx.wrongPenalty
     const pointsDelta = -(appliedPenalty + oraclePenalty)
 
     return {
