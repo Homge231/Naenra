@@ -458,20 +458,33 @@ onMounted(async () => {
   }
 
   if (currentRoom) {
-    if (currentRoom.state && currentRoom.state.status === 'playing') {
-      console.log('[CoreSelectionMultiView] Match is already playing! Redirecting to gameplay...')
-      navigatingToGame.value = true
-      router.replace('/game/multiplayer')
-      return
-    }
-
-    currentRoom.onMessage('start_next_round', () => {
+    const handleStartGame = () => {
+      if (navigatingToGame.value) return
       waitingForOpponent.value = false
       navigatingToGame.value = true
       router.push('/game/multiplayer')
+    }
+
+    if (currentRoom.state && currentRoom.state.status === 'playing') {
+      console.log('[CoreSelectionMultiView] Match is already playing! Redirecting to gameplay...')
+      handleStartGame()
+      return
+    }
+
+    if (currentRoom.listen) {
+      currentRoom.listen('status', (newStatus) => {
+        if (newStatus === 'playing') {
+          handleStartGame()
+        }
+      })
+    }
+
+    currentRoom.onMessage('start_next_round', () => {
+      handleStartGame()
     })
     
     currentRoom.onMessage('opponent_left', () => {
+      if (navigatingToGame.value) return
       alert("Đối thủ đã thoát trận đấu! Bạn sẽ được đưa về màn hình chính.")
       leaveMatchRoom()
       router.push('/home')
@@ -486,7 +499,8 @@ onUnmounted(() => {
   activeTimeouts.clear()
   window.removeEventListener('beforeunload', handleBeforeUnload)
 
-  if (!navigatingToGame.value) {
+  const isMatchPlaying = currentRoom?.state?.status === 'playing'
+  if (!navigatingToGame.value && !isMatchPlaying) {
     leaveMatchRoom()
   }
 })
