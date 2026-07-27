@@ -2133,9 +2133,15 @@ onMounted(async () => {
   }
 
   if (!activeCoreId.value) {
-    if (isMultiplayer.value) {
-      router.replace('/core/multiplayer')
-      return
+    if (isMultiplayer.value && currentRoom) {
+      const myPlayer = currentRoom.state?.players?.get(currentRoom.sessionId)
+      if (myPlayer && myPlayer.activeCoreId) {
+        console.log('[GameMultiplayView] Restored activeCoreId from server room state:', myPlayer.activeCoreId)
+        gameStore.activeCoreId = myPlayer.activeCoreId
+      } else {
+        router.replace('/core/multiplayer')
+        return
+      }
     } else {
       router.replace('/core')
       return

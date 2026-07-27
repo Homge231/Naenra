@@ -234,7 +234,11 @@ onMounted(async () => {
       console.log('[HomeView] Found saved reconnection token, reconnecting to match...')
       const room = await reconnectMatchRoom(token)
       if (room) {
-        router.push('/game/multiplayer')
+        if (room.state && room.state.status === "playing") {
+          router.push('/game/multiplayer')
+        } else {
+          router.push('/core/multiplayer')
+        }
       }
     } catch (e) {
       console.warn('[HomeView] Reconnection token invalid or expired:', e)

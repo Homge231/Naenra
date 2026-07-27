@@ -458,6 +458,13 @@ onMounted(async () => {
   }
 
   if (currentRoom) {
+    if (currentRoom.state && currentRoom.state.status === 'playing') {
+      console.log('[CoreSelectionMultiView] Match is already playing! Redirecting to gameplay...')
+      navigatingToGame.value = true
+      router.replace('/game/multiplayer')
+      return
+    }
+
     currentRoom.onMessage('start_next_round', () => {
       waitingForOpponent.value = false
       navigatingToGame.value = true
