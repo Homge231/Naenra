@@ -131,11 +131,6 @@
             </button>
           </div>
 
-          <button @click="startMatchmaking" @mouseenter="audioService.playHover()"
-            class="h-12 w-full flex items-center justify-center rounded-md bg-gradient-to-r from-blue-500/20 to-indigo-600/20 border border-blue-400/50 text-white hover:from-blue-500/40 hover:to-indigo-600/40 hover:border-lightBlue hover:shadow-[0_0_20px_rgba(59,130,246,0.6)] transition-all duration-300 font-black text-sm tracking-widest uppercase">
-            Find Match (Ranked)
-          </button>
-
           <button @mouseenter="audioService.playHover()"
             class="h-12 w-full flex items-center justify-center rounded-md bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-lightBlue hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 font-bold text-sm tracking-widest uppercase">
             Leaderboard
