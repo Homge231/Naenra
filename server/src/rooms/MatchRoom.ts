@@ -5,8 +5,6 @@ import { supabase } from "../config/supabase";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
-  finishedPlayers = new Set<string>();
-  readyPlayers = new Set<string>();
 
   onCreate(options: any) {
     this.state = new MatchState();
@@ -58,19 +56,27 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     });
 
     this.onMessage("finished_round", (client) => {
-      this.finishedPlayers.add(client.sessionId);
-      console.log(`Player ${client.sessionId} finished round. (${this.finishedPlayers.size}/${this.state.players.size})`);
-      if (this.finishedPlayers.size >= this.state.players.size) {
-        this.finishedPlayers.clear();
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        player.isReady = true;
+      }
+      const players = Array.from(this.state.players.values());
+      console.log(`Player ${client.sessionId} finished round. (${players.filter(p => p.isReady).length}/${players.length})`);
+      if (players.length === 2 && players.every(p => p.isReady)) {
+        players.forEach(p => p.isReady = false);
         this.broadcast("start_recap_countdown");
       }
     });
 
     this.onMessage("ready_next_round", (client) => {
-      this.readyPlayers.add(client.sessionId);
-      console.log(`Player ${client.sessionId} ready for next round. (${this.readyPlayers.size}/${this.state.players.size})`);
-      if (this.readyPlayers.size >= this.state.players.size) {
-        this.readyPlayers.clear();
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        player.isReady = true;
+      }
+      const players = Array.from(this.state.players.values());
+      console.log(`Player ${client.sessionId} ready for next round. (${players.filter(p => p.isReady).length}/${players.length})`);
+      if (players.length === 2 && players.every(p => p.isReady)) {
+        players.forEach(p => p.isReady = false);
         this.state.status = "playing";
         this.broadcast("start_next_round");
       }
@@ -167,8 +173,6 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     }
 
     this.state.players.delete(client.sessionId);
-    this.finishedPlayers.delete(client.sessionId);
-    this.readyPlayers.delete(client.sessionId);
 
     if (isMatchActive) {
       this.broadcast("opponent_left");
