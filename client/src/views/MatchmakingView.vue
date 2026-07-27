@@ -177,14 +177,14 @@ async function startQueueConnection() {
     if (room.state && room.state.players && room.state.players.size === 2) {
       navigatingToGame.value = true
       stopTimer()
-      router.push('/core/multiplayer')
+      router.push('/match-found')
       return
     }
 
     room.onMessage('match_started', () => {
       navigatingToGame.value = true
       stopTimer()
-      router.push('/core/multiplayer')
+      router.push('/match-found')
     })
   } catch (err: any) {
     console.error('Failed to join matchmaking room:', err)
