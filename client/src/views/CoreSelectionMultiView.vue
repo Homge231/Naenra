@@ -178,7 +178,7 @@ import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useTutorial } from '../composables/useTutorial'
 import { initAudio } from '../composables/game/useAudioEngine'
 import { audioService } from '../services/audioService'
-import { currentRoom, leaveMatchRoom } from '../services/multiplayerService'
+import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -440,10 +440,22 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
   e.returnValue = ''
 }
 
-onMounted(() => {
+onMounted(async () => {
   audioService.playBGM('/audio/core_selection.mp3')
   fetchSupportCores()
   window.addEventListener('beforeunload', handleBeforeUnload)
+
+  if (!currentRoom) {
+    const token = getSavedReconnectionToken()
+    if (token) {
+      try {
+        console.log('[CoreSelectionMultiView] Reconnecting to active room...')
+        await reconnectMatchRoom(token)
+      } catch (e) {
+        console.warn('[CoreSelectionMultiView] Reconnection failed:', e)
+      }
+    }
+  }
 
   if (currentRoom) {
     currentRoom.onMessage('start_next_round', () => {

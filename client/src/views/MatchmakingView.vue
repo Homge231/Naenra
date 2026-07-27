@@ -174,18 +174,31 @@ async function startQueueConnection() {
   try {
     const room = await joinOrCreateMatchRoom(options)
 
-    if (room.state && room.state.players && room.state.players.size === 2) {
+    const handleMatchStarted = () => {
+      if (navigatingToGame.value) return
       navigatingToGame.value = true
       stopTimer()
       router.push('/match-found')
-      return
     }
 
+    // 1. Listen to Colyseus schema status change (100% guaranteed state sync)
+    if (room.listen) {
+      room.listen("status", (newStatus) => {
+        if (newStatus === "starting" || newStatus === "playing") {
+          handleMatchStarted()
+        }
+      })
+    }
+
+    // 2. Listen to broadcast message
     room.onMessage('match_started', () => {
-      navigatingToGame.value = true
-      stopTimer()
-      router.push('/match-found')
+      handleMatchStarted()
     })
+
+    // 3. Immediate check if room state is already starting or full
+    if (room.state && (room.state.status === "starting" || (room.state.players && room.state.players.size === 2))) {
+      handleMatchStarted()
+    }
   } catch (err: any) {
     console.error('Failed to join matchmaking room:', err)
   } finally {
