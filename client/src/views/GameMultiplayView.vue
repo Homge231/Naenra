@@ -1326,7 +1326,7 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
         oldElo: data.old_elo ?? 0,
         expectedScore: data.expected_score ?? 500
       }
-      setTimeout(() => { showMatchResult.value = true }, 1500)
+      // Wait for runRecapCountdown to finish before showing result
     }
   } catch (err) {
     console.error(err)
@@ -1753,7 +1753,7 @@ function startTimeoutPhase() {
   inputRef.value?.blur()
   stopTimeoutInterval()
 
-  if (isMultiplayer.value) {
+  if (isMultiplayer.value && !isForfeitWin.value) {
     waitingForOpponent.value = true
     if (currentRoom) {
       currentRoom.send("finished_round")
@@ -1784,6 +1784,17 @@ function runRecapCountdown() {
       stopTimeoutInterval()
       if (!matchStore.isFinalRound()) {
         gameState.value = 'upgrade'
+      } else {
+        if (matchResult.value) {
+          showMatchResult.value = true
+        } else {
+          const waitResult = setInterval(() => {
+            if (matchResult.value) {
+              clearInterval(waitResult)
+              showMatchResult.value = true
+            }
+          }, 500)
+        }
       }
     }
   }, 1000)
@@ -2089,6 +2100,9 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('opponent_forfeit', () => {
+    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+      return // Match is effectively over, ignore
+    }
     clearOpponentReconnectCountdown()
     stopMatchTimer()
     addToast('The opponent has timed out. You win (Forfeit)!', '🏆', 'text-yellow-400')
@@ -2098,6 +2112,9 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('opponent_left', () => {
+    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+      return // Match is effectively over, ignore
+    }
     alert("Your opponent has left the match! You will be returned to the main menu.")
     goHome()
   })
