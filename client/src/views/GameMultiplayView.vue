@@ -493,24 +493,14 @@
               </span>
             </button>
 
-            <!-- Play Again & Feedback (Round 3) -->
+            <!-- Skip Recap (Round 3) -->
             <template v-else>
-              <!-- Nút Feedback mới thêm -->
-              <button @click="showFeedback = true"
-                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-shadow">
-                <div
-                  class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                </div>
-                <span class="relative z-10 text-white">Feedback</span>
-              </button>
-
-              <!-- Nút Play Again giữ nguyên -->
-              <button @click="playAgain"
-                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-shadow">
-                <div
-                  class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                </div>
-                <span class="relative z-10 text-white">Play Again</span>
+              <button @click="timeoutCountdown = 0"
+                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
+                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                <span class="relative z-10 text-white">
+                  Skip Recap ({{ timeoutCountdown }}s)
+                </span>
               </button>
             </template>
           </div>
