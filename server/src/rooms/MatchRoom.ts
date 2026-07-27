@@ -10,6 +10,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   onCreate(options: any) {
     this.state = new MatchState();
     this.isCustomRoom = options.isCustom === true;
+    this.state.isCustom = this.isCustomRoom;
 
 
     this.onMessage("updateMetadata", (client, message) => {
