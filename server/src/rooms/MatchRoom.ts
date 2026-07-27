@@ -102,6 +102,12 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         throw new Error("Session expired due to login elsewhere");
       }
 
+      // Prevent matching with oneself in the same room
+      const isAlreadyInRoom = Array.from(this.state.players.values()).some(p => p.id === decoded.id);
+      if (isAlreadyInRoom) {
+        throw new Error("Cannot match with yourself");
+      }
+
       const name = profile.username || "Player";
       const avatar = profile.avatar_url?.trim()
         ? profile.avatar_url

@@ -156,8 +156,10 @@ const myElo = computed(() => authStore.profile?.elo ?? 1000)
 // Player 2 (Opponent from Colyseus Room State)
 const opponentPlayer = computed(() => {
   if (!currentRoom || !currentRoom.state || !currentRoom.state.players) return null
-  const players = Array.from(currentRoom.state.players.values())
-  return players.find(p => p.id !== authStore.user?.id) || players[1] || null
+  const mySessionId = currentRoom.sessionId
+  const entries = Array.from(currentRoom.state.players.entries())
+  const oppEntry = entries.find(([sId]) => sId !== mySessionId)
+  return oppEntry ? oppEntry[1] : null
 })
 
 const opponentUsername = computed(() => opponentPlayer.value?.name || 'Opponent')
