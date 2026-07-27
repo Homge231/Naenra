@@ -192,10 +192,6 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
           <button @click="emit('showFeedback')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 transition-all text-white shadow-lg">
             Feedback
           </button>
-          <button @click="emit('playAgain')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 transition-all text-white shadow-lg"
-                  :class="{'animate-pulse': settingsStore.vfxEnabled}">
-            Play Again
-          </button>
         </div>
       </div>
     </div>
