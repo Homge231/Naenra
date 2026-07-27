@@ -218,11 +218,7 @@ function handleLogout() {
 
 function startMatchmaking() {
   audioService.playClick()
-  isSearching.value = true
-  setTimeout(() => {
-    isSearching.value = false
-    router.push('/core')
-  }, 3000)
+  router.push('/matchmaking')
 }
 
 onMounted(() => {
