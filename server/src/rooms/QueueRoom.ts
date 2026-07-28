@@ -2,6 +2,7 @@ import { Room, Client, matchMaker } from "colyseus";
 import { QueueState, QueuePlayer } from "./schema/QueueState";
 import { verifyToken } from "../utils/jwt";
 import { supabase } from "../config/supabase";
+import { addActiveClient, removeActiveClient } from "../utils/activeClients";
 
 export class QueueRoom extends Room<{ state: QueueState }> {
   matchmakingInterval: any;
@@ -51,6 +52,8 @@ export class QueueRoom extends Room<{ state: QueueState }> {
     console.log(`[QueueRoom] ${client.sessionId} joined queue.`);
     const elo = client.auth?.elo || 1000;
     const userId = client.auth?.id || client.sessionId;
+    client.userData = { userId };
+    addActiveClient(userId, client);
     this.state.players.set(client.sessionId, new QueuePlayer(client.sessionId, userId, elo));
   }
 
@@ -95,6 +98,10 @@ export class QueueRoom extends Room<{ state: QueueState }> {
           matched.add(p1.sessionId);
           matched.add(p2.sessionId);
 
+          // Delete immediately to prevent duplicate match finding in concurrent loop ticks
+          this.state.players.delete(p1.sessionId);
+          this.state.players.delete(p2.sessionId);
+
           try {
             // Create a new match room for these two players
             const matchRoom = await matchMaker.createRoom("match_room", { isCustom: false });
@@ -107,11 +114,9 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
             if (client1) {
               client1.send("match_found", { roomId: matchRoom.roomId });
-              this.state.players.delete(p1.sessionId);
             }
             if (client2) {
               client2.send("match_found", { roomId: matchRoom.roomId });
-              this.state.players.delete(p2.sessionId);
             }
 
             console.log(`[QueueRoom] Matched ${p1.userId} and ${p2.userId} in room ${matchRoom.roomId} (Elo diff: ${eloDiff})`);
@@ -125,6 +130,9 @@ export class QueueRoom extends Room<{ state: QueueState }> {
   }
 
   onLeave(client: Client, code?: number) {
+    if (client.userData?.userId) {
+      removeActiveClient(client.userData.userId, client);
+    }
     this.state.players.delete(client.sessionId);
     console.log(`[QueueRoom] ${client.sessionId} left queue.`);
   }

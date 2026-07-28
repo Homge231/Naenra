@@ -8,6 +8,7 @@ import crypto from 'crypto'
 import dotenv from 'dotenv'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
+import { kickUserClients } from '../utils/activeClients'
 dotenv.config()
 
 const ENCRYPTION_KEY = crypto.createHash('sha256').update(process.env.SUPABASE_SERVICE_KEY || 'default-secret').digest()
@@ -256,6 +257,9 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       }
     })
 
+    // Also forcefully drop any existing Colyseus connections
+    kickUserClients(userId)
+
   } catch (error) {
     console.error('verify-otp error:', error)
     res.status(500).json({ error: 'Internal server error' })
@@ -386,8 +390,9 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const newSessionVersion = versionResult
 
-    // Instantly kick any other active session for this account via Realtime broadcast.
+    // Instantly kick any other active session for this account via Realtime broadcast and Colyseus sockets.
     await broadcastSessionInvalidated(player.id, newSessionVersion)
+    kickUserClients(player.id)
 
     const token = generateToken({
       id: player.id,
@@ -630,8 +635,9 @@ router.post('/token', async (req: Request, res: Response) => {
 
     const newSessionVersion = versionResult
 
-    // Instantly kick any other active session for this account via Realtime broadcast.
+    // Instantly kick any other active session for this account via Realtime broadcast and Colyseus sockets.
     await broadcastSessionInvalidated(user.id, newSessionVersion)
+    kickUserClients(user.id)
 
     const token = generateToken({
       id: user.id,

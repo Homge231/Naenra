@@ -4,6 +4,7 @@ import { verifyToken } from "../utils/jwt";
 import { supabase } from "../config/supabase";
 import crypto from 'crypto';
 import { generateOracleHints, normalizeAnswer } from "../controllers/gameController";
+import { addActiveClient, removeActiveClient } from "../utils/activeClients";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
@@ -263,7 +264,10 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         throw new Error("Account not found");
       }
 
-      if (profile.session_version !== decoded.sessionVersion) {
+      const tokenVersion = decoded.sessionVersion ?? 0;
+      const dbVersion = profile.session_version ?? 0;
+
+      if (dbVersion !== 0 && tokenVersion !== dbVersion) {
         throw new Error("Session expired due to login elsewhere");
       }
 
@@ -303,6 +307,9 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     const name = options.name || client.auth?.name || client.userData?.name || "Anonymous";
     const avatar = options.avatar || client.auth?.avatar || client.userData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
 
+    client.userData = { userId: id };
+    addActiveClient(id, client);
+
     if (this.state.players.size === 0) {
       this.state.hostId = id;
     }
@@ -322,6 +329,10 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
   async onLeave(client: Client, code?: number) {
     console.log(`${client.sessionId} left ${this.roomId}, code: ${code}`);
+    
+    if (client.userData?.userId) {
+      removeActiveClient(client.userData.userId, client);
+    }
     
     const isMatchActive = this.state.status === "playing" || this.state.status === "starting";
 
