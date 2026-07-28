@@ -145,7 +145,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
-import { fetchWithAuth } from '../utils/fetchWithAuth'
+import { fetchWithAuth } from '../services/api'
 
 const router = useRouter()
 
