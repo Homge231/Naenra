@@ -177,7 +177,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
             ids = res.data;
           }
           if (ids && ids.length > 0) {
-            const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, 20);
+            const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, 5); // 5 questions limit
             const pickedIds = shuffled.map(r => r.id);
             const { data: questions } = await supabase
               .from('questions')
@@ -237,11 +237,11 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       hint: q.hint
     });
 
-    // 15 seconds timer
+    // 12 seconds timer
     this.raceQuestionTimer = setTimeout(() => {
       this.broadcast("race_timeout");
       this.nextRaceQuestion();
-    }, 15000);
+    }, 12000);
   }
 
   async onAuth(client: Client, options: any, request: any) {

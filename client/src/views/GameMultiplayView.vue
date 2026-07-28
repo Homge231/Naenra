@@ -1534,6 +1534,11 @@ function handleKeydown(e: KeyboardEvent) {
   if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
 
+  const isRaceMode = matchStore.currentRound === 4
+  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+  
+  if (!currentQ) return
+
   // Reset the input buffer on nextTick to prevent string accumulation memory bloat
   nextTick(() => {
     if (inputRef.value) inputRef.value.value = ''
@@ -1555,7 +1560,7 @@ function handleKeydown(e: KeyboardEvent) {
   }
 
   if (/^[a-zA-Z0-9\- '".,!?]$/.test(e.key)) {
-    const maxLen = currentQuestion.value.target_length
+    const maxLen = currentQ.target_length
     if (typedLetters.value.length >= maxLen) return
 
     typedLetters.value = [...typedLetters.value, e.key.toLowerCase()]
@@ -1578,7 +1583,12 @@ async function sha256(message: string) {
 }
 
 async function checkAnswer() {
-  const maxLen = currentQuestion.value.target_length
+  const isRaceMode = matchStore.currentRound === 4
+  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+  
+  if (!currentQ) return
+
+  const maxLen = currentQ.target_length
   if (typedLetters.value.length < maxLen) return
 
   const typed = typedLetters.value.join('')
@@ -2245,13 +2255,13 @@ function setupRoomEventHandlers(room: any) {
     gameState.value = 'playing'
     questionStartTime.value = Date.now()
 
-    timeLeft.value = 15
+    timeLeft.value = 12
     timerProgressPercent.value = 100
     if (raceTimerInterval) clearInterval(raceTimerInterval)
     raceTimerInterval = setInterval(() => {
       if (timeLeft.value > 0) {
         timeLeft.value--
-        timerProgressPercent.value = (timeLeft.value / 15) * 100
+        timerProgressPercent.value = (timeLeft.value / 12) * 100
       } else {
         clearInterval(raceTimerInterval!)
       }
