@@ -259,6 +259,9 @@
              
              <!-- Shared Question -->
              <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300">
+                <div v-if="currentRaceQuestion?.hint" class="mb-4 text-sm font-bold text-lightBlue uppercase tracking-widest bg-blue/10 px-4 py-1 rounded-full border border-blue/30 inline-block">
+                  HINT: {{ currentRaceQuestion.hint }}
+                </div>
                 <p class="text-xl md:text-3xl font-medium text-gray-200 leading-relaxed max-w-3xl">
                    <span v-if="currentRaceQuestion?.question_text?.split(/_+/)[0]">
                      {{ currentRaceQuestion.question_text?.split(/_+/)[0] }}
@@ -1546,6 +1549,16 @@ function handleKeydown(e: KeyboardEvent) {
 
   // Skip question when Enter is pressed
   if (e.key === 'Enter') {
+    if (gameState.value === 'correct' || gameState.value === 'wrong') {
+      skipQuestion()
+      return
+    }
+    if (matchStore.currentRound === 4) {
+      if (typedLetters.value.length > 0) {
+        checkAnswer()
+      }
+      return
+    }
     skipQuestion()
     return
   }
@@ -1572,7 +1585,7 @@ function handleKeydown(e: KeyboardEvent) {
     // Play keystroke sound
     playKeystroke(isSpeedsterCore.value, isSpeedsterCore.value ? 1.15 : 1.0)
 
-    if (typedLetters.value.length === maxLen) checkAnswer()
+    if (matchStore.currentRound !== 4 && typedLetters.value.length === maxLen) checkAnswer()
   }
 }
 async function sha256(message: string) {
@@ -1589,7 +1602,7 @@ async function checkAnswer() {
   if (!currentQ) return
 
   const maxLen = currentQ.target_length
-  if (typedLetters.value.length < maxLen) return
+  if (matchStore.currentRound !== 4 && typedLetters.value.length < maxLen) return
 
   const typed = typedLetters.value.join('')
   const elapsed = Date.now() - questionStartTime.value
@@ -2284,7 +2297,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('race_won', (data: { winnerId: string, points: number }) => {
-    if (data.winnerId === sessionId.value) {
+    if (data.winnerId === currentRoom?.sessionId) {
       triggerScoreFlash('correct')
       spawnPointPopup(data.points, 'correct', 'RACE WON')
       score.value += data.points
@@ -2295,7 +2308,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('race_wrong', (data: { playerId: string, penalty: number }) => {
-    if (data.playerId === sessionId.value) {
+    if (data.playerId === currentRoom?.sessionId) {
       triggerScoreFlash('wrong')
       spawnPointPopup(-data.penalty, 'wrong')
       score.value = Math.max(0, score.value - data.penalty)
