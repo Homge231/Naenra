@@ -564,6 +564,8 @@
       :elo-change="matchResult?.eloChange ?? 0"
       :new-elo="matchResult?.newElo ?? 0"
       :old-elo="matchResult?.oldElo ?? 0"
+      :old-tier="matchResult?.oldTier"
+      :current-tier="matchResult?.currentTier"
       :match-history="matchHistory"
       :match-duration-ms="Date.now() - matchStartTime"
       :opponent-score="isMultiplayer ? opponentScore : (matchResult?.expectedScore ?? 500)"

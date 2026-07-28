@@ -58,6 +58,9 @@ export class QueueRoom extends Room<{ state: QueueState }> {
     const players = Array.from(this.state.players.values()) as QueuePlayer[];
     if (players.length < 2) return;
 
+    // Log the current matchmaking state
+    console.log(`[QueueRoom] Tick: ${players.length} players in queue. Elos:`, players.map(p => p.elo));
+
     // A set of sessionId strings that have already been matched in this tick
     const matched = new Set<string>();
 
@@ -66,14 +69,20 @@ export class QueueRoom extends Room<{ state: QueueState }> {
       if (matched.has(p1.sessionId)) continue;
 
       const p1WaitTime = Date.now() - p1.joinedAt;
-      const p1Threshold = p1WaitTime > 15000 ? 300 : 100;
+      let p1Threshold = 100;
+      if (p1WaitTime > 45000) p1Threshold = 9999;
+      else if (p1WaitTime > 30000) p1Threshold = 600;
+      else if (p1WaitTime > 15000) p1Threshold = 300;
 
       for (let j = i + 1; j < players.length; j++) {
         const p2 = players[j];
         if (matched.has(p2.sessionId)) continue;
 
         const p2WaitTime = Date.now() - p2.joinedAt;
-        const p2Threshold = p2WaitTime > 15000 ? 300 : 100;
+        let p2Threshold = 100;
+        if (p2WaitTime > 45000) p2Threshold = 9999;
+        else if (p2WaitTime > 30000) p2Threshold = 600;
+        else if (p2WaitTime > 15000) p2Threshold = 300;
 
         // Use the looser threshold of the two
         const maxThreshold = Math.max(p1Threshold, p2Threshold);
@@ -87,9 +96,12 @@ export class QueueRoom extends Room<{ state: QueueState }> {
           try {
             // Create a new match room for these two players
             const matchRoom = await matchMaker.createRoom("match_room", { isCustom: false });
+            console.log(`[QueueRoom] Created matchRoom ${matchRoom.roomId}`);
             
-            const client1 = this.clients.find(c => c.sessionId === p1.sessionId);
-            const client2 = this.clients.find(c => c.sessionId === p2.sessionId);
+            const client1 = this.clients.getById(p1.sessionId) || this.clients.find(c => c.sessionId === p1.sessionId);
+            const client2 = this.clients.getById(p2.sessionId) || this.clients.find(c => c.sessionId === p2.sessionId);
+
+            console.log(`[QueueRoom] Found clients? c1: ${!!client1}, c2: ${!!client2}`);
 
             if (client1) {
               client1.send("match_found", { roomId: matchRoom.roomId });

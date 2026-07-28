@@ -940,7 +940,7 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
         
         newElo = Math.max(0, currentElo + eloDelta)
 
-        const { data: updData, error: updErr } = await supabase
+        let updateQuery = supabase
           .from('players')
           .update({
             elo: newElo,
@@ -949,8 +949,14 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
             total_matches: totalMatches + 1
           })
           .eq('id', playerId)
-          .eq('elo', currentElo)
-          .select('id')
+          
+        if (playerProfile.elo === null) {
+          updateQuery = updateQuery.is('elo', null)
+        } else {
+          updateQuery = updateQuery.eq('elo', currentElo)
+        }
+
+        const { data: updData, error: updErr } = await updateQuery.select('id')
 
         if (!updErr && updData && updData.length > 0) {
           updated = true

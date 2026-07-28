@@ -8,7 +8,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   private isCustomRoom: boolean = false;
 
   onCreate(options: any) {
-    this.state = new MatchState();
+    this.setState(new MatchState());
     this.isCustomRoom = options.isCustom === true;
     this.state.isCustom = this.isCustomRoom;
 
