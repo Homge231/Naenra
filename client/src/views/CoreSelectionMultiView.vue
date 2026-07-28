@@ -168,6 +168,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { onBeforeRouteLeave } from 'vue-router'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
 import { useAuthStore } from '../stores/authStore'
@@ -178,7 +179,7 @@ import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useTutorial } from '../composables/useTutorial'
 import { initAudio } from '../composables/game/useAudioEngine'
 import { audioService } from '../services/audioService'
-import { currentRoom, leaveMatchRoom } from '../services/multiplayerService'
+import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -390,14 +391,13 @@ async function createSession(coreId: string) {
     const data = await res.json()
 
     if (data.session_id) {
-      gameStore.sessionId = data.session_id
+      gameStore.setSessionId(data.session_id)
     }
     if (data.theme) {
       currentBgImage.value = getBackgroundImage(data.theme)
     }
     if (data.active_core) {
-      gameStore.activeCoreId = data.active_core.id
-      gameStore.activeCoreName = data.active_core.name
+      gameStore.setActiveCore(data.active_core.id, data.active_core.name)
     }
   } catch (err) {
     console.error('Error creating Session:', err)
@@ -418,10 +418,9 @@ async function submitCore(core: CoreOption) {
   
   stopTimer()
 
-  gameStore.activeCoreId = core.id
-  gameStore.activeCoreName = core.name
+  gameStore.setActiveCore(core.id, core.name)
   gameStore.coreHistory = [{ id: core.id, name: core.name, icon: core.icon }]
-  gameStore.sessionId = null
+  gameStore.setSessionId(null)
   
   const matchStore = useMatchStore()
   matchStore.resetMatch()
@@ -440,20 +439,73 @@ const handleBeforeUnload = (e: BeforeUnloadEvent) => {
   e.returnValue = ''
 }
 
-onMounted(() => {
+onMounted(async () => {
   audioService.playBGM('/audio/core_selection.mp3')
   fetchSupportCores()
   window.addEventListener('beforeunload', handleBeforeUnload)
 
+  if (!currentRoom) {
+    const token = getSavedReconnectionToken()
+    if (token) {
+      try {
+        console.log('[CoreSelectionMultiView] Reconnecting to active room...')
+        await reconnectMatchRoom(token)
+      } catch (e) {
+        console.warn('[CoreSelectionMultiView] Reconnection failed:', e)
+      }
+    }
+    
+    // If still no currentRoom after attempt, the player has forfeited
+    if (!currentRoom) {
+      console.warn('[CoreSelectionMultiView] No active room found. Kicking to home.')
+      router.replace('/home')
+      return
+    }
+  }
+
   if (currentRoom) {
-    currentRoom.onMessage('start_next_round', () => {
+    const handleStartGame = () => {
+      if (navigatingToGame.value) return
       waitingForOpponent.value = false
       navigatingToGame.value = true
-      router.push('/game/multiplayer')
+      router.replace('/game/multiplayer')
+    }
+
+    if (currentRoom.state && currentRoom.state.status === 'playing') {
+      console.log('[CoreSelectionMultiView] Match is already playing! Redirecting to gameplay...')
+      if (myPlayer?.activeCoreId) {
+        gameStore.activeCoreId = myPlayer.activeCoreId
+      }
+      handleStartGame()
+      return
+    }
+
+    currentRoom.removeAllListeners()
+
+    currentRoom.onStateChange((state) => {
+      if (state) {
+        const players = state.players ? Array.from(state.players.values()) : []
+        const allCoresChosen = players.length === 2 && players.every(p => Boolean(p.activeCoreId))
+        if (state.status === 'playing' || allCoresChosen) {
+          handleStartGame()
+        }
+      }
+    })
+
+    currentRoom.onMessage('start_next_round', () => {
+      handleStartGame()
     })
     
     currentRoom.onMessage('opponent_left', () => {
+      if (navigatingToGame.value) return
       alert("Đối thủ đã thoát trận đấu! Bạn sẽ được đưa về màn hình chính.")
+      leaveMatchRoom()
+      router.push('/home')
+    })
+    
+    currentRoom.onMessage('opponent_forfeit', () => {
+      if (navigatingToGame.value) return
+      alert("Đối thủ đã thoát. Trận đấu bị hủy!")
       leaveMatchRoom()
       router.push('/home')
     })
@@ -466,10 +518,14 @@ onUnmounted(() => {
   for (const t of activeTimeouts) clearTimeout(t)
   activeTimeouts.clear()
   window.removeEventListener('beforeunload', handleBeforeUnload)
+})
 
-  if (!navigatingToGame.value) {
+onBeforeRouteLeave((to, from, next) => {
+  const isMatchPlaying = currentRoom?.state?.status === 'playing'
+  if (!navigatingToGame.value && !isMatchPlaying) {
     leaveMatchRoom()
   }
+  next()
 })
 </script>
 

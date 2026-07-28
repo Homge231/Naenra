@@ -493,24 +493,14 @@
               </span>
             </button>
 
-            <!-- Play Again & Feedback (Round 3) -->
+            <!-- Skip Recap (Round 3) -->
             <template v-else>
-              <!-- Nút Feedback mới thêm -->
-              <button @click="showFeedback = true"
-                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-shadow">
-                <div
-                  class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                </div>
-                <span class="relative z-10 text-white">Feedback</span>
-              </button>
-
-              <!-- Nút Play Again giữ nguyên -->
-              <button @click="playAgain"
-                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-600 overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-shadow">
-                <div
-                  class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                </div>
-                <span class="relative z-10 text-white">Play Again</span>
+              <button @click="timeoutCountdown = 0"
+                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
+                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                <span class="relative z-10 text-white">
+                  Skip Recap ({{ timeoutCountdown }}s)
+                </span>
               </button>
             </template>
           </div>
@@ -635,7 +625,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useScoreAnimation } from '../composables/game/useScoreAnimation'
 import { useMatchTimer } from '../composables/game/useMatchTimer'
@@ -648,6 +638,8 @@ import ComboCoreIndicator from '../components/game/ComboCoreIndicator.vue'
 import MissionCoreIndicator from '../components/game/MissionCoreIndicator.vue'
 import CoreUpgradeOverlay from '../components/game/CoreUpgradeOverlay.vue'
 import OracleCoreIndicator from '../components/game/OracleCoreIndicator.vue'
+
+const isForfeitWin = ref(false)
 import FeedbackOverlay from '../components/game/FeedbackOverlay.vue'
 import MatchResultOverlay from '../components/game/MatchResultOverlay.vue'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
@@ -776,6 +768,7 @@ const isMultiplayer = computed(() => route.path === '/game/multiplayer')
 const opponentName = ref('')
 const opponentAvatar = ref('')
 const opponentScore = ref(0)
+const opponentId = ref('')
 const allCores = ref<any[]>([])
 
 // --- OPPONENT CORE DATA ---
@@ -821,6 +814,7 @@ function updateOpponentData(state: any) {
       opponentScore.value = player.score || 0
       opponentName.value = player.name || 'Opponent'
       opponentAvatar.value = player.avatar || ''
+      opponentId.value = player.id || player.userId || ''
 
       opponentActiveCoreId.value = player.activeCoreId || player.active_core_id || null
 
@@ -1307,7 +1301,10 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       body: JSON.stringify({
         session_id: sid,
         active_core_id: coreId,
-        oracle_reveal_level: oracleLvl
+        oracle_reveal_level: oracleLvl,
+        is_multiplayer: isMultiplayer.value,
+        opponent_id: opponentId.value,
+        is_win: isForfeitWin.value || (score.value > opponentScore.value)
       })
     })
     if (res.ok) {
@@ -1318,13 +1315,15 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       
       // Store result for match result overlay
       matchResult.value = {
-        isVictory: isMultiplayer.value ? score.value > opponentScore.value : (data.is_win ?? false),
+        isVictory: isForfeitWin.value || (isMultiplayer.value ? score.value > opponentScore.value : (data.is_win ?? false)),
         eloChange: data.elo_change ?? 0,
         newElo: data.new_elo ?? 0,
         oldElo: data.old_elo ?? 0,
-        expectedScore: data.expected_score ?? 500
+        expectedScore: data.expected_score ?? 500,
+        oldTier: data.old_tier,
+        currentTier: data.current_tier
       }
-      setTimeout(() => { showMatchResult.value = true }, 1500)
+      // Wait for runRecapCountdown to finish before showing result
     }
   } catch (err) {
     console.error(err)
@@ -1751,7 +1750,7 @@ function startTimeoutPhase() {
   inputRef.value?.blur()
   stopTimeoutInterval()
 
-  if (isMultiplayer.value) {
+  if (isMultiplayer.value && !isForfeitWin.value) {
     waitingForOpponent.value = true
     if (currentRoom) {
       currentRoom.send("finished_round")
@@ -1782,6 +1781,17 @@ function runRecapCountdown() {
       stopTimeoutInterval()
       if (!matchStore.isFinalRound()) {
         gameState.value = 'upgrade'
+      } else {
+        if (matchResult.value) {
+          showMatchResult.value = true
+        } else {
+          const waitResult = setInterval(() => {
+            if (matchResult.value) {
+              clearInterval(waitResult)
+              showMatchResult.value = true
+            }
+          }, 500)
+        }
       }
     }
   }, 1000)
@@ -1850,8 +1860,14 @@ async function playAgain() {
 
   if (isMultiplayer.value && currentRoom) {
     const rId = currentRoom.roomId
-    leaveMatchRoom()
-    router.push(`/room/custom?id=${rId}`)
+    if (currentRoom.state?.isCustom) {
+      // For custom rooms, tell server to reset to lobby state instead of disconnecting
+      currentRoom.send('return_to_lobby')
+      router.push(`/room/custom?id=${rId}`)
+    } else {
+      leaveMatchRoom()
+      router.push('/home')
+    }
     return
   }
 
@@ -2058,6 +2074,8 @@ async function attemptSelfReconnect() {
 
 function setupRoomEventHandlers(room: any) {
   if (!room) return
+  
+  room.removeAllListeners()
 
   if (activeCoreId.value) {
     room.send("update_core", { coreId: activeCoreId.value })
@@ -2079,13 +2097,21 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('opponent_forfeit', () => {
+    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+      return // Match is effectively over, ignore
+    }
     clearOpponentReconnectCountdown()
     stopMatchTimer()
     addToast('The opponent has timed out. You win (Forfeit)!', '🏆', 'text-yellow-400')
+    isForfeitWin.value = true
+    matchStore.currentRound = 3 // Force end of match
     startTimeoutPhase()
   })
 
   room.onMessage('opponent_left', () => {
+    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+      return // Match is effectively over, ignore
+    }
     alert("Your opponent has left the match! You will be returned to the main menu.")
     goHome()
   })
@@ -2116,14 +2142,43 @@ function setupRoomEventHandlers(room: any) {
 }
 
 onMounted(async () => {
+  if (isMultiplayer.value && !currentRoom) {
+    const token = getSavedReconnectionToken()
+    if (token) {
+      try {
+        console.log('[GameMultiplayView] Reconnecting to room with saved token...')
+        await reconnectMatchRoom(token)
+      } catch (e) {
+        console.warn('[GameMultiplayView] Reconnection failed:', e)
+      }
+    }
+    
+    // If still no currentRoom after attempt, the player has forfeited
+    if (!currentRoom) {
+      console.warn('[GameMultiplayView] No active room found. Kicking to home.')
+      router.replace('/home')
+      return
+    }
+  }
+
   if (isMultiplayer.value && currentRoom) {
     setupRoomEventHandlers(currentRoom)
   }
 
   if (!activeCoreId.value) {
-    if (isMultiplayer.value) {
-      router.replace('/core/multiplayer')
-      return
+    const savedCoreId = localStorage.getItem('naenra_active_core_id')
+    const savedCoreName = localStorage.getItem('naenra_active_core_name')
+    if (savedCoreId) {
+      gameStore.setActiveCore(savedCoreId, savedCoreName || '')
+    } else if (isMultiplayer.value) {
+      const myPlayer = currentRoom?.state?.players?.get(currentRoom.sessionId)
+      if (myPlayer && myPlayer.activeCoreId) {
+        console.log('[GameMultiplayView] Restored activeCoreId from server room state:', myPlayer.activeCoreId)
+        gameStore.setActiveCore(myPlayer.activeCoreId, 'Support Core')
+      } else {
+        router.replace('/home')
+        return
+      }
     } else {
       router.replace('/core')
       return
@@ -2161,13 +2216,21 @@ onMounted(async () => {
 onUnmounted(() => {
   if (selfReconnectInterval) clearInterval(selfReconnectInterval)
   if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
-  leaveMatchRoom()
   stopMatchTimer()
   stopTimeoutInterval()
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   for (const t of activeBgTimeouts) clearTimeout(t)
   activeBgTimeouts.clear()
+})
+
+onBeforeRouteLeave((to, from, next) => {
+  if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom) {
+    // Do not leave room, we are just returning to lobby
+  } else {
+    leaveMatchRoom()
+  }
+  next()
 })
 
 

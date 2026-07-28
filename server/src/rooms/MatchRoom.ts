@@ -5,11 +5,13 @@ import { supabase } from "../config/supabase";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
-  finishedPlayers = new Set<string>();
-  readyPlayers = new Set<string>();
+  private isCustomRoom: boolean = false;
 
   onCreate(options: any) {
     this.state = new MatchState();
+    this.isCustomRoom = options.isCustom === true;
+    this.state.isCustom = this.isCustomRoom;
+
 
     this.onMessage("updateMetadata", (client, message) => {
       console.log(`Update metadata from ${client.sessionId}:`, message);
@@ -24,6 +26,21 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         this.state.status = "starting";
         this.broadcast("match_started");
       }
+    });
+
+    this.onMessage("return_to_lobby", (client) => {
+      console.log(`Received return_to_lobby from ${client.sessionId}`);
+      this.state.status = "waiting";
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        player.isReady = false;
+        player.score = 0;
+      }
+    });
+
+    this.onMessage("cancel_queue", (client) => {
+      console.log(`Received cancel_queue from ${client.sessionId}`);
+      client.leave();
     });
 
     this.onMessage("update_score", (client, message: { score: number }) => {
@@ -53,19 +70,27 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     });
 
     this.onMessage("finished_round", (client) => {
-      this.finishedPlayers.add(client.sessionId);
-      console.log(`Player ${client.sessionId} finished round. (${this.finishedPlayers.size}/${this.state.players.size})`);
-      if (this.finishedPlayers.size >= this.state.players.size) {
-        this.finishedPlayers.clear();
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        player.isReady = true;
+      }
+      const players = Array.from(this.state.players.values());
+      console.log(`Player ${client.sessionId} finished round. (${players.filter(p => p.isReady).length}/${players.length})`);
+      if (players.length === 2 && players.every(p => p.isReady)) {
+        players.forEach(p => p.isReady = false);
         this.broadcast("start_recap_countdown");
       }
     });
 
     this.onMessage("ready_next_round", (client) => {
-      this.readyPlayers.add(client.sessionId);
-      console.log(`Player ${client.sessionId} ready for next round. (${this.readyPlayers.size}/${this.state.players.size})`);
-      if (this.readyPlayers.size >= this.state.players.size) {
-        this.readyPlayers.clear();
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        player.isReady = true;
+      }
+      const players = Array.from(this.state.players.values());
+      console.log(`Player ${client.sessionId} ready for next round. (${players.filter(p => p.isReady).length}/${players.length})`);
+      if (players.length === 2 && players.every(p => p.isReady)) {
+        players.forEach(p => p.isReady = false);
         this.state.status = "playing";
         this.broadcast("start_next_round");
       }
@@ -97,6 +122,14 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         throw new Error("Session expired due to login elsewhere");
       }
 
+      // Prevent matching with oneself in the same room (Ranked only)
+      if (!options.isCustom) {
+        const isAlreadyInRoom = Array.from(this.state.players.values()).some(p => p.id === decoded.id);
+        if (isAlreadyInRoom) {
+          throw new Error("Cannot match with yourself");
+        }
+      }
+
       const name = profile.username || "Player";
       const avatar = profile.avatar_url?.trim()
         ? profile.avatar_url
@@ -125,36 +158,29 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     }
 
     this.state.players.set(client.sessionId, new Player(id, name, avatar));
+
+    if (this.state.players.size === 2) {
+      if (!this.isCustomRoom) {
+        console.log(`[MatchRoom ${this.roomId}] 2 players joined! Auto-starting match...`);
+        this.state.status = "starting";
+        this.broadcast("match_started");
+      } else {
+        console.log(`[MatchRoom ${this.roomId}] 2 players joined custom room. Waiting for host to start...`);
+      }
+    }
   }
 
   async onLeave(client: Client, code?: number) {
     console.log(`${client.sessionId} left ${this.roomId}, code: ${code}`);
     
     const isMatchActive = this.state.status === "playing" || this.state.status === "starting";
-    const isUnconsented = code !== 1000;
-
-    if (isMatchActive && isUnconsented) {
-      try {
-        console.log(`[MatchRoom] Allowing 15s reconnection for client ${client.sessionId}...`);
-        this.broadcast("opponent_reconnecting", { sessionId: client.sessionId, timeout: 15 }, { except: client });
-
-        await this.allowReconnection(client, 15);
-
-        console.log(`[MatchRoom] Client ${client.sessionId} successfully reconnected!`);
-        this.broadcast("opponent_reconnected", { sessionId: client.sessionId }, { except: client });
-        return;
-      } catch (e) {
-        console.log(`[MatchRoom] Reconnection window expired for client ${client.sessionId}`);
-        this.broadcast("opponent_forfeit", { disconnectedSessionId: client.sessionId }, { except: client });
-      }
-    }
 
     this.state.players.delete(client.sessionId);
-    this.finishedPlayers.delete(client.sessionId);
-    this.readyPlayers.delete(client.sessionId);
 
     if (isMatchActive) {
-      this.broadcast("opponent_left");
+      // Immediate forfeit, no reconnection allowed per new requirement
+      console.log(`[MatchRoom] Client ${client.sessionId} left during active match. Forfeiting.`);
+      this.broadcast("opponent_forfeit", { disconnectedSessionId: client.sessionId }, { except: client });
     }
   }
 

@@ -5,6 +5,7 @@ import { generateSignature, verifySignature } from '../utils/jwt'
 import crypto from 'crypto'
 import { runScoring, getCoreStrategy } from '../cores/index'
 import { getUpgradesForCore, getCoreFamily } from '../cores/families'
+import { getTierForElo } from '../utils/ranks'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -846,7 +847,8 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         penalty: breakdown.penalty,
         core_name: core.name,
         shield_blocked: breakdown.shield_blocked,
-        final_shield_count: breakdown.finalShieldCount
+        final_shield_count: breakdown.finalShieldCount,
+        mission_streak: breakdown.mission_streak
       }
     })
   } catch (err) {
@@ -861,7 +863,7 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
     const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id, active_core_id, oracle_reveal_level } = req.body
+    const { session_id, active_core_id, oracle_reveal_level, is_multiplayer, opponent_id, is_win } = req.body
     if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
 
     const { data: session, error: fetchErr } = await supabase
@@ -892,6 +894,9 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
     let eloDelta = 0
     let currentElo = 0
     let expectedScore = 500
+    let isWin = false
+    let oldTier = null
+    let currentTier = null
 
     let updated = false
     let attempts = 0
@@ -908,17 +913,32 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
         const losses = playerProfile.losses ?? 0
         const totalMatches = playerProfile.total_matches ?? 0
 
-        // Expected score based on current Elo
-        expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
+        if (is_multiplayer && opponent_id) {
+          const { data: oppProfile } = await supabase.from('players').select('elo').eq('id', opponent_id).single()
+          const oppElo = oppProfile?.elo ?? 1000
+          
+          // K-Factor Elo Algorithm
+          // Expected Score formula: 1 / (1 + 10^((oppElo - currentElo) / 400))
+          expectedScore = 1 / (1 + Math.pow(10, (oppElo - currentElo) / 400))
+          
+          const K = 32
+          const actualScore = is_win ? 1 : 0
+          isWin = is_win
+          
+          eloDelta = Math.round(K * (actualScore - expectedScore))
+        } else {
+          // Expected score based on current Elo for single player
+          expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
+          eloDelta = Math.floor(0.05 * (finalScore - expectedScore))
+          isWin = finalScore >= expectedScore
+        }
         
-        // Calculate Elo change: K-factor = 0.05 of the score difference
-        eloDelta = Math.floor(0.05 * (finalScore - expectedScore))
-        
-        // Clamp the delta to avoid extreme shifts
-        eloDelta = Math.max(-100, Math.min(150, eloDelta))
+        // Clamp the delta to avoid extreme shifts (only for single player since multiplayer is naturally bounded by K)
+        if (!is_multiplayer) {
+          eloDelta = Math.max(-100, Math.min(150, eloDelta))
+        }
         
         newElo = Math.max(0, currentElo + eloDelta)
-        const isWin = finalScore >= expectedScore
 
         const { data: updData, error: updErr } = await supabase
           .from('players')
@@ -934,6 +954,9 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
 
         if (!updErr && updData && updData.length > 0) {
           updated = true
+          
+          oldTier = getTierForElo(currentElo)
+          currentTier = getTierForElo(newElo)
         }
       } else {
         break // player not found
@@ -963,7 +986,9 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
       new_elo: newElo,
       old_elo: currentElo,
       expected_score: expectedScore,
-      is_win: finalScore >= expectedScore
+      is_win: isWin,
+      old_tier: oldTier,
+      current_tier: currentTier
     })
   } catch (err) {
     console.error('timeoutSession error:', err)

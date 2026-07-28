@@ -91,6 +91,12 @@ const router = createRouter({
       name: 'matchmaking',
       component: () => import('../views/MatchmakingView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/match-found',
+      name: 'match-found',
+      component: () => import('../views/MatchFoundView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

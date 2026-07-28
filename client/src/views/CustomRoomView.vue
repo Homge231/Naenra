@@ -241,13 +241,18 @@ onMounted(async () => {
         token: localStorage.getItem('arena_token'),
         id: currentUserId.value,
         name: authStore.profile?.username || 'Guest',
-        avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Guest`
+        avatar: authStore.profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=Guest`,
+        isCustom: true
     }
 
     try {
         if (route.query.id) {
-            // Join existing room
-            await joinMatchRoomById(route.query.id as string, options)
+            // Join existing room only if we aren't already in it
+            if (!currentRoom || currentRoom.roomId !== route.query.id) {
+                await joinMatchRoomById(route.query.id as string, options)
+            } else {
+                console.log("Already connected to custom room.")
+            }
         } else {
             // Create new room
             const room = await createMatchRoom(options)
@@ -256,6 +261,9 @@ onMounted(async () => {
         }
 
         if (currentRoom) {
+            // Remove previous listeners if any
+            currentRoom.removeAllListeners()
+
             // 1. Listen for standard state changes
             currentRoom.onStateChange((state: any) => {
                 try {

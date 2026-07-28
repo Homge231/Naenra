@@ -113,7 +113,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { audioService } from '../services/audioService'
-import { currentRoom, leaveMatchRoom } from '../services/multiplayerService'
+import { joinOrCreateQueueRoom, queueRoom, joinMatchRoomById } from '../services/multiplayerService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -121,6 +121,8 @@ const authStore = useAuthStore()
 // Timer State
 const secondsElapsed = ref(0)
 let timerInterval: ReturnType<typeof setInterval> | null = null
+const isConnecting = ref(false)
+const navigatingToGame = ref(false)
 
 const username = computed(() =>
   authStore.profile?.username ||
@@ -160,18 +162,52 @@ function stopTimer() {
   }
 }
 
+async function startQueueConnection() {
+  isConnecting.value = true
+  const options = {
+    token: localStorage.getItem('arena_token'),
+    id: authStore.user?.id,
+    name: username.value,
+    avatar: avatarUrl.value
+  }
+
+  try {
+    const room = await joinOrCreateQueueRoom(options)
+
+    room.onMessage('match_found', async ({ roomId }: { roomId: string }) => {
+      if (navigatingToGame.value) return
+      navigatingToGame.value = true
+      stopTimer()
+      
+      try {
+        await joinMatchRoomById(roomId, options)
+        router.push('/match-found')
+      } catch (err) {
+        console.error("Failed to join match room after finding match:", err)
+        navigatingToGame.value = false
+        // Could show a toast/alert here
+      }
+    })
+
+  } catch (err: any) {
+    console.error('Failed to join matchmaking room:', err)
+  } finally {
+    isConnecting.value = false
+  }
+}
+
 function cancelMatchmaking() {
   audioService.playClick()
   stopTimer()
 
   // Emit cancel_queue event to Colyseus server if connected to a match room
-  if (currentRoom) {
+  if (queueRoom) {
     try {
-      currentRoom.send('cancel_queue', { userId: authStore.user?.id })
+      queueRoom.send('cancel_queue', { userId: authStore.user?.id })
     } catch (e) {
       console.warn('Error sending cancel_queue:', e)
     }
-    leaveMatchRoom()
+    queueRoom.leave()
   }
 
   // Return to Lobby (/home)
@@ -180,10 +216,14 @@ function cancelMatchmaking() {
 
 onMounted(() => {
   startTimer()
+  startQueueConnection()
 })
 
 onUnmounted(() => {
   stopTimer()
+  if (!navigatingToGame.value) {
+    leaveMatchRoom()
+  }
 })
 </script>
 

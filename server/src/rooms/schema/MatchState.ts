@@ -24,6 +24,7 @@ export class Player extends Schema {
 
 export class MatchState extends Schema {
   @type("string") status: string = "waiting"; // waiting, playing, finished
+  @type("boolean") isCustom: boolean = false;
   @type("string") hostId: string = ""; // Identifies the room host
   @type({ map: Player }) players = new MapSchema<Player>();
   @type(RoomMetadata) metadata = new RoomMetadata();

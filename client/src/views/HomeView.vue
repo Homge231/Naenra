@@ -196,8 +196,34 @@ function startMatchmaking() {
   }, 1000)
 }
 
-onMounted(() => {
+function startSinglePlayer() {
+  audioService.playClick()
+  router.push('/core')
+}
+
+import { getSavedReconnectionToken, reconnectMatchRoom, currentRoom } from '../services/multiplayerService'
+
+onMounted(async () => {
+  // Empty BGM on homepage
   audioService.stopBGM()
+
+  // Auto-reconnect if player refreshed or reopened during an active match
+  const token = getSavedReconnectionToken()
+  if (token && !currentRoom) {
+    try {
+      console.log('[HomeView] Found saved reconnection token, reconnecting to match...')
+      const room = await reconnectMatchRoom(token)
+      if (room) {
+        if (room.state && room.state.status === "playing") {
+          router.push('/game/multiplayer')
+        } else {
+          router.push('/core/multiplayer')
+        }
+      }
+    } catch (e) {
+      console.warn('[HomeView] Reconnection token invalid or expired:', e)
+    }
+  }
 })
 </script>
 
