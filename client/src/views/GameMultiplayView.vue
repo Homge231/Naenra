@@ -1586,7 +1586,7 @@ async function checkAnswer() {
 
   if (matchStore.currentRound === 3) {
     if (currentRoom) {
-      currentRoom.send('submit_race_answer', { answer: typed })
+      currentRoom.send('submit_race_answer', { answer: typed, session_id: sessionId.value })
     }
     typedLetters.value = []
     if (inputRef.value) inputRef.value.value = ''
@@ -2202,8 +2202,10 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('start_recap_countdown', () => {
+    if (raceTimerInterval) clearInterval(raceTimerInterval)
     waitingForOpponent.value = false
     runRecapCountdown()
+    startTimeoutPhase() // Add this so the UI switches to 'timeout' state
   })
 
   room.onMessage('start_next_round', (data: any) => {
@@ -2227,12 +2229,26 @@ function setupRoomEventHandlers(room: any) {
   })
 
   // --- Round 4 (Race Mode) Listeners ---
+  let raceTimerInterval: ReturnType<typeof setInterval> | null = null
+
   room.onMessage('next_race_question', (q: any) => {
     currentRaceQuestion.value = q
     typedLetters.value = []
     opponentTypingText.value = ''
     gameState.value = 'playing'
     questionStartTime.value = Date.now()
+
+    timeLeft.value = 15
+    timerProgressPercent.value = 100
+    if (raceTimerInterval) clearInterval(raceTimerInterval)
+    raceTimerInterval = setInterval(() => {
+      if (timeLeft.value > 0) {
+        timeLeft.value--
+        timerProgressPercent.value = (timeLeft.value / 15) * 100
+      } else {
+        clearInterval(raceTimerInterval!)
+      }
+    }, 1000)
     
     // Auto focus
     setTimeout(() => {
@@ -2269,6 +2285,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('race_timeout', () => {
+    if (raceTimerInterval) clearInterval(raceTimerInterval)
     opponentTypingText.value = ''
     typedLetters.value = []
     addToast('Time is up!', '⏱️', 'text-yellow-400')

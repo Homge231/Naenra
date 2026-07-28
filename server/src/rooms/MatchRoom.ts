@@ -93,7 +93,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       }
     });
 
-    this.onMessage("submit_race_answer", async (client, message: { answer: string }) => {
+    this.onMessage("submit_race_answer", async (client, message: { answer: string, session_id: string }) => {
       if (this.state.currentRound !== 3 || !this.state.currentRaceQuestion.id) return;
       
       const player = this.state.players.get(client.sessionId);
@@ -119,6 +119,17 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         
         player.score += 500; // Add points
         
+        // Update DB
+        if (message.session_id) {
+          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          if (currentSession) {
+             await supabase.from('match_sessions').update({ 
+               total_score: currentSession.total_score + 500,
+               questions_answered: currentSession.questions_answered + 1 
+             }).eq('id', message.session_id);
+          }
+        }
+        
         // Broadcast win
         this.broadcast("race_won", { winnerId: client.sessionId, points: 500 });
         
@@ -127,6 +138,18 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       } else {
         // Player got it wrong
         player.score = Math.max(0, player.score - 200); // Deduct points
+        
+        // Update DB
+        if (message.session_id) {
+          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          if (currentSession) {
+             await supabase.from('match_sessions').update({ 
+               total_score: Math.max(0, currentSession.total_score - 200),
+               questions_answered: currentSession.questions_answered + 1 
+             }).eq('id', message.session_id);
+          }
+        }
+        
         this.broadcast("race_wrong", { playerId: client.sessionId, penalty: 200 });
       }
     });
