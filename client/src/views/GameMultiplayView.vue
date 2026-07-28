@@ -1602,7 +1602,7 @@ async function checkAnswer() {
   if (!currentQ) return
 
   const maxLen = currentQ.target_length
-  if (matchStore.currentRound !== 4 && typedLetters.value.length < maxLen) return
+  if (typedLetters.value.length < maxLen) return
 
   const typed = typedLetters.value.join('')
   const elapsed = Date.now() - questionStartTime.value
