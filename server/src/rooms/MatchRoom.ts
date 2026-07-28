@@ -2,10 +2,15 @@ import { Room, Client } from "colyseus";
 import { MatchState, Player } from "./schema/MatchState";
 import { verifyToken } from "../utils/jwt";
 import { supabase } from "../config/supabase";
+import crypto from 'crypto';
+import { generateOracleHints, normalizeAnswer } from "../controllers/gameController";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
   private isCustomRoom: boolean = false;
+  private raceQuestions: any[] = [];
+  private currentRaceQuestionIndex: number = 0;
+  private raceQuestionTimer: ReturnType<typeof setTimeout> | null = null;
 
   onCreate(options: any) {
     this.setState(new MatchState());
@@ -82,7 +87,74 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       }
     });
 
-    this.onMessage("ready_next_round", (client) => {
+    this.onMessage("player_typing", (client, message: { text: string }) => {
+      if (this.state.currentRound === 4) {
+        this.broadcast("opponent_typing", { text: message.text }, { except: client });
+      }
+    });
+
+    this.onMessage("submit_race_answer", async (client, message: { answer: string, session_id: string }) => {
+      if (this.state.currentRound !== 4 || !this.state.currentRaceQuestion.id) return;
+      
+      const player = this.state.players.get(client.sessionId);
+      if (!player) return;
+
+      const qId = this.state.currentRaceQuestion.id;
+      
+      // Fetch target word from DB securely
+      const { data: question } = await supabase
+        .from('questions')
+        .select('target_word')
+        .eq('id', qId)
+        .single();
+
+      if (!question) return;
+
+      const normalizedAnswer = normalizeAnswer(message.answer);
+      const normalizedTarget = normalizeAnswer(question.target_word);
+
+      if (normalizedAnswer === normalizedTarget) {
+        // Player got it right!
+        if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
+        
+        player.score += 500; // Add points
+        
+        // Update DB
+        if (message.session_id) {
+          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          if (currentSession) {
+             await supabase.from('match_sessions').update({ 
+               total_score: currentSession.total_score + 500,
+               questions_answered: currentSession.questions_answered + 1 
+             }).eq('id', message.session_id);
+          }
+        }
+        
+        // Broadcast win
+        this.broadcast("race_won", { winnerId: client.sessionId, points: 500 });
+        
+        // Next question
+        this.nextRaceQuestion();
+      } else {
+        // Player got it wrong
+        player.score = Math.max(0, player.score - 200); // Deduct points
+        
+        // Update DB
+        if (message.session_id) {
+          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          if (currentSession) {
+             await supabase.from('match_sessions').update({ 
+               total_score: Math.max(0, currentSession.total_score - 200),
+               questions_answered: currentSession.questions_answered + 1 
+             }).eq('id', message.session_id);
+          }
+        }
+        
+        this.broadcast("race_wrong", { playerId: client.sessionId, penalty: 200 });
+      }
+    });
+
+    this.onMessage("ready_next_round", async (client, message: { round?: number }) => {
       const player = this.state.players.get(client.sessionId);
       if (player) {
         player.isReady = true;
@@ -92,11 +164,84 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       if (players.length === 2 && players.every(p => p.isReady)) {
         players.forEach(p => p.isReady = false);
         this.state.status = "playing";
-        this.broadcast("start_next_round");
+        
+        const targetRound = message?.round || (this.state.currentRound + 1);
+        this.state.currentRound = targetRound;
+
+        if (targetRound === 4) {
+          // Fetch 20 chaos-random questions
+          let { data: ids } = await supabase.from('questions').select('id').eq('topic', 'chaos-random');
+          if (!ids || ids.length === 0) {
+            // Fallback to any random questions if chaos-random is empty
+            const res = await supabase.from('questions').select('id').limit(100);
+            ids = res.data;
+          }
+          if (ids && ids.length > 0) {
+            const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, 5); // 5 questions limit
+            const pickedIds = shuffled.map(r => r.id);
+            const { data: questions } = await supabase
+              .from('questions')
+              .select('id, question_text, target_word, hint')
+              .in('id', pickedIds);
+            
+            if (questions) {
+              this.raceQuestions = questions.sort(() => Math.random() - 0.5);
+              this.currentRaceQuestionIndex = 0;
+              this.broadcast("start_next_round", { round: 4 });
+              // Small delay to allow client to show UI before sending first question
+              setTimeout(() => {
+                this.nextRaceQuestion();
+              }, 3000);
+            } else {
+              this.broadcast("start_next_round", { round: targetRound });
+            }
+          } else {
+            this.broadcast("start_next_round", { round: targetRound });
+          }
+        } else {
+          this.broadcast("start_next_round", { round: targetRound });
+        }
       }
     });
 
     console.log(`MatchRoom created: ${this.roomId}`);
+  }
+
+  private nextRaceQuestion() {
+    if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
+
+    if (this.currentRaceQuestionIndex >= this.raceQuestions.length) {
+      // Out of questions, maybe end the round?
+      this.broadcast("start_recap_countdown");
+      return;
+    }
+
+    const q = this.raceQuestions[this.currentRaceQuestionIndex++];
+    
+    // Mask question
+    this.state.currentRaceQuestion.id = q.id;
+    this.state.currentRaceQuestion.question_text = q.question_text;
+    this.state.currentRaceQuestion.target_length = q.target_word ? q.target_word.length : 0;
+    
+    const hints = generateOracleHints(q.target_word || "");
+    // ArraySchema requires length assignment or push
+    this.state.currentRaceQuestion.oracle_hints.clear();
+    hints.forEach(h => this.state.currentRaceQuestion.oracle_hints.push(h));
+
+    // Also broadcast it directly so clients can listen easily
+    this.broadcast("next_race_question", {
+      id: q.id,
+      question_text: q.question_text,
+      target_length: q.target_word ? q.target_word.length : 0,
+      oracle_hints: hints,
+      hint: q.hint
+    });
+
+    // 12 seconds timer
+    this.raceQuestionTimer = setTimeout(() => {
+      this.broadcast("race_timeout");
+      this.nextRaceQuestion();
+    }, 12000);
   }
 
   async onAuth(client: Client, options: any, request: any) {

@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 export const useMatchStore = defineStore('match', () => {
   const currentRound = ref(1)
-  const maxRounds = ref(3)
+  const maxRounds = ref(4)
   const topics = ref<string[]>(['daily-life', 'cafe', 'travel'])
 
   function shuffleTopics() {

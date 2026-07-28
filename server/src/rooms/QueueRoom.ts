@@ -70,9 +70,9 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
       const p1WaitTime = Date.now() - p1.joinedAt;
       let p1Threshold = 100;
-      if (p1WaitTime > 45000) p1Threshold = 9999;
-      else if (p1WaitTime > 30000) p1Threshold = 600;
-      else if (p1WaitTime > 15000) p1Threshold = 300;
+      if (p1WaitTime > 15000) p1Threshold = 9999;
+      else if (p1WaitTime > 10000) p1Threshold = 600;
+      else if (p1WaitTime > 5000) p1Threshold = 300;
 
       for (let j = i + 1; j < players.length; j++) {
         const p2 = players[j];
@@ -80,9 +80,9 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
         const p2WaitTime = Date.now() - p2.joinedAt;
         let p2Threshold = 100;
-        if (p2WaitTime > 45000) p2Threshold = 9999;
-        else if (p2WaitTime > 30000) p2Threshold = 600;
-        else if (p2WaitTime > 15000) p2Threshold = 300;
+        if (p2WaitTime > 15000) p2Threshold = 9999;
+        else if (p2WaitTime > 10000) p2Threshold = 600;
+        else if (p2WaitTime > 5000) p2Threshold = 300;
 
         // Use the looser threshold of the two
         const maxThreshold = Math.max(p1Threshold, p2Threshold);

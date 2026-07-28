@@ -11,7 +11,8 @@ export function initQuestionCron() {
       const topicConfigs = [
         { slug: 'daily-life', prompt: 'Daily Life & Habits' },
         { slug: 'cafe', prompt: 'Food & Cafe Culture' },
-        { slug: 'travel', prompt: 'Travel & Vacations' }
+        { slug: 'travel', prompt: 'Travel & Vacations' },
+        { slug: 'chaos-random', prompt: 'Completely random and unpredictable concepts from any domain (science, pop culture, history, abstract concepts, slang, etc.), the more random the better' }
       ]
       const levels = ['A1', 'B1', 'B2']
       let allNewQuestions: any[] = []

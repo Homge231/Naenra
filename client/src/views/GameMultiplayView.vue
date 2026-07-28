@@ -247,6 +247,61 @@
           <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-14 h-44 animate-pulse"></div>
         </div>
 
+        <template v-else-if="matchStore.currentRound === 4">
+          <div v-if="!currentRaceQuestion" class="w-full text-center text-white/50 animate-pulse font-mono font-bold tracking-widest text-lg">
+            PREPARING RACE...
+          </div>
+          <div v-else class="w-full flex flex-col gap-6 relative" :key="currentRaceQuestion.id">
+             <!-- PURE SKILL BANNER -->
+             <div class="w-full bg-hexred text-white font-black text-center py-2 uppercase tracking-widest text-xs md:text-sm shadow-[0_0_15px_rgba(230,57,70,0.8)] z-50 animate-pulse rounded-md">
+               SUDDEN DEATH RACE - 500 PTS/WORD
+             </div>
+             
+             <!-- Shared Question -->
+             <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300">
+                <p class="text-xl md:text-3xl font-medium text-gray-200 leading-relaxed max-w-3xl">
+                   <span v-if="currentRaceQuestion?.question_text?.split(/_+/)[0]">
+                     {{ currentRaceQuestion.question_text?.split(/_+/)[0] }}
+                   </span>
+                   <span class="text-white/50 font-bold mx-2 tracking-widest">---</span>
+                   <span v-if="currentRaceQuestion?.question_text?.split(/_+/)[1]">
+                     {{ currentRaceQuestion.question_text?.split(/_+/)[1] }}
+                   </span>
+                </p>
+             </div>
+             
+             <!-- Split Screen Typing Area -->
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-4 mt-8 w-full max-w-4xl">
+                 <!-- Player (You) -->
+                 <div class="flex flex-col items-center gap-4 md:border-r border-white/20 md:pr-4">
+                     <div class="flex items-center gap-2">
+                         <span class="text-lightBlue font-black text-xl uppercase tracking-wider drop-shadow-md">YOU</span>
+                     </div>
+                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+                        <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p1-'+i"
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner">
+                           {{ typedLetters[i - 1] || '' }}
+                        </div>
+                     </div>
+                 </div>
+                 
+                 <!-- Opponent -->
+                 <div class="flex flex-col items-center gap-4 md:pl-4">
+                     <div class="flex items-center gap-2 h-7">
+                         <span class="text-orange font-black text-xl uppercase tracking-wider drop-shadow-md" v-if="!opponentTypingText.length">OPPONENT</span>
+                         <span class="text-orange font-bold uppercase border border-orange px-2 py-0.5 rounded text-xs bg-orange/20 animate-pulse shadow-[0_0_10px_rgba(255,165,0,0.5)]" v-else>Opponent is typing...</span>
+                     </div>
+                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2 opacity-80">
+                        <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p2-'+i"
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-orange/10 border-b-4 border-orange/50 text-orange shadow-inner">
+                           {{ opponentTypingText[i - 1] || '' }}
+                        </div>
+                     </div>
+                 </div>
+             </div>
+          </div>
+        </template>
+
         <template v-else>
           <transition name="card-flip" mode="out-in">
             <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-10">
@@ -694,6 +749,8 @@ const matchResult = ref<{
   newElo: number
   oldElo: number
   expectedScore: number
+  oldTier?: string
+  currentTier?: string
 } | null>(null)
 const showMatchResult = ref(false)
 const matchStartTime = ref(Date.now())
@@ -754,6 +811,8 @@ function addToast(message: string, icon: string, color: string) {
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
 const typedLetters = ref<string[]>([])
+const opponentTypingText = ref<string>('')
+const currentRaceQuestion = ref<any>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 const menuRef = ref<HTMLElement | null>(null)
 const letterSlotsRef = ref<HTMLElement | null>(null)
@@ -1338,6 +1397,14 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
 
 // ── Skip Question Logic (Enter key) ───────────────────────────────────────
 async function skipQuestion() {
+  if (gameState.value === 'timeout') return
+  if (matchStore.currentRound === 4) {
+    typedLetters.value = []
+    if (currentRoom) currentRoom.send('player_typing', { text: '' })
+    if (inputRef.value) inputRef.value.value = ''
+    return
+  }
+
   if (gameState.value !== 'playing') return
   if (!sessionId.value || !currentQuestion.value.id) {
     // No session (guest/mock): deduct locally only
@@ -1467,6 +1534,11 @@ function handleKeydown(e: KeyboardEvent) {
   if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
 
+  const isRaceMode = matchStore.currentRound === 4
+  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+  
+  if (!currentQ) return
+
   // Reset the input buffer on nextTick to prevent string accumulation memory bloat
   nextTick(() => {
     if (inputRef.value) inputRef.value.value = ''
@@ -1480,15 +1552,22 @@ function handleKeydown(e: KeyboardEvent) {
 
   if (e.key === 'Backspace') {
     typedLetters.value = typedLetters.value.slice(0, -1)
+    if (matchStore.currentRound === 4 && currentRoom) {
+      currentRoom.send('player_typing', { text: typedLetters.value.join('') })
+    }
     playKeystroke(isSpeedsterCore.value, 0.8) // slightly lower pitch for backspace
     return
   }
 
   if (/^[a-zA-Z0-9\- '".,!?]$/.test(e.key)) {
-    const maxLen = currentQuestion.value.target_length
+    const maxLen = currentQ.target_length
     if (typedLetters.value.length >= maxLen) return
 
     typedLetters.value = [...typedLetters.value, e.key.toLowerCase()]
+
+    if (matchStore.currentRound === 4 && currentRoom) {
+      currentRoom.send('player_typing', { text: typedLetters.value.join('') })
+    }
 
     // Play keystroke sound
     playKeystroke(isSpeedsterCore.value, isSpeedsterCore.value ? 1.15 : 1.0)
@@ -1504,11 +1583,25 @@ async function sha256(message: string) {
 }
 
 async function checkAnswer() {
-  const maxLen = currentQuestion.value.target_length
+  const isRaceMode = matchStore.currentRound === 4
+  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+  
+  if (!currentQ) return
+
+  const maxLen = currentQ.target_length
   if (typedLetters.value.length < maxLen) return
 
   const typed = typedLetters.value.join('')
   const elapsed = Date.now() - questionStartTime.value
+
+  if (matchStore.currentRound === 4) {
+    if (currentRoom) {
+      currentRoom.send('submit_race_answer', { answer: typed, session_id: sessionId.value })
+    }
+    typedLetters.value = []
+    if (inputRef.value) inputRef.value.value = ''
+    return
+  }
 
   const questionId = currentQuestion.value.id
   const capturedOracleLevel = oracleRevealLevel.value
@@ -1801,7 +1894,14 @@ function runRecapCountdown() {
 
 function goToUpgrade() {
   stopTimeoutInterval()
-  if (!matchStore.isFinalRound()) {
+  if (matchStore.currentRound === 3) {
+    if (isMultiplayer.value && currentRoom) {
+      isWaitingForNextRound.value = true
+      currentRoom.send("ready_next_round", { round: 4 })
+    } else {
+      restartMatch() // fallback
+    }
+  } else if (!matchStore.isFinalRound()) {
     gameState.value = 'upgrade'
   }
 }
@@ -1814,7 +1914,7 @@ function handleUpgradeSelected(newCoreId: string) {
       if (chosenCoreId) {
         currentRoom.send("update_core", { coreId: chosenCoreId })
       }
-      currentRoom.send("ready_next_round")
+      currentRoom.send("ready_next_round", { round: matchStore.currentRound + 1 })
     }
   } else {
     // When upgrade is selected, restart match for the next round
@@ -2119,13 +2219,22 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('start_recap_countdown', () => {
+    if (raceTimerInterval) clearInterval(raceTimerInterval)
     waitingForOpponent.value = false
     runRecapCountdown()
+    startTimeoutPhase() // Add this so the UI switches to 'timeout' state
   })
 
-  room.onMessage('start_next_round', () => {
+  room.onMessage('start_next_round', (data: any) => {
     isWaitingForNextRound.value = false
-    restartMatch()
+    if (data?.round) {
+      matchStore.currentRound = data.round
+    }
+    if (matchStore.currentRound === 4) {
+      gameState.value = 'loading'
+    } else {
+      restartMatch()
+    }
   })
 
   room.onMessage('opponent_milestone', (data: { type: string, message: string, icon: string, color: string }) => {
@@ -2135,6 +2244,70 @@ function setupRoomEventHandlers(room: any) {
   room.onMessage('opponent_skip', () => {
     addToast('Opponent skipped a word!', '❌', 'text-hexred')
   })
+
+  // --- Round 4 (Race Mode) Listeners ---
+  let raceTimerInterval: ReturnType<typeof setInterval> | null = null
+
+  room.onMessage('next_race_question', (q: any) => {
+    currentRaceQuestion.value = q
+    typedLetters.value = []
+    opponentTypingText.value = ''
+    gameState.value = 'playing'
+    questionStartTime.value = Date.now()
+
+    timeLeft.value = 12
+    timerProgressPercent.value = 100
+    if (raceTimerInterval) clearInterval(raceTimerInterval)
+    raceTimerInterval = setInterval(() => {
+      if (timeLeft.value > 0) {
+        timeLeft.value--
+        timerProgressPercent.value = (timeLeft.value / 12) * 100
+      } else {
+        clearInterval(raceTimerInterval!)
+      }
+    }, 1000)
+    
+    // Auto focus
+    setTimeout(() => {
+      if (inputRef.value) {
+        inputRef.value.focus()
+      }
+    }, 50)
+  })
+
+  room.onMessage('opponent_typing', (data: { text: string }) => {
+    opponentTypingText.value = data.text
+  })
+
+  room.onMessage('race_won', (data: { winnerId: string, points: number }) => {
+    if (data.winnerId === sessionId.value) {
+      triggerScoreFlash('correct')
+      spawnPointPopup(data.points, 'correct', 'RACE WON')
+      score.value += data.points
+    } else {
+      opponentScore.value += data.points
+      spawnPointPopup(0, 'typo', 'OPPONENT WON')
+    }
+  })
+
+  room.onMessage('race_wrong', (data: { playerId: string, penalty: number }) => {
+    if (data.playerId === sessionId.value) {
+      triggerScoreFlash('wrong')
+      spawnPointPopup(-data.penalty, 'wrong')
+      score.value = Math.max(0, score.value - data.penalty)
+    } else {
+      opponentScore.value = Math.max(0, opponentScore.value - data.penalty)
+      addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')
+    }
+  })
+
+  room.onMessage('race_timeout', () => {
+    if (raceTimerInterval) clearInterval(raceTimerInterval)
+    opponentTypingText.value = ''
+    typedLetters.value = []
+    addToast('Time is up!', '⏱️', 'text-yellow-400')
+  })
+  // ------------------------------------
 
   room.onLeave((code: number) => {
     if (code !== 1000 && isMultiplayer.value) {
