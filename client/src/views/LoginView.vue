@@ -1,12 +1,27 @@
 <template>
-  <div class="min-h-screen w-full bg-darkNavy text-white overflow-hidden relative font-sans selection:bg-orange/40 flex flex-col items-center justify-center">
+  <div class="min-h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col items-center justify-center">
     
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue rounded-full mix-blend-screen filter blur-[128px] opacity-20 pointer-events-none z-0"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-orange rounded-full mix-blend-screen filter blur-[128px] opacity-20 pointer-events-none z-0"></div>
+    <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
+      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
+      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
+      <div class="absolute top-[45%] left-[5%] w-[40vw] h-[40vw] bg-blue-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-slow" style="animation-delay: 2s;"></div>
+      <div class="absolute top-[5%] left-[35%] w-[35vw] h-[35vw] bg-purple-300/20 rounded-full mix-blend-multiply blur-[90px] animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+      <div class="absolute bottom-[5%] left-[30%] w-[50vw] h-[50vw] bg-yellow-300/20 rounded-full mix-blend-multiply blur-[120px] animate-float-delayed" style="animation-delay: 3s;"></div>
 
-    <div class="absolute inset-0 cyber-grid opacity-50 pointer-events-none z-0"></div>
+      <div v-for="letter in floatingLetters" :key="letter.id"
+        class="absolute top-0 font-black uppercase text-gray-300 select-none animate-matrix-drift opacity-50"
+        :style="{
+          left: letter.left + '%',
+          fontSize: letter.size + 'rem',
+          animationDelay: letter.delay + 's',
+          animationDuration: letter.duration + 's'
+        }">
+        {{ letter.char }}
+      </div>
+    </div>
 
-    <div class="relative z-10 w-full max-w-md p-10 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] transform transition-all hover:border-white/20">
+    <div class="relative z-10 w-full max-w-md p-8 md:p-10 bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-2 border-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] transform transition-all hover:shadow-[0_15px_50px_rgba(251,146,60,0.1)]">
       
       <div class="mb-8 flex flex-col items-center">
         <div class="w-16 h-16 mb-4 flex items-center justify-center transform -skew-x-12 shadow-[4px_4px_0_rgba(255,123,0,0.5)] bg-white/5 border border-white/10">
@@ -22,87 +37,86 @@
         </p>
       </div>
 
-      <div v-if="sessionInvalidatedMessage" class="bg-hexred/10 border border-hexred/50 rounded-xl px-4 py-3 mb-6 text-hexred text-sm font-bold text-center tracking-wider">
+      <div v-if="sessionInvalidatedMessage" class="bg-red-50 border-2 border-red-100 rounded-2xl px-4 py-3 mb-6 text-red-500 text-xs font-bold text-center tracking-wider shadow-sm">
         {{ sessionInvalidatedMessage }}
       </div>
 
-      <div v-if="successMessage" class="bg-success/10 border border-success/50 rounded-xl px-4 py-3 mb-6 text-success text-sm font-bold text-center tracking-wider">
+      <div v-if="successMessage" class="bg-green-50 border-2 border-green-100 rounded-2xl px-4 py-3 mb-6 text-green-600 text-xs font-bold text-center tracking-wider shadow-sm">
         {{ successMessage }}
       </div>
 
-      <div class="flex mb-8 bg-darkNavy/50 rounded-xl p-1 border border-white/10">
+      <div class="flex mb-8 bg-gray-100/80 rounded-2xl p-1.5 border border-gray-200 shadow-inner">
         <button
           @click="switchMode('login')"
-          :class="mode === 'login' ? 'bg-gradient-to-r from-orange to-hexred text-white shadow-lg' : 'text-gray-400 hover:text-white'"
-          class="flex-1 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest transition-all duration-300"
+          :class="mode === 'login' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-400 hover:text-gray-700'"
+          class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
         >
           Login
         </button>
         <button
           @click="switchMode('register')"
-          :class="mode === 'register' ? 'bg-gradient-to-r from-orange to-hexred text-white shadow-lg' : 'text-gray-400 hover:text-white'"
-          class="flex-1 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest transition-all duration-300"
+          :class="mode === 'register' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-400 hover:text-gray-700'"
+          class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
         >
           Register
         </button>
       </div>
 
-      <!-- Register Form -->
       <div v-if="mode === 'register'" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Username</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Username</label>
           <input
             v-model="form.username"
             @keyup.enter="handleRegister"
             type="text"
             placeholder="Player_One"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
           />
-          <p v-if="errors.username" class="text-red-400 text-xs mt-1.5 ml-1 font-semibold">{{ errors.username }}</p>
+          <p v-if="errors.username" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.username }}</p>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email</label>
           <input
             v-model="form.email"
             @keyup.enter="mode === 'register' ? handleRegister() : handleLogin()"
             type="email"
             placeholder="player@naenra.com"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
           />
-          <p v-if="errors.email" class="text-red-400 text-xs mt-1.5 ml-1 font-semibold">{{ errors.email }}</p>
+          <p v-if="errors.email" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.email }}</p>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Password</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
           <input
             v-model="form.password"
             @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
           />
-          <p v-if="errors.password" class="text-red-400 text-xs mt-1.5 ml-1 font-semibold">{{ errors.password }}</p>
+          <p v-if="errors.password" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.password }}</p>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Confirm Password</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Confirm Password</label>
           <input
             v-model="form.confirmPassword"
             @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
           />
-          <p v-if="errors.confirmPassword" class="text-red-400 text-xs mt-1.5 ml-1 font-semibold">{{ errors.confirmPassword }}</p>
+          <p v-if="errors.confirmPassword" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.confirmPassword }}</p>
         </div>
 
         <button
           @click="handleRegister"
           :disabled="loading"
-          class="w-full mt-6 bg-white/5 border border-white/10 text-white font-black py-4 rounded-xl hover:bg-white/10 hover:border-hexred transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+          class="group relative w-full mt-6 bg-gradient-to-r from-orange-400 to-red-500 text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
         >
-          <div class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
+          <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
           <span class="relative z-10 flex items-center justify-center gap-2">
             <svg v-if="loading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             {{ loading ? 'INITIALIZING...' : 'CREATE ACCOUNT' }}
@@ -110,27 +124,26 @@
         </button>
       </div>
 
-      <!-- Login Form -->
       <div v-if="mode === 'login'" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email</label>
           <input
             v-model="form.email"
             @keyup.enter="handleLogin"
             type="email"
             placeholder="player@naenra.com"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
           />
-          <p v-if="errors.email" class="text-red-400 text-xs mt-1.5 ml-1 font-semibold">{{ errors.email }}</p>
+          <p v-if="errors.email" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.email }}</p>
         </div>
 
         <div>
-          <div class="flex justify-between items-center mb-1.5 px-1">
-            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Password</label>
+          <div class="flex justify-between items-center mb-2 px-1">
+            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Password</label>
             <button
               type="button" 
               @click="router.push('/forgot-password')"
-              class="text-xs text-lightBlue hover:text-blue transition-colors font-semibold"
+              class="text-[10px] text-orange-500 hover:text-red-500 transition-colors font-black uppercase tracking-widest"
             >
               Forgot?
             </button>
@@ -140,13 +153,12 @@
             @keyup.enter="handleLogin"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue transition-colors"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
           />
-          <p v-if="errors.password" class="text-red-400 text-xs mt-1.5 ml-1 font-semibold">{{ errors.password }}</p>
+          <p v-if="errors.password" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.password }}</p>
         </div>
 
-        <!-- Remember Me -->
-        <label class="flex items-center gap-3 cursor-pointer group mt-1 px-1">
+        <label class="flex items-center gap-3 cursor-pointer group mt-2 px-1">
           <div class="relative">
             <input
               v-model="rememberMe"
@@ -154,17 +166,17 @@
               class="sr-only"
             />
             <div
-              class="w-5 h-5 rounded border-2 transition-all duration-200 flex items-center justify-center"
+              class="w-5 h-5 rounded-lg border-2 transition-all duration-200 flex items-center justify-center"
               :class="rememberMe
-                ? 'bg-gradient-to-br from-orange to-hexred border-transparent'
-                : 'bg-darkNavy/50 border-white/20 group-hover:border-white/40'"
+                ? 'bg-gradient-to-br from-orange-400 to-red-500 border-transparent'
+                : 'bg-white border-gray-300 group-hover:border-orange-400'"
             >
               <svg v-if="rememberMe" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
           </div>
-          <span class="text-xs font-semibold text-gray-400 group-hover:text-white transition-colors uppercase tracking-widest">
+          <span class="text-xs font-bold text-gray-400 group-hover:text-gray-800 transition-colors uppercase tracking-widest">
             Remember me
           </span>
         </label>
@@ -172,9 +184,9 @@
         <button
           @click="handleLogin"
           :disabled="loading"
-          class="w-full mt-2 bg-white/5 border border-white/10 text-white font-black py-4 rounded-xl hover:bg-white/10 hover:border-hexred transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed group relative overflow-hidden"
+          class="group relative w-full mt-4 bg-gradient-to-r from-orange-400 to-red-500 text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
         >
-          <div class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
+          <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
           <span class="relative z-10 flex items-center justify-center gap-2">
             <svg v-if="loading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             {{ loading ? 'AUTHENTICATING...' : 'ENTER ARENA' }}
@@ -183,15 +195,15 @@
       </div>
 
       <div class="relative flex py-8 items-center">
-        <div class="flex-grow border-t border-white/10"></div>
-        <span class="flex-shrink-0 mx-4 text-gray-500 text-[10px] font-bold tracking-[0.2em] uppercase">SYSTEM OVERRIDE</span>
-        <div class="flex-grow border-t border-white/10"></div>
+        <div class="flex-grow border-t border-gray-200"></div>
+        <span class="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-black tracking-[0.2em] uppercase">SYSTEM OVERRIDE</span>
+        <div class="flex-grow border-t border-gray-200"></div>
       </div>
 
       <button
         @click="handleGoogle"
         :disabled="loading"
-        class="w-full flex items-center justify-center gap-3 py-3.5 bg-darkNavy/50 border border-white/10 rounded-xl hover:bg-white/5 hover:border-white/20 transition-all duration-300 text-white text-sm font-bold tracking-wider disabled:opacity-50"
+        class="w-full flex items-center justify-center gap-3 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-300 text-gray-600 text-xs font-black tracking-widest uppercase disabled:opacity-50 shadow-sm"
       >
         <svg width="18" height="18" viewBox="0 0 48 48">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -202,7 +214,7 @@
         CONNECT WITH GOOGLE
       </button>
 
-      <p v-if="errors.general" class="text-hexred text-xs font-bold text-center mt-6 animate-pulse uppercase tracking-wider">
+      <p v-if="errors.general" class="text-red-500 bg-red-50 border border-red-100 rounded-xl py-2 text-[10px] font-black text-center mt-6 animate-pulse uppercase tracking-wider shadow-sm">
         >> ERROR: {{ errors.general }}
       </p>
 
@@ -231,6 +243,19 @@ const form = reactive({ username: '', email: '', password: '', confirmPassword: 
 const errors = reactive({ username: '', email: '', password: '', confirmPassword: '', general: '' })
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+
+// TẠO MẢNG ALPHABET TỪ HOMEVIEW CHUYỂN SANG
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const floatingLetters = alphabet.map((char, index) => {
+  return {
+    id: index,
+    char: char,
+    left: Math.random() * 95,
+    size: 2 + Math.random() * 5,
+    delay: Math.random() * 15,
+    duration: 15 + Math.random() * 20
+  }
+})
 
 onMounted(() => {
   // Restore remembered email if present
@@ -356,9 +381,59 @@ async function handleGoogle() {
 </script>
 
 <style scoped>
-.cyber-grid {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 64px 64px;
+/* Khối màu Pastel trôi lơ lửng */
+.animate-float-slow {
+  animation: floatSky 12s ease-in-out infinite alternate;
+}
+.animate-float-delayed {
+  animation: floatSky 15s ease-in-out infinite alternate-reverse;
+}
+.animate-pulse-slow {
+  animation: pulseBlob 8s ease-in-out infinite alternate;
+}
+
+@keyframes floatSky {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -40px) scale(1.1); }
+}
+
+@keyframes pulseBlob {
+  0% { transform: scale(1); opacity: 0.3; }
+  100% { transform: scale(1.1); opacity: 0.5; }
+}
+
+/* HIỆU ỨNG CHỮ CHẢY THẲNG ĐỨNG TỪ DƯỚI LÊN */
+.animate-matrix-drift {
+  animation-name: drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+@keyframes drift {
+  0% { 
+    transform: translateY(110vh);
+    opacity: 0; 
+  }
+  10% { 
+    opacity: 0.2; 
+  }
+  90% { 
+    opacity: 0.2; 
+  }
+  100% { 
+    transform: translateY(-20vh);
+    opacity: 0; 
+  }
+}
+
+/* HIỆU ỨNG CHỚP SÁNG CHO BUTTONS */
+.animate-shimmer {
+  animation: shimmer 2.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-150%); }
+  100% { transform: translateX(250%); }
 }
 </style>
