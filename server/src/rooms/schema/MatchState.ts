@@ -18,6 +18,7 @@ export class Player extends Schema {
   @type("string") name: string;
   @type("string") avatar: string;
   @type("boolean") isReady: boolean = false;
+  @type("boolean") isFinished: boolean = false;
   @type("number") score: number = 0;
   @type("string") activeCoreId: string = "";
   

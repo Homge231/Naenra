@@ -4,6 +4,8 @@ export class QueuePlayer extends Schema {
   @type("string") sessionId: string;
   @type("string") userId: string;
   @type("number") elo: number;
+  @type("boolean") isReady: boolean = false;
+  @type("boolean") isFinished: boolean = false;
   @type("number") joinedAt: number;
 
   constructor(sessionId: string, userId: string, elo: number) {
