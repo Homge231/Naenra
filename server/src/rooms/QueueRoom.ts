@@ -58,6 +58,9 @@ export class QueueRoom extends Room<{ state: QueueState }> {
     const players = Array.from(this.state.players.values()) as QueuePlayer[];
     if (players.length < 2) return;
 
+    // Log the current matchmaking state
+    console.log(`[QueueRoom] Tick: ${players.length} players in queue. Elos:`, players.map(p => p.elo));
+
     // A set of sessionId strings that have already been matched in this tick
     const matched = new Set<string>();
 
@@ -65,6 +68,7 @@ export class QueueRoom extends Room<{ state: QueueState }> {
       const p1 = players[i];
       if (matched.has(p1.sessionId)) continue;
 
+      const p1WaitTime = Date.now() - p1.joinedAt;
       let p1Threshold = 100;
       if (p1WaitTime > 45000) p1Threshold = 9999;
       else if (p1WaitTime > 30000) p1Threshold = 600;
@@ -92,9 +96,12 @@ export class QueueRoom extends Room<{ state: QueueState }> {
           try {
             // Create a new match room for these two players
             const matchRoom = await matchMaker.createRoom("match_room", { isCustom: false });
+            console.log(`[QueueRoom] Created matchRoom ${matchRoom.roomId}`);
             
-            const client1 = this.clients.find(c => c.sessionId === p1.sessionId);
-            const client2 = this.clients.find(c => c.sessionId === p2.sessionId);
+            const client1 = this.clients.getById(p1.sessionId) || this.clients.find(c => c.sessionId === p1.sessionId);
+            const client2 = this.clients.getById(p2.sessionId) || this.clients.find(c => c.sessionId === p2.sessionId);
+
+            console.log(`[QueueRoom] Found clients? c1: ${!!client1}, c2: ${!!client2}`);
 
             if (client1) {
               client1.send("match_found", { roomId: matchRoom.roomId });
