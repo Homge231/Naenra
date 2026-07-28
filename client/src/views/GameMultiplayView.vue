@@ -2255,13 +2255,13 @@ function setupRoomEventHandlers(room: any) {
     gameState.value = 'playing'
     questionStartTime.value = Date.now()
 
-    timeLeft.value = 12
+    timeLeft.value = 5
     timerProgressPercent.value = 100
     if (raceTimerInterval) clearInterval(raceTimerInterval)
     raceTimerInterval = setInterval(() => {
       if (timeLeft.value > 0) {
         timeLeft.value--
-        timerProgressPercent.value = (timeLeft.value / 12) * 100
+        timerProgressPercent.value = (timeLeft.value / 5) * 100
       } else {
         clearInterval(raceTimerInterval!)
       }

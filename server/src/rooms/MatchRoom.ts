@@ -237,11 +237,11 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       hint: q.hint
     });
 
-    // 12 seconds timer
+    // 5 seconds timer
     this.raceQuestionTimer = setTimeout(() => {
       this.broadcast("race_timeout");
       this.nextRaceQuestion();
-    }, 12000);
+    }, 5000);
   }
 
   async onAuth(client: Client, options: any, request: any) {
