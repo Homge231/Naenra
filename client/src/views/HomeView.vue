@@ -1,30 +1,33 @@
 <template>
-  <div
-    class="h-screen w-full bg-darkNavy text-white overflow-hidden relative font-sans selection:bg-orange/40 flex flex-col">
-    <div
-      class="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue rounded-full mix-blend-screen filter blur-[200px] opacity-15 pointer-events-none z-0">
-    </div>
-    <div
-      class="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-orange rounded-full mix-blend-screen filter blur-[200px] opacity-15 pointer-events-none z-0">
+  <div class="h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col">
+    
+    <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
+      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
+      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
+      <div class="absolute top-[45%] left-[5%] w-[40vw] h-[40vw] bg-blue-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-slow" style="animation-delay: 2s;"></div>
+      <div class="absolute top-[5%] left-[35%] w-[35vw] h-[35vw] bg-purple-300/20 rounded-full mix-blend-multiply blur-[90px] animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+      <div class="absolute bottom-[5%] left-[30%] w-[50vw] h-[50vw] bg-yellow-300/20 rounded-full mix-blend-multiply blur-[120px] animate-float-delayed" style="animation-delay: 3s;"></div>
+
+      <div class="absolute left-[15%] text-7xl font-black text-gray-400 uppercase animate-drift-1 opacity-20 pointer-events-auto hover:opacity-100 hover:scale-[1.4] hover:text-orange-500 hover:-rotate-12 transition-all duration-300 cursor-crosshair">A</div>
+      <div class="absolute left-[40%] text-6xl font-black text-orange-400 uppercase animate-drift-2 opacity-20 pointer-events-auto hover:opacity-100 hover:scale-[1.5] hover:text-red-500 hover:rotate-12 transition-all duration-300 cursor-crosshair" style="animation-delay: 2s;">K</div>
+      <div class="absolute left-[80%] text-8xl font-black text-blue-400 uppercase animate-drift-3 opacity-10 pointer-events-auto hover:opacity-100 hover:scale-[1.2] hover:text-yellow-500 hover:-rotate-12 transition-all duration-300 cursor-crosshair" style="animation-delay: 1s;">X</div>
+      
+      <div class="absolute left-[25%] text-3xl font-black text-purple-400 uppercase animate-drift-4 opacity-30 blur-[2px] pointer-events-auto hover:blur-none hover:opacity-100 hover:scale-[2] hover:text-green-500 hover:rotate-45 transition-all duration-300 cursor-crosshair" style="animation-delay: 4s;">Z</div>
+      <div class="absolute left-[65%] text-4xl font-black text-red-400 uppercase animate-drift-5 opacity-20 blur-[3px] pointer-events-auto hover:blur-none hover:opacity-100 hover:scale-[2] hover:text-blue-500 hover:-rotate-12 transition-all duration-300 cursor-crosshair" style="animation-delay: 0.5s;">Q</div>
+      <div class="absolute left-[10%] text-5xl font-black text-yellow-400 uppercase animate-drift-2 opacity-20 blur-[1px] pointer-events-auto hover:blur-none hover:opacity-100 hover:scale-[1.5] hover:text-rose-500 hover:rotate-45 transition-all duration-300 cursor-crosshair" style="animation-delay: 3s;">W</div>
+      <div class="absolute left-[85%] text-3xl font-black text-gray-500 uppercase animate-drift-1 opacity-30 blur-[2px] pointer-events-auto hover:blur-none hover:opacity-100 hover:scale-[2] hover:text-indigo-500 hover:-rotate-45 transition-all duration-300 cursor-crosshair" style="animation-delay: 5s;">S</div>
     </div>
 
-    <div
-      class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[18vw] font-black italic text-white/[0.02] tracking-tighter whitespace-nowrap select-none pointer-events-none z-0 transform -skew-x-12">
-      NAENRA
-    </div>
-
-    <div class="absolute inset-0 cyber-grid opacity-50 pointer-events-none z-0"></div>
-
-    <header class="relative z-20 flex justify-between items-center p-8 lg:px-12">
-      <div class="flex items-center gap-4 group cursor-pointer">
+    <header class="relative z-20 flex justify-between items-center p-4 lg:px-8">
+      <div class="flex items-center gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50">
         <div class="w-12 h-12 flex items-center justify-center">
           <svg class="w-full h-full text-orange fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
         </div>
         <div class="leading-none">
-          <h1
-            class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-lg uppercase">
+          <h1 class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
             NAENRA
           </h1>
           <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">
@@ -33,126 +36,95 @@
         </div>
       </div>
 
-      <div
-        class="flex items-center gap-4 bg-darkNavy/60 backdrop-blur-md border border-white/10 p-2 pr-4 transform -skew-x-12">
-        <div class="w-10 h-10 bg-gradient-to-br from-blue to-lightBlue p-0.5 cursor-pointer"
+      <div class="flex items-center gap-3 bg-white/80 backdrop-blur-md border border-white p-2 pr-4 rounded-full shadow-[0_4px_15px_rgba(251,146,60,0.08)]">
+        <div class="w-11 h-11 bg-gradient-to-br from-orange-400 to-red-400 p-[2.5px] cursor-pointer rounded-full overflow-hidden hover:scale-105 transition-transform"
           @click="router.push('/profile')" @mouseenter="audioService.playHover()" title="View Profile">
-          <img :src="avatarUrl" :alt="username"
-            class="w-full h-full bg-darkNavy object-cover hover:opacity-80 transition-opacity"
+          <img :src="avatarUrl" :alt="username" class="w-full h-full bg-white object-cover rounded-full"
             @error="(e) => (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`" />
         </div>
-        <div class="transform skew-x-12 text-right hidden md:block">
-          <p class="font-bold text-sm text-white tracking-wider">{{ username }}</p>
-          <p class="text-[10px] text-lightOrange font-mono font-bold">ELO: {{ elo }}</p>
+        <div class="text-right hidden md:block mr-2">
+          <p class="font-black text-sm text-gray-800">{{ username }}</p>
+          <p class="text-[11px] text-orange-600 font-bold bg-orange-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5 border border-orange-200">⭐ {{ elo }} ELO</p>
         </div>
-        <div class="w-px h-6 bg-white/20 mx-2 transform skew-x-12"></div>
-        <button @click="router.push('/analytics'); audioService.playClick()" @mouseenter="audioService.playHover()"
-          class="transform skew-x-12 text-gray-400 hover:text-lightBlue transition-colors mr-2" title="Vocab Analytics">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
-            </path>
-          </svg>
-        </button>
-        <button @click="handleLogout" @mouseenter="audioService.playHover()" class="transform skew-x-12 text-gray-400 hover:text-hexred transition-colors"
-          title="Disconnect">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-          </svg>
-        </button>
+        
+        <div class="flex gap-1 border-l-2 border-orange-100 pl-3 ml-1">
+          <button @click="router.push('/analytics'); audioService.playClick()" @mouseenter="audioService.playHover()"
+            class="w-9 h-9 flex items-center justify-center bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white rounded-full transition-colors shadow-sm" title="Vocab Analytics">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          </button>
+          <button @click="handleLogout" @mouseenter="audioService.playHover()" 
+            class="w-9 h-9 flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-full transition-colors shadow-sm" title="Disconnect">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          </button>
+        </div>
       </div>
     </header>
 
-    <main class="relative z-20 flex-1 flex flex-col justify-center px-8 lg:px-20 max-w-[1800px] mx-auto w-full">
-      <div class="max-w-3xl flex flex-col items-start">
-        <div class="inline-flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full mb-8">
-          <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-          <span class="text-xs font-bold text-lightBlue tracking-[0.2em] uppercase">Season 1 is Live</span>
+    <main class="relative z-20 flex-1 flex flex-col justify-center items-center px-4 w-full">
+      <div class="w-full max-w-[600px] flex flex-col items-center text-center relative z-10 mt-[-5vh]">
+        
+        <div class="inline-flex items-center gap-2 bg-white border-2 border-orange-200 text-orange-600 px-5 py-2 rounded-full mb-6 shadow-sm">
+          <span class="text-sm animate-pulse">🔥</span>
+          <span class="text-xs font-black tracking-widest uppercase">Season 1 is Live!</span>
         </div>
 
-        <h2 class="text-7xl lg:text-[7rem] font-black italic uppercase leading-[0.9] tracking-tighter mb-4">
-          <span class="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-500">Ranked</span><br />
-          <span class="text-hexred drop-shadow-[0_0_20px_rgba(230,57,70,0.4)]">Clash</span>
+        <h2 class="text-6xl md:text-[5rem] font-black uppercase tracking-tight text-gray-800 mb-6 drop-shadow-sm leading-none">
+          Ready to <br/>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500">Type?</span>
         </h2>
-        <p class="text-gray-400 font-medium max-w-md text-sm leading-relaxed mb-10 border-l-2 border-orange pl-4">
-          The ranked servers are primed and ready. Showcase your speed, enhance your accuracy, and claim your dominance
-          on the global leaderboard.
+        
+        <p class="text-gray-600 font-bold max-w-sm mx-auto text-sm md:text-base leading-relaxed mb-10 bg-white/60 p-4 rounded-3xl border border-white shadow-sm backdrop-blur-sm">
+          Join the thrilling 1vs1 arena. Type lightning fast, use tactical cards, and climb the ranks now! 🎮
         </p>
 
-        <div class="relative mb-6">
+        <div class="w-full px-4 mb-8">
           <button @click="startMatchmaking" @mouseenter="audioService.playHover()" :disabled="isSearching"
-            class="group relative w-[320px] h-[80px] bg-darkNavy border border-white/10 overflow-hidden transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:border-hexred focus:outline-none">
-            <div
-              class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0">
-            </div>
-            <div class="absolute inset-0 flex items-center justify-between px-8 z-10">
-              <span class="text-2xl font-black italic tracking-widest uppercase transition-colors duration-300"
-                :class="isSearching ? 'text-white' : 'text-gray-300 group-hover:text-white'">
-                {{ isSearching ? 'INITIALIZING...' : 'FIND MATCH' }}
-              </span>
-              <svg v-if="!isSearching" class="w-8 h-8 text-hexred group-hover:text-white transition-colors duration-300"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z">
-                </path>
-              </svg>
-              <svg v-else class="animate-spin w-8 h-8 text-white" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                </path>
-              </svg>
-            </div>
+            class="group relative w-full h-[80px] rounded-[2rem] bg-gradient-to-b from-orange-400 to-red-500 text-gray-900 font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02]"
+            :style="!isSearching ? 'box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7)' : 'box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px)'">
+            
+            <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
+
+            <span v-if="!isSearching" class="drop-shadow-md z-10">PLAY NOW</span>
+            <span v-else class="animate-pulse z-10">Finding... ☁️</span>
+            
+            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
-          <p v-if="isSearching"
-            class="absolute -bottom-6 left-0 text-lightOrange text-xs font-bold tracking-widest uppercase animate-pulse">
-            &gt; ETA: 0:15
-          </p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 w-full max-w-[600px]">
-          
+        <div class="w-full grid grid-cols-2 gap-4 px-4">
           <button @click="goToCustomRoom" @mouseenter="audioService.playHover()" :disabled="isJoiningCustom"
-            class="h-12 w-full flex items-center justify-center gap-2 rounded-md bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-lightBlue hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 font-bold text-sm tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed">
-            <svg v-if="isJoiningCustom" class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>{{ isJoiningCustom ? 'CONNECTING...' : 'Create 1v1 Room' }}</span>
+            class="h-16 rounded-2xl bg-white border-b-4 border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 active:border-b-0 active:translate-y-1 shadow-sm">
+            <span class="text-xl">🤝</span>
+            <span>Create</span>
           </button>
 
-          <div class="group h-12 w-full flex items-center rounded-md bg-white/10 border border-white/20 hover:border-lightBlue hover:bg-white/20 hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 overflow-hidden focus-within:border-lightBlue focus-within:bg-white/20 focus-within:shadow-[0_0_20px_rgba(59,130,246,0.4)]">
-            <input v-model="joinCode" @keyup.enter="joinExistingRoom" type="text" placeholder="ENTER CODE..."
-              class="bg-transparent text-white pl-5 pr-2 h-full w-full outline-none uppercase tracking-widest text-sm placeholder:text-gray-400"
-              maxlength="12" />
+          <div class="h-16 rounded-2xl bg-white border-b-4 border-gray-200 flex overflow-hidden focus-within:border-orange-400 transition-all group active:border-b-0 active:translate-y-1 shadow-sm">
+            <input v-model="joinCode" @keyup.enter="joinExistingRoom" type="text" placeholder="CODE..."
+              class="bg-transparent text-gray-800 font-black pl-5 w-full outline-none uppercase text-sm placeholder:text-gray-400" maxlength="8" />
             <button @click="joinExistingRoom" @mouseenter="audioService.playHover()" :disabled="!joinCode || isJoiningCustom"
-              class="h-full px-5 text-gray-200 hover:text-white hover:bg-white/20 font-bold text-sm uppercase tracking-widest transition-colors border-l border-white/20 group-hover:border-lightBlue/50 focus-within:border-lightBlue/50 disabled:opacity-50 disabled:cursor-not-allowed">
+              class="px-5 text-orange-500 font-black text-sm uppercase hover:bg-orange-50 transition-colors disabled:opacity-50 border-l border-gray-100">
               Join
             </button>
           </div>
 
           <button @mouseenter="audioService.playHover()"
-            class="h-12 w-full flex items-center justify-center rounded-md bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-lightBlue hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 font-bold text-sm tracking-widest uppercase">
-            Leaderboard
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-2">
+            <span>🏆</span> Leaderboard
           </button>
 
           <button @click="startMatchmaking" @mouseenter="audioService.playHover()"
-            class="h-12 w-full flex items-center justify-center rounded-md bg-white/10 border border-white/20 text-white hover:bg-white/20 hover:border-lightBlue hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 font-bold text-sm tracking-widest uppercase">
-            Single Player 
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-2">
+            <span>🎯</span> Training
           </button>
-
         </div>
+
       </div>
     </main>
 
-    <!-- Bottom Accent Bar -->
-    <div class="relative z-20 h-2 w-full bg-darkNavy flex mt-auto">
-      <div class="w-1/3 h-full bg-gradient-to-r from-orange to-hexred"></div>
-      <div class="w-px h-full bg-white/20 mx-1"></div>
-      <div class="w-16 h-full bg-blue"></div>
+    <div class="relative z-20 h-3 w-full bg-white flex mt-auto">
+      <div class="w-1/3 h-full bg-gradient-to-r from-orange-400 to-red-400 rounded-tr-full"></div>
     </div>
 
-    <!-- AI Chat Assistant Floating Widget (Bottom-Right) -->
     <AIChatWidget />
   </div>
 </template>
@@ -166,23 +138,10 @@ import AIChatWidget from '../components/AIChatWidget.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
 const isSearching = ref(false)
 const joinCode = ref('')
-
-function joinExistingRoom() {
-  if (!joinCode.value) return
-  audioService.playClick()
-  isJoiningCustom.value = true
-  setTimeout(() => {
-    let code = joinCode.value.trim()
-    // Colyseus IDs are case-sensitive, do not use toUpperCase()
-
-    router.push(`/room/custom?id=${code}`).finally(() => {
-      isJoiningCustom.value = false
-      joinCode.value = '' 
-    })
-  }, 600)
-}
+const isJoiningCustom = ref(false)
 
 const username = computed(() =>
   authStore.profile?.username ||
@@ -197,12 +156,23 @@ const avatarUrl = computed(() =>
 )
 
 const elo = computed(() => authStore.profile?.elo ?? 0)
-const isJoiningCustom = ref(false)
+
+function joinExistingRoom() {
+  if (!joinCode.value) return
+  audioService.playClick()
+  isJoiningCustom.value = true
+  setTimeout(() => {
+    let code = joinCode.value.trim()
+    router.push(`/room/custom?id=${code}`).finally(() => {
+      isJoiningCustom.value = false
+      joinCode.value = '' 
+    })
+  }, 600)
+}
 
 function goToCustomRoom() {
   audioService.playClick()
   isJoiningCustom.value = true
-
   setTimeout(() => {
     router.push('/room/custom').finally(() => {
       isJoiningCustom.value = false
@@ -218,19 +188,93 @@ function handleLogout() {
 
 function startMatchmaking() {
   audioService.playClick()
-  router.push('/matchmaking')
+  isSearching.value = true
+  setTimeout(() => {
+    router.push('/matchmaking').finally(() => {
+      isSearching.value = false
+    })
+  }, 1000)
 }
 
 onMounted(() => {
-  // Empty BGM on homepage
   audioService.stopBGM()
 })
 </script>
 
 <style scoped>
-.cyber-grid {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 64px 64px;
+/* Khối màu Pastel trôi lơ lửng */
+.animate-float-slow {
+  animation: floatSky 12s ease-in-out infinite alternate;
+}
+.animate-float-delayed {
+  animation: floatSky 15s ease-in-out infinite alternate-reverse;
+}
+.animate-pulse-slow {
+  animation: pulseBlob 8s ease-in-out infinite alternate;
+}
+
+@keyframes floatSky {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -40px) scale(1.1); }
+}
+
+@keyframes pulseBlob {
+  0% { transform: scale(1); opacity: 0.3; }
+  100% { transform: scale(1.1); opacity: 0.5; }
+}
+
+/* HIỆU ỨNG ZERO-GRAVITY DRIFTING TỪ DƯỚI LÊN & NHANH HƠN */
+.animate-drift-1 { animation: drift1 7s ease-in-out infinite; } /* Đã giảm từ 14s -> 7s */
+.animate-drift-2 { animation: drift2 9s ease-in-out infinite; } /* Đã giảm từ 18s -> 9s */
+.animate-drift-3 { animation: drift3 8s ease-in-out infinite; } /* Đã giảm từ 16s -> 8s */
+.animate-drift-4 { animation: drift4 10s ease-in-out infinite; } /* Đã giảm từ 20s -> 10s */
+.animate-drift-5 { animation: drift5 11s ease-in-out infinite; } /* Đã giảm từ 22s -> 11s */
+
+/* Các hướng bay lượn uốn lượn trái phải, kết hợp xoay (Từ dưới lên trên) */
+@keyframes drift1 {
+  0% { transform: translate(0, 120vh) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.3; }
+  50% { transform: translate(40px, 50vh) rotate(45deg); opacity: 0.6; }
+  80% { opacity: 0.3; transform: translate(-20px, 20vh) rotate(90deg); }
+  100% { transform: translate(10px, -20vh) rotate(120deg); opacity: 0; }
+}
+
+@keyframes drift2 {
+  0% { transform: translate(0, 120vh) rotate(15deg); opacity: 0; }
+  30% { opacity: 0.2; transform: translate(-30px, 80vh) rotate(0deg); }
+  60% { opacity: 0.5; transform: translate(20px, 40vh) rotate(-30deg); }
+  90% { opacity: 0.2; }
+  100% { transform: translate(-10px, -20vh) rotate(-60deg); opacity: 0; }
+}
+
+@keyframes drift3 {
+  0% { transform: translate(0, 120vh) rotate(-20deg); opacity: 0; }
+  40% { opacity: 0.15; transform: translate(50px, 70vh) rotate(10deg); }
+  70% { opacity: 0.3; transform: translate(-40px, 30vh) rotate(40deg); }
+  100% { transform: translate(20px, -20vh) rotate(80deg); opacity: 0; }
+}
+
+@keyframes drift4 {
+  0% { transform: translate(0, 120vh) rotate(45deg) scale(0.8); opacity: 0; }
+  25% { opacity: 0.2; transform: translate(-50px, 90vh) rotate(20deg) scale(1); }
+  75% { opacity: 0.4; transform: translate(30px, 30vh) rotate(-20deg) scale(0.9); }
+  100% { transform: translate(-20px, -20vh) rotate(-45deg) scale(0.8); opacity: 0; }
+}
+
+@keyframes drift5 {
+  0% { transform: translate(0, 120vh) rotate(-30deg) scale(1.1); opacity: 0; }
+  35% { opacity: 0.25; transform: translate(60px, 80vh) rotate(15deg) scale(1); }
+  85% { opacity: 0.2; transform: translate(-30px, 20vh) rotate(60deg) scale(1.2); }
+  100% { transform: translate(10px, -20vh) rotate(90deg) scale(1); opacity: 0; }
+}
+
+/* HIỆU ỨNG CHỚP SÁNG CHO NÚT PLAY */
+.animate-shimmer {
+  animation: shimmer 2.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-150%); }
+  100% { transform: translateX(250%); }
 }
 </style>
