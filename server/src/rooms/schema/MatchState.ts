@@ -1,9 +1,16 @@
-import { Schema, type, MapSchema } from "@colyseus/schema";
+import { Schema, type, MapSchema, ArraySchema } from "@colyseus/schema";
 
 export class RoomMetadata extends Schema {
   @type("string") vocabularyLevel: string = "Normal";
   @type("string") difficulty: string = "Standard";
   @type("string") topic: string = "Any";
+}
+
+export class RaceQuestion extends Schema {
+  @type("string") id: string;
+  @type("string") question_text: string;
+  @type("number") target_length: number;
+  @type(["string"]) oracle_hints = new ArraySchema<string>();
 }
 
 export class Player extends Schema {
@@ -28,4 +35,6 @@ export class MatchState extends Schema {
   @type("string") hostId: string = ""; // Identifies the room host
   @type({ map: Player }) players = new MapSchema<Player>();
   @type(RoomMetadata) metadata = new RoomMetadata();
+  @type("number") currentRound: number = 1;
+  @type(RaceQuestion) currentRaceQuestion = new RaceQuestion();
 }

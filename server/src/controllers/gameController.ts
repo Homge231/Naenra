@@ -39,7 +39,7 @@ interface CoreRow {
 type PenaltyType = 'typo' | 'wrong' | null
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function normalizeAnswer(value: unknown): string {
+export function normalizeAnswer(value: unknown): string {
   return String(value ?? '').trim().toLowerCase()
 }
 
@@ -128,7 +128,7 @@ function getWrongAnswerPenalty(
 
 // ── Endpoint: GET /api/game/question (legacy) removed ───────────────────────
 
-function generateOracleHints(word: string): string[] {
+export function generateOracleHints(word: string): string[] {
   if (!word) return ['', '', '']
   const len = word.length
   const getHintForLevel = (level: number) => {
