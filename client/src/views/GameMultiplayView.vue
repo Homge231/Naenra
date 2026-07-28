@@ -550,7 +550,7 @@
 
             <!-- Skip Recap (Round 3) -->
             <template v-else>
-              <button @click="timeoutCountdown = 0"
+              <button @click="skipRecapCountdown"
                 class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
                 <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                 <span class="relative z-10 text-white">
@@ -1873,23 +1873,30 @@ function runRecapCountdown() {
   timeoutInterval = setInterval(() => {
     timeoutCountdown.value--
     if (timeoutCountdown.value <= 0) {
-      stopTimeoutInterval()
-      if (!matchStore.isFinalRound()) {
-        gameState.value = 'upgrade'
-      } else {
-        if (matchResult.value) {
-          showMatchResult.value = true
-        } else {
-          const waitResult = setInterval(() => {
-            if (matchResult.value) {
-              clearInterval(waitResult)
-              showMatchResult.value = true
-            }
-          }, 500)
-        }
-      }
+      skipRecapCountdown()
     }
   }, 1000)
+}
+
+function skipRecapCountdown() {
+  timeoutCountdown.value = 0
+  stopTimeoutInterval()
+  if (!matchStore.isFinalRound()) {
+    gameState.value = 'upgrade'
+  } else {
+    if (matchResult.value) {
+      showMatchResult.value = true
+    } else {
+      let attempts = 0
+      const waitResult = setInterval(() => {
+        attempts++
+        if (matchResult.value || attempts >= 10) { // Max wait 5 seconds (10 * 500ms)
+          clearInterval(waitResult)
+          showMatchResult.value = true
+        }
+      }, 500)
+    }
+  }
 }
 
 function goToUpgrade() {
@@ -2255,13 +2262,13 @@ function setupRoomEventHandlers(room: any) {
     gameState.value = 'playing'
     questionStartTime.value = Date.now()
 
-    timeLeft.value = 5
+    timeLeft.value = 12
     timerProgressPercent.value = 100
     if (raceTimerInterval) clearInterval(raceTimerInterval)
     raceTimerInterval = setInterval(() => {
       if (timeLeft.value > 0) {
         timeLeft.value--
-        timerProgressPercent.value = (timeLeft.value / 5) * 100
+        timerProgressPercent.value = (timeLeft.value / 12) * 100
       } else {
         clearInterval(raceTimerInterval!)
       }
