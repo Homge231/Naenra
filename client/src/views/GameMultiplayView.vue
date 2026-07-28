@@ -1598,8 +1598,6 @@ async function checkAnswer() {
     if (currentRoom) {
       currentRoom.send('submit_race_answer', { answer: typed, session_id: sessionId.value })
     }
-    typedLetters.value = []
-    if (inputRef.value) inputRef.value.value = ''
     return
   }
 
@@ -1940,7 +1938,6 @@ async function restartMatch() {
 
   // Next Round
   currentPandoraCoreId.value = null
-  matchStore.incrementRound()
   resetTypingBoard()
 
   if (isMultiplayer.value && currentRoom && activeCoreId.value) {
