@@ -5,6 +5,7 @@ import { generateSignature, verifySignature } from '../utils/jwt'
 import crypto from 'crypto'
 import { runScoring, getCoreStrategy } from '../cores/index'
 import { getUpgradesForCore, getCoreFamily } from '../cores/families'
+import { getTierForElo } from '../utils/ranks'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -954,10 +955,8 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
         if (!updErr && updData && updData.length > 0) {
           updated = true
           
-          // Import ranks utility (need to import it at top of file, doing it dynamically for now or assuming it's available)
-          const ranks = await import('../utils/ranks.js')
-          oldTier = ranks.getTierForElo(currentElo)
-          currentTier = ranks.getTierForElo(newElo)
+          oldTier = getTierForElo(currentElo)
+          currentTier = getTierForElo(newElo)
         }
       } else {
         break // player not found
