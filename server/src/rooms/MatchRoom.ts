@@ -88,13 +88,13 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     });
 
     this.onMessage("player_typing", (client, message: { text: string }) => {
-      if (this.state.currentRound === 3) {
+      if (this.state.currentRound === 4) {
         this.broadcast("opponent_typing", { text: message.text }, { except: client });
       }
     });
 
     this.onMessage("submit_race_answer", async (client, message: { answer: string, session_id: string }) => {
-      if (this.state.currentRound !== 3 || !this.state.currentRaceQuestion.id) return;
+      if (this.state.currentRound !== 4 || !this.state.currentRaceQuestion.id) return;
       
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
@@ -168,7 +168,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         const targetRound = message?.round || (this.state.currentRound + 1);
         this.state.currentRound = targetRound;
 
-        if (targetRound === 3) {
+        if (targetRound === 4) {
           // Fetch 20 chaos-random questions
           let { data: ids } = await supabase.from('questions').select('id').eq('topic', 'chaos-random');
           if (!ids || ids.length === 0) {
@@ -187,7 +187,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
             if (questions) {
               this.raceQuestions = questions.sort(() => Math.random() - 0.5);
               this.currentRaceQuestionIndex = 0;
-              this.broadcast("start_next_round", { round: 3 });
+              this.broadcast("start_next_round", { round: 4 });
               // Small delay to allow client to show UI before sending first question
               setTimeout(() => {
                 this.nextRaceQuestion();
