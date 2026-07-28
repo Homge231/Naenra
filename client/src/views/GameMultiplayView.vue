@@ -247,7 +247,7 @@
           <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-14 h-44 animate-pulse"></div>
         </div>
 
-        <template v-else-if="matchStore.currentRound === 4">
+        <template v-else-if="matchStore.currentRound === 3">
           <div v-if="!currentRaceQuestion" class="w-full text-center text-white/50 animate-pulse font-mono font-bold tracking-widest text-lg">
             PREPARING RACE...
           </div>
@@ -1398,7 +1398,7 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
 // ── Skip Question Logic (Enter key) ───────────────────────────────────────
 async function skipQuestion() {
   if (gameState.value === 'timeout') return
-  if (matchStore.currentRound === 4) {
+  if (matchStore.currentRound === 3) {
     typedLetters.value = []
     if (currentRoom) currentRoom.send('player_typing', { text: '' })
     if (inputRef.value) inputRef.value.value = ''
@@ -1547,7 +1547,7 @@ function handleKeydown(e: KeyboardEvent) {
 
   if (e.key === 'Backspace') {
     typedLetters.value = typedLetters.value.slice(0, -1)
-    if (matchStore.currentRound === 4 && currentRoom) {
+    if (matchStore.currentRound === 3 && currentRoom) {
       currentRoom.send('player_typing', { text: typedLetters.value.join('') })
     }
     playKeystroke(isSpeedsterCore.value, 0.8) // slightly lower pitch for backspace
@@ -1560,7 +1560,7 @@ function handleKeydown(e: KeyboardEvent) {
 
     typedLetters.value = [...typedLetters.value, e.key.toLowerCase()]
 
-    if (matchStore.currentRound === 4 && currentRoom) {
+    if (matchStore.currentRound === 3 && currentRoom) {
       currentRoom.send('player_typing', { text: typedLetters.value.join('') })
     }
 
@@ -1584,7 +1584,7 @@ async function checkAnswer() {
   const typed = typedLetters.value.join('')
   const elapsed = Date.now() - questionStartTime.value
 
-  if (matchStore.currentRound === 4) {
+  if (matchStore.currentRound === 3) {
     if (currentRoom) {
       currentRoom.send('submit_race_answer', { answer: typed })
     }
@@ -2211,7 +2211,7 @@ function setupRoomEventHandlers(room: any) {
     if (data?.round) {
       matchStore.currentRound = data.round
     }
-    if (matchStore.currentRound === 4) {
+    if (matchStore.currentRound === 3) {
       gameState.value = 'loading'
     } else {
       restartMatch()
