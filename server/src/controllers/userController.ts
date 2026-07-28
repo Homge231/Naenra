@@ -254,3 +254,51 @@ export const getAiChatResponse = async (req: AuthRequest, res: Response): Promis
     return res.status(500).json({ error: error.message || 'Failed to get AI response' })
   }
 }
+
+export const getLeaderboard = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const currentUserId = req.user?.id
+    if (!currentUserId) return res.status(401).json({ error: 'Unauthorized' })
+
+    // Fetch top 50 players
+    const { data: topPlayers, error: topError } = await supabase
+      .from('players')
+      .select('id, username, avatar_url, elo')
+      .order('elo', { ascending: false })
+      .limit(50)
+
+    if (topError) throw topError
+
+    // Fetch current user's profile to get their elo
+    const { data: currentUser, error: userError } = await supabase
+      .from('players')
+      .select('id, username, avatar_url, elo')
+      .eq('id', currentUserId)
+      .single()
+
+    if (userError) throw userError
+
+    // Calculate current user's rank
+    // Count how many players have an elo STRICTLY GREATER than the current user's elo
+    const { count, error: countError } = await supabase
+      .from('players')
+      .select('*', { count: 'exact', head: true })
+      .gt('elo', currentUser.elo)
+
+    if (countError) throw countError
+
+    // The rank is the number of people with higher elo + 1
+    const userRank = (count || 0) + 1
+
+    return res.status(200).json({
+      topPlayers,
+      currentUser: {
+        ...currentUser,
+        rank: userRank
+      }
+    })
+  } catch (error: any) {
+    console.error('getLeaderboard error:', error)
+    return res.status(500).json({ error: error.message || 'Failed to fetch leaderboard' })
+  }
+}

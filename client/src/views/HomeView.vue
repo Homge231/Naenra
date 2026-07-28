@@ -107,7 +107,7 @@
             </button>
           </div>
 
-          <button @mouseenter="audioService.playHover()"
+          <button @click="goToLeaderboard" @mouseenter="audioService.playHover()"
             class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-2">
             <span>🏆</span> Leaderboard
           </button>
@@ -178,6 +178,11 @@ function goToCustomRoom() {
       isJoiningCustom.value = false
     })
   }, 600)
+}
+
+function goToLeaderboard() {
+  audioService.playClick()
+  router.push('/leaderboard')
 }
 
 function handleLogout() {

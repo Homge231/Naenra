@@ -97,6 +97,12 @@ const router = createRouter({
       name: 'match-found',
       component: () => import('../views/MatchFoundView.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/leaderboard',
+      name: 'leaderboard',
+      component: () => import('../views/LeaderboardView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
