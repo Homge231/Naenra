@@ -1534,8 +1534,26 @@ function handleKeydown(e: KeyboardEvent) {
   initAudio()
 
   if (gameState.value === 'timeout') return
-  if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
+
+  // Skip question when Enter is pressed
+  if (e.key === 'Enter') {
+    if (gameState.value === 'correct' || gameState.value === 'wrong') {
+      skipQuestion()
+      return
+    }
+    if (gameState.value !== 'playing') return
+    if (matchStore.currentRound === 4) {
+      if (typedLetters.value.length > 0) {
+        checkAnswer()
+      }
+      return
+    }
+    skipQuestion()
+    return
+  }
+
+  if (gameState.value !== 'playing') return
 
   const isRaceMode = matchStore.currentRound === 4
   const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
@@ -1547,21 +1565,6 @@ function handleKeydown(e: KeyboardEvent) {
     if (inputRef.value) inputRef.value.value = ''
   })
 
-  // Skip question when Enter is pressed
-  if (e.key === 'Enter') {
-    if (gameState.value === 'correct' || gameState.value === 'wrong') {
-      skipQuestion()
-      return
-    }
-    if (matchStore.currentRound === 4) {
-      if (typedLetters.value.length > 0) {
-        checkAnswer()
-      }
-      return
-    }
-    skipQuestion()
-    return
-  }
 
   if (e.key === 'Backspace') {
     typedLetters.value = typedLetters.value.slice(0, -1)

@@ -267,11 +267,16 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         throw new Error("Session expired due to login elsewhere");
       }
 
-      // Prevent matching with oneself in the same room (Ranked only)
-      if (!options.isCustom) {
-        const isAlreadyInRoom = Array.from(this.state.players.values()).some(p => p.id === decoded.id);
-        if (isAlreadyInRoom) {
-          throw new Error("Cannot match with yourself");
+      // Auto-abandon any stuck previous sessions
+      const { data: activeSessions } = await supabase
+        .from('match_sessions')
+        .select('id')
+        .eq('user_id', decoded.id)
+        .in('status', ['waiting', 'playing']);
+      
+      if (activeSessions && activeSessions.length > 0) {
+        for (const s of activeSessions) {
+          await supabase.from('match_sessions').update({ status: 'abandoned' }).eq('id', s.id);
         }
       }
 

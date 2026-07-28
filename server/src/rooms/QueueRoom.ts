@@ -88,6 +88,8 @@ export class QueueRoom extends Room<{ state: QueueState }> {
         const maxThreshold = Math.max(p1Threshold, p2Threshold);
         const eloDiff = Math.abs(p1.elo - p2.elo);
 
+        if (p1.userId === p2.userId) continue;
+
         if (eloDiff <= maxThreshold) {
           // Found a match!
           matched.add(p1.sessionId);

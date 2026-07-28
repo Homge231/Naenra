@@ -84,7 +84,7 @@ Token: `localStorage.arena_token` (7-day JWT).
 
 > Sprint 5 in progress: single-session enforcement via `session_version` col + RPC + JWT check, invalidated on new login via Supabase Realtime Broadcast (REST). `fetchWithAuth` race condition (stale 401 clears fresh valid token) under investigation — verify current state before assuming resolved.
 
-## Game Flow
+## Game Flow (Single Player)
 ```
 CoreSelectionView → pick core → gameStore.activeCoreId
 GameplayView.onMounted → POST /api/game/session{active_core_id} → session_id,theme,active_core
@@ -92,6 +92,14 @@ GameplayView.onMounted → POST /api/game/session{active_core_id} → session_id
 Each answer → timeTaken=now()-questionStartTime → POST /api/game/submit-answer{session_id,question_id,answer,current_combo,active_core_id,oracle_reveal_level,time_taken}
   → BE anti-cheat (core mismatch→403) → runScoring() → score updated from BE response → popup
 Timer 0 → POST /api/game/timeout → status='timeout', score locked
+```
+
+## Game Flow (Multiplayer)
+**1. Matchmaking:** `MatchmakingView.vue` connects to Colyseus `QueueRoom`. The server matches based on ELO diff vs Wait Time (threshold expands over 5s). Connections with the exact same `userId` are bypassed to prevent self-matching.
+**2. Match Start:** `QueueRoom` broadcasts `match_found` → Clients join `MatchRoom` via `joinById`. `MatchRoom.onAuth` validates JWT and **auto-abandons** any previous stuck sessions in the DB to prevent join failures.
+**3. Match Loop (4 Rounds):**
+- **Rounds 1-3 (Core Mode):** `CoreSelectionMultiView` (15s to pick core) → 60s countdown typing phase. When timer hits 0 → client sends `start_recap_countdown` → Server transitions to Recap phase → Clients send `ready_next_round` → Server advances round.
+- **Round 4 (Race/Solo Mode):** No core selection. Max 5 questions, 12s server-enforced timeout per question. Players type flexible answers and press Enter. The server manages the score and broadcasts `race_correct` or `race_wrong` (deducts points).
 ```
 
 ## DB Schema
