@@ -2222,7 +2222,7 @@ function setupRoomEventHandlers(room: any) {
     if (raceTimerInterval) clearInterval(raceTimerInterval)
     waitingForOpponent.value = false
     runRecapCountdown()
-    startTimeoutPhase() // Add this so the UI switches to 'timeout' state
+    gameState.value = 'timeout'
   })
 
   room.onMessage('start_next_round', (data: any) => {

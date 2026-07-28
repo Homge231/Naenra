@@ -77,12 +77,12 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     this.onMessage("finished_round", (client) => {
       const player = this.state.players.get(client.sessionId);
       if (player) {
-        player.isReady = true;
+        player.isFinished = true;
       }
       const players = Array.from(this.state.players.values());
-      console.log(`Player ${client.sessionId} finished round. (${players.filter(p => p.isReady).length}/${players.length})`);
-      if (players.length === 2 && players.every(p => p.isReady)) {
-        players.forEach(p => p.isReady = false);
+      console.log(`Player ${client.sessionId} finished round. (${players.filter(p => p.isFinished).length}/${players.length})`);
+      if (players.length === 2 && players.every(p => p.isFinished)) {
+        players.forEach(p => p.isFinished = false);
         this.broadcast("start_recap_countdown");
       }
     });
