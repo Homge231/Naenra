@@ -768,6 +768,7 @@ const isMultiplayer = computed(() => route.path === '/game/multiplayer')
 const opponentName = ref('')
 const opponentAvatar = ref('')
 const opponentScore = ref(0)
+const opponentId = ref('')
 const allCores = ref<any[]>([])
 
 // --- OPPONENT CORE DATA ---
@@ -813,6 +814,7 @@ function updateOpponentData(state: any) {
       opponentScore.value = player.score || 0
       opponentName.value = player.name || 'Opponent'
       opponentAvatar.value = player.avatar || ''
+      opponentId.value = player.id || player.userId || ''
 
       opponentActiveCoreId.value = player.activeCoreId || player.active_core_id || null
 
@@ -1299,7 +1301,10 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       body: JSON.stringify({
         session_id: sid,
         active_core_id: coreId,
-        oracle_reveal_level: oracleLvl
+        oracle_reveal_level: oracleLvl,
+        is_multiplayer: isMultiplayer.value,
+        opponent_id: opponentId.value,
+        is_win: isForfeitWin.value || (score.value > opponentScore.value)
       })
     })
     if (res.ok) {
@@ -1314,7 +1319,9 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
         eloChange: data.elo_change ?? 0,
         newElo: data.new_elo ?? 0,
         oldElo: data.old_elo ?? 0,
-        expectedScore: data.expected_score ?? 500
+        expectedScore: data.expected_score ?? 500,
+        oldTier: data.old_tier,
+        currentTier: data.current_tier
       }
       // Wait for runRecapCountdown to finish before showing result
     }

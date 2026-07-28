@@ -23,6 +23,12 @@ const props = defineProps<{
   opponentAvatar?: string
   // Mode
   isMultiplayer: boolean
+  // Elo data
+  eloChange?: number
+  newElo?: number
+  oldElo?: number
+  oldTier?: any
+  currentTier?: any
 }>()
 
 const emit = defineEmits<{
@@ -39,6 +45,15 @@ const animatedOpponentScore = ref(0)
 const correctCount = computed(() => props.matchHistory.filter(h => h.isCorrect).length)
 const totalCount = computed(() => props.matchHistory.length)
 const accuracy = computed(() => totalCount.value > 0 ? ((correctCount.value / totalCount.value) * 100).toFixed(1) : '0.0')
+
+const rankProgress = computed(() => {
+  if (!props.currentTier) return 0
+  const range = props.currentTier.max - props.currentTier.min
+  const progress = (props.newElo ?? 0) - props.currentTier.min
+  return Math.min(Math.max((progress / range) * 100, 0), 100)
+})
+
+const showRankUp = ref(false)
 
 // WPM: (total chars of correct answers / 5) / (match duration in minutes)
 // Standard WPM formula uses 5 chars = 1 word
@@ -76,11 +91,18 @@ watch(() => props.isVisible, (newVal) => {
     animatedPlayerScore.value = 0
     animatedOpponentScore.value = 0
     
+    if (props.oldTier && props.currentTier && props.oldTier.name !== props.currentTier.name && (props.newElo ?? 0) > (props.oldElo ?? 0)) {
+      setTimeout(() => {
+        showRankUp.value = true
+      }, 1500)
+    }
+    
     setTimeout(() => {
       animateValue(animatedPlayerScore, 0, props.playerScore, 1500)
       animateValue(animatedOpponentScore, 0, props.opponentScore, 1500)
     }, 500)
   } else {
+    showRankUp.value = false
     if (animationFrameId) window.cancelAnimationFrame(animationFrameId)
   }
 })
@@ -189,8 +211,60 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
           </div>
         </div>
 
+        <!-- Rank Progression -->
+        <div v-if="currentTier" class="w-full mb-10 stat-row" style="animation-delay: 0.4s">
+          <div class="flex justify-between items-end mb-2">
+            <div>
+              <div class="text-[10px] tracking-widest uppercase text-white/50">Current Rank</div>
+              <div class="text-2xl font-black tracking-widest uppercase" :style="{ color: currentTier.color }">
+                {{ currentTier.name }}
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] tracking-widest uppercase text-white/50">Rating</div>
+              <div class="text-xl font-bold flex items-center gap-2">
+                {{ newElo }} 
+                <span v-if="eloChange !== undefined && eloChange !== 0" 
+                      class="text-sm px-2 py-0.5 rounded-full"
+                      :class="eloChange > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                  {{ eloChange > 0 ? '+' : '' }}{{ eloChange }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
+            <div class="h-full rounded-full transition-all duration-1000 ease-out"
+                 :style="{ width: `${rankProgress}%`, backgroundColor: currentTier.color, boxShadow: `0 0 10px ${currentTier.color}80` }">
+            </div>
+          </div>
+          <div class="flex justify-between mt-1 text-[10px] text-white/40">
+            <span>{{ currentTier.min }}</span>
+            <span>{{ currentTier.max === 999999 ? '∞' : currentTier.max }}</span>
+          </div>
+        </div>
+
+        <!-- Rank Up Celebration Popup -->
+        <transition name="rank-up">
+          <div v-if="showRankUp" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl">
+            <div class="text-center p-8 bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-2xl shadow-[0_0_50px_rgba(255,255,255,0.1)] transform scale-110">
+              <div class="text-sm font-black tracking-widest uppercase text-white/70 mb-2">Rank Up!</div>
+              <div class="text-6xl font-black tracking-widest uppercase mb-4" :style="{ color: currentTier?.color, textShadow: `0 0 30px ${currentTier?.color}` }">
+                {{ currentTier?.name }}
+              </div>
+              <div class="text-white/60 mb-6 flex items-center justify-center gap-2">
+                <span class="line-through opacity-50">{{ oldTier?.name }}</span>
+                <span>➔</span>
+                <span class="font-bold text-white">{{ currentTier?.name }}</span>
+              </div>
+              <button @click="showRankUp = false" class="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition-colors uppercase tracking-widest text-xs font-bold">
+                Continue
+              </button>
+            </div>
+          </div>
+        </transition>
+
         <!-- Action Buttons -->
-        <div class="flex justify-center gap-4 w-full">
+        <div class="flex justify-center gap-4 w-full stat-row" style="animation-delay: 0.5s">
           <button @click="emit('goHome')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
             Home
           </button>
@@ -255,5 +329,15 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
   animation-name: confettiFall;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
+}
+
+.rank-up-enter-active,
+.rank-up-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.rank-up-enter-from,
+.rank-up-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
 }
 </style>
