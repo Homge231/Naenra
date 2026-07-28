@@ -1,13 +1,13 @@
 <template>
-  <div class="min-h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col items-center justify-center">
+  <div class="min-h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-[#ea580c]/50 flex flex-col items-center justify-center">
     
     <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
-      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
-      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
-      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
-      <div class="absolute top-[45%] left-[5%] w-[40vw] h-[40vw] bg-blue-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-slow" style="animation-delay: 2s;"></div>
-      <div class="absolute top-[5%] left-[35%] w-[35vw] h-[35vw] bg-purple-300/20 rounded-full mix-blend-multiply blur-[90px] animate-pulse-slow" style="animation-delay: 1.5s;"></div>
-      <div class="absolute bottom-[5%] left-[30%] w-[50vw] h-[50vw] bg-yellow-300/20 rounded-full mix-blend-multiply blur-[120px] animate-float-delayed" style="animation-delay: 3s;"></div>
+      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-[#fdba74]/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
+      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-[#fca5a5]/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
+      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-[#fecdd3]/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
+      <div class="absolute top-[45%] left-[5%] w-[40vw] h-[40vw] bg-[#93c5fd]/20 rounded-full mix-blend-multiply blur-[100px] animate-float-slow" style="animation-delay: 2s;"></div>
+      <div class="absolute top-[5%] left-[35%] w-[35vw] h-[35vw] bg-[#d8b4fe]/20 rounded-full mix-blend-multiply blur-[90px] animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+      <div class="absolute bottom-[5%] left-[30%] w-[50vw] h-[50vw] bg-[#fde047]/20 rounded-full mix-blend-multiply blur-[120px] animate-float-delayed" style="animation-delay: 3s;"></div>
 
       <div v-for="letter in floatingLetters" :key="letter.id"
         class="absolute top-0 font-black uppercase text-gray-300 select-none animate-matrix-drift opacity-50"
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <div class="relative z-10 w-full max-w-md p-8 md:p-10 bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-2 border-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] transform transition-all hover:shadow-[0_15px_50px_rgba(251,146,60,0.1)]">
+    <div class="relative z-10 w-full max-w-md p-8 md:p-10 bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-2 border-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] transform transition-all hover:shadow-[0_15px_50px_rgba(234,88,12,0.15)]">
       
       <div class="mb-8 flex flex-col items-center">
         <div class="w-16 h-16 mb-4 flex items-center justify-center transform -skew-x-12 shadow-[4px_4px_0_rgba(255,123,0,0.5)] bg-white/5 border border-white/10">
@@ -48,14 +48,14 @@
       <div class="flex mb-8 bg-gray-100/80 rounded-2xl p-1.5 border border-gray-200 shadow-inner">
         <button
           @click="switchMode('login')"
-          :class="mode === 'login' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-400 hover:text-gray-700'"
+          :class="mode === 'login' ? 'bg-white text-[#ea580c] shadow-sm border-b-2 border-[#ea580c]' : 'text-gray-400 hover:text-gray-700'"
           class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
         >
           Login
         </button>
         <button
           @click="switchMode('register')"
-          :class="mode === 'register' ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' : 'text-gray-400 hover:text-gray-700'"
+          :class="mode === 'register' ? 'bg-white text-[#ea580c] shadow-sm border-b-2 border-[#ea580c]' : 'text-gray-400 hover:text-gray-700'"
           class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
         >
           Register
@@ -70,7 +70,7 @@
             @keyup.enter="handleRegister"
             type="text"
             placeholder="Player_One"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.username" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.username }}</p>
         </div>
@@ -82,7 +82,7 @@
             @keyup.enter="mode === 'register' ? handleRegister() : handleLogin()"
             type="email"
             placeholder="player@naenra.com"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.email" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.email }}</p>
         </div>
@@ -94,7 +94,7 @@
             @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.password" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.password }}</p>
         </div>
@@ -106,7 +106,7 @@
             @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.confirmPassword" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.confirmPassword }}</p>
         </div>
@@ -114,7 +114,7 @@
         <button
           @click="handleRegister"
           :disabled="loading"
-          class="group relative w-full mt-6 bg-gradient-to-r from-orange-400 to-red-500 text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
+          class="group relative w-full mt-6 bg-gradient-to-r from-orange to-hexred text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
         >
           <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
           <span class="relative z-10 flex items-center justify-center gap-2">
@@ -132,7 +132,7 @@
             @keyup.enter="handleLogin"
             type="email"
             placeholder="player@naenra.com"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.email" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.email }}</p>
         </div>
@@ -143,7 +143,7 @@
             <button
               type="button" 
               @click="router.push('/forgot-password')"
-              class="text-[10px] text-orange-500 hover:text-red-500 transition-colors font-black uppercase tracking-widest"
+              class="text-[10px] text-[#ea580c] hover:text-red-500 transition-colors font-black uppercase tracking-widest"
             >
               Forgot?
             </button>
@@ -153,7 +153,7 @@
             @keyup.enter="handleLogin"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.password" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.password }}</p>
         </div>
@@ -168,8 +168,8 @@
             <div
               class="w-5 h-5 rounded-lg border-2 transition-all duration-200 flex items-center justify-center"
               :class="rememberMe
-                ? 'bg-gradient-to-br from-orange-400 to-red-500 border-transparent'
-                : 'bg-white border-gray-300 group-hover:border-orange-400'"
+                ? 'bg-gradient-to-br from-orange to-hexred border-transparent'
+                : 'bg-white border-gray-300 group-hover:border-[#ea580c]'"
             >
               <svg v-if="rememberMe" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -184,7 +184,7 @@
         <button
           @click="handleLogin"
           :disabled="loading"
-          class="group relative w-full mt-4 bg-gradient-to-r from-orange-400 to-red-500 text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
+          class="group relative w-full mt-4 bg-gradient-to-r from-orange to-hexred text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
         >
           <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
           <span class="relative z-10 flex items-center justify-center gap-2">
@@ -244,7 +244,6 @@ const errors = reactive({ username: '', email: '', password: '', confirmPassword
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
-// TẠO MẢNG ALPHABET TỪ HOMEVIEW CHUYỂN SANG
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
 const floatingLetters = alphabet.map((char, index) => {
   return {
@@ -258,7 +257,6 @@ const floatingLetters = alphabet.map((char, index) => {
 })
 
 onMounted(() => {
-  // Restore remembered email if present
   const remembered = localStorage.getItem(REMEMBER_ME_KEY)
   const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY)
   if (remembered === 'true' && savedEmail) {
@@ -266,8 +264,6 @@ onMounted(() => {
     rememberMe.value = true
   }
 
-  // Show banner if user was force-logged-out because their account
-  // logged in from another tab/device (see fetchWithAuth in services/api.ts)
   if (route.query.reason === 'session_invalidated') {
     sessionInvalidatedMessage.value = 'Your account has been logged in from another device. You have been signed out.'
     router.replace({ query: {} })
@@ -356,7 +352,6 @@ async function handleLogin() {
       return
     }
 
-    // Handle remember me
     if (rememberMe.value) {
       localStorage.setItem(REMEMBER_ME_KEY, 'true')
       localStorage.setItem(SAVED_EMAIL_KEY, form.email)
@@ -376,12 +371,10 @@ async function handleLogin() {
 async function handleGoogle() {
   loading.value = true
   await auth.loginWithGoogle()
-  // Note: page will redirect; loading state doesn't need to be reset
 }
 </script>
 
 <style scoped>
-/* Khối màu Pastel trôi lơ lửng */
 .animate-float-slow {
   animation: floatSky 12s ease-in-out infinite alternate;
 }
@@ -402,7 +395,6 @@ async function handleGoogle() {
   100% { transform: scale(1.1); opacity: 0.5; }
 }
 
-/* HIỆU ỨNG CHỮ CHẢY THẲNG ĐỨNG TỪ DƯỚI LÊN */
 .animate-matrix-drift {
   animation-name: drift;
   animation-timing-function: linear;
@@ -427,7 +419,6 @@ async function handleGoogle() {
   }
 }
 
-/* HIỆU ỨNG CHỚP SÁNG CHO BUTTONS */
 .animate-shimmer {
   animation: shimmer 2.5s infinite;
 }
