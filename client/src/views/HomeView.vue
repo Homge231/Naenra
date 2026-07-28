@@ -112,9 +112,9 @@
             <span>🏆</span> Leaderboard
           </button>
 
-          <button @click="startMatchmaking" @mouseenter="audioService.playHover()"
+          <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
             class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-2">
-            <span>🎯</span> Training
+            <span>🎯</span> Single Player
           </button>
         </div>
 

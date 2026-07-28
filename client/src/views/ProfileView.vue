@@ -1,49 +1,64 @@
 <template>
-  <div class="min-h-screen w-full bg-darkNavy text-white overflow-hidden relative font-sans flex flex-col items-center justify-center">
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue rounded-full mix-blend-screen filter blur-[128px] opacity-20 pointer-events-none z-0"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-orange rounded-full mix-blend-screen filter blur-[128px] opacity-20 pointer-events-none z-0"></div>
-    <div class="absolute inset-0 cyber-grid opacity-50 pointer-events-none z-0"></div>
+  <div class="min-h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col items-center justify-center">
+    
+    <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
+      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
+      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
+      <div class="absolute top-[45%] left-[5%] w-[40vw] h-[40vw] bg-blue-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-slow" style="animation-delay: 2s;"></div>
+      <div class="absolute top-[5%] left-[35%] w-[35vw] h-[35vw] bg-purple-300/20 rounded-full mix-blend-multiply blur-[90px] animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+      <div class="absolute bottom-[5%] left-[30%] w-[50vw] h-[50vw] bg-yellow-300/20 rounded-full mix-blend-multiply blur-[120px] animate-float-delayed" style="animation-delay: 3s;"></div>
 
-    <div class="relative z-10 w-full max-w-md p-10 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+      <div v-for="letter in floatingLetters" :key="letter.id"
+        class="absolute top-0 font-black uppercase text-gray-300 select-none animate-matrix-drift"
+        :style="{
+          left: letter.left + '%',
+          fontSize: letter.size + 'rem',
+          animationDelay: letter.delay + 's',
+          animationDuration: letter.duration + 's'
+        }">
+        {{ letter.char }}
+      </div>
+    </div>
 
-      <!-- Header -->
+    <div class="relative z-10 w-full max-w-md p-8 md:p-10 bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-2 border-white shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
+
       <div class="flex items-center gap-4 mb-8">
-        <button @click="router.push('/home')" class="text-gray-400 hover:text-white transition-colors">
+        <button @click="router.push('/home')" class="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-100 text-gray-500 rounded-full hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 class="text-xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred">
-          Profile
+        <h1 class="text-2xl font-black uppercase tracking-widest text-gray-900 drop-shadow-sm">
+          Player Profile
         </h1>
       </div>
 
-      <!-- Loading -->
       <div v-if="loading" class="flex justify-center py-12">
-        <svg class="animate-spin w-8 h-8 text-orange" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin w-10 h-10 text-gray-900" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
 
       <div v-else>
-        <!-- Avatar -->
-        <div class="flex flex-col items-center mb-8">
-          <div class="relative group">
-            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue to-lightBlue p-0.5">
+        <div class="flex flex-col items-center mb-8 relative">
+          <div class="relative group cursor-pointer" :class="{ 'cursor-default': !editMode }">
+            <div class="w-28 h-28 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 p-[3px] shadow-lg">
               <img
                 :src="displayAvatar"
                 :alt="form.username"
-                class="w-full h-full rounded-full object-cover bg-darkNavy"
+                class="w-full h-full rounded-full object-cover bg-white border-2 border-white"
                 @error="(e) => (e.target as HTMLImageElement).src = fallbackAvatar"
               />
             </div>
+            
             <div
               v-if="editMode"
-              class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              class="absolute inset-0 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-[3px] border-transparent"
               @click="triggerFileInput"
             >
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-8 h-8 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -56,95 +71,101 @@
               @change="handleFileChange"
             />
           </div>
-          <p v-if="editMode" class="text-xs text-gray-500 mt-2 uppercase tracking-widest">
+          
+          <div v-if="!editMode" class="mt-4 text-center">
+            <h2 class="text-2xl font-black text-gray-900 tracking-tight">{{ profile.username }}</h2>
+          </div>
+
+          <p v-if="editMode" class="text-xs font-bold text-gray-600 mt-3 uppercase tracking-widest bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">
             Click avatar to change
           </p>
-          <p v-if="editMode && uploadedBase64" class="text-xs text-success mt-1 font-semibold">
+          <p v-if="editMode && uploadedBase64" class="text-xs text-green-600 mt-2 font-bold animate-pulse">
             ✓ New image selected
           </p>
         </div>
 
-        <!-- Stats -->
         <div class="grid grid-cols-2 gap-3 mb-3">
-          <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">ELO</p>
-            <p class="text-2xl font-black text-orange">{{ profile.elo }}</p>
+          <div class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-4 text-center shadow-sm">
+            <p class="text-[10px] font-bold text-orange-600/70 uppercase tracking-widest mb-1">ELO Rating</p>
+            <p class="text-3xl font-black text-orange-600">{{ profile.elo }}</p>
           </div>
-          <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Rank</p>
-            <p class="text-lg font-black text-lightBlue uppercase">{{ profile.rank }}</p>
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl p-4 text-center shadow-sm flex flex-col justify-center">
+            <p class="text-[10px] font-bold text-blue-600/70 uppercase tracking-widest mb-1">Rank</p>
+            <p class="text-xl font-black text-blue-600 uppercase">{{ profile.rank }}</p>
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-3 mb-6">
-          <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Wins</p>
-            <p class="text-xl font-black text-success">{{ profile.wins }}</p>
+        
+        <div class="bg-gray-50 border border-gray-100 rounded-2xl py-4 flex items-center shadow-inner mb-8">
+          <div class="flex-1 text-center border-r border-gray-200">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Wins</p>
+            <p class="text-xl font-black text-green-500">{{ profile.wins }}</p>
           </div>
-          <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Losses</p>
-            <p class="text-xl font-black text-hexred">{{ profile.losses }}</p>
+          <div class="flex-1 text-center border-r border-gray-200">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Losses</p>
+            <p class="text-xl font-black text-red-500">{{ profile.losses }}</p>
           </div>
-          <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
-            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Matches</p>
-            <p class="text-xl font-black text-white">{{ profile.total_matches }}</p>
+          <div class="flex-1 text-center">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Matches</p>
+            <p class="text-xl font-black text-gray-800">{{ profile.total_matches }}</p>
           </div>
         </div>
 
-        <!-- View mode -->
         <div v-if="!editMode" class="space-y-3">
-          <div class="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-            <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Username</p>
-            <p class="text-white font-bold">{{ profile.username }}</p>
-          </div>
           <button
             @click="enterEditMode"
-            class="w-full mt-4 bg-white/5 border border-white/10 text-white font-black py-3.5 rounded-xl hover:bg-white/10 hover:border-orange transition-all duration-300 uppercase tracking-widest text-sm group relative overflow-hidden"
+            class="group relative w-full h-[60px] bg-gray-900 text-white font-black text-sm tracking-widest uppercase rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:bg-black transition-all duration-300 overflow-hidden active:scale-[0.98]"
           >
-            <div class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
-            <span class="relative z-10">Edit Profile</span>
+            <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
+            <span class="relative z-10 flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+              Edit Profile
+            </span>
           </button>
           
           <button
             @click="handleReplayTutorial"
-            class="w-full mt-2 bg-darkNavy/50 border border-lightBlue/30 text-lightBlue font-black py-3 rounded-xl hover:bg-lightBlue/10 hover:border-lightBlue transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2"
+            class="w-full bg-white border-2 border-gray-200 text-gray-600 font-black py-4 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Replay Tutorial
           </button>
         </div>
 
-        <!-- Edit mode -->
         <div v-else class="space-y-4">
           <div>
-            <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Username</label>
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Username</label>
             <input
               v-model="form.username"
               type="text"
               maxlength="30"
               placeholder="Your username"
-              class="w-full bg-darkNavy/50 border border-white/10 rounded-xl px-4 py-3.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-orange focus:ring-1 focus:ring-orange transition-colors"
+              class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-400 focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm text-center"
             />
           </div>
 
-          <p v-if="errorMsg" class="text-hexred text-xs font-bold text-center uppercase tracking-wider">{{ errorMsg }}</p>
-          <p v-if="successMsg" class="text-success text-xs font-bold text-center uppercase tracking-wider">{{ successMsg }}</p>
+          <p v-if="errorMsg" class="text-red-500 text-xs font-bold text-center uppercase tracking-wider bg-red-50 py-2.5 rounded-xl border border-red-100">{{ errorMsg }}</p>
+          <p v-if="successMsg" class="text-green-600 text-xs font-bold text-center uppercase tracking-wider bg-green-50 py-2.5 rounded-xl border border-green-100">{{ successMsg }}</p>
 
-          <div class="flex gap-3 mt-2">
+          <div class="flex gap-3 mt-6">
             <button
               @click="cancelEdit"
-              class="flex-1 py-3 bg-white/5 border border-white/10 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition-all uppercase tracking-widest text-sm"
+              class="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-500 font-black rounded-2xl hover:bg-gray-50 hover:text-gray-900 transition-all uppercase tracking-widest text-xs active:scale-[0.98] shadow-sm"
             >
               Cancel
             </button>
             <button
               @click="handleSave"
               :disabled="saving"
-              class="flex-1 py-3 bg-white/5 border border-white/10 text-white font-black rounded-xl hover:border-orange transition-all duration-300 uppercase tracking-widest text-sm group relative overflow-hidden disabled:opacity-50"
+              class="group relative flex-1 py-4 bg-gray-900 hover:bg-black text-white font-black rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-all duration-300 uppercase tracking-widest text-xs overflow-hidden disabled:opacity-50 active:scale-[0.98]"
             >
-              <div class="absolute inset-0 bg-gradient-to-r from-orange to-hexred translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-out z-0"></div>
-              <span class="relative z-10">{{ saving ? 'Saving...' : 'Save' }}</span>
+              <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
+              <span class="relative z-10 flex items-center justify-center gap-2">
+                <svg v-if="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                <svg v-else class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                {{ saving ? 'Saving...' : 'Save' }}
+              </span>
             </button>
           </div>
         </div>
@@ -195,6 +216,19 @@ const displayAvatar = computed(() => {
   if (uploadedBase64.value) return uploadedBase64.value
   if (profile.value.avatar_url) return profile.value.avatar_url
   return fallbackAvatar.value
+})
+
+// MẢNG ALPHABET TỪ HOMEVIEW CHUYỂN SANG
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const floatingLetters = alphabet.map((char, index) => {
+  return {
+    id: index,
+    char: char,
+    left: Math.random() * 95,
+    size: 2 + Math.random() * 5,
+    delay: Math.random() * 15,
+    duration: 15 + Math.random() * 20
+  }
 })
 
 function handleReplayTutorial() {
@@ -288,7 +322,6 @@ async function handleSave() {
 }
 
 onMounted(async () => {
-  // If profile isn't loaded globally yet, try to load it
   if (!authStore.profile) {
     await authStore.fetchProfile()
   }
@@ -298,9 +331,59 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.cyber-grid {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 64px 64px;
+/* Khối màu Pastel trôi lơ lửng */
+.animate-float-slow {
+  animation: floatSky 12s ease-in-out infinite alternate;
+}
+.animate-float-delayed {
+  animation: floatSky 15s ease-in-out infinite alternate-reverse;
+}
+.animate-pulse-slow {
+  animation: pulseBlob 8s ease-in-out infinite alternate;
+}
+
+@keyframes floatSky {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -40px) scale(1.1); }
+}
+
+@keyframes pulseBlob {
+  0% { transform: scale(1); opacity: 0.3; }
+  100% { transform: scale(1.1); opacity: 0.5; }
+}
+
+/* HIỆU ỨNG CHỮ CHẢY THẲNG ĐỨNG TỪ DƯỚI LÊN (Bê từ Home qua) */
+.animate-matrix-drift {
+  animation-name: drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+@keyframes drift {
+  0% { 
+    transform: translateY(110vh);
+    opacity: 0; 
+  }
+  10% { 
+    opacity: 0.2; 
+  }
+  90% { 
+    opacity: 0.2; 
+  }
+  100% { 
+    transform: translateY(-20vh);
+    opacity: 0; 
+  }
+}
+
+/* HIỆU ỨNG CHỚP SÁNG CHO BUTTONS */
+.animate-shimmer {
+  animation: shimmer 2.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-150%); }
+  100% { transform: translateX(250%); }
 }
 </style>
