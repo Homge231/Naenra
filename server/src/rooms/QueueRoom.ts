@@ -107,8 +107,8 @@ export class QueueRoom extends Room<{ state: QueueState }> {
             const matchRoom = await matchMaker.createRoom("match_room", { isCustom: false });
             console.log(`[QueueRoom] Created matchRoom ${matchRoom.roomId}`);
             
-            const client1 = this.clients.getById(p1.sessionId) || this.clients.find(c => c.sessionId === p1.sessionId);
-            const client2 = this.clients.getById(p2.sessionId) || this.clients.find(c => c.sessionId === p2.sessionId);
+            const client1 = this.clients.find(c => c.sessionId === p1.sessionId);
+            const client2 = this.clients.find(c => c.sessionId === p2.sessionId);
 
             console.log(`[QueueRoom] Found clients? c1: ${!!client1}, c2: ${!!client2}`);
 

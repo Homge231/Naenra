@@ -837,7 +837,6 @@ const allCores = ref<any[]>([])
 
 // --- OPPONENT CORE DATA ---
 const opponentActiveCoreId = ref<string | null>(null)
-const showOpponentCoreTooltip = ref(false)
 
 const opponentCoreDetails = computed(() => {
   if (!opponentActiveCoreId.value || allCores.value.length === 0) return null
@@ -1136,11 +1135,7 @@ const isSpeedDemon = computed(() => {
   if (name === 'speed demon') return true
   return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'speed demon')
 })
-const isGuardianAngel = computed(() => {
-  const name = getActiveName()
-  if (name === 'guardian-angel' || name === 'guardian angel') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'guardian angel')
-})
+
 
 const isOracleFree = computed(() => {
   const name = getActiveName()
@@ -1536,6 +1531,9 @@ function handleKeydown(e: KeyboardEvent) {
   if (gameState.value === 'timeout') return
   if (menuOpen.value || confirmQuit.value) return
 
+  const isRaceMode = matchStore.currentRound === 4
+  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+
   // Skip question when Enter is pressed
   if (e.key === 'Enter') {
     if (gameState.value === 'correct' || gameState.value === 'wrong') {
@@ -1544,7 +1542,7 @@ function handleKeydown(e: KeyboardEvent) {
     }
     if (gameState.value !== 'playing') return
     if (matchStore.currentRound === 4) {
-      if (typedLetters.value.length > 0) {
+      if (typedLetters.value.length === 0 || (currentQ && typedLetters.value.length === currentQ.target_length)) {
         checkAnswer()
       }
       return
@@ -1554,9 +1552,6 @@ function handleKeydown(e: KeyboardEvent) {
   }
 
   if (gameState.value !== 'playing') return
-
-  const isRaceMode = matchStore.currentRound === 4
-  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
   
   if (!currentQ) return
 
@@ -1605,7 +1600,11 @@ async function checkAnswer() {
   if (!currentQ) return
 
   const maxLen = currentQ.target_length
-  if (typedLetters.value.length < maxLen) return
+  if (matchStore.currentRound === 4) {
+    if (typedLetters.value.length !== 0 && typedLetters.value.length !== maxLen) return
+  } else {
+    if (typedLetters.value.length < maxLen) return
+  }
 
   const typed = typedLetters.value.join('')
   const elapsed = Date.now() - questionStartTime.value
@@ -1968,11 +1967,11 @@ async function restartMatch() {
   if (questionQueue.value.length > 0) {
     await loadQuestion()
     gameState.value = 'playing'
-    startMatchTimer()
+    if (matchStore.currentRound !== 4) startMatchTimer()
   } else {
     // Fallback if fetch completely failed
     gameState.value = 'playing'
-    startMatchTimer()
+    if (matchStore.currentRound !== 4) startMatchTimer()
   }
 }
 
@@ -2096,7 +2095,7 @@ watch(aegisShieldCount, (newVal, oldVal) => {
   }
 })
 
-watch(activeCoreModule, (newCore) => {
+watch(activeCoreModule, () => {
   // BGM is handled elsewhere
 }, { immediate: true })
 
@@ -2239,7 +2238,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('start_recap_countdown', () => {
-    if (raceTimerInterval) clearInterval(raceTimerInterval)
+    if(raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     waitingForOpponent.value = false
     runRecapCountdown()
     gameState.value = 'timeout'
@@ -2266,7 +2265,8 @@ function setupRoomEventHandlers(room: any) {
   })
 
   // --- Round 4 (Race Mode) Listeners ---
-  let raceTimerInterval: ReturnType<typeof setInterval> | null = null
+  let raceTimerInterval: ReturnType<typeof setInterval> | null = null;
+  let raceTimerFrame: number | null = null;
 
   room.onMessage('next_race_question', (q: any) => {
     currentRaceQuestion.value = q
@@ -2277,15 +2277,23 @@ function setupRoomEventHandlers(room: any) {
 
     timeLeft.value = 12
     timerProgressPercent.value = 100
-    if (raceTimerInterval) clearInterval(raceTimerInterval)
-    raceTimerInterval = setInterval(() => {
-      if (timeLeft.value > 0) {
-        timeLeft.value--
-        timerProgressPercent.value = (timeLeft.value / 12) * 100
-      } else {
-        clearInterval(raceTimerInterval!)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    
+    const duration = 12000;
+    const start = performance.now();
+    
+    function updateRaceTimer(now) {
+      const elapsed = now - start;
+      const remainingMs = Math.max(0, duration - elapsed);
+      timeLeft.value = Math.ceil(remainingMs / 1000);
+      timerProgressPercent.value = (remainingMs / duration) * 100;
+      
+      if (remainingMs > 0 && gameState.value === 'playing') {
+        raceTimerFrame = requestAnimationFrame(updateRaceTimer);
       }
-    }, 1000)
+    }
+    raceTimerFrame = requestAnimationFrame(updateRaceTimer);
     
     // Auto focus
     setTimeout(() => {
@@ -2313,8 +2321,10 @@ function setupRoomEventHandlers(room: any) {
   room.onMessage('race_wrong', (data: { playerId: string, penalty: number }) => {
     if (data.playerId === currentRoom?.sessionId) {
       triggerScoreFlash('wrong')
-      spawnPointPopup(-data.penalty, 'wrong')
+      if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
+      else spawnPointPopup(0, 'custom', 'SKIPPED')
       score.value = Math.max(0, score.value - data.penalty)
+      gameState.value = 'timeout' // Lock input
     } else {
       opponentScore.value = Math.max(0, opponentScore.value - data.penalty)
       addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')
@@ -2322,7 +2332,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('race_timeout', () => {
-    if (raceTimerInterval) clearInterval(raceTimerInterval)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     opponentTypingText.value = ''
     typedLetters.value = []
     addToast('Time is up!', '⏱️', 'text-yellow-400')
@@ -2419,7 +2429,7 @@ onUnmounted(() => {
   activeBgTimeouts.clear()
 })
 
-onBeforeRouteLeave((to, from, next) => {
+onBeforeRouteLeave((to, _from, next) => {
   if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom) {
     // Do not leave room, we are just returning to lobby
   } else {

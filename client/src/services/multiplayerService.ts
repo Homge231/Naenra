@@ -33,7 +33,6 @@ export async function joinOrCreateQueueRoom(options: any = {}) {
     queueRoom.onLeave((code) => {
       console.log("QueueRoom left with code:", code);
       if (code === 4001) {
-        localStorage.removeItem('arena_token');
         sessionStorage.setItem('arena_force_logged_out', '1');
         window.location.href = '/login?reason=session_invalidated';
       }
@@ -116,7 +115,6 @@ function setupRoomListeners(room: Room) {
   room.onLeave((code) => {
     console.log("MatchRoom left with code:", code);
     if (code === 4001) {
-      localStorage.removeItem('arena_token');
       sessionStorage.setItem('arena_force_logged_out', '1');
       window.location.href = '/login?reason=session_invalidated';
     }

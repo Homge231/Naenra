@@ -12,6 +12,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   private raceQuestions: any[] = [];
   private currentRaceQuestionIndex: number = 0;
   private raceQuestionTimer: ReturnType<typeof setTimeout> | null = null;
+  private raceLockedPlayers: Set<string> = new Set();
 
   onCreate(options: any) {
     this.setState(new MatchState());
@@ -99,10 +100,11 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
+      
+      if (this.raceLockedPlayers.has(client.sessionId)) return;
 
       const qId = this.state.currentRaceQuestion.id;
       
-      // Fetch target word from DB securely
       const { data: question } = await supabase
         .from('questions')
         .select('target_word')
@@ -112,46 +114,59 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       if (!question) return;
 
       const normalizedAnswer = normalizeAnswer(message.answer);
+      const isSkip = normalizedAnswer === "";
+
+      if (isSkip) {
+        this.raceLockedPlayers.add(client.sessionId);
+        client.send("race_wrong", { playerId: client.sessionId, penalty: 0 }); // send 0 penalty to lock their input locally
+        
+        if (this.raceLockedPlayers.size === this.state.players.size) {
+          this.nextRaceQuestion();
+        }
+        return;
+      }
+
       const normalizedTarget = normalizeAnswer(question.target_word);
 
       if (normalizedAnswer === normalizedTarget) {
-        // Player got it right!
         if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
         
-        player.score += 500; // Add points
+        // First correct = 500, Second correct = 250
+        const points = this.raceLockedPlayers.size === 0 ? 500 : 250;
+        player.score += points;
         
-        // Update DB
         if (message.session_id) {
           const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
           if (currentSession) {
              await supabase.from('match_sessions').update({ 
-               total_score: currentSession.total_score + 500,
+               total_score: currentSession.total_score + points,
                questions_answered: currentSession.questions_answered + 1 
              }).eq('id', message.session_id);
           }
         }
         
-        // Broadcast win
-        this.broadcast("race_won", { winnerId: client.sessionId, points: 500 });
-        
-        // Next question
+        this.broadcast("race_won", { winnerId: client.sessionId, points });
         this.nextRaceQuestion();
       } else {
-        // Player got it wrong
-        player.score = Math.max(0, player.score - 200); // Deduct points
+        const penalty = 200;
+        player.score = Math.max(0, player.score - penalty);
         
-        // Update DB
         if (message.session_id) {
           const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
           if (currentSession) {
              await supabase.from('match_sessions').update({ 
-               total_score: Math.max(0, currentSession.total_score - 200),
+               total_score: Math.max(0, currentSession.total_score - penalty),
                questions_answered: currentSession.questions_answered + 1 
              }).eq('id', message.session_id);
           }
         }
         
-        this.broadcast("race_wrong", { playerId: client.sessionId, penalty: 200 });
+        this.raceLockedPlayers.add(client.sessionId);
+        this.broadcast("race_wrong", { playerId: client.sessionId, penalty });
+        
+        if (this.raceLockedPlayers.size === this.state.players.size) {
+          this.nextRaceQuestion();
+        }
       }
     });
 
@@ -210,6 +225,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
   private nextRaceQuestion() {
     if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
+    this.raceLockedPlayers.clear();
 
     if (this.currentRaceQuestionIndex >= this.raceQuestions.length) {
       // Out of questions, maybe end the round?
