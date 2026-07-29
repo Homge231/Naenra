@@ -196,43 +196,43 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       sessionVersion = updatedPlayer.session_version
     } else {
       const tempPassword = Math.random().toString(36).slice(-10) + 'Aa1!'
-      let userId: string
-      let sessionVersion = 0
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: pending.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { full_name: pending.username }
+      })
 
-      // Check if the user somehow already exists (e.g. race condition)
-      const { data: existingUser } = await supabase
-        .from('players')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle()
-
-      if (existingUser) {
-        // Should not happen normally if front-end guards correctly, but just in case
-        res.status(400).json({ error: 'Account already exists' })
+      if (authError) {
+        console.error('AuthError:', authError.message)
+        res.status(400).json({ error: authError.message })
         return
       }
+      
+      userId = authData.user.id
 
-      const { data: newUser, error: createError } = await supabase
+      // The database trigger automatically creates the row, so we just update it
+      const { data: updatedPlayer, error: upsertError } = await supabase
         .from('players')
-        .insert({
+        .update({
           email: pending.email,
-          hashed_password: pending.hashedPassword,
           username: pending.username,
+          hashed_password: pending.hashedPassword,
           elo: 0,
           wins: 0,
           losses: 0,
           total_matches: 0,
           session_version: 0
         })
-        .select('id, session_version')
+        .eq('id', userId)
+        .select('session_version')
         .single()
 
-      if (createError) {
-        res.status(400).json({ error: 'Failed to create user: ' + createError.message })
+      if (upsertError) {
+        res.status(400).json({ error: 'Failed to initialize player profile: ' + upsertError.message })
         return
       }
-      userId = newUser.id
-      sessionVersion = newUser.session_version
+      sessionVersion = updatedPlayer.session_version
     }
 
     pendingStore.delete(email)
