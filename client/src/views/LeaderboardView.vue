@@ -49,9 +49,9 @@
           <div v-for="(player, index) in topPlayers" :key="player.id"
             class="relative flex items-center bg-white p-3 rounded-2xl shadow-sm border transition-all hover:-translate-y-0.5 hover:shadow-md group overflow-hidden"
             :class="[
-              index === 0 ? 'border-yellow-300 ring-2 ring-yellow-100 bg-gradient-to-r from-yellow-50 to-white' : '',
-              index === 1 ? 'border-gray-300 ring-2 ring-gray-100 bg-gradient-to-r from-gray-50 to-white' : '',
-              index === 2 ? 'border-amber-600/50 ring-2 ring-amber-100 bg-gradient-to-r from-amber-50 to-white' : '',
+              index === 0 ? 'border-yellow-400 ring-2 ring-yellow-200 bg-gradient-to-r from-yellow-100 to-white' : '',
+              index === 1 ? 'border-slate-300 ring-2 ring-slate-200 bg-gradient-to-r from-slate-100 to-white' : '',
+              index === 2 ? 'border-amber-500 ring-2 ring-amber-200 bg-gradient-to-r from-amber-100 to-white' : '',
               index > 2 ? 'border-gray-100 hover:border-orange/30' : ''
             ]">
             
