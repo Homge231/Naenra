@@ -626,8 +626,10 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     // Determine the primary scoring core.
     let scoringCore = core
     
-    // In Hybrid Mode (T2 + T3), if we aren't Pandora, power cores take priority for formula
-    if (!secondaryCore) {
+    if (secondaryCore) {
+      scoringCore = secondaryCore
+    } else {
+      // In Hybrid Mode (T2 + T3), if we aren't Pandora, power cores take priority for formula
       const powerCores = coreRows.filter(r => r.classification === 'power')
       if (powerCores.length > 0) {
         // Pick the most recent power core in history

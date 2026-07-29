@@ -22,18 +22,7 @@ export class MissionCoreStrategy extends BaseCore {
     const base = isCorrect ? getBasePoints(ctx.targetWord) : 0
     let penalty = 0
     if (!isCorrect) {
-      if (ctx.secondaryCoreName) {
-        const { getCoreStrategy } = require('./index')
-        const secStrategy = getCoreStrategy(ctx.secondaryCoreName)
-        if (secStrategy && secStrategy.calculateWrong) {
-          const secResult = secStrategy.calculateWrong(ctx)
-          penalty = secResult.breakdown?.penalty ?? Math.abs(secResult.pointsDelta)
-        } else {
-          penalty = ctx.wrongPenalty
-        }
-      } else {
-        penalty = ctx.wrongPenalty
-      }
+      penalty = ctx.wrongPenalty
     }
     const oraclePenalty = this._oraclePenalty(ctx)
 
