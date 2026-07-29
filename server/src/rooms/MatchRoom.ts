@@ -136,11 +136,11 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         player.score += points;
         
         if (message.session_id) {
-          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          const { data: currentSession } = await supabase.from('game_sessions').select('score, questions_answered').eq('id', message.session_id).single();
           if (currentSession) {
-             await supabase.from('match_sessions').update({ 
-               total_score: currentSession.total_score + points,
-               questions_answered: currentSession.questions_answered + 1 
+             await supabase.from('game_sessions').update({ 
+               score: (currentSession.score || 0) + points,
+               questions_answered: (currentSession.questions_answered || 0) + 1 
              }).eq('id', message.session_id);
           }
         }
@@ -152,11 +152,11 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         player.score = Math.max(0, player.score - penalty);
         
         if (message.session_id) {
-          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          const { data: currentSession } = await supabase.from('game_sessions').select('score, questions_answered').eq('id', message.session_id).single();
           if (currentSession) {
-             await supabase.from('match_sessions').update({ 
-               total_score: Math.max(0, currentSession.total_score - penalty),
-               questions_answered: currentSession.questions_answered + 1 
+             await supabase.from('game_sessions').update({ 
+               score: Math.max(0, (currentSession.score || 0) - penalty),
+               questions_answered: (currentSession.questions_answered || 0) + 1 
              }).eq('id', message.session_id);
           }
         }
@@ -289,14 +289,14 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
       // Auto-abandon any stuck previous sessions
       const { data: activeSessions } = await supabase
-        .from('match_sessions')
+        .from('game_sessions')
         .select('id')
-        .eq('user_id', decoded.id)
+        .eq('player_id', decoded.id)
         .in('status', ['waiting', 'playing']);
       
       if (activeSessions && activeSessions.length > 0) {
         for (const s of activeSessions) {
-          await supabase.from('match_sessions').update({ status: 'abandoned' }).eq('id', s.id);
+          await supabase.from('game_sessions').update({ status: 'abandoned' }).eq('id', s.id);
         }
       }
 
