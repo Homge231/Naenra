@@ -2275,7 +2275,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   // --- Round 4 (Race Mode) Listeners ---
-  let raceTimerInterval: ReturnType<typeof setInterval> | null = null;
+
   let raceTimerFrame: number | null = null;
 
   room.onMessage('next_race_question', (q: any) => {
@@ -2294,7 +2294,7 @@ function setupRoomEventHandlers(room: any) {
     const duration = 12000;
     const start = performance.now();
     
-    function updateRaceTimer(now) {
+    function updateRaceTimer(now: number) {
       const elapsed = now - start;
       const remainingMs = Math.max(0, duration - elapsed);
       timeLeft.value = Math.ceil(remainingMs / 1000);

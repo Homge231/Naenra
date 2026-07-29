@@ -157,7 +157,7 @@ const oppName = ref('Opponent');
 const oppAvatar = ref('');
 const oppElo = ref(1000);
 
-if (currentRoom?.state?.players) {
+if (currentRoom && currentRoom.state && currentRoom.state.players) {
   currentRoom.state.players.forEach((player: any, sessionId: string) => {
     if (sessionId !== currentRoom.sessionId) {
       oppName.value = player.name || 'Opponent';
@@ -166,17 +166,12 @@ if (currentRoom?.state?.players) {
     }
   });
 
+  // @ts-ignore
   currentRoom.state.players.onAdd((player: any, sessionId: string) => {
-    if (sessionId !== currentRoom.sessionId) {
+    if (currentRoom && sessionId !== currentRoom.sessionId) {
       oppName.value = player.name || 'Opponent';
       oppAvatar.value = player.avatar || '';
       oppElo.value = player.elo || 1000;
-      
-      player.onChange(() => {
-        oppName.value = player.name || 'Opponent';
-        oppAvatar.value = player.avatar || '';
-        oppElo.value = player.elo || 1000;
-      });
     }
   });
 }
