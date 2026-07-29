@@ -157,23 +157,30 @@ const oppName = ref('Opponent');
 const oppAvatar = ref('');
 const oppElo = ref(1000);
 
-if (currentRoom && currentRoom.state && currentRoom.state.players) {
+if (currentRoom) {
   const currentSessionId = currentRoom.sessionId
+  
+  // Initial check in case state is already populated
+  if (currentRoom.state && currentRoom.state.players) {
+    currentRoom.state.players.forEach((player: any, sessionId: string) => {
+      if (sessionId !== currentSessionId) {
+        oppName.value = player.name || 'Opponent';
+        oppAvatar.value = player.avatar || '';
+        oppElo.value = player.elo || 1000;
+      }
+    });
+  }
 
-  currentRoom.state.players.forEach((player: any, sessionId: string) => {
-    if (sessionId !== currentSessionId) {
-      oppName.value = player.name || 'Opponent';
-      oppAvatar.value = player.avatar || '';
-      oppElo.value = player.elo || 1000;
-    }
-  });
-
-  // @ts-ignore
-  currentRoom.state.players.onAdd((player: any, sessionId: string) => {
-    if (sessionId !== currentSessionId) {
-      oppName.value = player.name || 'Opponent';
-      oppAvatar.value = player.avatar || '';
-      oppElo.value = player.elo || 1000;
+  // Safely listen to state changes instead of relying on undocumented/unsupported schema callbacks
+  currentRoom.onStateChange((state: any) => {
+    if (state && state.players) {
+      state.players.forEach((player: any, sessionId: string) => {
+        if (sessionId !== currentSessionId) {
+          oppName.value = player.name || 'Opponent';
+          oppAvatar.value = player.avatar || '';
+          oppElo.value = player.elo || 1000;
+        }
+      });
     }
   });
 }
