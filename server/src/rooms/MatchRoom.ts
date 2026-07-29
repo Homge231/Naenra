@@ -272,7 +272,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
       const { data: profile } = await supabase
         .from("players")
-        .select("username, avatar_url, session_version")
+        .select("username, avatar_url, session_version, elo")
         .eq("id", decoded.id)
         .single();
 
@@ -308,7 +308,8 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       return {
         id: decoded.id,
         name,
-        avatar
+        avatar,
+        elo: profile.elo ?? 0
       };
     } catch (e: any) {
       console.error("onAuth error!", e);
