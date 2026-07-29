@@ -40,7 +40,7 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
       return {
         id: decoded.id,
-        elo: profile.elo || 1000
+        elo: profile.elo ?? 1000
       };
     } catch (e) {
       console.error("[QueueRoom] onAuth Error", e);
@@ -50,7 +50,7 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
   onJoin(client: Client, options: any) {
     console.log(`[QueueRoom] ${client.sessionId} joined queue.`);
-    const elo = client.auth?.elo || 1000;
+    const elo = client.auth?.elo ?? 1000;
     const userId = client.auth?.id || client.sessionId;
     client.userData = { userId };
     addActiveClient(userId, client);

@@ -166,7 +166,7 @@ if (currentRoom) {
       if (sessionId !== currentSessionId) {
         oppName.value = player.name || 'Opponent';
         oppAvatar.value = player.avatar || '';
-        oppElo.value = player.elo || 1000;
+        oppElo.value = player.elo ?? 1000;
       }
     });
   }
@@ -178,7 +178,7 @@ if (currentRoom) {
         if (sessionId !== currentSessionId) {
           oppName.value = player.name || 'Opponent';
           oppAvatar.value = player.avatar || '';
-          oppElo.value = player.elo || 1000;
+          oppElo.value = player.elo ?? 1000;
         }
       });
     }
