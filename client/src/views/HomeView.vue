@@ -50,7 +50,7 @@
         <div class="flex gap-1 border-l-2 border-orange-100 pl-3 ml-1">
           <button @click="router.push('/analytics'); audioService.playClick()" @mouseenter="audioService.playHover()"
             class="w-9 h-9 flex items-center justify-center bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white rounded-full transition-colors shadow-sm" title="Vocab Analytics">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
           </button>
           <button @click="handleLogout" @mouseenter="audioService.playHover()" 
             class="w-9 h-9 flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-full transition-colors shadow-sm" title="Disconnect">
@@ -61,7 +61,7 @@
     </header>
 
     <main class="relative z-20 flex-1 flex flex-col justify-center items-center px-4 w-full">
-      <div class="w-full max-w-[600px] flex flex-col items-center text-center relative z-10 mt-[-5vh]">
+      <div class="w-full max-w-[650px] flex flex-col items-center text-center relative z-10 mt-[-5vh]">
         
         <div class="inline-flex items-center gap-2 bg-white border-2 border-orange-200 text-orange-600 px-5 py-2 rounded-full mb-6 shadow-sm">
           <span class="text-sm animate-pulse">🔥</span>
@@ -91,11 +91,11 @@
           </button>
         </div>
 
-        <div class="w-full grid grid-cols-2 gap-4 px-4">
+        <div class="w-full grid grid-cols-2 gap-4 px-4 mb-4">
           <button @click="goToCustomRoom" @mouseenter="audioService.playHover()" :disabled="isJoiningCustom"
             class="h-16 rounded-2xl bg-white border-b-4 border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 active:border-b-0 active:translate-y-1 shadow-sm">
             <span class="text-xl">🤝</span>
-            <span>Create</span>
+            <span>Create Room</span>
           </button>
 
           <div class="h-16 rounded-2xl bg-white border-b-4 border-gray-200 flex overflow-hidden focus-within:border-orange-400 transition-all group active:border-b-0 active:translate-y-1 shadow-sm">
@@ -106,15 +106,22 @@
               Join
             </button>
           </div>
+        </div>
 
+        <div class="w-full grid grid-cols-3 gap-3 px-4">
           <button @click="goToLeaderboard" @mouseenter="audioService.playHover()"
-            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-2">
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5">
             <span>🏆</span> Leaderboard
+          </button>
+          
+          <button @click="router.push('/library'); audioService.playClick()" @mouseenter="audioService.playHover()"
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-blue-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5">
+            <span>📚</span> Library
           </button>
 
           <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
-            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-2">
-            <span>🎯</span> Single Player
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5">
+            <span>🎯</span> Training
           </button>
         </div>
 
@@ -255,13 +262,12 @@ onMounted(async () => {
 }
 
 /* HIỆU ỨNG ZERO-GRAVITY DRIFTING TỪ DƯỚI LÊN & NHANH HƠN */
-.animate-drift-1 { animation: drift1 7s ease-in-out infinite; } /* Đã giảm từ 14s -> 7s */
-.animate-drift-2 { animation: drift2 9s ease-in-out infinite; } /* Đã giảm từ 18s -> 9s */
-.animate-drift-3 { animation: drift3 8s ease-in-out infinite; } /* Đã giảm từ 16s -> 8s */
-.animate-drift-4 { animation: drift4 10s ease-in-out infinite; } /* Đã giảm từ 20s -> 10s */
-.animate-drift-5 { animation: drift5 11s ease-in-out infinite; } /* Đã giảm từ 22s -> 11s */
+.animate-drift-1 { animation: drift1 7s ease-in-out infinite; } 
+.animate-drift-2 { animation: drift2 9s ease-in-out infinite; } 
+.animate-drift-3 { animation: drift3 8s ease-in-out infinite; } 
+.animate-drift-4 { animation: drift4 10s ease-in-out infinite; } 
+.animate-drift-5 { animation: drift5 11s ease-in-out infinite; } 
 
-/* Các hướng bay lượn uốn lượn trái phải, kết hợp xoay (Từ dưới lên trên) */
 @keyframes drift1 {
   0% { transform: translate(0, 120vh) rotate(0deg); opacity: 0; }
   20% { opacity: 0.3; }
@@ -299,7 +305,6 @@ onMounted(async () => {
   100% { transform: translate(10px, -20vh) rotate(90deg) scale(1); opacity: 0; }
 }
 
-/* HIỆU ỨNG CHỚP SÁNG CHO NÚT PLAY */
 .animate-shimmer {
   animation: shimmer 2.5s infinite;
 }

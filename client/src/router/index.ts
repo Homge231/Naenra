@@ -103,7 +103,19 @@ const router = createRouter({
       name: 'leaderboard',
       component: () => import('../views/LeaderboardView.vue'),
       meta: { requiresAuth: true }
-    }
+    },
+    {
+      path:'/library',
+      name: 'library',
+      component: () => import('../views/LibraryView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/library/core/:id',
+      name: 'core-library-item',
+      component: () => import('../views/CoreDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
   ]
 })
 

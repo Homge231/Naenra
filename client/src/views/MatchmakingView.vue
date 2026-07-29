@@ -14,17 +14,17 @@
 
     <header class="relative z-20 w-full p-6 md:px-12 flex justify-between items-start">
       
-      <div class="flex items-center gap-3 cursor-pointer" @click="cancelMatchmaking">
-        <div class="w-10 h-10 flex items-center justify-center">
+      <div class="flex items-center gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50" @click="cancelMatchmaking">
+        <div class="w-12 h-12 flex items-center justify-center">
           <svg class="w-full h-full text-orange fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
         </div>
         <div class="leading-none">
-          <h1 class="text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase">
+          <h1 class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
             NAENRA
           </h1>
-          <p class="text-[9px] text-lightBlue font-bold tracking-[0.25em] uppercase">MATCHMAKING ARENA</p>
+          <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">MATCHMAKING ARENA</p>
         </div>
       </div>
 

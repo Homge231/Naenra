@@ -1,58 +1,59 @@
 <template>
-  <div class="h-screen w-full bg-darkNavy text-white overflow-hidden relative font-sans selection:bg-orange/40 flex flex-col justify-between items-center p-6 md:p-12">
-    <!-- Ambient Background Glow Effects -->
-    <div class="absolute top-[-20%] left-[-10%] w-[55vw] h-[55vw] bg-orange rounded-full mix-blend-screen filter blur-[220px] opacity-25 pointer-events-none z-0"></div>
-    <div class="absolute bottom-[-20%] right-[-10%] w-[55vw] h-[55vw] bg-hexred rounded-full mix-blend-screen filter blur-[220px] opacity-25 pointer-events-none z-0"></div>
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[45vw] h-[45vw] bg-lightBlue rounded-full mix-blend-screen filter blur-[240px] opacity-15 pointer-events-none z-0"></div>
+  <div class="h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col justify-between items-center">
+    
+    <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
+      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
+      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
+      
+      <div class="absolute top-[15%] left-[10%] text-6xl font-black text-gray-300 uppercase animate-float-slow opacity-50">S</div>
+      <div class="absolute top-[60%] left-[80%] text-8xl font-black text-gray-300 uppercase animate-float-delayed opacity-30">P</div>
+      <div class="absolute top-[80%] left-[20%] text-5xl font-black text-gray-300 uppercase animate-pulse-slow opacity-40">E</div>
+      <div class="absolute top-[25%] left-[75%] text-7xl font-black text-gray-300 uppercase animate-float-slow opacity-50" style="animation-delay: 2s;">D</div>
+    </div>
 
-    <!-- Cyber Grid Overlay -->
-    <div class="absolute inset-0 cyber-grid opacity-40 pointer-events-none z-0"></div>
-
-    <!-- Header / Brand Bar -->
-    <header class="relative z-20 w-full max-w-6xl flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 flex items-center justify-center">
-          <svg class="w-full h-full text-orange fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <header class="relative z-20 w-full flex justify-between items-center p-4 lg:px-8">
+      
+      <div class="flex items-center gap-4 group bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50">
+        <div class="w-12 h-12 flex items-center justify-center">
+          <svg class="w-full h-full text-orange-500 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
         </div>
         <div class="leading-none">
-          <h1 class="text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase">
+          <h1 class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 drop-shadow-sm uppercase">
             NAENRA
           </h1>
-          <p class="text-[9px] text-lightBlue font-bold tracking-[0.25em] uppercase">MATCH FOUND ARENA</p>
+          <p class="text-[10px] text-blue-500 font-bold tracking-[0.3em] uppercase">MATCH FOUND ARENA</p>
         </div>
       </div>
 
-      <div class="inline-flex items-center gap-2.5 bg-success/20 border border-success/40 px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(74,222,128,0.3)]">
-        <span class="w-2.5 h-2.5 rounded-full bg-success animate-ping"></span>
-        <span class="text-xs font-bold text-success tracking-[0.25em] uppercase">OPPONENT CONNECTED</span>
+      <div class="inline-flex items-center gap-2.5 bg-green-50 border border-green-200 px-5 py-2 rounded-full shadow-sm">
+        <span class="w-3 h-3 rounded-full bg-green-500 animate-ping"></span>
+        <span class="text-[10px] font-black text-green-600 tracking-[0.25em] uppercase hidden sm:block">Opponent Connected</span>
       </div>
     </header>
 
-    <!-- Main Content: VS Arena Showcase -->
-    <main class="relative z-20 my-auto flex flex-col items-center justify-center w-full max-w-5xl">
-      <!-- Top Title -->
+    <main class="relative z-20 my-auto flex flex-col items-center justify-center w-full max-w-5xl px-4 lg:px-8">
+      
       <div class="text-center mb-8 animate-bounce-slow">
-        <h2 class="text-4xl md:text-6xl font-black italic uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-orange to-hexred drop-shadow-[0_0_30px_rgba(255,123,0,0.5)]">
+        <h2 class="text-5xl md:text-7xl font-black italic uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-br from-gray-900 via-orange-500 to-red-600 drop-shadow-md">
           MATCH FOUND
         </h2>
-        <p class="text-xs md:text-sm text-lightBlue font-mono font-bold tracking-[0.3em] uppercase mt-2">
+        <p class="text-xs md:text-sm text-gray-500 font-mono font-black tracking-[0.3em] uppercase mt-3 bg-white/50 inline-block px-4 py-1 rounded-full border border-gray-200">
           &gt; PREPARE FOR 1V1 TYPING BATTLE
         </p>
       </div>
 
-      <!-- VS Card Container -->
-      <div class="w-full grid grid-cols-1 md:grid-cols-11 gap-6 items-center bg-darkNavy/60 backdrop-blur-xl border border-white/15 rounded-3xl p-6 md:p-10 shadow-[0_0_60px_rgba(0,0,0,0.6)] relative overflow-hidden">
+      <div class="w-full grid grid-cols-1 md:grid-cols-11 gap-6 items-center bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2.5rem] p-6 md:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)] relative overflow-hidden">
         
-        <!-- Player 1 (YOU) - Left Side -->
-        <div class="md:col-span-5 flex flex-col items-center text-center p-6 bg-white/5 border border-white/10 rounded-2xl relative group hover:border-orange/50 transition-colors transform hover:-translate-y-1 duration-300">
-          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange text-darkNavy text-[10px] font-black tracking-widest px-3 py-0.5 rounded-full uppercase shadow-md">
+        <div class="md:col-span-5 flex flex-col items-center text-center p-8 bg-gray-50/50 border-2 border-orange-100 rounded-3xl relative group hover:border-orange-300 transition-colors transform hover:-translate-y-2 duration-300 shadow-sm">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[10px] font-black tracking-widest px-4 py-1 rounded-full uppercase shadow-md border-2 border-white">
             YOU
           </div>
           
-          <div class="relative w-28 h-28 md:w-36 md:h-36 rounded-full p-1 bg-gradient-to-tr from-orange to-hexred shadow-[0_0_35px_rgba(255,123,0,0.5)] mb-4">
-            <div class="w-full h-full rounded-full overflow-hidden bg-darkNavy border-2 border-white/20">
+          <div class="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-[6px] bg-gradient-to-tr from-orange-400 to-red-500 shadow-[0_0_40px_rgba(251,146,60,0.3)] mb-5">
+            <div class="w-full h-full rounded-full overflow-hidden bg-white border-4 border-white">
               <img
                 :src="myAvatarUrl"
                 :alt="myUsername"
@@ -62,41 +63,38 @@
             </div>
           </div>
 
-          <h3 class="text-xl md:text-2xl font-black tracking-wider text-white mb-1 uppercase truncate max-w-full">
+          <h3 class="text-2xl font-black tracking-wider text-gray-900 mb-2 uppercase truncate max-w-full">
             {{ myUsername }}
           </h3>
-          <div class="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-lightOrange bg-orange/10 px-3 py-1 rounded-md border border-orange/20">
+          <div class="inline-flex items-center gap-1.5 text-sm font-mono font-black text-orange-600 bg-orange-50 px-4 py-1.5 rounded-xl border border-orange-200">
             <span>ELO: {{ myElo }}</span>
           </div>
         </div>
 
-        <!-- Center VS Badge & Countdown Ring -->
-        <div class="md:col-span-1 flex flex-col items-center justify-center my-4 md:my-0">
+        <div class="md:col-span-1 flex flex-col items-center justify-center my-6 md:my-0">
           <div class="relative flex items-center justify-center">
-            <span class="text-5xl md:text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-orange via-hexred to-red-600 drop-shadow-[0_0_25px_rgba(230,57,70,0.8)] select-none transform -skew-x-12">
+            <span class="text-6xl md:text-8xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-orange-500 via-red-500 to-red-700 drop-shadow-md select-none transform -skew-x-12">
               VS
             </span>
           </div>
 
-          <!-- Countdown Ring Ticker -->
-          <div class="mt-6 flex flex-col items-center">
-            <div class="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-lightBlue/30 border-t-lightBlue flex items-center justify-center bg-darkNavy/80 shadow-[0_0_25px_rgba(59,130,246,0.5)] animate-pulse">
-              <span class="text-3xl md:text-4xl font-black font-mono text-white">
+          <div class="mt-8 flex flex-col items-center">
+            <div class="w-20 h-20 md:w-24 md:h-24 rounded-full border-8 border-gray-100 border-t-orange-500 flex items-center justify-center bg-white shadow-lg animate-[spin_2s_linear_infinite]">
+              <span class="text-4xl md:text-5xl font-black font-mono text-gray-900 animate-[spin_2s_linear_infinite_reverse]">
                 {{ countdown }}
               </span>
             </div>
-            <span class="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase mt-2">STARTING IN</span>
+            <span class="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase mt-4">STARTING IN</span>
           </div>
         </div>
 
-        <!-- Player 2 (OPPONENT) - Right Side -->
-        <div class="md:col-span-5 flex flex-col items-center text-center p-6 bg-white/5 border border-white/10 rounded-2xl relative group hover:border-lightBlue/50 transition-colors transform hover:-translate-y-1 duration-300">
-          <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-lightBlue text-darkNavy text-[10px] font-black tracking-widest px-3 py-0.5 rounded-full uppercase shadow-md">
+        <div class="md:col-span-5 flex flex-col items-center text-center p-8 bg-gray-50/50 border-2 border-blue-100 rounded-3xl relative group hover:border-blue-300 transition-colors transform hover:-translate-y-2 duration-300 shadow-sm">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-black tracking-widest px-4 py-1 rounded-full uppercase shadow-md border-2 border-white">
             OPPONENT
           </div>
 
-          <div class="relative w-28 h-28 md:w-36 md:h-36 rounded-full p-1 bg-gradient-to-tr from-cyan-400 to-blue shadow-[0_0_35px_rgba(34,211,238,0.5)] mb-4">
-            <div class="w-full h-full rounded-full overflow-hidden bg-darkNavy border-2 border-white/20">
+          <div class="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-[6px] bg-gradient-to-tr from-cyan-400 to-blue-500 shadow-[0_0_40px_rgba(59,130,246,0.3)] mb-5">
+            <div class="w-full h-full rounded-full overflow-hidden bg-white border-4 border-white">
               <img
                 :src="opponentAvatarUrl"
                 :alt="opponentUsername"
@@ -106,10 +104,10 @@
             </div>
           </div>
 
-          <h3 class="text-xl md:text-2xl font-black tracking-wider text-white mb-1 uppercase truncate max-w-full">
+          <h3 class="text-2xl font-black tracking-wider text-gray-900 mb-2 uppercase truncate max-w-full">
             {{ opponentUsername }}
           </h3>
-          <div class="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-lightBlue bg-blue/10 px-3 py-1 rounded-md border border-blue/20">
+          <div class="inline-flex items-center gap-1.5 text-sm font-mono font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-xl border border-blue-200">
             <span>ELO: {{ opponentElo }}</span>
           </div>
         </div>
@@ -117,10 +115,11 @@
       </div>
     </main>
 
-    <!-- Bottom Footer Status Line -->
-    <footer class="relative z-20 text-center text-xs text-gray-500 tracking-wider">
-      <span>SERVER: ASIA-EAST-1 &bull; PROTOCOL: WS / COLYSEUS 0.17</span>
-    </footer>
+    <div class="relative z-20 flex justify-center pb-4">
+      <footer class="text-center text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase bg-white/60 py-2 px-6 rounded-full border border-gray-200/50 backdrop-blur-sm shadow-sm">
+        SERVER: ASIA-EAST-1 &nbsp;&bull;&nbsp; PROTOCOL: WS / COLYSEUS 0.17
+      </footer>
+    </div>
   </div>
 </template>
 
@@ -171,6 +170,19 @@ const opponentAvatarUrl = computed(() => {
 
 const opponentElo = computed(() => 1000)
 
+// MẢNG ALPHABET ĐỂ TẠO HIỆU ỨNG BACKGROUND
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const floatingLetters = alphabet.map((char, index) => {
+  return {
+    id: index,
+    char: char,
+    left: Math.random() * 95,
+    size: 2 + Math.random() * 5,
+    delay: Math.random() * 15,
+    duration: 15 + Math.random() * 20
+  }
+})
+
 function startCountdown() {
   countdown.value = 5
   if (countdownInterval) clearInterval(countdownInterval)
@@ -200,10 +212,50 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.cyber-grid {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 64px 64px;
+/* Background Floating Animations */
+.animate-float-slow {
+  animation: floatSky 12s ease-in-out infinite alternate;
+}
+.animate-float-delayed {
+  animation: floatSky 15s ease-in-out infinite alternate-reverse;
+}
+.animate-pulse-slow {
+  animation: pulseBlob 8s ease-in-out infinite alternate;
+}
+
+@keyframes floatSky {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -40px) scale(1.1); }
+}
+
+@keyframes pulseBlob {
+  0% { transform: scale(1); opacity: 0.3; }
+  100% { transform: scale(1.1); opacity: 0.5; }
+}
+
+/* HIỆU ỨNG CHỮ CHẢY THẲNG ĐỨNG TỪ DƯỚI LÊN */
+.animate-matrix-drift {
+  animation-name: drift;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+@keyframes drift {
+  0% { 
+    transform: translateY(110vh);
+    opacity: 0; 
+  }
+  10% { 
+    opacity: 0.2; 
+  }
+  90% { 
+    opacity: 0.2; 
+  }
+  100% { 
+    transform: translateY(-20vh);
+    opacity: 0; 
+  }
 }
 
 @keyframes bounce-slow {
