@@ -158,8 +158,10 @@ const oppAvatar = ref('');
 const oppElo = ref(1000);
 
 if (currentRoom && currentRoom.state && currentRoom.state.players) {
+  const currentSessionId = currentRoom.sessionId
+
   currentRoom.state.players.forEach((player: any, sessionId: string) => {
-    if (sessionId !== currentRoom.sessionId) {
+    if (sessionId !== currentSessionId) {
       oppName.value = player.name || 'Opponent';
       oppAvatar.value = player.avatar || '';
       oppElo.value = player.elo || 1000;
@@ -168,7 +170,7 @@ if (currentRoom && currentRoom.state && currentRoom.state.players) {
 
   // @ts-ignore
   currentRoom.state.players.onAdd((player: any, sessionId: string) => {
-    if (currentRoom && sessionId !== currentRoom.sessionId) {
+    if (sessionId !== currentSessionId) {
       oppName.value = player.name || 'Opponent';
       oppAvatar.value = player.avatar || '';
       oppElo.value = player.elo || 1000;
