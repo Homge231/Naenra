@@ -81,12 +81,12 @@ export class PhoenixCoreStrategy extends BaseCore {
     let finalScore = Math.floor((basePts + ctx.flatBuff + rebirthFlat + totalDebtRefund) * dynamicMult) - oraclePenalty
 
     let shieldDelta = 0
-    let finalShieldCount: number | undefined = undefined
+    let final_shield_count: number | undefined = undefined
 
     if (missCount > 0 && this.grantShieldsOnRebirth > 0) {
       shieldDelta = this.grantShieldsOnRebirth
       const currentShields = ctx.currentShields || 0
-      finalShieldCount = Math.min(3, currentShields + this.grantShieldsOnRebirth)
+      final_shield_count = Math.min(3, currentShields + this.grantShieldsOnRebirth)
     }
 
     const breakdownObj: ScoringResult['breakdown'] = {
@@ -100,8 +100,8 @@ export class PhoenixCoreStrategy extends BaseCore {
       phoenix_miss_count: missCount
     }
 
-    if (typeof finalShieldCount === 'number') {
-      breakdownObj.finalShieldCount = finalShieldCount
+    if (typeof final_shield_count === 'number') {
+      breakdownObj.final_shield_count = final_shield_count
     }
 
     return {

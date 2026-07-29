@@ -76,10 +76,10 @@ export class SpeedsterCoreStrategy extends BaseCore {
       currentShields = shields
     }
 
-    let finalShieldCount: number | undefined = undefined
+    let final_shield_count: number | undefined = undefined
     if (this.coreName === 'speed shield') {
       shieldDelta = 1
-      finalShieldCount = Math.min(3, currentShields + 1)
+      final_shield_count = Math.min(3, currentShields + 1)
     }
 
     if (this.coreName === 'time warp') {
@@ -120,8 +120,8 @@ export class SpeedsterCoreStrategy extends BaseCore {
       time_taken_ms:   ctx.timeTaken,
     }
 
-    if (typeof finalShieldCount === 'number') {
-      breakdownObj.finalShieldCount = finalShieldCount
+    if (typeof final_shield_count === 'number') {
+      breakdownObj.final_shield_count = final_shield_count
     }
 
     return {
@@ -165,7 +165,7 @@ export class SpeedsterCoreStrategy extends BaseCore {
             oracle_penalty: oraclePenalty,
             penalty: 0,
             shield_blocked: 1,
-            finalShieldCount: activeShields - 1
+            final_shield_count: activeShields - 1
           }
         }
       }

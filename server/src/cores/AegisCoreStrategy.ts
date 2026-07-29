@@ -126,7 +126,7 @@ export class AegisCoreStrategy extends BaseCore {
         multiplier_buff: activeMultiplier,
         oracle_penalty:  oraclePenalty,
         penalty:         0,
-        finalShieldCount: finalShields,
+        final_shield_count: finalShields,
         mission_streak:  finalStreak
       },
     }
@@ -170,7 +170,7 @@ export class AegisCoreStrategy extends BaseCore {
           oracle_penalty: oraclePenalty,
           penalty: 0,
           shield_blocked: 1,
-          finalShieldCount: finalShields,
+          final_shield_count: finalShields,
           mission_streak: finalStreak
         },
       }
@@ -187,7 +187,7 @@ export class AegisCoreStrategy extends BaseCore {
         oracle_penalty: oraclePenalty,
         penalty: ctx.wrongPenalty,
         shield_blocked: 0,
-        finalShieldCount: finalShields,
+        final_shield_count: finalShields,
         mission_streak: finalStreak
       },
     }

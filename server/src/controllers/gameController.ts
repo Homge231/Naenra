@@ -669,6 +669,35 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       penaltyType:       penaltyType
     }
 
+    // ── Pre-evaluate Aegis Shield Core for Hybrid Mode ────────────────────────
+    let shieldCore = historyCoreNames.find(name => {
+      const strat = getCoreStrategy(name)
+      return strat.constructor.name === 'AegisCoreStrategy' || name.toLowerCase() === 'speed shield'
+    })
+    
+    // If Pandora/Upgrade shifted away from Aegis Shield / Speed Shield but the player still has earned shields, default to shield logic to block the damage
+    if (!shieldCore && ctx.currentShields && ctx.currentShields > 0) {
+      shieldCore = historyCoreNames.includes('speed shield') ? 'speed shield' : 'aegis shield'
+    }
+
+    let aegisResult: any = null
+    if (shieldCore && shieldCore !== scoringCore.name) {
+       aegisResult = runScoring(isCorrect, shieldCore, ctx)
+       
+       if (isCorrect) {
+          // Extract dynamic Aegis flat buffs (e.g. Aegis Nova +500 points)
+          const aegisExtraFlat = aegisResult.breakdown.flat_buff - ctx.flatBuff
+          if (aegisExtraFlat > 0) {
+             ctx.flatBuff += aegisExtraFlat
+          }
+          // Extract dynamic Aegis multiplier (e.g. Indomitable)
+          const aegisExtraMult = aegisResult.breakdown.multiplier_buff - ctx.multiplierBuff
+          if (aegisExtraMult > 0) {
+             ctx.multiplierBuff += aegisExtraMult
+          }
+       }
+    }
+
     // Always run the primary scoring core logic
     let scoringResult = runScoring(isCorrect, scoringCore.name, ctx)
 
@@ -685,6 +714,21 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     let lockInputMs = scoringResult.lockInputMs
     let pauseTimerMs = scoringResult.pauseTimerMs
 
+    // Apply Aegis shield syncing and damage block
+    if (aegisResult) {
+      if (aegisResult.breakdown.final_shield_count !== undefined) {
+        breakdown.final_shield_count = aegisResult.breakdown.final_shield_count
+      }
+      if (isCorrect && aegisResult.timerDelta) {
+        timerDelta = (timerDelta || 0) + aegisResult.timerDelta
+      }
+      if (!isCorrect && aegisResult.breakdown.shield_blocked) {
+         pointsDelta = aegisResult.pointsDelta
+         breakdown = aegisResult.breakdown
+         forgiveMistake = aegisResult.forgiveMistake
+      }
+    }
+
     // Stack Mission progress if there is a Mission core in history
     const missionCoreName = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'MissionCoreStrategy')
     if (missionCoreName && missionCoreName !== scoringCore.name) {
@@ -695,28 +739,6 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         const missionBonus = missionResult.breakdown.flat_buff
         pointsDelta += missionBonus
         breakdown.flat_buff += missionBonus
-      }
-    }
-
-    // If there is an Aegis core or Speed Shield in history (or they have ghost shields from Pandora) that would block damage, let it override the primary penalty!
-    if (!isCorrect) {
-      let shieldCore = historyCoreNames.find(name => {
-        const strat = getCoreStrategy(name)
-        return strat.constructor.name === 'AegisCoreStrategy' || name.toLowerCase() === 'speed shield'
-      })
-      // If Pandora/Upgrade shifted away from Aegis Shield / Speed Shield but the player still has earned shields, default to shield logic to block the damage
-      if (!shieldCore && ctx.currentShields && ctx.currentShields > 0) {
-        shieldCore = historyCoreNames.includes('speed shield') ? 'speed shield' : 'aegis shield'
-      }
-      
-      if (shieldCore && shieldCore !== scoringCore.name) {
-         const shieldResult = runScoring(isCorrect, shieldCore, ctx)
-         if (shieldResult.breakdown.shield_blocked) {
-           // Shield successfully blocked! Override the penalty result.
-           pointsDelta = shieldResult.pointsDelta
-           breakdown = shieldResult.breakdown
-           forgiveMistake = shieldResult.forgiveMistake
-         }
       }
     }
 
@@ -846,7 +868,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         penalty: breakdown.penalty,
         core_name: core.name,
         shield_blocked: breakdown.shield_blocked,
-        final_shield_count: breakdown.finalShieldCount,
+        final_shield_count: breakdown.final_shield_count,
         mission_streak: breakdown.mission_streak
       }
     })
