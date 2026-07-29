@@ -51,8 +51,8 @@
             :class="[
               index === 0 ? 'border-yellow-300 ring-2 ring-yellow-100 bg-gradient-to-r from-yellow-50 to-white' : '',
               index === 1 ? 'border-gray-300 ring-2 ring-gray-100 bg-gradient-to-r from-gray-50 to-white' : '',
-              index === 2 ? 'border-orange-300 ring-2 ring-orange-50 bg-gradient-to-r from-orange-50/50 to-white' : '',
-              index > 2 ? 'border-gray-100 hover:border-orange-200' : ''
+              index === 2 ? 'border-amber-600/50 ring-2 ring-amber-100 bg-gradient-to-r from-amber-50 to-white' : '',
+              index > 2 ? 'border-gray-100 hover:border-orange/30' : ''
             ]">
             
             <!-- Rank Number -->
@@ -60,7 +60,7 @@
               :class="[
                 index === 0 ? 'text-yellow-500 drop-shadow-sm text-3xl' : '',
                 index === 1 ? 'text-gray-400 drop-shadow-sm text-2xl' : '',
-                index === 2 ? 'text-orange-600 drop-shadow-sm text-2xl' : '',
+                index === 2 ? 'text-amber-700 drop-shadow-sm text-2xl' : '',
                 index > 2 ? 'text-gray-300' : ''
               ]">
               <span v-if="index === 0">👑</span>
@@ -74,7 +74,7 @@
               :class="[
                 index === 0 ? 'border-yellow-400' : '',
                 index === 1 ? 'border-gray-400' : '',
-                index === 2 ? 'border-orange-400' : '',
+                index === 2 ? 'border-amber-600' : '',
                 index > 2 ? 'border-transparent' : ''
               ]">
               <img :src="player.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.username}`" 
