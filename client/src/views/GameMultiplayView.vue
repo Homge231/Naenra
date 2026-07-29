@@ -1006,12 +1006,26 @@ const isBurningComboActive = computed(() => isComboCore.value && currentCombo.va
 const missionProgress = ref(0)
 const isAegisMode = computed(() =>
   checkAegisCore(activeCoreModule.value?.name || '') ||
-  effectiveCores.value.some(c => checkAegisCore(c.name))
+  effectiveCores.value.some(c => checkAegisCore(c.name)) ||
+  activeCoreModule.value?.name?.toLowerCase() === 'rebirth' ||
+  activeCoreModule.value?.name?.toLowerCase() === 'eternal rebirth' ||
+  effectiveCores.value.some(c => c.name.toLowerCase() === 'rebirth' || c.name.toLowerCase() === 'eternal rebirth')
 )
 const maxShields = computed(() => {
-  const activeMax = checkMaxShields(activeCoreModule.value?.name || '')
+  const activeName = activeCoreModule.value?.name?.toLowerCase() || ''
+  let activeMax = checkMaxShields(activeName)
+  if (activeName === 'rebirth') activeMax = 1
+  if (activeName === 'eternal rebirth') activeMax = 2
+
   if (effectiveCores.value.length === 0) return activeMax
-  return Math.max(activeMax, ...effectiveCores.value.map(c => checkMaxShields(c.name)))
+
+  const effectiveMax = Math.max(...effectiveCores.value.map(c => {
+    const n = c.name.toLowerCase()
+    if (n === 'rebirth') return 1
+    if (n === 'eternal rebirth') return 2
+    return checkMaxShields(n)
+  }))
+  return Math.max(activeMax, effectiveMax)
 })
 // Aegis Shield State
 const aegisShieldCount = ref(0)
