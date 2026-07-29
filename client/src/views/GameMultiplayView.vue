@@ -349,10 +349,20 @@
               </div>
 
               <!-- Letter slots (anchor for popup position) -->
-              <div id="tutorial-typing-area" class="w-full flex flex-col items-center gap-3 overflow-hidden"
+              <div id="tutorial-typing-area" class="w-full flex flex-col items-center gap-3 overflow-hidden relative"
                 ref="letterSlotsRef">
 
-
+                <!-- Lock Overlay for Skipped/Failed Race Question -->
+                <transition name="fade">
+                  <div v-if="isRaceLocked" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] rounded-xl transition-all duration-300">
+                    <div class="flex items-center gap-2 px-5 py-2.5 bg-black/80 border-2 border-gray-600 rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.8)]">
+                      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                      <span class="text-gray-300 font-bold tracking-widest uppercase text-sm">Input Locked</span>
+                    </div>
+                  </div>
+                </transition>
                 <div
                   class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none"
                   :class="{ 'speedster-slots-glow': isSpeedsterCore && gameState === 'playing' }">
