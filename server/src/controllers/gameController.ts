@@ -672,12 +672,10 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     // Always run the primary scoring core logic
     let scoringResult = runScoring(isCorrect, scoringCore.name, ctx)
 
-    // Apply Pandora specific modifiers on top if the active core is a Pandora core
-    if (core.name !== scoringCore.name) {
-      const pandoraStrategy = getCoreStrategy(core.name) as any
-      if (typeof pandoraStrategy.applyModifiers === 'function') {
-        scoringResult = pandoraStrategy.applyModifiers(scoringResult, isCorrect, ctx, normalizedAnswer)
-      }
+    // Apply specific modifiers on top if the active core has them (like Pandora cores)
+    const activeStrategy = getCoreStrategy(core.name) as any
+    if (typeof activeStrategy.applyModifiers === 'function') {
+      scoringResult = activeStrategy.applyModifiers(scoringResult, isCorrect, ctx, normalizedAnswer)
     }
 
     let pointsDelta = scoringResult.pointsDelta
