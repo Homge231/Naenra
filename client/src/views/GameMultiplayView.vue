@@ -608,7 +608,7 @@
 
     <!-- US-24: input is disabled during the 15s timeout phase AND in the final timeout state -->
     <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
-      spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay')"
+      spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay') || isRaceLocked"
       @keydown="handleKeydown" />
 
     <!-- Match Result Overlay (Final Round) -->
@@ -813,6 +813,7 @@ function addToast(message: string, icon: string, color: string) {
 
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
+const isRaceLocked = ref(false)
 const typedLetters = ref<string[]>([])
 const opponentTypingText = ref<string>('')
 const currentRaceQuestion = ref<any>(null)
@@ -2242,6 +2243,15 @@ function setupRoomEventHandlers(room: any) {
     waitingForOpponent.value = false
     runRecapCountdown()
     gameState.value = 'timeout'
+    
+    if (matchStore.isFinalRound()) {
+      const sid = sessionId.value
+      const coreId = activeCoreId.value
+      const oracleLvl = oracleRevealLevel.value
+      if (sid) {
+        setTimeout(() => callTimeoutEndpoint(sid, coreId, oracleLvl), 300)
+      }
+    }
   })
 
   room.onMessage('start_next_round', (data: any) => {
@@ -2273,6 +2283,7 @@ function setupRoomEventHandlers(room: any) {
     typedLetters.value = []
     opponentTypingText.value = ''
     gameState.value = 'playing'
+    isRaceLocked.value = false
     questionStartTime.value = Date.now()
 
     timeLeft.value = 12
@@ -2324,7 +2335,7 @@ function setupRoomEventHandlers(room: any) {
       if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
       else spawnPointPopup(0, 'custom', 'SKIPPED')
       score.value = Math.max(0, score.value - data.penalty)
-      gameState.value = 'timeout' // Lock input
+      isRaceLocked.value = true // Lock input for this race question
     } else {
       opponentScore.value = Math.max(0, opponentScore.value - data.penalty)
       addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')

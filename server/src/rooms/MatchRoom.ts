@@ -322,6 +322,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     const id = options.id || client.auth?.id || client.userData?.id || client.sessionId;
     const name = options.name || client.auth?.name || client.userData?.name || "Anonymous";
     const avatar = options.avatar || client.auth?.avatar || client.userData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
+    const elo = options.elo || client.auth?.elo || client.userData?.elo || 1000;
 
     client.userData = { userId: id };
     addActiveClient(id, client);
@@ -330,7 +331,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       this.state.hostId = id;
     }
 
-    this.state.players.set(client.sessionId, new Player(id, name, avatar));
+    this.state.players.set(client.sessionId, new Player(id, name, avatar, elo));
 
     if (this.state.players.size === 2) {
       if (!this.isCustomRoom) {

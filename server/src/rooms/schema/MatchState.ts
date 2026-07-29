@@ -17,16 +17,18 @@ export class Player extends Schema {
   @type("string") id: string;
   @type("string") name: string;
   @type("string") avatar: string;
+  @type("number") elo: number = 1000;
   @type("boolean") isReady: boolean = false;
   @type("boolean") isFinished: boolean = false;
   @type("number") score: number = 0;
   @type("string") activeCoreId: string = "";
   
-  constructor(id: string, name: string, avatar: string) {
+  constructor(id: string, name: string, avatar: string, elo: number = 1000) {
     super();
     this.id = id;
     this.name = name;
     this.avatar = avatar;
+    this.elo = elo;
   }
 }
 
