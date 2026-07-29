@@ -166,12 +166,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { onBeforeRouteLeave } from 'vue-router'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
-import { useAuthStore } from '../stores/authStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
@@ -183,7 +182,6 @@ import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionTo
 
 const router = useRouter()
 const gameStore = useGameStore()
-const authStore = useAuthStore()
 const tutorial = useTutorial()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const navigatingToGame = ref(false)
@@ -201,7 +199,7 @@ function hideTooltip() {
   activeTooltipIndex.value = null
 }
 
-function handleTouchStart(index: number, e: TouchEvent) {
+function handleTouchStart(index: number, _e: TouchEvent) {
   isHolding = false
   if (touchTimeout) clearTimeout(touchTimeout)
   touchTimeout = setTimeout(() => {
@@ -473,6 +471,7 @@ onMounted(async () => {
 
     if (currentRoom.state && currentRoom.state.status === 'playing') {
       console.log('[CoreSelectionMultiView] Match is already playing! Redirecting to gameplay...')
+      const myPlayer = currentRoom.state.players.get(currentRoom.sessionId)
       if (myPlayer?.activeCoreId) {
         gameStore.activeCoreId = myPlayer.activeCoreId
       }
@@ -520,7 +519,7 @@ onUnmounted(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 
-onBeforeRouteLeave((to, from, next) => {
+onBeforeRouteLeave((_to, _from, next) => {
   const isMatchPlaying = currentRoom?.state?.status === 'playing'
   if (!navigatingToGame.value && !isMatchPlaying) {
     leaveMatchRoom()
@@ -588,6 +587,9 @@ onBeforeRouteLeave((to, from, next) => {
 
   /* Masking magic: Keeps the inside clear so your backdrop-blur still works */
   -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;

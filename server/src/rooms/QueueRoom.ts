@@ -2,6 +2,7 @@ import { Room, Client, matchMaker } from "colyseus";
 import { QueueState, QueuePlayer } from "./schema/QueueState";
 import { verifyToken } from "../utils/jwt";
 import { supabase } from "../config/supabase";
+import { addActiveClient, removeActiveClient } from "../utils/activeClients";
 
 export class QueueRoom extends Room<{ state: QueueState }> {
   matchmakingInterval: any;
@@ -39,7 +40,7 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
       return {
         id: decoded.id,
-        elo: profile.elo || 1000
+        elo: profile.elo ?? 1000
       };
     } catch (e) {
       console.error("[QueueRoom] onAuth Error", e);
@@ -49,8 +50,10 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
   onJoin(client: Client, options: any) {
     console.log(`[QueueRoom] ${client.sessionId} joined queue.`);
-    const elo = client.auth?.elo || 1000;
+    const elo = client.auth?.elo ?? 1000;
     const userId = client.auth?.id || client.sessionId;
+    client.userData = { userId };
+    addActiveClient(userId, client);
     this.state.players.set(client.sessionId, new QueuePlayer(client.sessionId, userId, elo));
   }
 
@@ -88,28 +91,32 @@ export class QueueRoom extends Room<{ state: QueueState }> {
         const maxThreshold = Math.max(p1Threshold, p2Threshold);
         const eloDiff = Math.abs(p1.elo - p2.elo);
 
+        if (p1.userId === p2.userId) continue;
+
         if (eloDiff <= maxThreshold) {
           // Found a match!
           matched.add(p1.sessionId);
           matched.add(p2.sessionId);
+
+          // Delete immediately to prevent duplicate match finding in concurrent loop ticks
+          this.state.players.delete(p1.sessionId);
+          this.state.players.delete(p2.sessionId);
 
           try {
             // Create a new match room for these two players
             const matchRoom = await matchMaker.createRoom("match_room", { isCustom: false });
             console.log(`[QueueRoom] Created matchRoom ${matchRoom.roomId}`);
             
-            const client1 = this.clients.getById(p1.sessionId) || this.clients.find(c => c.sessionId === p1.sessionId);
-            const client2 = this.clients.getById(p2.sessionId) || this.clients.find(c => c.sessionId === p2.sessionId);
+            const client1 = this.clients.find(c => c.sessionId === p1.sessionId);
+            const client2 = this.clients.find(c => c.sessionId === p2.sessionId);
 
             console.log(`[QueueRoom] Found clients? c1: ${!!client1}, c2: ${!!client2}`);
 
             if (client1) {
               client1.send("match_found", { roomId: matchRoom.roomId });
-              this.state.players.delete(p1.sessionId);
             }
             if (client2) {
               client2.send("match_found", { roomId: matchRoom.roomId });
-              this.state.players.delete(p2.sessionId);
             }
 
             console.log(`[QueueRoom] Matched ${p1.userId} and ${p2.userId} in room ${matchRoom.roomId} (Elo diff: ${eloDiff})`);
@@ -123,6 +130,9 @@ export class QueueRoom extends Room<{ state: QueueState }> {
   }
 
   onLeave(client: Client, code?: number) {
+    if (client.userData?.userId) {
+      removeActiveClient(client.userData.userId, client);
+    }
     this.state.players.delete(client.sessionId);
     console.log(`[QueueRoom] ${client.sessionId} left queue.`);
   }

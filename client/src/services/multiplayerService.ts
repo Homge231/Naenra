@@ -29,6 +29,15 @@ export async function joinOrCreateQueueRoom(options: any = {}) {
   try {
     queueRoom = await colyseusClient.joinOrCreate("queue_room", options);
     console.log("Joined queue room successfully!", queueRoom.roomId);
+
+    queueRoom.onLeave((code) => {
+      console.log("QueueRoom left with code:", code);
+      if (code === 4001) {
+        sessionStorage.setItem('arena_force_logged_out', '1');
+        window.location.href = '/login?reason=session_invalidated';
+      }
+    });
+
     return queueRoom;
   } catch (e) {
     console.error("JoinOrCreate queue room error:", e);
@@ -101,6 +110,14 @@ function setupRoomListeners(room: Room) {
 
   room.onMessage("pong", (message) => {
     console.log("Received pong from server:", message);
+  });
+
+  room.onLeave((code) => {
+    console.log("MatchRoom left with code:", code);
+    if (code === 4001) {
+      sessionStorage.setItem('arena_force_logged_out', '1');
+      window.location.href = '/login?reason=session_invalidated';
+    }
   });
 }
 

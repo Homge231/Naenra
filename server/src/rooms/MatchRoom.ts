@@ -4,6 +4,7 @@ import { verifyToken } from "../utils/jwt";
 import { supabase } from "../config/supabase";
 import crypto from 'crypto';
 import { generateOracleHints, normalizeAnswer } from "../controllers/gameController";
+import { addActiveClient, removeActiveClient } from "../utils/activeClients";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
@@ -11,6 +12,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   private raceQuestions: any[] = [];
   private currentRaceQuestionIndex: number = 0;
   private raceQuestionTimer: ReturnType<typeof setTimeout> | null = null;
+  private raceLockedPlayers: Set<string> = new Set();
 
   onCreate(options: any) {
     this.setState(new MatchState());
@@ -98,10 +100,11 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       
       const player = this.state.players.get(client.sessionId);
       if (!player) return;
+      
+      if (this.raceLockedPlayers.has(client.sessionId)) return;
 
       const qId = this.state.currentRaceQuestion.id;
       
-      // Fetch target word from DB securely
       const { data: question } = await supabase
         .from('questions')
         .select('target_word')
@@ -111,46 +114,59 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       if (!question) return;
 
       const normalizedAnswer = normalizeAnswer(message.answer);
+      const isSkip = normalizedAnswer === "";
+
+      if (isSkip) {
+        this.raceLockedPlayers.add(client.sessionId);
+        client.send("race_wrong", { playerId: client.sessionId, penalty: 0 }); // send 0 penalty to lock their input locally
+        
+        if (this.raceLockedPlayers.size === this.state.players.size) {
+          this.nextRaceQuestion();
+        }
+        return;
+      }
+
       const normalizedTarget = normalizeAnswer(question.target_word);
 
       if (normalizedAnswer === normalizedTarget) {
-        // Player got it right!
         if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
         
-        player.score += 500; // Add points
+        // First correct = 500, Second correct = 250
+        const points = this.raceLockedPlayers.size === 0 ? 500 : 250;
+        player.score += points;
         
-        // Update DB
         if (message.session_id) {
-          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          const { data: currentSession } = await supabase.from('game_sessions').select('score, questions_answered').eq('id', message.session_id).single();
           if (currentSession) {
-             await supabase.from('match_sessions').update({ 
-               total_score: currentSession.total_score + 500,
-               questions_answered: currentSession.questions_answered + 1 
+             await supabase.from('game_sessions').update({ 
+               score: (currentSession.score || 0) + points,
+               questions_answered: (currentSession.questions_answered || 0) + 1 
              }).eq('id', message.session_id);
           }
         }
         
-        // Broadcast win
-        this.broadcast("race_won", { winnerId: client.sessionId, points: 500 });
-        
-        // Next question
+        this.broadcast("race_won", { winnerId: client.sessionId, points });
         this.nextRaceQuestion();
       } else {
-        // Player got it wrong
-        player.score = Math.max(0, player.score - 200); // Deduct points
+        const penalty = 200;
+        player.score = Math.max(0, player.score - penalty);
         
-        // Update DB
         if (message.session_id) {
-          const { data: currentSession } = await supabase.from('match_sessions').select('total_score, questions_answered').eq('id', message.session_id).single();
+          const { data: currentSession } = await supabase.from('game_sessions').select('score, questions_answered').eq('id', message.session_id).single();
           if (currentSession) {
-             await supabase.from('match_sessions').update({ 
-               total_score: Math.max(0, currentSession.total_score - 200),
-               questions_answered: currentSession.questions_answered + 1 
+             await supabase.from('game_sessions').update({ 
+               score: Math.max(0, (currentSession.score || 0) - penalty),
+               questions_answered: (currentSession.questions_answered || 0) + 1 
              }).eq('id', message.session_id);
           }
         }
         
-        this.broadcast("race_wrong", { playerId: client.sessionId, penalty: 200 });
+        this.raceLockedPlayers.add(client.sessionId);
+        this.broadcast("race_wrong", { playerId: client.sessionId, penalty });
+        
+        if (this.raceLockedPlayers.size === this.state.players.size) {
+          this.nextRaceQuestion();
+        }
       }
     });
 
@@ -209,6 +225,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
   private nextRaceQuestion() {
     if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
+    this.raceLockedPlayers.clear();
 
     if (this.currentRaceQuestionIndex >= this.raceQuestions.length) {
       // Out of questions, maybe end the round?
@@ -255,7 +272,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
       const { data: profile } = await supabase
         .from("players")
-        .select("username, avatar_url, session_version")
+        .select("username, avatar_url, session_version, elo")
         .eq("id", decoded.id)
         .single();
 
@@ -263,15 +280,23 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         throw new Error("Account not found");
       }
 
-      if (profile.session_version !== decoded.sessionVersion) {
+      const tokenVersion = decoded.sessionVersion ?? 0;
+      const dbVersion = profile.session_version ?? 0;
+
+      if (dbVersion !== 0 && tokenVersion !== dbVersion) {
         throw new Error("Session expired due to login elsewhere");
       }
 
-      // Prevent matching with oneself in the same room (Ranked only)
-      if (!options.isCustom) {
-        const isAlreadyInRoom = Array.from(this.state.players.values()).some(p => p.id === decoded.id);
-        if (isAlreadyInRoom) {
-          throw new Error("Cannot match with yourself");
+      // Auto-abandon any stuck previous sessions
+      const { data: activeSessions } = await supabase
+        .from('game_sessions')
+        .select('id')
+        .eq('player_id', decoded.id)
+        .in('status', ['waiting', 'playing']);
+      
+      if (activeSessions && activeSessions.length > 0) {
+        for (const s of activeSessions) {
+          await supabase.from('game_sessions').update({ status: 'abandoned' }).eq('id', s.id);
         }
       }
 
@@ -283,7 +308,8 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       return {
         id: decoded.id,
         name,
-        avatar
+        avatar,
+        elo: profile.elo ?? 0
       };
     } catch (e: any) {
       console.error("onAuth error!", e);
@@ -297,12 +323,16 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     const id = options.id || client.auth?.id || client.userData?.id || client.sessionId;
     const name = options.name || client.auth?.name || client.userData?.name || "Anonymous";
     const avatar = options.avatar || client.auth?.avatar || client.userData?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
+    const elo = options.elo ?? client.auth?.elo ?? client.userData?.elo ?? 1000;
+
+    client.userData = { userId: id };
+    addActiveClient(id, client);
 
     if (this.state.players.size === 0) {
       this.state.hostId = id;
     }
 
-    this.state.players.set(client.sessionId, new Player(id, name, avatar));
+    this.state.players.set(client.sessionId, new Player(id, name, avatar, elo));
 
     if (this.state.players.size === 2) {
       if (!this.isCustomRoom) {
@@ -317,6 +347,10 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
   async onLeave(client: Client, code?: number) {
     console.log(`${client.sessionId} left ${this.roomId}, code: ${code}`);
+    
+    if (client.userData?.userId) {
+      removeActiveClient(client.userData.userId, client);
+    }
     
     const isMatchActive = this.state.status === "playing" || this.state.status === "starting";
 

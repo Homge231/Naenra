@@ -201,6 +201,8 @@ async function startQueueConnection() {
       } catch (err) {
         console.error("Failed to join match room after finding match:", err)
         navigatingToGame.value = false
+        alert("Failed to connect to the match server. Please try again.")
+        cancelMatchmaking()
       }
     })
 

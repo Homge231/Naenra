@@ -100,7 +100,7 @@
 
           <div class="h-16 rounded-2xl bg-white border-b-4 border-gray-200 flex overflow-hidden focus-within:border-orange-400 transition-all group active:border-b-0 active:translate-y-1 shadow-sm">
             <input v-model="joinCode" @keyup.enter="joinExistingRoom" type="text" placeholder="CODE..."
-              class="bg-transparent text-gray-800 font-black pl-5 w-full outline-none uppercase text-sm placeholder:text-gray-400" maxlength="8" />
+              class="bg-transparent text-gray-800 font-black pl-5 w-full outline-none uppercase text-sm placeholder:text-gray-400" maxlength="12" />
             <button @click="joinExistingRoom" @mouseenter="audioService.playHover()" :disabled="!joinCode || isJoiningCustom"
               class="px-5 text-orange-500 font-black text-sm uppercase hover:bg-orange-50 transition-colors disabled:opacity-50 border-l border-gray-100">
               Join

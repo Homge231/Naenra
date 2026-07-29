@@ -71,9 +71,11 @@ export class PhoenixCoreStrategy extends BaseCore {
       }
     }
 
-    // Recover 100% accumulated debt + bonus rate on debt + extra flat rebirth bonus
+    // Recover 50% accumulated debt (Nerfed) + bonus rate on debt + extra flat rebirth bonus
+    const baseRefundRate = 0.5
+    const debtRefund = debt > 0 ? Math.floor(debt * baseRefundRate) : 0
     const debtBonus = debt > 0 ? Math.floor(debt * this.debtBonusRate) : 0
-    const totalDebtRefund = debt + debtBonus
+    const totalDebtRefund = debtRefund + debtBonus
     const rebirthFlat = missCount > 0 ? this.extraFlatBonus : 0
 
     let finalScore = Math.floor((basePts + ctx.flatBuff + rebirthFlat + totalDebtRefund) * dynamicMult) - oraclePenalty

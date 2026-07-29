@@ -7,14 +7,14 @@ Naenra (ARENA.ENG) — competitive typing game, 60s timed vocabulary matches wit
 FE: Vue3+TS+Pinia+Tailwind (`client/`). BE: Node+Express+TS+Supabase (`server/`). Live: naenra.xyz / api.naenra.xyz.
 
 ## Done ✅ (Sprint 1–5, closed/dev completed)
-Auth (email/password+OTP, Google OAuth, reset), JWT middleware, profile/elo/rank, 60s match loop, letter-slot UI, score popups, batch question fetch, session lifecycle, anti-cheat, Core Strategy Pattern (BE `server/src/cores/`, FE `client/src/game/cores/`), Levenshtein penalty, 12 Support Core families (Combo, Oracle, Speedster, Aegis, Mission, Pandora, Phoenix, High Roller, Balanced, Power, etc.), Support Core selection UI (15s), 3-Round loop (Select→Type→Recap), dynamic backgrounds, AI question generator, single active session enforcement (`session_version`), `fetchWithAuth` race condition resolution, Colyseus v0.17+ alignment, vocabulary analytics, interactive tutorials, custom room multiplayer UI.
+Auth (email/password+OTP, Google OAuth, reset), JWT middleware, profile/elo/rank, 60s match loop, letter-slot UI, score popups, batch question fetch, session lifecycle, anti-cheat, Core Strategy Pattern (BE `server/src/cores/`, FE `client/src/game/cores/`), Levenshtein penalty, 12 Support Core families (Combo, Oracle, Speedster, Aegis, Mission, Pandora, Phoenix, High Roller, Balanced, Power, etc.), Support Core selection UI (15s), 3-Round loop (Select→Type→Recap), dynamic backgrounds, AI question generator, single active session enforcement (`session_version`), `fetchWithAuth` race condition resolution, Colyseus v0.17+ alignment, vocabulary analytics, interactive tutorials, custom room multiplayer UI, Full Colyseus automated matchmaking queues and Race Mode (Round 4).
 
 ## In progress 🔄
 - Finalizing Jira sync & production regression verification.
 - Post-match ELO ranking updates integration.
 
 ## Not yet scheduled ❌
-Full Colyseus automated matchmaking queues/lobby rooms (custom rooms are functional). Check Jira backlog before planning.
+Check Jira backlog before planning.
 
 ## Sprint Timeline (Jira project `IN`, verified 2026-07-20)
 | Sprint | State | Dates | Issues | Goal |

@@ -349,10 +349,20 @@
               </div>
 
               <!-- Letter slots (anchor for popup position) -->
-              <div id="tutorial-typing-area" class="w-full flex flex-col items-center gap-3 overflow-hidden"
+              <div id="tutorial-typing-area" class="w-full flex flex-col items-center gap-3 overflow-hidden relative"
                 ref="letterSlotsRef">
 
-
+                <!-- Lock Overlay for Skipped/Failed Race Question -->
+                <transition name="fade">
+                  <div v-if="isRaceLocked" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] rounded-xl transition-all duration-300">
+                    <div class="flex items-center gap-2 px-5 py-2.5 bg-black/80 border-2 border-gray-600 rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.8)]">
+                      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                      <span class="text-gray-300 font-bold tracking-widest uppercase text-sm">Input Locked</span>
+                    </div>
+                  </div>
+                </transition>
                 <div
                   class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none"
                   :class="{ 'speedster-slots-glow': isSpeedsterCore && gameState === 'playing' }">
@@ -608,7 +618,7 @@
 
     <!-- US-24: input is disabled during the 15s timeout phase AND in the final timeout state -->
     <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
-      spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay')"
+      spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay') || isRaceLocked"
       @keydown="handleKeydown" />
 
     <!-- Match Result Overlay (Final Round) -->
@@ -813,6 +823,7 @@ function addToast(message: string, icon: string, color: string) {
 
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
+const isRaceLocked = ref(false)
 const typedLetters = ref<string[]>([])
 const opponentTypingText = ref<string>('')
 const currentRaceQuestion = ref<any>(null)
@@ -837,7 +848,6 @@ const allCores = ref<any[]>([])
 
 // --- OPPONENT CORE DATA ---
 const opponentActiveCoreId = ref<string | null>(null)
-const showOpponentCoreTooltip = ref(false)
 
 const opponentCoreDetails = computed(() => {
   if (!opponentActiveCoreId.value || allCores.value.length === 0) return null
@@ -996,12 +1006,26 @@ const isBurningComboActive = computed(() => isComboCore.value && currentCombo.va
 const missionProgress = ref(0)
 const isAegisMode = computed(() =>
   checkAegisCore(activeCoreModule.value?.name || '') ||
-  effectiveCores.value.some(c => checkAegisCore(c.name))
+  effectiveCores.value.some(c => checkAegisCore(c.name)) ||
+  activeCoreModule.value?.name?.toLowerCase() === 'rebirth' ||
+  activeCoreModule.value?.name?.toLowerCase() === 'eternal rebirth' ||
+  effectiveCores.value.some(c => c.name.toLowerCase() === 'rebirth' || c.name.toLowerCase() === 'eternal rebirth')
 )
 const maxShields = computed(() => {
-  const activeMax = checkMaxShields(activeCoreModule.value?.name || '')
+  const activeName = activeCoreModule.value?.name?.toLowerCase() || ''
+  let activeMax = checkMaxShields(activeName)
+  if (activeName === 'rebirth') activeMax = 1
+  if (activeName === 'eternal rebirth') activeMax = 2
+
   if (effectiveCores.value.length === 0) return activeMax
-  return Math.max(activeMax, ...effectiveCores.value.map(c => checkMaxShields(c.name)))
+
+  const effectiveMax = Math.max(...effectiveCores.value.map(c => {
+    const n = c.name.toLowerCase()
+    if (n === 'rebirth') return 1
+    if (n === 'eternal rebirth') return 2
+    return checkMaxShields(n)
+  }))
+  return Math.max(activeMax, effectiveMax)
 })
 // Aegis Shield State
 const aegisShieldCount = ref(0)
@@ -1136,11 +1160,7 @@ const isSpeedDemon = computed(() => {
   if (name === 'speed demon') return true
   return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'speed demon')
 })
-const isGuardianAngel = computed(() => {
-  const name = getActiveName()
-  if (name === 'guardian-angel' || name === 'guardian angel') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'guardian angel')
-})
+
 
 const isOracleFree = computed(() => {
   const name = getActiveName()
@@ -1534,11 +1554,29 @@ function handleKeydown(e: KeyboardEvent) {
   initAudio()
 
   if (gameState.value === 'timeout') return
-  if (gameState.value !== 'playing') return
   if (menuOpen.value || confirmQuit.value) return
 
   const isRaceMode = matchStore.currentRound === 4
   const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+
+  // Skip question when Enter is pressed
+  if (e.key === 'Enter') {
+    if (gameState.value === 'correct' || gameState.value === 'wrong') {
+      skipQuestion()
+      return
+    }
+    if (gameState.value !== 'playing') return
+    if (matchStore.currentRound === 4) {
+      if (typedLetters.value.length === 0 || (currentQ && typedLetters.value.length === currentQ.target_length)) {
+        checkAnswer()
+      }
+      return
+    }
+    skipQuestion()
+    return
+  }
+
+  if (gameState.value !== 'playing') return
   
   if (!currentQ) return
 
@@ -1547,21 +1585,6 @@ function handleKeydown(e: KeyboardEvent) {
     if (inputRef.value) inputRef.value.value = ''
   })
 
-  // Skip question when Enter is pressed
-  if (e.key === 'Enter') {
-    if (gameState.value === 'correct' || gameState.value === 'wrong') {
-      skipQuestion()
-      return
-    }
-    if (matchStore.currentRound === 4) {
-      if (typedLetters.value.length > 0) {
-        checkAnswer()
-      }
-      return
-    }
-    skipQuestion()
-    return
-  }
 
   if (e.key === 'Backspace') {
     typedLetters.value = typedLetters.value.slice(0, -1)
@@ -1602,7 +1625,11 @@ async function checkAnswer() {
   if (!currentQ) return
 
   const maxLen = currentQ.target_length
-  if (typedLetters.value.length < maxLen) return
+  if (matchStore.currentRound === 4) {
+    if (typedLetters.value.length !== 0 && typedLetters.value.length !== maxLen) return
+  } else {
+    if (typedLetters.value.length < maxLen) return
+  }
 
   const typed = typedLetters.value.join('')
   const elapsed = Date.now() - questionStartTime.value
@@ -1965,11 +1992,11 @@ async function restartMatch() {
   if (questionQueue.value.length > 0) {
     await loadQuestion()
     gameState.value = 'playing'
-    startMatchTimer()
+    if (matchStore.currentRound !== 4) startMatchTimer()
   } else {
     // Fallback if fetch completely failed
     gameState.value = 'playing'
-    startMatchTimer()
+    if (matchStore.currentRound !== 4) startMatchTimer()
   }
 }
 
@@ -2093,7 +2120,7 @@ watch(aegisShieldCount, (newVal, oldVal) => {
   }
 })
 
-watch(activeCoreModule, (newCore) => {
+watch(activeCoreModule, () => {
   // BGM is handled elsewhere
 }, { immediate: true })
 
@@ -2236,10 +2263,19 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('start_recap_countdown', () => {
-    if (raceTimerInterval) clearInterval(raceTimerInterval)
+    if(raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     waitingForOpponent.value = false
     runRecapCountdown()
     gameState.value = 'timeout'
+    
+    if (matchStore.isFinalRound()) {
+      const sid = sessionId.value
+      const coreId = activeCoreId.value
+      const oracleLvl = oracleRevealLevel.value
+      if (sid) {
+        setTimeout(() => callTimeoutEndpoint(sid, coreId, oracleLvl), 300)
+      }
+    }
   })
 
   room.onMessage('start_next_round', (data: any) => {
@@ -2263,26 +2299,36 @@ function setupRoomEventHandlers(room: any) {
   })
 
   // --- Round 4 (Race Mode) Listeners ---
-  let raceTimerInterval: ReturnType<typeof setInterval> | null = null
+
+  let raceTimerFrame: number | null = null;
 
   room.onMessage('next_race_question', (q: any) => {
     currentRaceQuestion.value = q
     typedLetters.value = []
     opponentTypingText.value = ''
     gameState.value = 'playing'
+    isRaceLocked.value = false
     questionStartTime.value = Date.now()
 
     timeLeft.value = 12
     timerProgressPercent.value = 100
-    if (raceTimerInterval) clearInterval(raceTimerInterval)
-    raceTimerInterval = setInterval(() => {
-      if (timeLeft.value > 0) {
-        timeLeft.value--
-        timerProgressPercent.value = (timeLeft.value / 12) * 100
-      } else {
-        clearInterval(raceTimerInterval!)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    
+    const duration = 12000;
+    const start = performance.now();
+    
+    function updateRaceTimer(now: number) {
+      const elapsed = now - start;
+      const remainingMs = Math.max(0, duration - elapsed);
+      timeLeft.value = Math.ceil(remainingMs / 1000);
+      timerProgressPercent.value = (remainingMs / duration) * 100;
+      
+      if (remainingMs > 0 && gameState.value === 'playing') {
+        raceTimerFrame = requestAnimationFrame(updateRaceTimer);
       }
-    }, 1000)
+    }
+    raceTimerFrame = requestAnimationFrame(updateRaceTimer);
     
     // Auto focus
     setTimeout(() => {
@@ -2310,8 +2356,10 @@ function setupRoomEventHandlers(room: any) {
   room.onMessage('race_wrong', (data: { playerId: string, penalty: number }) => {
     if (data.playerId === currentRoom?.sessionId) {
       triggerScoreFlash('wrong')
-      spawnPointPopup(-data.penalty, 'wrong')
+      if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
+      else spawnPointPopup(0, 'custom', 'SKIPPED')
       score.value = Math.max(0, score.value - data.penalty)
+      isRaceLocked.value = true // Lock input for this race question
     } else {
       opponentScore.value = Math.max(0, opponentScore.value - data.penalty)
       addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')
@@ -2319,7 +2367,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('race_timeout', () => {
-    if (raceTimerInterval) clearInterval(raceTimerInterval)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     opponentTypingText.value = ''
     typedLetters.value = []
     addToast('Time is up!', '⏱️', 'text-yellow-400')
@@ -2416,7 +2464,7 @@ onUnmounted(() => {
   activeBgTimeouts.clear()
 })
 
-onBeforeRouteLeave((to, from, next) => {
+onBeforeRouteLeave((to, _from, next) => {
   if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom) {
     // Do not leave room, we are just returning to lobby
   } else {

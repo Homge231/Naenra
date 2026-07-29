@@ -8,6 +8,7 @@ import crypto from 'crypto'
 import dotenv from 'dotenv'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
+import { kickUserClients } from '../utils/activeClients'
 dotenv.config()
 
 const ENCRYPTION_KEY = crypto.createHash('sha256').update(process.env.SUPABASE_SERVICE_KEY || 'default-secret').digest()
@@ -36,6 +37,26 @@ function decryptPassword(text: string): string {
 }
 
 const router = Router()
+
+interface PendingAction {
+  email: string
+  hashedPassword?: string
+  username?: string
+  otp: string
+  expiresAt: number
+  type: 'register' | 'reset'
+}
+
+const pendingStore = new Map<string, PendingAction>()
+
+function cleanupPendingStore() {
+  const now = Date.now()
+  for (const [key, value] of pendingStore.entries()) {
+    if (value.expiresAt < now) {
+      pendingStore.delete(key)
+    }
+  }
+}
 
 // ── Helper: check provider type from players table (fast, no admin API) ──────
 async function getPlayerProviderInfo(email: string): Promise<{
@@ -86,29 +107,18 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    await supabase
-      .from('pending_registrations')
-      .delete()
-      .lt('expires_at', new Date().toISOString())
+    cleanupPendingStore()
 
     const otp = generateOTP()
 
-    const { error: insertErr } = await supabase
-      .from('pending_registrations')
-      .upsert({
-        email,
-        password: 'removed_for_security', // Satisfy NOT NULL constraint
-        hashed_password: hashedPassword,
-        username,
-        otp,
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-      })
-
-    if (insertErr) {
-      console.error('Pending Registration Insert Error:', insertErr.message)
-      res.status(500).json({ error: `Failed to initiate verification: ${insertErr.message}` })
-      return
-    }
+    pendingStore.set(email, {
+      email,
+      hashedPassword,
+      username,
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      type: 'register'
+    })
 
     await sendOTPEmail(email, otp)
     res.status(200).json({ message: 'OTP sent to your email', email })
@@ -138,18 +148,11 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
   }
 
   try {
-    await supabase
-      .from('pending_registrations')
-      .delete()
-      .lt('expires_at', new Date().toISOString())
+    cleanupPendingStore()
 
-    const { data: pending, error: selectErr } = await supabase
-      .from('pending_registrations')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle()
+    const pending = pendingStore.get(email)
 
-    if (selectErr || !pending) {
+    if (!pending || pending.type !== 'register') {
       res.status(400).json({ error: 'Registration session expired or not found. Please register again.' })
       return
     }
@@ -181,7 +184,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
       userId = existingPlayer.id
       const { data: updatedPlayer, error: updateError } = await supabase
         .from('players')
-        .update({ hashed_password: pending.hashed_password })
+        .update({ hashed_password: pending.hashedPassword })
         .eq('id', userId)
         .select('session_version')
         .single()
@@ -214,33 +217,30 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
         .update({
           email: pending.email,
           username: pending.username,
-          hashed_password: pending.hashed_password,
+          hashed_password: pending.hashedPassword,
           elo: 0,
           wins: 0,
           losses: 0,
           total_matches: 0,
-          session_version: 1
+          session_version: 0
         })
         .eq('id', userId)
         .select('session_version')
         .single()
 
       if (upsertError) {
-        res.status(400).json({ error: 'NEW CODE RUNNING BUT UPSERT FAILED: ' + upsertError.message })
+        res.status(400).json({ error: 'Failed to initialize player profile: ' + upsertError.message })
         return
       }
       sessionVersion = updatedPlayer.session_version
     }
 
-    await supabase
-      .from('pending_registrations')
-      .delete()
-      .eq('email', email)
+    pendingStore.delete(email)
 
     const token = generateToken({
       id: userId,
       email: pending.email || '',
-      username: pending.username,
+      username: pending.username || '',
       sessionVersion: sessionVersion
     })
 
@@ -255,6 +255,9 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
         session_version: sessionVersion
       }
     })
+
+    // Also forcefully drop any existing Colyseus connections
+    kickUserClients(userId)
 
   } catch (error) {
     console.error('verify-otp error:', error)
@@ -272,36 +275,20 @@ router.post('/resend-otp', async (req: Request, res: Response) => {
   }
 
   try {
-    await supabase
-      .from('pending_registrations')
-      .delete()
-      .lt('expires_at', new Date().toISOString())
+    cleanupPendingStore()
 
-    const { data: pending } = await supabase
-      .from('pending_registrations')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle()
+    const pending = pendingStore.get(email)
 
     if (!pending) {
-      res.status(400).json({ error: 'No pending registration found' })
+      res.status(400).json({ error: 'Session expired or not found' })
       return
     }
 
     const otp = generateOTP()
 
-    const { error: updateErr } = await supabase
-      .from('pending_registrations')
-      .update({
-        otp,
-        expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-      })
-      .eq('email', email)
-
-    if (updateErr) {
-      res.status(500).json({ error: 'Failed to update OTP code' })
-      return
-    }
+    pending.otp = otp
+    pending.expiresAt = Date.now() + 10 * 60 * 1000
+    pendingStore.set(email, pending)
 
     await sendOTPEmail(email, otp)
     res.json({ message: 'OTP resent successfully' })
@@ -386,8 +373,9 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const newSessionVersion = versionResult
 
-    // Instantly kick any other active session for this account via Realtime broadcast.
+    // Instantly kick any other active session for this account via Realtime broadcast and Colyseus sockets.
     await broadcastSessionInvalidated(player.id, newSessionVersion)
+    kickUserClients(player.id)
 
     const token = generateToken({
       id: player.id,
@@ -448,29 +436,16 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     }
 
     // Clean up expired reset rows
-    await supabase
-      .from('pending_registrations')
-      .delete()
-      .lt('expires_at', new Date().toISOString())
+    cleanupPendingStore()
 
     const otp = generateOTP()
 
-    const { error: upsertErr } = await supabase
-      .from('pending_registrations')
-      .upsert({
-        email,
-        password: 'reset_placeholder',
-        hashed_password: otp,        // Store OTP temporarily in hashed_password field
-        username: '__reset__',       // Sentinel to differentiate from real registrations
-        otp,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 mins
-      })
-
-    if (upsertErr) {
-      console.error('Reset OTP insert error:', upsertErr.message)
-      res.status(500).json({ error: 'Failed to generate reset code. Please try again.' })
-      return
-    }
+    pendingStore.set(email, {
+      email,
+      otp,
+      expiresAt: Date.now() + 15 * 60 * 1000, // 15 mins
+      type: 'reset'
+    })
 
     await sendOTPEmail(email, otp)
     res.json({ message: 'If that email exists, a reset code has been sent.' })
@@ -501,19 +476,11 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 
   try {
     // Clean up expired
-    await supabase
-      .from('pending_registrations')
-      .delete()
-      .lt('expires_at', new Date().toISOString())
+    cleanupPendingStore()
 
-    const { data: pending } = await supabase
-      .from('pending_registrations')
-      .select('*')
-      .eq('email', email)
-      .eq('username', '__reset__')
-      .maybeSingle()
+    const pending = pendingStore.get(email)
 
-    if (!pending) {
+    if (!pending || pending.type !== 'reset') {
       res.status(400).json({ error: 'Reset code expired or not found. Please request a new one.' })
       return
     }
@@ -546,11 +513,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     }
 
     // Clean up the reset record
-    await supabase
-      .from('pending_registrations')
-      .delete()
-      .eq('email', email)
-      .eq('username', '__reset__')
+    pendingStore.delete(email)
 
     res.json({ message: 'Password updated successfully. You can now log in.' })
   } catch (err) {
@@ -630,8 +593,9 @@ router.post('/token', async (req: Request, res: Response) => {
 
     const newSessionVersion = versionResult
 
-    // Instantly kick any other active session for this account via Realtime broadcast.
+    // Instantly kick any other active session for this account via Realtime broadcast and Colyseus sockets.
     await broadcastSessionInvalidated(user.id, newSessionVersion)
+    kickUserClients(user.id)
 
     const token = generateToken({
       id: user.id,

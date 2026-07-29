@@ -558,13 +558,12 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         answerHistoryDeltas = historyData.map(r => r.points_delta || 0)
       }
     }
-    // Calculate combo strictly from server history (ignore client current_combo)
-    const historyBeforeThisAnswer = answerHistory.slice() // copy array before pushing current answer
-    let serverCombo = 0
-    for (const isCorr of historyBeforeThisAnswer) {
-      if (isCorr) serverCombo++
-      else serverCombo = 0
-    }
+    // Use client's current_combo for real-time responsiveness, but cap it to prevent blatant cheating
+    const maxPossibleCombo = session.questions_answered || 0
+    let serverCombo = Math.max(0, Math.min(Number(current_combo) || 0, maxPossibleCombo))
+    
+    // Still populate answerHistory for other cores that need it
+    const historyBeforeThisAnswer = answerHistory.slice()
 
     answerHistory.push(isCorrect)
 

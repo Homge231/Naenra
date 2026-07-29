@@ -28,12 +28,12 @@ import { HighRollerStrategy } from './HighRollerStrategy'
 const CORE_REGISTRY: Record<string, BaseCore> = {
   // Phoenix Branch (Accumulated Debt Rebirth Mechanic)
   'phoenix': new PhoenixCoreStrategy('phoenix', 0, 0, 0, 0, 0),
-  'phoenix flame': new PhoenixCoreStrategy('phoenix flame', 0.30, 0, 0, 0, 50),
-  'rebirth': new PhoenixCoreStrategy('rebirth', 0, 1, 0, 0, 75),
-  'ashes to ashes': new PhoenixCoreStrategy('ashes to ashes', 0, 0, 0.4, 2.6, 0),
-  'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 0.50, 0, 0, 0, 150),
-  'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 0.25, 2, 0, 0, 150),
-  'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 0.25, 0, 0.8, 4.2, 100),
+  'phoenix flame': new PhoenixCoreStrategy('phoenix flame', 0.20, 0, 0, 0, 25),
+  'rebirth': new PhoenixCoreStrategy('rebirth', 0, 1, 0, 0, 40),
+  'ashes to ashes': new PhoenixCoreStrategy('ashes to ashes', 0, 0, 0.3, 2.0, 0),
+  'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 0.40, 0, 0, 0, 80),
+  'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 0.20, 2, 0, 0, 80),
+  'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 0.20, 0, 0.6, 3.0, 50),
 
   // High Roller Branch
   'high roller': new HighRollerStrategy('high roller', 0.5, 2, 0.5),
