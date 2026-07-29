@@ -49,10 +49,11 @@
           <div v-for="(player, index) in topPlayers" :key="player.id"
             class="relative flex items-center bg-white p-3 rounded-2xl shadow-sm border transition-all hover:-translate-y-0.5 hover:shadow-md group overflow-hidden"
             :class="[
-              index === 0 ? 'border-yellow-300 ring-2 ring-yellow-100 bg-gradient-to-r from-yellow-50 to-white' : '',
-              index === 1 ? 'border-gray-300 ring-2 ring-gray-100 bg-gradient-to-r from-gray-50 to-white' : '',
-              index === 2 ? 'border-amber-600/50 ring-2 ring-amber-100 bg-gradient-to-r from-amber-50 to-white' : '',
-              index > 2 ? 'border-gray-100 hover:border-orange/30' : ''
+              currentUser?.id === player.id ? 'border-blue-400 ring-2 ring-blue-100 bg-blue-50/50 shadow-md transform -translate-y-0.5' : '',
+              index === 0 && currentUser?.id !== player.id ? 'border-yellow-300 ring-2 ring-yellow-100 bg-gradient-to-r from-yellow-50 to-white' : '',
+              index === 1 && currentUser?.id !== player.id ? 'border-gray-300 ring-2 ring-gray-100 bg-gradient-to-r from-gray-50 to-white' : '',
+              index === 2 && currentUser?.id !== player.id ? 'border-amber-600/50 ring-2 ring-amber-100 bg-gradient-to-r from-amber-50 to-white' : '',
+              index > 2 && currentUser?.id !== player.id ? 'border-gray-100 hover:border-orange/30' : ''
             ]">
             
             <!-- Rank Number -->
