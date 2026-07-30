@@ -355,7 +355,7 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
       .insert({ 
         player_id: playerId, 
         status: 'active', 
-        active_core_id: active_core_id
+        active_core_id: active_core_id || null
       })
       .select('id')
       .single()
@@ -449,8 +449,8 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       return
     }
 
-    const sessionCoreId = session.active_core_id
-    const submittedCoreId = active_core_id
+    const sessionCoreId = session.active_core_id || null
+    const submittedCoreId = active_core_id || null
     const sessionCoreName = (session.cores as any)?.name?.toLowerCase() || ''
 
     const isPandora = getCoreFamily(sessionCoreName) === 'pandora'
