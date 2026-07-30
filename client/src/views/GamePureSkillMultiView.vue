@@ -1094,19 +1094,14 @@ const effectiveCores = computed(() => {
 
 // ── Pandora's Box Logic ──────────────────────────────────────────────────
 const basePandoraCoreName = computed(() => {
-  const baseCore = allCores.value.find(c => c.id === gameStore.activeCoreId)
-  return baseCore ? baseCore.name : gameStore.activeCoreName
+  return ''
 })
 const isPandoraMode = computed(() => checkPandoraCore(basePandoraCoreName.value))
 const isTrickster = computed(() => isPandoraMode.value && matchStore.currentRound === 2)
 const isChaos = computed(() => isPandoraMode.value && matchStore.currentRound === 3)
 
 const activeCoreNameDynamic = computed(() => {
-  if (isPandoraMode.value && currentPandoraCoreId.value) {
-    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
-    return shiftedCore ? shiftedCore.name : gameStore.activeCoreName
-  }
-  return gameStore.activeCoreName
+  return ''
 })
 
 const activeCoreIconUrlDynamic = computed(() => {
@@ -1669,15 +1664,9 @@ async function checkAnswer() {
     currentCombo.value++
 
     if (currentRoom) {
-      const family = getCoreFamily(gameStore.activeCoreName || '')
-      if (family === 'combo' && currentCombo.value > 0 && currentCombo.value % 5 === 0) {
-        currentRoom.send('player_milestone', { type: 'combo', message: 'Opponent is on fire!', icon: '🔥', color: 'text-orange' })
-      } else if (family === 'oracle' && currentQuestion.value.target_length >= 9) {
-        currentRoom.send('player_milestone', { type: 'long_word', message: 'Opponent cleared a long word!', icon: '🤯', color: 'text-purple-400' })
-      } else if (family !== 'combo' && family !== 'oracle' && family !== 'aegis') {
-        if (elapsed < 2500) {
-          currentRoom.send('player_milestone', { type: 'massive_hit', message: 'Opponent scored a massive hit!', icon: '🚀', color: 'text-lightBlue' })
-        }
+      // Pure Skill Mode has no cores, so no combo/oracle milestones are sent.
+      if (elapsed < 2500) {
+        currentRoom.send('player_milestone', { type: 'massive_hit', message: 'Opponent scored a massive hit!', icon: '🚀', color: 'text-lightBlue' })
       }
     }
 
@@ -2164,7 +2153,7 @@ watch(() => gameState.value, (newState) => {
   if (newState === 'upgrade') {
     audioService.playBGM('/audio/core_selection.mp3')
   } else if (newState === 'playing') {
-    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+    audioService.playBGM(audioService.getCoreBgmPath(''))
   }
 })
 
@@ -2434,25 +2423,7 @@ onMounted(async () => {
     setupRoomEventHandlers(currentRoom)
   }
 
-  if (!activeCoreId.value) {
-    const savedCoreId = localStorage.getItem('naenra_active_core_id')
-    const savedCoreName = localStorage.getItem('naenra_active_core_name')
-    if (savedCoreId) {
-      gameStore.setActiveCore(savedCoreId, savedCoreName || '')
-    } else if (isMultiplayer.value) {
-      const myPlayer = currentRoom?.state?.players?.get(currentRoom.sessionId)
-      if (myPlayer && myPlayer.activeCoreId) {
-        console.log('[GameMultiplayView] Restored activeCoreId from server room state:', myPlayer.activeCoreId)
-        gameStore.setActiveCore(myPlayer.activeCoreId, 'Support Core')
-      } else {
-        router.replace('/home')
-        return
-      }
-    } else {
-      router.replace('/core')
-      return
-    }
-  }
+  // Pure Skill Mode does not use or restore cores.
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
@@ -2475,7 +2446,7 @@ onMounted(async () => {
   await loadQuestion()
 
   if (gameState.value !== 'upgrade') {
-    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+    audioService.playBGM(audioService.getCoreBgmPath(''))
   }
 
   sendScoreUpdate(0)
