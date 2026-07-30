@@ -279,13 +279,11 @@ onMounted(async () => {
         }
 
         if (currentRoom) {
-            // Always re-attach listeners so they work after returning from game view
-            currentRoom.removeAllListeners()
-
-            currentRoom.onStateChange((state: any) => {
+            // Helper to parse state and populate participants/metadata
+            const applyState = (state: any) => {
                 try {
                     const newParticipants: { id: string, name: string, avatar: string }[] = []
-                    const playersObj = state.toJSON().players || {}
+                    const playersObj = state.toJSON ? state.toJSON().players : state.players || {}
                     Object.values(playersObj).forEach((player: any) => {
                         if (player && player.name) {
                             newParticipants.push({
@@ -296,7 +294,8 @@ onMounted(async () => {
                         }
                     })
                     // Sort participants so that the host is always player1
-                    const hostId = state.hostId || state.toJSON().hostId
+                    const stateJson = state.toJSON ? state.toJSON() : state
+                    const hostId = stateJson.hostId
                     if (hostId) {
                         roomHostId.value = hostId
                         newParticipants.sort((a, b) => {
@@ -305,10 +304,9 @@ onMounted(async () => {
                             return 0
                         })
                     }
-
                     participants.value = newParticipants
-                    
-                    const meta = state.toJSON().metadata
+
+                    const meta = stateJson.metadata
                     if (meta) {
                         roomMetadata.value = {
                             vocabularyLevel: meta.vocabularyLevel || 'Normal',
@@ -321,6 +319,13 @@ onMounted(async () => {
                 } catch (e) {
                     console.error("Error parsing room state:", e)
                 }
+            }
+
+            // Always re-attach listeners so they work after returning from game view
+            currentRoom.removeAllListeners()
+
+            currentRoom.onStateChange((state: any) => {
+                applyState(state)
             })
 
             currentRoom.onMessage('match_started', () => {
@@ -337,6 +342,14 @@ onMounted(async () => {
                 console.log('[CustomRoom] All players returned to lobby.')
                 navigatingToGame.value = false
             })
+
+            // --- KEY FIX ---
+            // Colyseus only fires onStateChange when state actually changes.
+            // If the host was already in the room (never left), no new state
+            // broadcast arrives, so we must read the current state immediately.
+            if (currentRoom.state) {
+                applyState(currentRoom.state)
+            }
         }
     } catch (err: any) {
         console.error("Failed to join or create room:", err)
