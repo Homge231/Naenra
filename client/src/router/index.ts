@@ -36,6 +36,11 @@ const router = createRouter({
       meta: { requiresAuth: true } 
     },
     { 
+      path: '/game/pure-skill-multiplayer', 
+      component: () => import('../views/GamePureSkillMultiView.vue'), 
+      meta: { requiresAuth: true } 
+    },
+    { 
       path: '/shop', 
       component: () => import('../views/ShopView.vue'), 
       meta: { requiresAuth: true } 

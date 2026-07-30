@@ -5,6 +5,7 @@ export class RoomMetadata extends Schema {
   @type("string") difficulty: string = "Standard";
   @type("string") topic: string = "Any";
   @type(["string"]) disabledCores = new ArraySchema<string>();
+  @type("boolean") pureSkillMode: boolean = false;
 }
 
 export class RaceQuestion extends Schema {

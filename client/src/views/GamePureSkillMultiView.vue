@@ -82,7 +82,7 @@
       :placement="tutorial.currentStepData.value?.placement" @next="tutorial.next" @skip="tutorial.complete" />
 
     <!-- Pandora overlays: shift announcements and indicator (hidden in Race Round) -->
-    <PandoraOverlay v-if="matchStore.currentRound !== 4" :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
+    <PandoraOverlay v-if="false" :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
       :shift-announcement="shiftAnnouncement" />
 
     <header v-show="gameState !== 'upgrade'"
@@ -149,7 +149,7 @@
 
       <!-- Active Core History Badges in Center -->
       <!-- Hide core badges in Race Round (Round 4 = pure skill, no core effects) -->
-      <div v-if="gameStore.coreHistory.length > 0 && matchStore.currentRound !== 4" class="hidden md:flex flex-row items-center gap-2">
+      <div v-if="false" class="hidden md:flex flex-row items-center gap-2">
         <div v-for="(core, index) in gameStore.coreHistory" :key="`${core.id}-${index}`"
           class="relative flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300 cursor-pointer hover:bg-black/40"
           :class="[
@@ -216,10 +216,9 @@
           </span>
           <!-- Round Indicator Preparation -->
           <div class="absolute -bottom-6 w-full text-center whitespace-nowrap">
-            <span id="tutorial-round-indicator"
-              class="text-[9px] font-bold text-gray-500 uppercase tracking-widest bg-darkBlue/50 px-2 py-0.5 rounded-full border border-white/5">
-              Round {{ matchStore.currentRound }}/{{ matchStore.maxRounds }}
-            </span>
+            <div class="text-xl md:text-2xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-[0_2px_10px_rgba(255,165,0,0.4)]">
+              PURE SKILL MODE
+            </div>
           </div>
         </div>
       </div>
@@ -232,7 +231,7 @@
          instead of the full viewport. Living as a direct sibling of header/main fixes it. -->
     <transition name="fade">
       <!-- Never show CoreUpgrade in Race Round (Round 4) even if gameState is upgrade somehow -->
-      <CoreUpgradeOverlay v-if="gameState === 'upgrade' && matchStore.currentRound !== 4" @selected="handleUpgradeSelected" />
+      <CoreUpgradeOverlay v-if="false" @selected="handleUpgradeSelected" />
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
@@ -454,14 +453,14 @@
 
       <!-- Combo indicator: only visible when active core is the Combo Core AND not Race Round -->
       <transition name="fade-scale">
-        <div v-if="isComboCore && matchStore.currentRound !== 4">
+        <div v-if="false">
           <ComboCoreIndicator :current-combo="currentCombo" />
         </div>
       </transition>
 
       <!-- Aegis Shield Mode Indicator (hidden in Race Round) -->
       <transition name="fade-scale">
-        <div v-if="isAegisMode && matchStore.currentRound !== 4">
+        <div v-if="false">
           <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" :max-shields="maxShields" />
         </div>
       </transition>
@@ -470,7 +469,7 @@
 
     <!-- Mission Tracker UI: only visible when active core is the Mission Core AND not Race Round -->
     <transition name="fade-scale">
-      <div v-if="isMissionCore && matchStore.currentRound !== 4" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
+      <div v-if="false" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
         <MissionCoreIndicator :mission-progress="missionProgress" :show-celebration="showMissionCelebration" />
       </div>
     </transition>
@@ -1913,7 +1912,46 @@ function resetTypingBoard() {
 // Called when the 1m30s gameplay timer reaches 0.
 // Initialises the countdown state and schedules callTimeoutEndpoint once the
 // 15s window has elapsed (or immediately completes the phase if it finishes).
-function startTimeoutPhase() {
+async function startTimeoutPhase() {
+  gameState.value = "timeout"
+  savingSession.value = true
+  
+  if (currentRoom) {
+    currentRoom.send('submit_match_stats', {
+      accuracy: 100,
+      time_taken: 180,
+      score: gameStore.score
+    })
+  }
+
+  try {
+    await fetchWithAuth('/api/game/end', {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: matchStore.sessionId,
+        final_score: gameStore.score
+      })
+    })
+    const isWin = gameStore.score >= gameStore.opponentScore
+    const resultQuery = isWin ? 'win' : 'lose'
+    if (currentRoom) {
+      currentRoom.send("end_match")
+      leaveMatchRoom()
+    }
+    router.push(`/end?result=${resultQuery}`)
+  } catch (err) {
+    console.error('Failed to save session:', err)
+    if (currentRoom) {
+      currentRoom.send("end_match")
+      leaveMatchRoom()
+    }
+    router.push('/end?result=error')
+  } finally {
+    savingSession.value = false
+  }
+}
+
+function oldStartTimeoutPhase() {
   gameState.value = 'timeout'
   inputRef.value?.blur()
   stopTimeoutInterval()

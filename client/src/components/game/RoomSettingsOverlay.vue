@@ -111,14 +111,33 @@
           
           <!-- Core Toggles -->
           <div class="space-y-3">
-            <label class="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-              <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-              </svg>
-              Support Cores
+            <label class="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2 justify-between">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+                Support Cores
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] text-gray-400">PURE SKILL MODE</span>
+                <button 
+                  :disabled="!isHost"
+                  @click="togglePureSkillMode"
+                  :class="[
+                    'w-10 h-5 rounded-full transition-colors relative flex items-center',
+                    localMetadata.pureSkillMode ? 'bg-orange' : 'bg-gray-600',
+                    !isHost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  ]"
+                >
+                  <span 
+                    class="w-4 h-4 bg-white rounded-full shadow-sm absolute transition-transform duration-200"
+                    :class="localMetadata.pureSkillMode ? 'translate-x-5' : 'translate-x-1'"
+                  ></span>
+                </button>
+              </div>
             </label>
             <div v-if="allCores.length === 0" class="text-xs text-gray-500 italic">Loading cores...</div>
-            <div v-else class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+            <div v-else :class="['grid grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1 transition-opacity duration-300', localMetadata.pureSkillMode ? 'opacity-30 pointer-events-none' : '']">
               <div 
                 v-for="core in allCores" 
                 :key="core.id"
@@ -178,19 +197,21 @@ const props = defineProps<{
     difficulty: string
     topic: string
     disabledCores: string[]
+    pureSkillMode: boolean
   }
 }>()
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'save', newMetadata: { vocabularyLevel: string, difficulty: string, topic: string, disabledCores: string[] }): void
+  (e: 'save', newMetadata: { vocabularyLevel: string, difficulty: string, topic: string, disabledCores: string[], pureSkillMode: boolean }): void
 }>()
 
 const localMetadata = ref({
   vocabularyLevel: 'Normal',
   difficulty: 'Standard',
   topic: 'Any',
-  disabledCores: [] as string[]
+  disabledCores: [] as string[],
+  pureSkillMode: false
 })
 
 const allCores = ref<any[]>([])
@@ -214,7 +235,8 @@ watch(() => props.isOpen, (newVal) => {
       vocabularyLevel: props.metadata.vocabularyLevel || 'Normal',
       difficulty: props.metadata.difficulty || 'Standard',
       topic: props.metadata.topic || 'Any',
-      disabledCores: [...(props.metadata.disabledCores || [])]
+      disabledCores: [...(props.metadata.disabledCores || [])],
+      pureSkillMode: props.metadata.pureSkillMode || false
     }
   }
 })
@@ -227,6 +249,11 @@ const toggleCore = (coreId: string) => {
   } else {
     localMetadata.value.disabledCores.push(coreId)
   }
+}
+
+const togglePureSkillMode = () => {
+  if (!props.isHost) return
+  localMetadata.value.pureSkillMode = !localMetadata.value.pureSkillMode
 }
 
 const close = () => {

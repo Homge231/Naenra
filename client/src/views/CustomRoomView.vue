@@ -183,7 +183,8 @@ const roomMetadata = ref({
     vocabularyLevel: 'Normal',
     difficulty: 'Standard',
     topic: 'Any',
-    disabledCores: [] as string[]
+    disabledCores: [] as string[],
+    pureSkillMode: false
 })
 
 // MẢNG ALPHABET TỪ HOMEVIEW CHUYỂN SANG ĐỂ TẠO HIỆU ỨNG BACKGROUND
@@ -199,7 +200,7 @@ const floatingLetters = alphabet.map((char, index) => {
   }
 })
 
-const saveRoomSettings = (newMetadata: { vocabularyLevel: string, difficulty: string, topic: string, disabledCores: string[] }) => {
+const saveRoomSettings = (newMetadata: { vocabularyLevel: string, difficulty: string, topic: string, disabledCores: string[], pureSkillMode: boolean }) => {
     if (currentRoom) {
         currentRoom.send('updateMetadata', newMetadata)
     }
@@ -312,7 +313,8 @@ onMounted(async () => {
                             vocabularyLevel: meta.vocabularyLevel || 'Normal',
                             difficulty: meta.difficulty || 'Standard',
                             topic: meta.topic || 'Any',
-                            disabledCores: meta.disabledCores || []
+                            disabledCores: meta.disabledCores || [],
+                            pureSkillMode: meta.pureSkillMode || false
                         }
                     }
                 } catch (e) {
@@ -322,7 +324,11 @@ onMounted(async () => {
 
             currentRoom.onMessage('match_started', () => {
                 navigatingToGame.value = true
-                router.push('/core/multiplayer')
+                if (roomMetadata.value.pureSkillMode) {
+                    router.push('/game/pure-skill-multiplayer')
+                } else {
+                    router.push('/core/multiplayer')
+                }
             })
         }
     } catch (err: any) {

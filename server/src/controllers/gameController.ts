@@ -742,6 +742,17 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
+    // Apply Difficulty Multiplier
+    const difficulty = req.body.difficulty as string || 'Standard'
+    let difficultyMultiplier = 1.0
+    if (difficulty === 'Veteran') difficultyMultiplier = 1.5
+    if (difficulty === 'Master') difficultyMultiplier = 2.0
+
+    if (pointsDelta > 0) {
+       pointsDelta = Math.floor(pointsDelta * difficultyMultiplier)
+       breakdown.multiplier_buff = difficultyMultiplier // To show it in the breakdown if needed
+    }
+
     // Stack Mission progress if there is a Mission core in history
     const missionCoreName = historyCoreNames.find(name => getCoreStrategy(name).constructor.name === 'MissionCoreStrategy')
     if (missionCoreName && missionCoreName !== scoringCore.name) {
