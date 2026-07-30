@@ -834,7 +834,7 @@ const isDev = import.meta.env.DEV
 
 // --- MULTIPLAYER CORE BINDINGS [US-51] ---
 const route = useRoute()
-const isMultiplayer = computed(() => route.path === '/game/multiplayer')
+const isMultiplayer = computed(() => route.path.includes('multiplayer'))
 const opponentName = ref('')
 const opponentAvatar = ref('')
 const opponentScore = ref(0)
