@@ -278,11 +278,24 @@
              <!-- Split Screen Typing Area -->
              <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-4 mt-8 w-full max-w-4xl">
                  <!-- Player (You) -->
-                 <div class="flex flex-col items-center gap-4 md:border-r border-white/20 md:pr-4">
+                 <div class="flex flex-col items-center gap-4 md:border-r border-white/20 md:pr-4 relative">
+                     <!-- Lock Overlay for Skipped/Failed Race Question -->
+                     <transition name="fade">
+                       <div v-if="isRaceLocked" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl transition-all duration-300 md:-mr-4">
+                         <div class="flex items-center gap-2 px-5 py-2.5 bg-black/80 border-2 border-red-500/50 rounded-lg shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                           <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                           </svg>
+                           <span class="text-red-400 font-bold tracking-widest uppercase text-sm">Locked</span>
+                         </div>
+                         <span class="text-xs text-gray-400 font-bold mt-2 uppercase tracking-widest">Waiting for opponent</span>
+                       </div>
+                     </transition>
+
                      <div class="flex items-center gap-2">
                          <span class="text-lightBlue font-black text-xl uppercase tracking-wider drop-shadow-md">YOU</span>
                      </div>
-                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2">
+                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2" :class="{ 'opacity-30 blur-[1px]': isRaceLocked }">
                         <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p1-'+i"
                              class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner">
                            {{ typedLetters[i - 1] || '' }}
