@@ -486,7 +486,7 @@
         <div id="tutorial-match-result"
           class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-2xl w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[90vh]">
           <p class="text-xs font-bold text-hexred tracking-[0.4em] uppercase mb-4 drop-shadow-md">
-            {{ matchStore.isFinalRound() ? 'Match Ended' : 'Round Ended' }}
+            Match Ended
           </p>
           <h2
             class="text-7xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(230,57,70,0.8)] mb-2 timeout-glitch">
@@ -563,28 +563,9 @@
           <div class="flex gap-4 justify-center flex-shrink-0 mt-6">
             <button v-if="!isMultiplayer" @click="router.push('/home')"
               class="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors rounded-lg">Home</button>
-
-            <!-- Next Round (Rounds 1 & 2) -->
-            <button v-if="!matchStore.isFinalRound()" :disabled="waitingForOpponent" @click="goToUpgrade"
-              class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed">
-              <div
-                class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-              </div>
-              <span class="relative z-10 text-white">
-                {{ waitingForOpponent ? 'Waiting for opponent...' : `Next Round (${timeoutCountdown}s)` }}
-              </span>
-            </button>
-
-            <!-- Skip Recap (Round 3) -->
-            <template v-else>
-              <button @click="skipRecapCountdown"
-                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
-                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <span class="relative z-10 text-white">
-                  Skip Recap ({{ timeoutCountdown }}s)
-                </span>
-              </button>
-            </template>
+            <div v-else-if="waitingForOpponent" class="text-white text-sm uppercase tracking-widest font-bold flex-1 text-center py-4">
+               Waiting for opponent...
+            </div>
           </div>
         </div>
       </div>
@@ -637,7 +618,7 @@
 
     <!-- Match Result Overlay (Final Round) -->
     <MatchResultOverlay
-      :is-visible="showMatchResult && matchStore.isFinalRound()"
+      :is-visible="showMatchResult"
       :is-victory="matchResult?.isVictory ?? false"
       :player-score="score"
       :player-name="authStore.profile?.username ?? 'Player'"
