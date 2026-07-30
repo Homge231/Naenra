@@ -211,8 +211,29 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
           </div>
         </div>
 
-        <!-- Rank Progression -->
-        <div v-if="currentTier" class="w-full mb-10 stat-row" style="animation-delay: 0.4s">
+        <!-- Word Recap -->
+        <div class="w-full mb-8 max-h-60 overflow-y-auto pr-2 custom-scrollbar stat-row relative" style="animation-delay: 0.35s">
+          <div class="text-[10px] tracking-widest uppercase text-white/50 mb-3 sticky top-0 bg-darkNavy/90 backdrop-blur-md z-10 py-2 border-b border-white/10 text-center">Word Recap</div>
+          <div class="flex flex-col gap-2">
+            <div v-for="(item, index) in matchHistory" :key="index" 
+                 class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 shadow-sm hover:bg-white/10 transition-colors"
+                 :class="item.isCorrect ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-red-500'">
+              <div class="flex flex-col text-left overflow-hidden">
+                <span class="text-[10px] text-white/40 uppercase tracking-widest mb-1 truncate">Target: <span class="text-white">{{ item.correct }}</span></span>
+                <span class="text-lg font-black truncate" :class="item.isCorrect ? 'text-green-400' : 'text-red-400'">
+                  {{ item.submitted || '(Skipped)' }}
+                </span>
+              </div>
+              <div class="flex items-center justify-center flex-shrink-0 ml-4">
+                <span v-if="item.isCorrect" class="text-green-500 text-2xl drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]">✓</span>
+                <span v-else class="text-red-500 text-2xl drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">✗</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rank Progression (Hidden in Custom Rooms) -->
+        <div v-if="currentTier && !isCustomRoom" class="w-full mb-10 stat-row" style="animation-delay: 0.4s">
           <div class="flex justify-between items-end mb-2">
             <div>
               <div class="text-[10px] tracking-widest uppercase text-white/50">Current Rank</div>
