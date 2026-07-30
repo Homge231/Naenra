@@ -109,8 +109,6 @@
             <p class="text-[10px] text-gray-500">Select the category of the questions.</p>
           </div>
           
-        </div>
-
           <!-- Core Toggles -->
           <div class="space-y-3">
             <label class="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
