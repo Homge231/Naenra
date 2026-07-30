@@ -1912,43 +1912,28 @@ function resetTypingBoard() {
 // Called when the 1m30s gameplay timer reaches 0.
 // Initialises the countdown state and schedules callTimeoutEndpoint once the
 // 15s window has elapsed (or immediately completes the phase if it finishes).
-async function startTimeoutPhase() {
+function startTimeoutPhase() {
   gameState.value = "timeout"
-  savingSession.value = true
-  
-  if (currentRoom) {
-    currentRoom.send('submit_match_stats', {
-      accuracy: 100,
-      time_taken: 180,
-      score: gameStore.score
-    })
-  }
+  inputRef.value?.blur()
+  stopTimeoutInterval()
 
-  try {
-    await fetchWithAuth('/api/game/end', {
-      method: 'POST',
-      body: JSON.stringify({
-        session_id: matchStore.sessionId,
-        final_score: gameStore.score
-      })
-    })
-    const isWin = gameStore.score >= gameStore.opponentScore
-    const resultQuery = isWin ? 'win' : 'lose'
+  if (isMultiplayer.value && !isForfeitWin.value) {
+    waitingForOpponent.value = true
     if (currentRoom) {
-      currentRoom.send("end_match")
-      leaveMatchRoom()
+      currentRoom.send("finished_round")
     }
-    router.push(`/end?result=${resultQuery}`)
-  } catch (err) {
-    console.error('Failed to save session:', err)
-    if (currentRoom) {
-      currentRoom.send("end_match")
-      leaveMatchRoom()
-    }
-    router.push('/end?result=error')
-  } finally {
-    savingSession.value = false
+  } else {
+    waitingForOpponent.value = false
+    finalizeMatch()
   }
+}
+
+async function finalizeMatch() {
+  const sid = sessionId.value
+  if (sid) {
+    await callTimeoutEndpoint(sid, activeCoreId.value, oracleRevealLevel.value)
+  }
+  showMatchResult.value = true
 }
 
 function oldStartTimeoutPhase() {
@@ -2338,19 +2323,10 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('start_recap_countdown', () => {
-    if(raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     waitingForOpponent.value = false
-    runRecapCountdown()
     gameState.value = 'timeout'
-    
-    if (matchStore.isFinalRound()) {
-      const sid = sessionId.value
-      const coreId = activeCoreId.value
-      const oracleLvl = oracleRevealLevel.value
-      if (sid) {
-        setTimeout(() => callTimeoutEndpoint(sid, coreId, oracleLvl), 300)
-      }
-    }
+    finalizeMatch()
   })
 
   room.onMessage('start_next_round', (data: any) => {
