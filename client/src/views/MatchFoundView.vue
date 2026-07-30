@@ -5,11 +5,16 @@
       <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
       <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
       <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
-      
-      <div class="absolute top-[15%] left-[10%] text-6xl font-black text-gray-300 uppercase animate-float-slow opacity-50">S</div>
-      <div class="absolute top-[60%] left-[80%] text-8xl font-black text-gray-300 uppercase animate-float-delayed opacity-30">P</div>
-      <div class="absolute top-[80%] left-[20%] text-5xl font-black text-gray-300 uppercase animate-pulse-slow opacity-40">E</div>
-      <div class="absolute top-[25%] left-[75%] text-7xl font-black text-gray-300 uppercase animate-float-slow opacity-50" style="animation-delay: 2s;">D</div>
+      <div v-for="letter in floatingLetters" :key="letter.id"
+          class="absolute top-0 font-black uppercase text-gray-300 select-none animate-matrix-drift"
+          :style="{
+              left: letter.left + '%',
+              fontSize: letter.size + 'rem',
+              animationDelay: letter.delay + 's',
+              animationDuration: letter.duration + 's'
+          }">
+          {{ letter.char }}
+      </div>
     </div>
 
     <header class="relative z-20 w-full flex justify-between items-center p-4 lg:px-8">
