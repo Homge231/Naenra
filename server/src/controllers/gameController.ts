@@ -313,28 +313,32 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
     const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { active_core_id } = req.body
+    const { active_core_id, is_pure_skill } = req.body
 
-    if (!active_core_id) {
-      res.status(400).json({ error: 'active_core_id is required.' })
+    if (!active_core_id && !is_pure_skill) {
+      res.status(400).json({ error: 'active_core_id is required unless is_pure_skill is true.' })
       return
     }
 
-    const { data: core, error: coreErr } = await supabase
-      .from('cores')
-      .select('id, name, tier')
-      .eq('id', active_core_id)
-      .single()
+    let core = null
+    if (active_core_id) {
+      const { data, error: coreErr } = await supabase
+        .from('cores')
+        .select('id, name, tier')
+        .eq('id', active_core_id)
+        .single()
 
-    if (coreErr || !core) {
-      res.status(400).json({ error: 'Invalid active_core_id: core not found.' })
-      return
-    }
+      if (coreErr || !data) {
+        res.status(400).json({ error: 'Invalid active_core_id: core not found.' })
+        return
+      }
+      core = data
 
-    // Verify initial core tier is 1
-    if (core.tier !== 1 && core.tier !== null) {
-      res.status(400).json({ error: 'Initial core must be a Tier 1 core.' })
-      return
+      // Verify initial core tier is 1
+      if (core.tier !== 1 && core.tier !== null) {
+        res.status(400).json({ error: 'Initial core must be a Tier 1 core.' })
+        return
+      }
     }
 
     const { data: player } = await supabase
@@ -364,12 +368,15 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
     // Start anti-cheat timer for the first question (adding 3s buffer for countdown)
     sessionTimers.set(data.id, Date.now() + 3000)
 
-    res.status(201).json({
+    const responseData: any = {
       session_id: data.id,
       theme: randomTheme,
-      avatar_url: finalAvatarUrl,
-      active_core: { id: core.id, name: core.name }
-    })
+      avatar_url: finalAvatarUrl
+    }
+    if (core) {
+      responseData.active_core = { id: core.id, name: core.name }
+    }
+    res.status(201).json(responseData)
   } catch (err) {
     console.error('createSession error:', err)
     res.status(500).json({ error: 'Failed to create session.' })
@@ -442,36 +449,43 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       return
     }
 
-    // ── 3. Anti-cheat: validate submitted core matches session core ────────────
     const sessionCoreId = session.active_core_id
     const submittedCoreId = active_core_id
     const sessionCoreName = (session.cores as any)?.name?.toLowerCase() || ''
 
     const isPandora = getCoreFamily(sessionCoreName) === 'pandora'
 
-    if (!sessionCoreId || !submittedCoreId) {
-      res.status(400).json({ error: 'Missing core ID.' })
-      return
-    }
-
-    // ── 4. Fetch core buffs ───────────────────────────────────────────────────
-    const { data: coreRow, error: coreErr } = await supabase
-      .from('cores')
-      .select('id, name, flat_buff, multiplier_buff, core_type, classification, tier')
-      .eq('id', sessionCoreId)
-      .single()
-
-    if (coreErr || !coreRow) {
-      res.status(500).json({ error: 'Failed to load core data.' })
-      return
-    }
-
-    const core: CoreRow = coreRow as CoreRow
-
     // ── 3. Anti-cheat: validate submitted core matches session core ──
     if (sessionCoreId !== submittedCoreId) {
       res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
       return
+    }
+
+    // ── 4. Fetch core buffs ───────────────────────────────────────────────────
+    let core: CoreRow
+    if (sessionCoreId) {
+      const { data: coreRow, error: coreErr } = await supabase
+        .from('cores')
+        .select('id, name, flat_buff, multiplier_buff, core_type, classification, tier')
+        .eq('id', sessionCoreId)
+        .single()
+
+      if (coreErr || !coreRow) {
+        res.status(500).json({ error: 'Failed to load core data.' })
+        return
+      }
+      core = coreRow as CoreRow
+    } else {
+      // Pure Skill Mode (No core)
+      core = {
+        id: 'pure-skill',
+        name: 'No Core',
+        flat_buff: 0,
+        multiplier_buff: 1.0,
+        core_type: 'main',
+        classification: 'power',
+        tier: 1
+      }
     }
 
     // Handle Pandora's Box shifted core fetching

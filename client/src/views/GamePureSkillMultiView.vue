@@ -1371,9 +1371,12 @@ async function createSession() {
   try {
     const res = await fetchWithAuth(`/api/game/session`, {
       method: 'POST',
-      body: JSON.stringify({ active_core_id: activeCoreId.value })
+      body: JSON.stringify({ active_core_id: activeCoreId.value, is_pure_skill: true })
     })
-    if (!res.ok) return
+    if (!res.ok) {
+      console.error('Failed to create session:', res.statusText)
+      return
+    }
     const data = await res.json()
     sessionId.value = data.session_id
     gameStore.sessionId = data.session_id
