@@ -81,8 +81,8 @@
       :totalSteps="tutorial.totalSteps" :keyHints="tutorial.currentStepData.value?.keyHints"
       :placement="tutorial.currentStepData.value?.placement" @next="tutorial.next" @skip="tutorial.complete" />
 
-    <!-- Pandora overlays: shift announcements and indicator -->
-    <PandoraOverlay :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
+    <!-- Pandora overlays: shift announcements and indicator (hidden in Race Round) -->
+    <PandoraOverlay v-if="matchStore.currentRound !== 4" :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
       :shift-announcement="shiftAnnouncement" />
 
     <header v-show="gameState !== 'upgrade'"
@@ -148,7 +148,8 @@
       </div>
 
       <!-- Active Core History Badges in Center -->
-      <div v-if="gameStore.coreHistory.length > 0" class="hidden md:flex flex-row items-center gap-2">
+      <!-- Hide core badges in Race Round (Round 4 = pure skill, no core effects) -->
+      <div v-if="gameStore.coreHistory.length > 0 && matchStore.currentRound !== 4" class="hidden md:flex flex-row items-center gap-2">
         <div v-for="(core, index) in gameStore.coreHistory" :key="`${core.id}-${index}`"
           class="relative flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300 cursor-pointer hover:bg-black/40"
           :class="[
@@ -230,7 +231,8 @@
          children. That squashed this overlay's fixed inset-0 into the header's ~80px box
          instead of the full viewport. Living as a direct sibling of header/main fixes it. -->
     <transition name="fade">
-      <CoreUpgradeOverlay v-if="gameState === 'upgrade'" @selected="handleUpgradeSelected" />
+      <!-- Never show CoreUpgrade in Race Round (Round 4) even if gameState is upgrade somehow -->
+      <CoreUpgradeOverlay v-if="gameState === 'upgrade' && matchStore.currentRound !== 4" @selected="handleUpgradeSelected" />
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
@@ -437,25 +439,25 @@
     <!-- Right-Side Indicators Container -->
     <div class="absolute top-52 right-8 z-20 flex flex-col items-end gap-4 transition-all duration-300">
 
-      <!-- Combo indicator: only visible when active core is the Combo Core -->
+      <!-- Combo indicator: only visible when active core is the Combo Core AND not Race Round -->
       <transition name="fade-scale">
-        <div v-if="isComboCore">
+        <div v-if="isComboCore && matchStore.currentRound !== 4">
           <ComboCoreIndicator :current-combo="currentCombo" />
         </div>
       </transition>
 
-      <!-- Aegis Shield Mode Indicator -->
+      <!-- Aegis Shield Mode Indicator (hidden in Race Round) -->
       <transition name="fade-scale">
-        <div v-if="isAegisMode">
+        <div v-if="isAegisMode && matchStore.currentRound !== 4">
           <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" :max-shields="maxShields" />
         </div>
       </transition>
 
     </div>
 
-    <!-- Mission Tracker UI: only visible when active core is the Mission Core -->
+    <!-- Mission Tracker UI: only visible when active core is the Mission Core AND not Race Round -->
     <transition name="fade-scale">
-      <div v-if="isMissionCore" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
+      <div v-if="isMissionCore && matchStore.currentRound !== 4" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
         <MissionCoreIndicator :mission-progress="missionProgress" :show-celebration="showMissionCelebration" />
       </div>
     </transition>
@@ -1920,7 +1922,9 @@ function skipRecapCountdown() {
   timeoutCountdown.value = 0
   stopTimeoutInterval()
   if (!matchStore.isFinalRound()) {
-    gameState.value = 'upgrade'
+    // Use goToUpgrade so Round 3 correctly skips to Race Mode (Round 4)
+    // instead of wrongly showing the CoreUpgradeOverlay
+    goToUpgrade()
   } else {
     if (matchResult.value) {
       showMatchResult.value = true
