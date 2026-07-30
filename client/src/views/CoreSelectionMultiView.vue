@@ -363,6 +363,12 @@ async function fetchSupportCores() {
       tier: c.tier
     }))
 
+    if (currentRoom?.state?.metadata) {
+      const meta = currentRoom.state.metadata.toJSON()
+      const disabledIds = meta.disabledCores || []
+      supportCores.value = supportCores.value.filter(c => !disabledIds.includes(c.id))
+    }
+
     randomCores.value = getRandomCores(supportCores.value, 2)
     loading.value = false
 

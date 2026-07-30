@@ -180,16 +180,29 @@ export function generateOracleHints(word: string): string[] {
 export async function getQuestions(req: AuthRequest, res: Response): Promise<void> {
   const BATCH_SIZE = 20
   try {
-    const { topic } = req.query
-    let query = supabase.from('questions').select('id')
-    if (topic && typeof topic === 'string') {
+    const { topic, vocabularyLevel } = req.query
+    let query = supabase.from('questions').select('id, target_word')
+    if (topic && typeof topic === 'string' && topic !== 'Any') {
       query = query.eq('topic', topic)
     }
-    const { data: ids, error: idError } = await query
+    const { data: qData, error: idError } = await query
     if (idError) throw idError
-    if (!ids || ids.length === 0) { res.status(404).json({ error: 'No questions available.' }); return }
+    if (!qData || qData.length === 0) { res.status(404).json({ error: 'No questions available.' }); return }
 
-    const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, BATCH_SIZE)
+    let filtered = qData
+    if (vocabularyLevel === 'Easy') {
+      filtered = filtered.filter(q => q.target_word && q.target_word.length <= 5)
+    } else if (vocabularyLevel === 'Normal') {
+      filtered = filtered.filter(q => q.target_word && q.target_word.length >= 6 && q.target_word.length <= 8)
+    } else if (vocabularyLevel === 'Hard') {
+      filtered = filtered.filter(q => q.target_word && q.target_word.length >= 9)
+    }
+
+    if (filtered.length === 0) {
+      filtered = qData // Fallback if no exact match
+    }
+
+    const shuffled = [...filtered].sort(() => Math.random() - 0.5).slice(0, BATCH_SIZE)
     const pickedIds = shuffled.map((r: { id: string }) => r.id)
 
     const { data: questions, error: qError } = await supabase

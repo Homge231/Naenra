@@ -1,4 +1,5 @@
 import { ref, nextTick } from 'vue'
+import { currentRoom } from '../../services/multiplayerService'
 
 export interface QuestionPayload {
   id: string
@@ -48,8 +49,20 @@ export function useQuestionQueue(options: UseQuestionQueueOptions) {
     if (isFetchingBatch.value || options.gameState.value === 'timeout') return
     isFetchingBatch.value = true
     try {
-      const topic = options.matchStore.topics?.[options.matchStore.currentRound - 1] || 'daily-life'
-      const res = await options.fetchWithAuth(`/api/game/questions?topic=${topic}`)
+      let topic = options.matchStore.topics?.[options.matchStore.currentRound - 1] || 'daily-life'
+      let vocabularyLevel = 'Normal'
+      
+      if (currentRoom && currentRoom.state?.metadata) {
+        const meta = currentRoom.state.metadata.toJSON()
+        if (meta.topic && meta.topic !== 'Any') {
+           topic = meta.topic.toLowerCase()
+        }
+        if (meta.vocabularyLevel) {
+           vocabularyLevel = meta.vocabularyLevel
+        }
+      }
+
+      const res = await options.fetchWithAuth(`/api/game/questions?topic=${topic}&vocabularyLevel=${vocabularyLevel}`)
       if (!res.ok) throw new Error('fetch failed')
       const data = await res.json()
       questionQueue.value.push(...(data.questions as QuestionPayload[]))

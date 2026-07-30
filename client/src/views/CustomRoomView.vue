@@ -156,6 +156,7 @@
 
         <RoomSettingsOverlay 
             :isOpen="isRoomSettingsOpen"
+            :isHost="isHost"
             :metadata="roomMetadata"
             @close="isRoomSettingsOpen = false"
             @save="saveRoomSettings"
@@ -181,7 +182,8 @@ const isRoomSettingsOpen = ref(false)
 const roomMetadata = ref({
     vocabularyLevel: 'Normal',
     difficulty: 'Standard',
-    topic: 'Any'
+    topic: 'Any',
+    disabledCores: [] as string[]
 })
 
 // MẢNG ALPHABET TỪ HOMEVIEW CHUYỂN SANG ĐỂ TẠO HIỆU ỨNG BACKGROUND
@@ -197,7 +199,7 @@ const floatingLetters = alphabet.map((char, index) => {
   }
 })
 
-const saveRoomSettings = (newMetadata: { vocabularyLevel: string, difficulty: string, topic: string }) => {
+const saveRoomSettings = (newMetadata: { vocabularyLevel: string, difficulty: string, topic: string, disabledCores: string[] }) => {
     if (currentRoom) {
         currentRoom.send('updateMetadata', newMetadata)
     }
@@ -309,7 +311,8 @@ onMounted(async () => {
                         roomMetadata.value = {
                             vocabularyLevel: meta.vocabularyLevel || 'Normal',
                             difficulty: meta.difficulty || 'Standard',
-                            topic: meta.topic || 'Any'
+                            topic: meta.topic || 'Any',
+                            disabledCores: meta.disabledCores || []
                         }
                     }
                 } catch (e) {

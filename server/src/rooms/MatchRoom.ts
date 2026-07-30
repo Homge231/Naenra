@@ -21,10 +21,19 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
 
     this.onMessage("updateMetadata", (client, message) => {
+      const isHost = client.userData?.userId === this.state.hostId;
+      if (!isHost) {
+        console.warn(`Non-host tried to update metadata: ${client.sessionId}`);
+        return;
+      }
       console.log(`Update metadata from ${client.sessionId}:`, message);
       if (message.vocabularyLevel) this.state.metadata.vocabularyLevel = message.vocabularyLevel;
       if (message.difficulty) this.state.metadata.difficulty = message.difficulty;
       if (message.topic) this.state.metadata.topic = message.topic;
+      if (Array.isArray(message.disabledCores)) {
+        this.state.metadata.disabledCores.clear();
+        message.disabledCores.forEach((coreId: string) => this.state.metadata.disabledCores.push(coreId));
+      }
     });
 
     this.onMessage("start_match", (client) => {
