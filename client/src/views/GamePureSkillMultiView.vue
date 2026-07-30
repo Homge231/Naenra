@@ -1371,7 +1371,7 @@ async function createSession() {
   try {
     const res = await fetchWithAuth(`/api/game/session`, {
       method: 'POST',
-      body: JSON.stringify({ active_core_id: activeCoreId.value, is_pure_skill: true })
+      body: JSON.stringify({ active_core_id: null, is_pure_skill: true })
     })
     if (!res.ok) {
       console.error('Failed to create session:', res.statusText)
@@ -1739,11 +1739,13 @@ async function checkAnswer() {
           question_id: questionId,
           answer: typed,
           current_combo: capturedCombo,
-          active_core_id: activeCoreId.value,
-          secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
+          active_core_id: null,
+          secondary_core_id: undefined,
           core_history_names: gameStore.coreHistory.map(c => c.name),
           core_history: gameStore.coreHistory.map(c => c.id),
           oracle_reveal_level: capturedOracleLevel,
+          is_pure_skill: true,
+          active_core_id: null,
           time_taken: timeTaken,
           difficulty: currentRoom?.state.metadata.difficulty || 'Standard',
           current_shields: capturedShields,

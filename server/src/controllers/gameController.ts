@@ -350,12 +350,14 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
     const finalAvatarUrl = player?.avatar_url?.trim()
       || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player?.username || 'Player'}`
 
+    const finalCoreId = is_pure_skill ? null : (active_core_id || null)
+
     const { data, error } = await supabase
       .from('game_sessions')
       .insert({ 
         player_id: playerId, 
         status: 'active', 
-        active_core_id: active_core_id || null
+        active_core_id: finalCoreId
       })
       .select('id')
       .single()
