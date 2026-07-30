@@ -55,7 +55,7 @@
             left: `${popup.x}px`,
             top: `${popup.y}px`
           }">
-          {{ popup.type === 'shield_blocked' ? 'BLOCKED' : (popup.type === 'wrong' || popup.type === 'typo' ?
+          {{ popup.type === 'shield_blocked' ? 'BLOCKED' : popup.type === 'custom' ? (popup.message || `+${Math.abs(popup.value)}`) : (popup.type === 'wrong' || popup.type === 'typo' ?
             `-${Math.abs(popup.value)}` : `+${Math.abs(popup.value)}`) }}
           <span v-if="popup.type === 'speedster'" class="ml-1">FAST!</span>
           <span v-if="popup.type === 'prismatic'" class="ml-1">BOOM! 💥</span>
@@ -1395,9 +1395,13 @@ async function checkAnswer() {
           spawnPointPopup(0, 'custom', 'TIME FROZEN!')
         }
         
-        if (data.shield_delta) {
-          if (data.shield_delta > 0) {
-            spawnPointPopup(0, 'custom', '+1 SHIELD!')
+        if (data.shield_delta && data.shield_delta > 0) {
+          // If Phoenix rebirth happened, the points popup already covers it — show REBIRTH! instead
+          if (data.breakdown?.phoenix_miss_count > 0) {
+            spawnPointPopup(0, 'custom', '🔥 REBIRTH!')
+          } else {
+            const shieldLabel = data.shield_delta >= 2 ? `+${data.shield_delta} SHIELDS!` : '+1 SHIELD!'
+            spawnPointPopup(0, 'custom', shieldLabel)
           }
         }
         
