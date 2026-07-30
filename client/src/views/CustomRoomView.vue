@@ -265,11 +265,11 @@ onMounted(async () => {
 
     try {
         if (route.query.id) {
-            // Join existing room
+            // Join existing room (or re-use already connected one)
             if (!currentRoom || currentRoom.roomId !== route.query.id) {
                 await joinMatchRoomById(route.query.id as string, options)
             } else {
-                console.log("Already connected to custom room.")
+                console.log("Already connected to custom room — re-attaching listeners.")
             }
         } else {
             // Create new room
@@ -279,6 +279,7 @@ onMounted(async () => {
         }
 
         if (currentRoom) {
+            // Always re-attach listeners so they work after returning from game view
             currentRoom.removeAllListeners()
 
             currentRoom.onStateChange((state: any) => {
@@ -329,6 +330,12 @@ onMounted(async () => {
                 } else {
                     router.push('/core/multiplayer')
                 }
+            })
+
+            // Server confirms everyone is back in the lobby (after Play Again)
+            currentRoom.onMessage('returned_to_lobby', () => {
+                console.log('[CustomRoom] All players returned to lobby.')
+                navigatingToGame.value = false
             })
         }
     } catch (err: any) {

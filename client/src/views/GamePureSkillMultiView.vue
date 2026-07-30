@@ -1917,31 +1917,6 @@ async function finalizeMatch() {
   showMatchResult.value = true
 }
 
-function oldStartTimeoutPhase() {
-  gameState.value = 'timeout'
-  inputRef.value?.blur()
-  stopTimeoutInterval()
-
-  if (isMultiplayer.value && !isForfeitWin.value) {
-    waitingForOpponent.value = true
-    if (currentRoom) {
-      currentRoom.send("finished_round")
-    }
-  } else {
-    waitingForOpponent.value = false
-    runRecapCountdown()
-  }
-
-  // Only tell the backend the session is over if it's the final round!
-  // Otherwise, we keep the session alive to retain score and anti-cheat tracking.
-  const sid = sessionId.value
-  const coreId = activeCoreId.value
-  const oracleLvl = oracleRevealLevel.value
-
-  if (sid && matchStore.isFinalRound()) {
-    setTimeout(() => callTimeoutEndpoint(sid, coreId, oracleLvl), 300)
-  }
-}
 
 function runRecapCountdown() {
   timeoutCountdown.value = 15
@@ -2048,8 +2023,20 @@ async function playAgain() {
   if (isMultiplayer.value && currentRoom) {
     const rId = currentRoom.roomId
     if (currentRoom.state?.isCustom) {
-      // For custom rooms, tell server to reset to lobby state instead of disconnecting
+      // Tell server to reset to lobby state (server broadcasts to all players)
       currentRoom.send('return_to_lobby')
+      // Reset local match state too
+      score.value = 0
+      questionsAnswered.value = 0
+      matchHistory.value = []
+      gameStore.coreHistory = []
+      gameStore.activeCoreId = null
+      gameStore.activeCoreName = null
+      gameStore.sessionId = null
+      matchStore.resetMatch()
+      matchStore.maxRounds = 1
+      isForfeitWin.value = false
+      matchResult.value = null
       router.push(`/room/custom?id=${rId}`)
     } else {
       leaveMatchRoom()
@@ -2085,6 +2072,9 @@ function goHome() {
   abandonCurrentSession()
   gameStore.sessionId = null
   matchStore.resetMatch()
+  if (isMultiplayer.value && currentRoom) {
+    leaveMatchRoom()
+  }
   router.push('/home')
 }
 
@@ -2100,15 +2090,15 @@ async function debugSkipRound() {
 function skipGameplay() {
   menuOpen.value = false
   stopMatchTimer()
-  if (!matchStore.isFinalRound()) {
-    gameState.value = 'upgrade'
-  } else {
-    startTimeoutPhase()
-  }
+  // Pure Skill mode has no upgrade phase — always go straight to match end
+  startTimeoutPhase()
 }
 
 async function abandonCurrentSession() {
-  if (!sessionId.value || gameState.value === 'timeout') return
+  // Note: intentionally NOT checking gameState === 'timeout' here.
+  // If the player quits mid-game, we still want to mark the session as abandoned
+  // even if the timer had already expired but the overlay hadn't been shown yet.
+  if (!sessionId.value) return
   try {
     await fetchWithAuth(`/api/game/abandon`, {
       method: 'POST',
@@ -2193,6 +2183,9 @@ let selfReconnectInterval: ReturnType<typeof setInterval> | null = null
 const opponentReconnecting = ref(false)
 const opponentReconnectTimerSeconds = ref(15)
 let opponentReconnectInterval: ReturnType<typeof setInterval> | null = null
+
+// Hoisted to module scope so onUnmounted can cancel it
+let raceTimerFrame: number | null = null
 
 function startOpponentReconnectCountdown(timeout: number = 15) {
   opponentReconnecting.value = true
@@ -2284,7 +2277,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('opponent_forfeit', () => {
-    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
       return // Match is effectively over, ignore
     }
     clearOpponentReconnectCountdown()
@@ -2296,7 +2289,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('opponent_left', () => {
-    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
       return // Match is effectively over, ignore
     }
     alert("Your opponent has left the match! You will be returned to the main menu.")
@@ -2332,7 +2325,7 @@ function setupRoomEventHandlers(room: any) {
 
   // --- Round 4 (Race Mode) Listeners ---
 
-  let raceTimerFrame: number | null = null;
+  // raceTimerFrame is hoisted to module scope for cleanup on unmount
 
   room.onMessage('next_race_question', (q: any) => {
     currentRaceQuestion.value = q
@@ -2344,7 +2337,6 @@ function setupRoomEventHandlers(room: any) {
 
     timeLeft.value = 12
     timerProgressPercent.value = 100
-    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     
     const duration = 12000;
@@ -2460,6 +2452,8 @@ onMounted(async () => {
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
     matchStore.resetMatch()
+    // Pure Skill mode is always 1 round, adjust maxRounds accordingly
+    matchStore.maxRounds = 1
   }
   resetTimer()
 
@@ -2488,6 +2482,7 @@ onMounted(async () => {
 onUnmounted(() => {
   if (selfReconnectInterval) clearInterval(selfReconnectInterval)
   if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
+  if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
   stopMatchTimer()
   stopTimeoutInterval()
   document.removeEventListener('click', handleOutsideClick)
@@ -2497,7 +2492,7 @@ onUnmounted(() => {
 })
 
 onBeforeRouteLeave((to, _from, next) => {
-  if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom) {
+  if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom === true) {
     // Do not leave room, we are just returning to lobby
   } else {
     leaveMatchRoom()

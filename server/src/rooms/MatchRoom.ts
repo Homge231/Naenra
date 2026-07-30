@@ -47,12 +47,29 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
     this.onMessage("return_to_lobby", (client) => {
       console.log(`Received return_to_lobby from ${client.sessionId}`);
+      // Full reset for both players so the room is clean for next match
       this.state.status = "waiting";
-      const player = this.state.players.get(client.sessionId);
-      if (player) {
-        player.isReady = false;
-        player.score = 0;
+      this.state.currentRound = 1;
+      this.state.currentRaceQuestion.id = "";
+      this.state.currentRaceQuestion.question_text = "";
+      this.state.currentRaceQuestion.target_length = 0;
+      this.state.currentRaceQuestion.oracle_hints.clear();
+      // Cancel any pending race timers
+      if (this.raceQuestionTimer) {
+        clearTimeout(this.raceQuestionTimer);
+        this.raceQuestionTimer = null;
       }
+      this.raceQuestions = [];
+      this.currentRaceQuestionIndex = 0;
+      this.raceLockedPlayers.clear();
+      // Reset all players
+      this.state.players.forEach((player) => {
+        player.isReady = false;
+        player.isFinished = false;
+        player.score = 0;
+      });
+      // Broadcast to all clients so they can update their UI
+      this.broadcast("returned_to_lobby");
     });
 
     this.onMessage("cancel_queue", (client) => {

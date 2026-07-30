@@ -89,7 +89,8 @@ const router = createRouter({
     {
       path: '/room/custom',
       name: 'CustomRoom',
-      component: () => import('../views/CustomRoomView.vue') 
+      component: () => import('../views/CustomRoomView.vue'),
+      meta: { requiresAuth: true }
     },
     {
       path: '/matchmaking',
