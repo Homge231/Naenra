@@ -364,7 +364,7 @@ async function fetchSupportCores() {
     }))
 
     if (currentRoom?.state?.metadata) {
-      const meta = currentRoom.state.metadata.toJSON() as any
+      const meta = currentRoom.state.metadata.toJSON()
       const disabledIds = meta.disabledCores || []
       supportCores.value = supportCores.value.filter(c => !disabledIds.includes(c.id))
     }

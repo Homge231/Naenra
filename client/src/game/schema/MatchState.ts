@@ -4,6 +4,7 @@ export class RoomMetadata extends Schema {
   @type("string") vocabularyLevel: string = "Normal";
   @type("string") difficulty: string = "Standard";
   @type("string") topic: string = "Any";
+  @type(["string"]) disabledCores = new ArraySchema<string>();
 }
 
 export class RaceQuestion extends Schema {
