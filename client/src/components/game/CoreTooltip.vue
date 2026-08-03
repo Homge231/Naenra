@@ -14,9 +14,13 @@ const props = withDefaults(
       core_type?: string
       classification?: string
     }
+    isLocked?: boolean
+    missionText?: string
     position?: 'top' | 'bottom'
   }>(),
   {
+    isLocked: false,
+    missionText: '',
     position: 'top'
   }
 )
@@ -264,6 +268,19 @@ const stats = computed(() => {
           {{ stats.penalty }}
         </span>
       </div>
+    </div>
+
+    <!-- Locked Mission Banner -->
+    <div v-if="isLocked" class="flex flex-col gap-1 p-3 rounded-xl bg-red-950/80 border-2 border-red-500 text-red-200">
+      <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-red-400">
+        <svg class="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span>🔒 Core Locked • Unlock Mission</span>
+      </div>
+      <p class="text-[11px] font-bold text-red-100 leading-snug">
+        {{ missionText || 'Complete gameplay missions to unlock this Support Core.' }}
+      </p>
     </div>
 
     <div
