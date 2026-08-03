@@ -524,7 +524,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useScoreAnimation } from '../composables/game/useScoreAnimation'
 import { useMatchTimer } from '../composables/game/useMatchTimer'
@@ -1648,11 +1648,42 @@ function refocusInput() {
 }
 
 const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-  if (gameState.value === 'playing') {
+  if (gameState.value === 'playing' || gameState.value === 'upgrade') {
     e.preventDefault()
-    e.returnValue = ''
+    e.returnValue = 'Match in progress! Refreshing or leaving will forfeit the match.'
+    return e.returnValue
   }
 }
+
+const handlePreventRefreshKeys = (e: KeyboardEvent) => {
+  if (
+    (gameState.value === 'playing' || gameState.value === 'upgrade') &&
+    (e.key === 'F5' || ((e.metaKey || e.ctrlKey) && (e.key === 'r' || e.key === 'R')))
+  ) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+}
+
+const handlePopState = (_e: PopStateEvent) => {
+  if (gameState.value === 'playing' || gameState.value === 'upgrade') {
+    gameStore.resetGame()
+    matchStore.resetMatch(3)
+    audioService.stopBGM()
+    router.replace('/home')
+  }
+}
+
+onBeforeRouteLeave((to, _from, next) => {
+  if ((gameState.value === 'playing' || gameState.value === 'upgrade') && to.path !== '/home' && to.path !== '/') {
+    gameStore.resetGame()
+    matchStore.resetMatch(3)
+    audioService.stopBGM()
+    next('/home')
+  } else {
+    next()
+  }
+})
 
 watch(() => settingsStore.isSettingsOpen, (isOpen) => {
   if (!isOpen && gameState.value === 'playing') {
@@ -1727,6 +1758,8 @@ onMounted(async () => {
   startMatchTimer()
   document.addEventListener('click', handleOutsideClick)
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('keydown', handlePreventRefreshKeys, true)
+  window.addEventListener('popstate', handlePopState)
 })
 
 onUnmounted(() => {
@@ -1735,6 +1768,8 @@ onUnmounted(() => {
   stopTimeoutInterval()
   document.removeEventListener('click', handleOutsideClick)
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener('keydown', handlePreventRefreshKeys, true)
+  window.removeEventListener('popstate', handlePopState)
   for (const t of activeBgTimeouts) clearTimeout(t)
   activeBgTimeouts.clear()
 })
