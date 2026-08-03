@@ -88,6 +88,20 @@ const FAMILY_CONFIGS: Record<string, {
     pointerBorder: 'border-t-purple-500',
     displayName: 'Pandora'
   },
+  phoenix: {
+    color: 'text-red-400',
+    border: 'border-red-500 shadow-[0_20px_50px_rgba(0,0,0,0.9)]',
+    dot: 'bg-red-500',
+    pointerBorder: 'border-t-red-500',
+    displayName: 'Phoenix'
+  },
+  highroller: {
+    color: 'text-emerald-400',
+    border: 'border-emerald-500 shadow-[0_20px_50px_rgba(0,0,0,0.9)]',
+    dot: 'bg-emerald-500',
+    pointerBorder: 'border-t-emerald-500',
+    displayName: 'High Roller'
+  },
   unknown: {
     color: 'text-gray-400',
     border: 'border-gray-500 shadow-[0_20px_50px_rgba(0,0,0,0.95)]',
@@ -102,31 +116,36 @@ const currentConfig = computed(() => {
 })
 
 const coreTrait = computed(() => {
-  const c = props.core.classification ?? ''
-  if (c === 'power') return 'power'
-  if (c === 'effect') return 'effect'
-  return 'unknown'
+  const c = (props.core.classification ?? '').toLowerCase()
+  if (c === 'power' || c === 'attack') return 'power'
+  if (c === 'effect' || c === 'defense' || c === 'economy') return 'effect'
+  
+  const family = familyName.value
+  if (['power', 'balanced', 'combo', 'speedster'].includes(family)) return 'power'
+  if (['aegis', 'oracle', 'mission', 'pandora', 'phoenix', 'highroller'].includes(family)) return 'effect'
+  
+  return 'power'
 })
 
 // MÀU NỀN ĐẶC CHO TRAIT BOX (bg-slate-900)
 const TRAIT_CONFIG = {
   power: {
     label: 'Power Core',
-    icon: '⚔️',
+    icon: '⚡',
     color: 'text-orange-400',
     bg: 'bg-slate-900 border-orange-500/50',
     desc: 'Amplifies score — multipliers, flat buffs & speed bonuses.'
   },
   effect: {
     label: 'Effect Core',
-    icon: '🔮',
+    icon: '🛡️',
     color: 'text-violet-400',
     bg: 'bg-slate-900 border-violet-500/50',
     desc: 'Grants special mechanics — shields, hints, missions & chaos.'
   },
   unknown: {
     label: 'Standard',
-    icon: '◆',
+    icon: '★',
     color: 'text-gray-400',
     bg: 'bg-slate-900 border-gray-500/50',
     desc: 'Base scoring — no bonus mechanics.'
@@ -164,8 +183,8 @@ const stats = computed(() => {
       specialMechanic = 'Gives cumulative streak bonuses up to +100 points per correct answer.'
       break
     case 'speedster':
-      multiplierStr = 'N/A'
-      flatStr = 'Up to +150'
+      multiplierStr = m > 1.0 ? `x${m.toFixed(1)}` : 'N/A'
+      flatStr = f > 0 ? `+${f} PTS` : 'Up to +150'
       specialMechanic = 'Adds score bonuses based on how quickly you type the words.'
       break
     case 'oracle':
@@ -180,6 +199,14 @@ const stats = computed(() => {
       break
     case 'pandora':
       specialMechanic = 'Randomly shapeshifts into another Tier 1 core every 15-20 seconds during battle.'
+      break
+    case 'phoenix':
+      penaltyStr = 'Recoverable'
+      specialMechanic = 'Reborn from mistakes. Restores lost score momentum when building streaks.'
+      break
+    case 'highroller':
+      penaltyStr = 'High Risk'
+      specialMechanic = 'Gamble mechanics. Takes risky bets for high multiplier and jackpot payouts.'
       break
   }
 

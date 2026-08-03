@@ -95,6 +95,7 @@
                                 class="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
                                 <img :src="resolveIcon(core)"
                                     :alt="core.name"
+                                    @error="onImgError"
                                     class="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" />
                             </div>
                         </div>
@@ -172,26 +173,18 @@ const filteredCores = computed(() => {
     return coresData.value.filter(c => getCategory(c).toLowerCase() === activeTab.value.toLowerCase())
 })
 
-const resolveIcon = (core: any) => {
-    if (!core || !core.name) return ''
-    const dbIcon = core.icon || core.image || core.icon_url
-    if (dbIcon && (dbIcon.startsWith('http://') || dbIcon.startsWith('https://'))) {
-        return dbIcon
-    }
-    const nameLower = core.name.toLowerCase()
-    let family = 'combo'
-    if (nameLower.includes('aegis') || nameLower.includes('shield')) family = 'aegis'
-    else if (nameLower.includes('power')) family = 'power'
-    else if (nameLower.includes('speed')) family = 'speedster'
-    else if (nameLower.includes('oracle') || nameLower.includes('argus')) family = 'oracle'
-    else if (nameLower.includes('mission')) family = 'mission'
-    else if (nameLower.includes('balance')) family = 'balanced'
-    else if (nameLower.includes('pandora')) family = 'pandora'
-    else if (nameLower.includes('phoenix')) family = 'phoenix'
-    else if (nameLower.includes('roller')) family = 'highroller'
+import { getCoreIconPath } from '../game/cores/icons'
 
-    const fileName = core.name.toLowerCase().replace(/[']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-    return `https://zowxktrpfqwpzckpnytu.supabase.co/storage/v1/object/public/core-icons/${family}/${fileName}.svg`
+const resolveIcon = (core: any) => {
+    if (!core || !core.name) return '/icons/cores/default.svg'
+    return getCoreIconPath(core.name, core.icon_url || core.icon || core.image)
+}
+
+const onImgError = (event: Event) => {
+    const target = event.target as HTMLImageElement
+    if (target && target.src !== '/icons/cores/default.svg') {
+        target.src = '/icons/cores/default.svg'
+    }
 }
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'

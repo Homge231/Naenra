@@ -42,6 +42,7 @@
               <img 
                 :src="resolveIcon(baseCore)" 
                 :alt="baseCore.name" 
+                @error="onImgError"
                 class="w-full h-full object-contain drop-shadow-sm p-2 rounded-[21px]" 
               />
             </div>
@@ -98,6 +99,7 @@
                   <img 
                     :src="resolveIcon(upgrade)" 
                     :alt="upgrade.name" 
+                    @error="onImgError"
                     class="w-10 h-10 object-contain drop-shadow-sm group-hover:rotate-6 transition-transform duration-300" 
                   />
                 </div>
@@ -374,15 +376,18 @@ const getFamilyForCore = (coreName: string) => {
   return 'combo';
 }
 
+import { getCoreIconPath } from '../game/cores/icons'
+
 const resolveIcon = (core: any) => {
-  if (!core || !core.name) return '';
-  const dbIcon = core.icon || core.image || core.icon_url;
-  if (dbIcon && (dbIcon.startsWith('http://') || dbIcon.startsWith('https://'))) {
-    return dbIcon;
+  if (!core || !core.name) return '/icons/cores/default.svg'
+  return getCoreIconPath(core.name, core.icon_url || core.icon || core.image)
+}
+
+const onImgError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== '/icons/cores/default.svg') {
+    target.src = '/icons/cores/default.svg'
   }
-  const family = getFamilyForCore(core.name);
-  const fileName = core.name.toLowerCase().replace(/[']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return `https://zowxktrpfqwpzckpnytu.supabase.co/storage/v1/object/public/core-icons/${family}/${fileName}.svg`;
 }
 
 onMounted(async () => {
