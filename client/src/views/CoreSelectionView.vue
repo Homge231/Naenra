@@ -157,7 +157,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
 import { useAuthStore } from '../stores/authStore'
@@ -423,13 +423,41 @@ async function submitCore(core: CoreOption) {
 
 const handleBeforeUnload = (e: BeforeUnloadEvent) => {
   e.preventDefault()
-  e.returnValue = ''
+  e.returnValue = 'Selection in progress! Leaving or reloading will cancel your match.'
+  return e.returnValue
 }
+
+const handlePreventRefreshKeys = (e: KeyboardEvent) => {
+  if (e.key === 'F5' || ((e.metaKey || e.ctrlKey) && (e.key === 'r' || e.key === 'R'))) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+}
+
+const handlePopState = (_e: PopStateEvent) => {
+  gameStore.resetGame()
+  matchStore.resetMatch(3)
+  audioService.stopBGM()
+  router.replace('/home')
+}
+
+onBeforeRouteLeave((to, _from, next) => {
+  if (to.path !== '/game' && to.path !== '/home' && to.path !== '/') {
+    gameStore.resetGame()
+    matchStore.resetMatch(3)
+    audioService.stopBGM()
+    next('/home')
+  } else {
+    next()
+  }
+})
 
 onMounted(() => {
   audioService.playBGM('/audio/core_selection.mp3')
   fetchSupportCores()
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('keydown', handlePreventRefreshKeys, true)
+  window.addEventListener('popstate', handlePopState)
 })
 
 onUnmounted(() => {
@@ -438,6 +466,8 @@ onUnmounted(() => {
   for (const t of activeTimeouts) clearTimeout(t)
   activeTimeouts.clear()
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener('keydown', handlePreventRefreshKeys, true)
+  window.removeEventListener('popstate', handlePopState)
 })
 </script>
 
