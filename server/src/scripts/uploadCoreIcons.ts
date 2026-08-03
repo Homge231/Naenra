@@ -2,14 +2,15 @@
  * uploadCoreIcons.ts
  *
  * 1. Creates Supabase Storage bucket `core-icons` (if not exists)
- * 2. Uploads all icon JPGs from client/public/icons/cores/{family}/
+ * 2. Uploads all icon SVGs from client/public/icons/cores/{family}/
  * 3. Adds `icon_url` column to `cores` table (if not exists)
  * 4. Updates each core row with the public URL of its icon
  */
 import dotenv from 'dotenv'
 import path from 'path'
 import fs from 'fs'
-dotenv.config({ path: path.resolve(__dirname, '../server/.env') })
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -23,10 +24,28 @@ const ICONS_DIR = path.resolve(__dirname, '../../../client/public/icons/cores')
 
 /** Convert core name to the slug used in filenames */
 function toSlug(name: string): string {
-  return name
-    .toLowerCase()
+  const overrides: Record<string, string> = {
+    'harmony': 'harmony-core',
+    'zenith': 'zenith-core',
+    'overclock': 'overclock-core',
+    'supernova': 'supernova-core',
+    'gigawatt': 'gigawatt-core',
+    'supermassive': 'supermassive-core',
+    'aegis shield': 'aegis-shield',
+    'oracle': 'oracle-core',
+    'mission impossible': 'mission-core',
+    'perfect combo': 'combo-core',
+    'balance': 'balanced-core',
+    'speedster': 'speedster',
+    "pandora's box": 'pandoras-box',
+    'high roller': 'high-roller'
+  }
+  const key = name.toLowerCase()
+  if (overrides[key]) return overrides[key]
+  return key
     .replace(/['']/g, '')
-    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 async function ensureBucket() {
@@ -49,24 +68,7 @@ async function ensureBucket() {
   return true
 }
 
-async function addIconUrlColumn() {
-  // Use raw SQL to add column if not exists
-  const { error } = await supabase.rpc('exec_sql', {
-    sql: `ALTER TABLE cores ADD COLUMN IF NOT EXISTS icon_url TEXT DEFAULT NULL;`
-  })
-  
-  if (error) {
-    // If the RPC doesn't exist, try direct approach
-    console.warn('⚠️  Could not add column via RPC (may need manual SQL):', error.message)
-    console.log('📋 Run this SQL manually in Supabase Dashboard if needed:')
-    console.log('   ALTER TABLE cores ADD COLUMN IF NOT EXISTS icon_url TEXT DEFAULT NULL;')
-  } else {
-    console.log('✅ Added icon_url column to cores table')
-  }
-}
-
 async function uploadAndUpdateCores() {
-  // Get all cores from DB
   const { data: cores, error: fetchErr } = await supabase
     .from('cores')
     .select('id, name')
@@ -76,7 +78,6 @@ async function uploadAndUpdateCores() {
     return
   }
 
-  // Get the list of families (subdirectories)
   const families = fs.readdirSync(ICONS_DIR).filter(f => 
     fs.statSync(path.join(ICONS_DIR, f)).isDirectory()
   )
@@ -88,7 +89,6 @@ async function uploadAndUpdateCores() {
   for (const core of cores) {
     const slug = toSlug(core.name)
     
-    // Find which family directory contains this icon
     let iconPath: string | null = null
     let family: string | null = null
     
@@ -107,7 +107,6 @@ async function uploadAndUpdateCores() {
       continue
     }
 
-    // Upload to Supabase Storage
     const storagePath = `${family}/${slug}.svg`
     const fileBuffer = fs.readFileSync(iconPath)
     
@@ -124,14 +123,12 @@ async function uploadAndUpdateCores() {
     }
     uploaded++
 
-    // Get public URL
     const { data: urlData } = supabase.storage
       .from(BUCKET_NAME)
       .getPublicUrl(storagePath)
     
     const publicUrl = urlData.publicUrl
 
-    // Update DB using standard update (once the column exists in PostgREST cache)
     const { error: updateErr } = await supabase
       .from('cores')
       .update({ icon_url: publicUrl })
@@ -149,14 +146,9 @@ async function uploadAndUpdateCores() {
 }
 
 async function run() {
-  console.log('🔧 Setting up Supabase Storage for core icons...\n')
-  
+  console.log('🔧 Uploading all custom SVG icons to Supabase Storage...\n')
   const bucketOk = await ensureBucket()
   if (!bucketOk) return
-
-  await addIconUrlColumn()
-  
-  console.log('\n📤 Uploading icons and updating DB...\n')
   await uploadAndUpdateCores()
 }
 
