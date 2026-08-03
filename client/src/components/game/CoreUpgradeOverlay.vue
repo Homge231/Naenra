@@ -79,31 +79,54 @@
             
             <span
               class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest"
-              :class="core.classification === 'main'
-                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                : core.classification === 'power'
-                  ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
-                  : 'text-violet-400 bg-violet-500/10 border-violet-500/30'"
+              :class="core.isLocked
+                ? 'text-red-400 bg-red-500/10 border-red-500/30'
+                : core.classification === 'main'
+                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+                  : core.classification === 'power'
+                    ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+                    : 'text-violet-400 bg-violet-500/10 border-violet-500/30'"
             >
-              {{ core.classification === 'main' ? 'MAIN CORE' : (core.classification === 'power' ? 'UPGRADE CORE • POWER' : 'UPGRADE CORE • EFFECT') }}
+              {{ core.isLocked ? '🔒 LOCKED CORE' : (core.classification === 'main' ? 'MAIN CORE' : (core.classification === 'power' ? 'UPGRADE CORE • POWER' : 'UPGRADE CORE • EFFECT')) }}
             </span>
             
             <div class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-6 lg:mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
-              :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
+              :class="core.isLocked
+                ? 'border-red-500/50 text-gray-500'
+                : selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
               <img :src="core.icon" :alt="core.name"
                 @error="onImgError"
-                class="w-12 h-12 lg:w-16 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300" />
+                class="w-12 h-12 lg:w-16 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300"
+                :class="{ 'grayscale opacity-60': core.isLocked }" />
+
+              <!-- Padlock Overlay -->
+              <div v-if="core.isLocked" class="absolute inset-0 rounded-full bg-black/75 backdrop-blur-[2px] flex items-center justify-center border-2 border-red-500/60 shadow-inner">
+                <svg class="w-8 h-8 text-red-400 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
             </div>
 
             <h3 class="text-3xl font-black mb-1 tracking-wide transition-colors duration-500"
-              :class="selectedCore?.id === core.id ? 'text-lightBlue' : 'text-white group-hover:text-lightBlue'">
+              :class="core.isLocked ? 'text-gray-400' : (selectedCore?.id === core.id ? 'text-lightBlue' : 'text-white group-hover:text-lightBlue')">
               {{ core.name }}
             </h3>
-            <span class="text-xs font-bold uppercase tracking-widest mb-4 text-lightOrange/90">
-              {{ `Upgrade Core (Tier ${core.tier || 2})` }}
+            <span class="text-xs font-bold uppercase tracking-widest mb-4" :class="core.isLocked ? 'text-red-400/90' : 'text-lightOrange/90'">
+              {{ core.isLocked ? '🔒 Mission Required' : `Upgrade Core (Tier ${core.tier || 2})` }}
             </span>
 
-            <p class="text-base text-gray-300/80 leading-relaxed max-w-[250px] z-10">{{ core.description }}</p>
+            <p v-if="!core.isLocked" class="text-base text-gray-300/80 leading-relaxed max-w-[250px] z-10">{{ core.description }}</p>
+            <div v-else class="w-full bg-red-950/40 border border-red-500/30 rounded-xl p-3 text-center z-10">
+              <p class="text-[10px] font-black uppercase tracking-wider text-red-400 mb-1 flex items-center justify-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Unlock Mission Requirement
+              </p>
+              <p class="text-xs font-bold text-red-200 leading-snug">
+                {{ core.missionText || 'Complete gameplay missions to unlock this Core.' }}
+              </p>
+            </div>
           </div>
 
         </div>
