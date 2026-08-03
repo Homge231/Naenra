@@ -18,6 +18,8 @@ const SLUG_OVERRIDES: Record<string, string> = {
   'supermassive': 'supermassive-core',
   'aegis shield': 'aegis-shield',
   'oracle': 'oracle-core',
+  'argus eyes': 'oracle-core',
+  'power strike': 'power-core',
   'mission impossible': 'mission-core',
   'perfect combo': 'combo-core',
   'balance': 'balanced-core',
