@@ -222,23 +222,10 @@ function scrollToBottom() {
 function toggleWidget() {
   audioService.playClick()
   isOpen.value = !isOpen.value
-  if (isOpen.value && analyticsData.value.length === 0 && !loadingAnalytics.value) {
-    loadAnalytics()
-  }
 }
 
 async function loadAnalytics() {
-  loadingAnalytics.value = true
-  try {
-    const res = await fetchWithAuth('/api/user/analytics')
-    if (res.ok) {
-      analyticsData.value = await res.json()
-    }
-  } catch (err) {
-    console.error('Failed to load analytics for AI widget:', err)
-  } finally {
-    loadingAnalytics.value = false
-  }
+  loadingAnalytics.value = false
 }
 
 async function generateInitialAnalysis() {
