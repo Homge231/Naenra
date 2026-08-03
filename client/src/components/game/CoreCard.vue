@@ -39,7 +39,7 @@
       <img
         :src="core.icon || core.icon_url"
         :alt="core.name"
-        @error="$event.target.src = '/icons/cores/default.svg'"
+        @error="onImgError"
         class="w-12 h-12 lg:w-16 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transition-transform duration-300"
         :class="{ 'scale-110': !isLocked && isSelected, 'filter grayscale opacity-60': isLocked }"
       />
@@ -110,6 +110,13 @@ const props = withDefaults(
 )
 
 const emit = defineEmits<{ (e: 'select', core: any): void }>()
+
+function onImgError(e: Event) {
+  const target = e.target as HTMLImageElement | null
+  if (target) {
+    target.src = '/icons/cores/default.svg'
+  }
+}
 
 function handleClick() {
   if (props.isLocked) {

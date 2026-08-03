@@ -25,7 +25,7 @@
 
       <div v-if="gameStore.coreHistory.length > 0" class="mb-8 flex flex-wrap items-center justify-center gap-3">
         <div v-if="gameStore.coreHistory[0]" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white/5 border border-emerald-500/30 backdrop-blur shadow-lg">
-          <img :src="gameStore.coreHistory[0].icon" :alt="gameStore.coreHistory[0].name" @error="$event.target.src = '/icons/cores/default.svg'" class="w-6 h-6 object-contain" />
+          <img :src="gameStore.coreHistory[0].icon" :alt="gameStore.coreHistory[0].name" @error="onImgError" class="w-6 h-6 object-contain" />
           <div class="text-left">
             <p class="text-[9px] font-black uppercase text-emerald-400 tracking-wider">Main Core</p>
             <p class="text-xs font-bold text-white">{{ gameStore.coreHistory[0].name }}</p>
@@ -33,7 +33,7 @@
         </div>
 
         <div v-for="(uCore, uIdx) in gameStore.coreHistory.slice(1)" :key="`${uCore.id}-${uIdx}`" class="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white/5 border border-blue-500/30 backdrop-blur shadow-lg">
-          <img :src="uCore.icon" :alt="uCore.name" @error="$event.target.src = '/icons/cores/default.svg'" class="w-6 h-6 object-contain" />
+          <img :src="uCore.icon" :alt="uCore.name" @error="onImgError" class="w-6 h-6 object-contain" />
           <div class="text-left">
             <p class="text-[9px] font-black uppercase text-blue-400 tracking-wider">Upgrade {{ uIdx + 1 }}</p>
             <p class="text-xs font-bold text-white">{{ uCore.name }}</p>
@@ -95,7 +95,7 @@
                 ? 'border-red-500/50 text-gray-500'
                 : selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
               <img :src="core.icon" :alt="core.name"
-                @error="$event.target.src = '/icons/cores/default.svg'"
+                @error="onImgError"
                 class="w-12 h-12 lg:w-16 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300"
                 :class="{ 'grayscale opacity-60': core.isLocked }" />
 
@@ -189,7 +189,14 @@ function hideTooltip() {
   activeTooltipIndex.value = null
 }
 
-function handleTouchStart(index: number, e: TouchEvent) {
+function onImgError(e: Event) {
+  const target = e.target as HTMLImageElement | null
+  if (target) {
+    target.src = '/icons/cores/default.svg'
+  }
+}
+
+function handleTouchStart(index: number, _e: TouchEvent) {
   isHolding = false
   if (touchTimeout) clearTimeout(touchTimeout)
   touchTimeout = setTimeout(() => {
@@ -417,6 +424,7 @@ onUnmounted(() => {
       rgba(255, 255, 255, 0.1) 100%);
   background-size: 300% 300%;
   animation: sweepGlow 4s linear infinite;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;

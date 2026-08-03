@@ -75,6 +75,10 @@ class AudioService {
     this.playSound(this.skipAudio);
   }
 
+  playError() {
+    this.playSound(this.skipAudio);
+  }
+
   playHover() {
     this.playSound(this.hoverAudio);
   }
