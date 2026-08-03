@@ -264,12 +264,10 @@ function autoSelect() {
   if (unlockedOptions.length > 0) {
     const randomIndex = Math.floor(Math.random() * unlockedOptions.length)
     selectCore(unlockedOptions[randomIndex])
-  } else if (upgradeCores.value.length > 0) {
-    // If all options are locked, fall back to first core for session continuity
-    const firstCore = { ...upgradeCores.value[0], isLocked: false }
-    selectCore(firstCore)
   } else {
-    emit('selected', '')
+    // If all offered options are locked, NEVER force-select a locked core.
+    // Retain current active core for session continuity.
+    emit('selected', gameStore.activeCoreId || '')
   }
 }
 

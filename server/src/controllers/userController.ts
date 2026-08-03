@@ -54,11 +54,11 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
 
     const elo = profile?.elo ?? 0
 
-    // Fetch Base Cores (unlocked by default for all users)
+    // Fetch Base Cores (Tier 1 & Tier 2 unlocked by default for all users, Tier 3 Ultimate require missions)
     const { data: baseCores } = await supabase
       .from('cores')
       .select('id')
-      .or('tier.eq.1,core_type.eq.main')
+      .or('tier.eq.1,tier.eq.2,core_type.eq.main')
 
     const baseCoreIds = (baseCores || []).map((c: any) => String(c.id))
 
