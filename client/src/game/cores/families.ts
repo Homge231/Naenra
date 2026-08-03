@@ -85,3 +85,100 @@ export function getCoreTraitLabel(coreName: string): 'power' | 'effect' | 'unkno
   if (isEffectCore(coreName)) return 'effect'
   return 'unknown'
 }
+
+export type FamilyTheme = {
+  gradient: string
+  pillBg: string
+  pillText: string
+  pillBorder: string
+  textHover: string
+  borderAccent: string
+}
+
+export const FAMILY_THEMES: Record<string, FamilyTheme> = {
+  combo: {
+    gradient: 'from-orange-500 to-amber-500',
+    pillBg: 'bg-orange-500/10',
+    pillText: 'text-orange-500',
+    pillBorder: 'border-orange-500/30',
+    textHover: 'group-hover:text-orange-500',
+    borderAccent: 'border-orange-500/40'
+  },
+  speedster: {
+    gradient: 'from-cyan-500 to-blue-500',
+    pillBg: 'bg-cyan-500/10',
+    pillText: 'text-cyan-600',
+    pillBorder: 'border-cyan-500/30',
+    textHover: 'group-hover:text-cyan-600',
+    borderAccent: 'border-cyan-500/40'
+  },
+  oracle: {
+    gradient: 'from-violet-500 to-purple-600',
+    pillBg: 'bg-violet-500/10',
+    pillText: 'text-violet-600',
+    pillBorder: 'border-violet-500/30',
+    textHover: 'group-hover:text-violet-600',
+    borderAccent: 'border-violet-500/40'
+  },
+  mission: {
+    gradient: 'from-amber-500 to-yellow-600',
+    pillBg: 'bg-amber-500/10',
+    pillText: 'text-amber-600',
+    pillBorder: 'border-amber-500/30',
+    textHover: 'group-hover:text-amber-600',
+    borderAccent: 'border-amber-500/40'
+  },
+  aegis: {
+    gradient: 'from-sky-500 to-indigo-500',
+    pillBg: 'bg-sky-500/10',
+    pillText: 'text-sky-600',
+    pillBorder: 'border-sky-500/30',
+    textHover: 'group-hover:text-sky-600',
+    borderAccent: 'border-sky-500/40'
+  },
+  balanced: {
+    gradient: 'from-blue-500 to-indigo-600',
+    pillBg: 'bg-blue-500/10',
+    pillText: 'text-blue-600',
+    pillBorder: 'border-blue-500/30',
+    textHover: 'group-hover:text-blue-600',
+    borderAccent: 'border-blue-500/40'
+  },
+  power: {
+    gradient: 'from-pink-500 to-rose-600',
+    pillBg: 'bg-pink-500/10',
+    pillText: 'text-pink-600',
+    pillBorder: 'border-pink-500/30',
+    textHover: 'group-hover:text-pink-600',
+    borderAccent: 'border-pink-500/40'
+  },
+  pandora: {
+    gradient: 'from-purple-600 to-fuchsia-600',
+    pillBg: 'bg-purple-500/10',
+    pillText: 'text-purple-600',
+    pillBorder: 'border-purple-500/30',
+    textHover: 'group-hover:text-purple-600',
+    borderAccent: 'border-purple-500/40'
+  },
+  phoenix: {
+    gradient: 'from-red-500 to-orange-600',
+    pillBg: 'bg-red-500/10',
+    pillText: 'text-red-600',
+    pillBorder: 'border-red-500/30',
+    textHover: 'group-hover:text-red-600',
+    borderAccent: 'border-red-500/40'
+  },
+  highroller: {
+    gradient: 'from-emerald-500 to-amber-500',
+    pillBg: 'bg-emerald-500/10',
+    pillText: 'text-emerald-600',
+    pillBorder: 'border-emerald-500/30',
+    textHover: 'group-hover:text-emerald-600',
+    borderAccent: 'border-emerald-500/40'
+  }
+}
+
+export function getCoreFamilyTheme(coreName: string): FamilyTheme {
+  const family = getCoreFamily(coreName) || 'combo'
+  return FAMILY_THEMES[family] || FAMILY_THEMES.combo
+}
