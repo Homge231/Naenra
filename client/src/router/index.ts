@@ -107,13 +107,13 @@ const router = createRouter({
     {
       path:'/library',
       name: 'library',
-      component: () => import('../views/LibraryView.vue'),
+      component: () => import('../views/CoreLibraryView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/library/core/:id',
       name: 'core-library-item',
-      component: () => import('../views/CoreDetailView.vue'),
+      component: () => import('../views/CoreUpgradeDetailView.vue'),
       meta: { requiresAuth: true }
     },
   ]
