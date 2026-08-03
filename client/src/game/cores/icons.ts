@@ -60,9 +60,12 @@ export const DEFAULT_ICON = '/icons/cores/default.svg'
  */
 export function getCoreIconPath(coreName: string, iconUrl?: string | null): string {
   if (!coreName) return DEFAULT_ICON
+  const key = coreName.trim().toLowerCase()
+  if (CORE_ICON_MAP[key]) {
+    return CORE_ICON_MAP[key]
+  }
   if (iconUrl && iconUrl.startsWith('http')) {
     return iconUrl
   }
-  const key = coreName.trim().toLowerCase()
-  return CORE_ICON_MAP[key] ?? DEFAULT_ICON
+  return DEFAULT_ICON
 }
