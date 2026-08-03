@@ -251,7 +251,19 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
       return
     }
 
-    const tier1Cores = allCores.filter(c => c.tier === 1 || !c.tier)
+    // Fetch unlocked core IDs for current user to ensure ONLY unlocked cores are offered in gameplay
+    const { data: userUnlockedProgress } = await supabase
+      .from('user_core_progress')
+      .select('core_id')
+      .eq('user_id', req.user!.id)
+      .eq('is_unlocked', true)
+
+    const userUnlockedSet = new Set((userUnlockedProgress || []).map((p: any) => String(p.core_id)))
+    
+    // Tier 1 Base Cores are unlocked for all users
+    allCores.filter(c => c.tier === 1 || c.core_type === 'main').forEach(c => userUnlockedSet.add(String(c.id)))
+
+    const tier1Cores = allCores.filter(c => (c.tier === 1 || !c.tier) && userUnlockedSet.has(String(c.id)))
     
     let offeredCores: any[] = []
 
@@ -266,8 +278,10 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
         const upgradeNames = getUpgradesForCore(prevCore.name, targetTier)
         
         if (upgradeNames.length > 0) {
+          // Filter synergy pool to ONLY unlocked cores
           const synergyPool = allCores.filter(c => 
-            upgradeNames.some(name => name.toLowerCase() === c.name.toLowerCase())
+            upgradeNames.some(name => name.toLowerCase() === c.name.toLowerCase()) &&
+            userUnlockedSet.has(String(c.id))
           )
           
           if (synergyPool.length > 0) {
