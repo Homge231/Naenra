@@ -1494,10 +1494,11 @@ async function skipQuestion() {
             question_id: questionId,
             answer: '',            // empty = full skip
             current_combo: capturedCombo,
-            active_core_id: activeCoreId.value,
-            secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
-            core_history_names: gameStore.coreHistory.map(c => c.name),
-            oracle_reveal_level: oracleRevealLevel.value,
+            active_core_id: null,  // Pure Skill: always null, no core used
+            secondary_core_id: undefined,
+            core_history_names: [],
+            oracle_reveal_level: 0,
+            is_pure_skill: true,
             time_taken: timeTaken,
             difficulty: currentRoom?.state.metadata.difficulty || 'Standard',
             current_shields: capturedShields,
@@ -1734,7 +1735,6 @@ async function checkAnswer() {
           core_history: gameStore.coreHistory.map(c => c.id),
           oracle_reveal_level: capturedOracleLevel,
           is_pure_skill: true,
-          active_core_id: null,
           time_taken: timeTaken,
           difficulty: currentRoom?.state.metadata.difficulty || 'Standard',
           current_shields: capturedShields,
@@ -1990,9 +1990,7 @@ async function restartMatch() {
   currentPandoraCoreId.value = null
   resetTypingBoard()
 
-  if (isMultiplayer.value && currentRoom && activeCoreId.value) {
-    currentRoom.send("update_core", { coreId: activeCoreId.value })
-  }
+  // Pure Skill Mode: never broadcast a core to the Colyseus room.
 
   // Transition to loading and fetch next batch
   // Note: We DO NOT call createSession() here so the backend continues the same session!
@@ -2251,9 +2249,7 @@ function setupRoomEventHandlers(room: any) {
   
   room.removeAllListeners()
 
-  if (activeCoreId.value) {
-    room.send("update_core", { coreId: activeCoreId.value })
-  }
+  // Pure Skill Mode: do NOT broadcast a core — there is no active core.
   updateOpponentData(room.state)
 
   room.onStateChange((state: any) => {
@@ -2423,7 +2419,12 @@ onMounted(async () => {
     setupRoomEventHandlers(currentRoom)
   }
 
-  // Pure Skill Mode does not use or restore cores.
+  // Pure Skill Mode does not use cores — clear any stale core state that
+  // may have been loaded from localStorage by the gameStore initializer.
+  gameStore.activeCoreId = null
+  gameStore.activeCoreName = null
+  localStorage.removeItem('naenra_active_core_id')
+  localStorage.removeItem('naenra_active_core_name')
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
