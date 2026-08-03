@@ -1696,7 +1696,7 @@ watch(() => gameState.value, (newState) => {
 })
 
 onMounted(async () => {
-
+  matchStore.maxRounds = 3
 
   if (!activeCoreId.value) {
     router.replace('/core')
@@ -1705,7 +1705,7 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
-    matchStore.resetMatch()
+    matchStore.resetMatch(3)
   }
   resetTimer()
 

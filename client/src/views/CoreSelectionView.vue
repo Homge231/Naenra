@@ -414,7 +414,7 @@ async function submitCore(core: CoreOption) {
   gameStore.sessionId = null
   
   const matchStore = useMatchStore()
-  matchStore.resetMatch()
+  matchStore.resetMatch(3)
 
   await createSession(core.id)
 

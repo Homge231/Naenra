@@ -2025,7 +2025,7 @@ async function playAgain() {
       gameStore.activeCoreId = null
       gameStore.activeCoreName = null
       gameStore.sessionId = null
-      matchStore.resetMatch()
+      matchStore.resetMatch(1)
       matchStore.maxRounds = 1
       isForfeitWin.value = false
       matchResult.value = null
@@ -2044,7 +2044,7 @@ async function playAgain() {
   aegisShieldCount.value = 0
   missionProgress.value = 0
 
-  matchStore.resetMatch()
+  matchStore.resetMatch(1)
   matchHistory.value = []
   gameStore.coreHistory = []
   gameStore.activeCoreId = null
@@ -2063,7 +2063,7 @@ function goHome() {
   stopTimeoutInterval()
   abandonCurrentSession()
   gameStore.sessionId = null
-  matchStore.resetMatch()
+  matchStore.resetMatch(1)
   if (isMultiplayer.value && currentRoom) {
     leaveMatchRoom()
   }
@@ -2428,7 +2428,7 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
-    matchStore.resetMatch()
+    matchStore.resetMatch(1)
     // Pure Skill mode is always 1 round, adjust maxRounds accordingly
     matchStore.maxRounds = 1
   }

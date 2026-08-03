@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 export const useMatchStore = defineStore('match', () => {
   const currentRound = ref(1)
-  const maxRounds = ref(4)
+  const maxRounds = ref(3)
   const topics = ref<string[]>(['daily-life', 'cafe', 'travel'])
 
   function shuffleTopics() {
@@ -21,9 +21,9 @@ export const useMatchStore = defineStore('match', () => {
     }
   }
 
-  function resetMatch() {
+  function resetMatch(max: number = 3) {
     currentRound.value = 1
-    maxRounds.value = 4   // always restore default; pure skill sets it to 1 and must not bleed over
+    maxRounds.value = max   // default to 3 for single player; multiplayer passes 4, pure skill passes 1
     shuffleTopics()
   }
 

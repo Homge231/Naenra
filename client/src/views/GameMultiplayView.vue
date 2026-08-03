@@ -2061,7 +2061,7 @@ async function playAgain() {
   aegisShieldCount.value = 0
   missionProgress.value = 0
 
-  matchStore.resetMatch()
+  matchStore.resetMatch(4)
   matchHistory.value = []
   gameStore.coreHistory = []
   gameStore.activeCoreId = null
@@ -2080,7 +2080,7 @@ function goHome() {
   stopTimeoutInterval()
   abandonCurrentSession()
   gameStore.sessionId = null
-  matchStore.resetMatch()
+  matchStore.resetMatch(4)
   router.push('/home')
 }
 
@@ -2419,6 +2419,8 @@ function setupRoomEventHandlers(room: any) {
 }
 
 onMounted(async () => {
+  matchStore.maxRounds = 4
+
   if (isMultiplayer.value && !currentRoom) {
     const token = getSavedReconnectionToken()
     if (token) {
@@ -2464,7 +2466,7 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
-    matchStore.resetMatch()
+    matchStore.resetMatch(4)
   }
   resetTimer()
 
