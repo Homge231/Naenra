@@ -23,6 +23,7 @@ export const useMatchStore = defineStore('match', () => {
 
   function resetMatch() {
     currentRound.value = 1
+    maxRounds.value = 4   // always restore default; pure skill sets it to 1 and must not bleed over
     shuffleTopics()
   }
 
