@@ -85,7 +85,7 @@
             <!-- Grid Layout -->
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
 
-                <div v-for="core in filteredCores" :key="core.id" @click="router.push(`/library/core/${core.id}`)"
+                <div v-for="core in filteredCores" :key="core.id" @click="router.push(`/library/core/${getCoreSlug(core)}`)"
                     class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer">
 
                     <div class="flex justify-between items-start mb-6">
@@ -175,6 +175,11 @@ const filteredCores = computed(() => {
 
 import { getCoreIconPath } from '../game/cores/icons'
 import { getCoreFamilyTheme } from '../game/cores/families'
+
+const getCoreSlug = (core: any): string => {
+    if (!core || !core.name) return String(core?.id || '')
+    return core.name.toLowerCase().replace(/['']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
 
 const resolveIcon = (core: any) => {
     if (!core || !core.name) return '/icons/cores/default.svg'

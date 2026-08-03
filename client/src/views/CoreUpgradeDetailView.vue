@@ -385,8 +385,13 @@ onMounted(async () => {
     }
 
     if (allCoresList.length > 0) {
-      // Find Base Core
-      baseCore.value = allCoresList.find((c: any) => String(c.id) === String(coreId) || String(c._id) === String(coreId))
+      // Find Base Core by UUID, clean slug, or clean name
+      const targetParam = String(coreId).toLowerCase().replace(/[^a-z0-9]/g, '')
+      baseCore.value = allCoresList.find((c: any) => 
+        String(c.id) === String(coreId) || 
+        String(c._id) === String(coreId) ||
+        cleanName(c.name) === targetParam
+      )
 
       if (baseCore.value) {
         const baseCleaned = cleanName(baseCore.value.name)
