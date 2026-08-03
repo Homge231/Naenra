@@ -37,8 +37,7 @@
         
         <!-- Base Core Showcase Banner -->
         <div class="flex flex-col md:flex-row gap-8 items-center md:items-start bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2.5rem] p-8 md:p-10 shadow-sm w-full">
-          <div class="w-32 h-32 md:w-40 md:h-40 rounded-3xl p-[3px] shadow-md bg-gradient-to-br flex-shrink-0"
-            :class="getCoreFamilyTheme(baseCore.name).gradient">
+          <div class="w-32 h-32 md:w-40 md:h-40 rounded-3xl p-[3px] shadow-md bg-gradient-to-br from-orange to-hexred flex-shrink-0">
             <div class="w-full h-full bg-white rounded-[21px] flex items-center justify-center overflow-hidden">
               <img 
                 :src="resolveIcon(baseCore)" 
@@ -50,10 +49,9 @@
           </div>
           
           <div class="flex-1 text-center md:text-left flex flex-col justify-center">
-            <div class="inline-flex items-center gap-2 border px-3.5 py-1 rounded-full w-max mx-auto md:mx-0 mb-4"
-              :class="[getCoreFamilyTheme(baseCore.name).pillBg, getCoreFamilyTheme(baseCore.name).pillBorder]">
-              <span class="w-2 h-2 rounded-full animate-pulse" :class="getCoreFamilyTheme(baseCore.name).pillText.replace('text-', 'bg-')"></span>
-              <span class="text-[10px] font-black tracking-widest uppercase" :class="getCoreFamilyTheme(baseCore.name).pillText">Base Core - Round 1</span>
+            <div class="inline-flex items-center gap-2 bg-orange/10 border border-orange/30 px-3.5 py-1 rounded-full w-max mx-auto md:mx-0 mb-4">
+              <span class="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
+              <span class="text-[10px] font-black tracking-widest text-orange uppercase">Base Core - Round 1</span>
             </div>
             <h1 class="text-4xl md:text-6xl font-black text-gray-900 uppercase tracking-tight mb-4 drop-shadow-sm">
               {{ baseCore.name }}
@@ -90,16 +88,13 @@
               <!-- Tier Badge -->
               <div :class="[
                 'absolute top-5 right-5 text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase shadow-sm border',
-                getCoreFamilyTheme(upgrade.name).pillBg,
-                getCoreFamilyTheme(upgrade.name).pillText,
-                getCoreFamilyTheme(upgrade.name).pillBorder
+                upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange'
               ]">
                 Round {{ upgrade.computedTier || 2 }}
               </div>
 
               <!-- Icon -->
-              <div class="w-16 h-16 rounded-2xl p-[3px] shadow-sm bg-gradient-to-br mb-6 group-hover:scale-110 transition-transform origin-left flex-shrink-0"
-                :class="getCoreFamilyTheme(upgrade.name).gradient">
+              <div class="w-16 h-16 rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred mb-6 group-hover:scale-110 transition-transform origin-left flex-shrink-0">
                 <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
                   <img 
                     :src="resolveIcon(upgrade)" 
@@ -112,13 +107,11 @@
 
               <!-- Info -->
               <div class="flex-1 flex flex-col">
-                <h4 class="text-xl font-black text-gray-900 uppercase tracking-wide mb-2 transition-colors"
-                  :class="getCoreFamilyTheme(upgrade.name).textHover">
+                <h4 class="text-xl font-black text-gray-900 uppercase tracking-wide mb-2 group-hover:text-orange transition-colors">
                   {{ upgrade.name }}
                 </h4>
                 
-                <div class="w-10 h-1 bg-gray-200 rounded-full mb-4 group-hover:w-16 transition-all duration-300"
-                  :class="getCoreFamilyTheme(upgrade.name).pillText.replace('text-', 'group-hover:bg-')"></div>
+                <div class="w-10 h-1 bg-gray-200 rounded-full mb-4 group-hover:w-16 group-hover:bg-orange transition-all duration-300"></div>
 
                 <p class="text-sm font-bold text-gray-500 leading-relaxed flex-1">
                   {{ getCoreDescription(upgrade) }}

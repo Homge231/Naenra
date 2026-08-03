@@ -90,8 +90,7 @@
 
                     <div class="flex justify-between items-start mb-6">
                         <div
-                            class="w-16 h-16 rounded-2xl p-[3px] shadow-sm bg-gradient-to-br group-hover:brightness-110 transition-all"
-                            :class="getCoreFamilyTheme(core.name).gradient">
+                            class="w-16 h-16 rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all">
                             <div
                                 class="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
                                 <img :src="resolveIcon(core)"
@@ -102,21 +101,18 @@
                         </div>
 
                         <!-- Category Pill -->
-                        <div class="px-3 py-1 rounded-full border shadow-sm"
-                            :class="[getCoreFamilyTheme(core.name).pillBg, getCoreFamilyTheme(core.name).pillText, getCoreFamilyTheme(core.name).pillBorder]">
+                        <div class="px-3 py-1 rounded-full border shadow-sm bg-orange/10 text-orange border-orange/30">
                             <span class="text-[10px] font-black tracking-widest uppercase">{{ getCategory(core) }}</span>
                         </div>
                     </div>
 
                     <div class="flex-1 flex flex-col">
                         <h3
-                            class="text-xl font-black text-gray-900 uppercase tracking-wide mb-2 transition-colors"
-                            :class="getCoreFamilyTheme(core.name).textHover">
+                            class="text-xl font-black text-gray-900 uppercase tracking-wide mb-2 group-hover:text-orange transition-colors">
                             {{ core.name }}
                         </h3>
                         <div
-                            class="w-10 h-1 bg-gray-200 rounded-full mb-4 group-hover:w-16 transition-all duration-300"
-                            :class="getCoreFamilyTheme(core.name).pillText.replace('text-', 'group-hover:bg-')">
+                            class="w-10 h-1 bg-gray-200 rounded-full mb-4 group-hover:w-16 group-hover:bg-orange transition-all duration-300">
                         </div>
                         <p class="text-sm font-semibold text-gray-500 leading-relaxed flex-1">
                             {{ core.description || core.desc || 'Base core for competitive typing matches.' }}
