@@ -325,9 +325,7 @@ const CORE_DETAILS_MAP: Record<string, { description: string; multiplier_buff?: 
   'contract hunter': { description: 'Completing a 4-streak target mission awards +800 flat bonus points.', flat_buff: 800, tier: 2, classification: 'Economy' },
   'mission legend': { description: 'Completing an 8-streak mission awards a massive +4000 flat bonus points.', flat_buff: 4000, tier: 3, classification: 'Economy' },
   'zen momentum': { description: 'Steady pace increases score multiplier by +0.1x per correct answer (Max 1.8x).', multiplier_buff: 1.4, tier: 2, classification: 'Economy' },
-  'serenity': { description: 'Complete immunity to mistake penalties + awards +100 flat points per answer.', flat_buff: 100, multiplier_buff: 1.5, tier: 3, classification: 'Economy' },
-  'house advantage': { description: 'Stack odds in your favor for consistent gamble payouts.', tier: 3, classification: 'Economy' },
-  'russian roulette': { description: 'Extreme gamble mode delivering up to 10x point multipliers!', multiplier_buff: 5.0, tier: 3, classification: 'Economy' }
+  'serenity': { description: 'Complete immunity to mistake penalties + awards +100 flat points per answer.', flat_buff: 100, multiplier_buff: 1.5, tier: 3, classification: 'Economy' }
 }
 
 const getCoreDescription = (core: any): string => {
@@ -339,22 +337,9 @@ const getCoreDescription = (core: any): string => {
 }
 
 import { getCoreIconPath } from '../game/cores/icons'
-import { CORE_FAMILIES, getCoreFamilyTheme } from '../game/cores/families'
+import { CORE_FAMILIES } from '../game/cores/families'
 
 const cleanName = (name: string) => name ? String(name).toLowerCase().replace(/[^a-z0-9]/g, '') : ''
-
-const getFamilyForCore = (coreName: string) => {
-  const cleaned = cleanName(coreName);
-  for (const [family, data] of Object.entries(CORE_FAMILIES)) {
-    const allNames = [...data.tier1, ...data.tier2, ...data.tier3].map(cleanName);
-    if (allNames.includes(cleaned)) {
-      return family;
-    }
-  }
-  return 'combo';
-}
-
-import { getCoreIconPath } from '../game/cores/icons'
 
 const resolveIcon = (core: any) => {
   if (!core || !core.name) return '/icons/cores/default.svg'
