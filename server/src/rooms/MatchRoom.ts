@@ -5,6 +5,7 @@ import { supabase } from "../config/supabase";
 import crypto from 'crypto';
 import { generateOracleHints, normalizeAnswer } from "../controllers/gameController";
 import { addActiveClient, removeActiveClient } from "../utils/activeClients";
+import { generateQuestions } from "../services/aiService";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
@@ -212,12 +213,33 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         this.state.currentRound = targetRound;
 
         if (targetRound === 4) {
-          // Fetch 20 chaos-random questions
+          // Fetch chaos-random questions
           let { data: ids } = await supabase.from('questions').select('id').eq('topic', 'chaos-random');
-          if (!ids || ids.length === 0) {
-            // Fallback to any random questions if chaos-random is empty
+          if (!ids || ids.length < 5) {
+            // Fallback to any random questions if chaos-random has fewer than 5
             const res = await supabase.from('questions').select('id').limit(100);
-            ids = res.data;
+            if (res.data && res.data.length >= 5) {
+              ids = res.data;
+            } else {
+              // Dynamically generate AI questions if DB has fewer than 5
+              try {
+                const generated = await generateQuestions('chaos-random', 'medium', 5);
+                if (generated && generated.length > 0) {
+                  const inserted = await supabase.from('questions').insert(
+                    generated.map(g => ({
+                      topic: 'chaos-random',
+                      difficulty: 'medium',
+                      question_text: g.question_text,
+                      target_word: g.target_word,
+                      hint: g.hint
+                    }))
+                  ).select('id');
+                  if (inserted.data) ids = [...(ids || []), ...inserted.data];
+                }
+              } catch (e) {
+                console.error("Failed to auto-generate race questions:", e);
+              }
+            }
           }
           if (ids && ids.length > 0) {
             const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, 5); // 5 questions limit
@@ -227,7 +249,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
               .select('id, question_text, target_word, hint')
               .in('id', pickedIds);
             
-            if (questions) {
+            if (questions && questions.length > 0) {
               this.raceQuestions = questions.sort(() => Math.random() - 0.5);
               this.currentRaceQuestionIndex = 0;
               this.broadcast("start_next_round", { round: 4 });
@@ -277,6 +299,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       id: q.id,
       question_text: q.question_text,
       target_length: q.target_word ? q.target_word.length : 0,
+      target_word: q.target_word,
       oracle_hints: hints,
       hint: q.hint
     });

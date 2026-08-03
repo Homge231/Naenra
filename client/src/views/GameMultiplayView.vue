@@ -2380,13 +2380,33 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('race_won', (data: { winnerId: string, points: number }) => {
-    if (data.winnerId === currentRoom?.sessionId) {
+    const isMe = data.winnerId === currentRoom?.sessionId
+    const targetWord = currentRaceQuestion.value?.target_word || currentRaceQuestion.value?.hint || 'Question'
+    const myTypedWord = typedLetters.value.join('')
+
+    questionsAnswered.value++
+
+    if (isMe) {
       triggerScoreFlash('correct')
       spawnPointPopup(data.points, 'correct', 'RACE WON')
       score.value += data.points
+      if (currentRoom) {
+        currentRoom.send('update_score', { score: score.value })
+      }
+      matchHistory.value.push({
+        round: 4,
+        submitted: myTypedWord || targetWord,
+        correct: targetWord,
+        isCorrect: true
+      })
     } else {
-      opponentScore.value += data.points
       spawnPointPopup(0, 'typo', 'OPPONENT WON')
+      matchHistory.value.push({
+        round: 4,
+        submitted: myTypedWord || '(Missed)',
+        correct: targetWord,
+        isCorrect: false
+      })
     }
   })
 
@@ -2396,9 +2416,11 @@ function setupRoomEventHandlers(room: any) {
       if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
       else spawnPointPopup(0, 'custom', 'SKIPPED')
       score.value = Math.max(0, score.value - data.penalty)
+      if (currentRoom) {
+        currentRoom.send('update_score', { score: score.value })
+      }
       isRaceLocked.value = true // Lock input for this race question
     } else {
-      opponentScore.value = Math.max(0, opponentScore.value - data.penalty)
       addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')
     }
   })
@@ -2406,6 +2428,16 @@ function setupRoomEventHandlers(room: any) {
   room.onMessage('race_timeout', () => {
     if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     opponentTypingText.value = ''
+    if (currentRaceQuestion.value && !isRaceLocked.value) {
+      const targetWord = currentRaceQuestion.value?.target_word || currentRaceQuestion.value?.hint || 'Question'
+      questionsAnswered.value++
+      matchHistory.value.push({
+        round: 4,
+        submitted: typedLetters.value.join('') || '(Timeout)',
+        correct: targetWord,
+        isCorrect: false
+      })
+    }
     typedLetters.value = []
     addToast('Time is up!', '⏱️', 'text-yellow-400')
   })
