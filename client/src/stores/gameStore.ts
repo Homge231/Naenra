@@ -25,10 +25,15 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
+  function resetGame() {
+    sessionId.value = null
+    localStorage.removeItem('naenra_session_id')
+  }
+
   return {
     playerName,
     gameState,
     activeCoreId, activeCoreName, coreHistory, sessionId,
-    setActiveCore, setSessionId
+    setActiveCore, setSessionId, resetGame
   }
 })
