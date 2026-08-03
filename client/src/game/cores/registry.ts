@@ -430,6 +430,32 @@ const CORE_REGISTRY: Record<string, CoreModule> = {
   'supermassive': { id: 'supermassive-core', name: 'Supermassive', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
   'pandora\'s mirror': { id: 'pandoras-mirror', name: 'Pandora\'s Mirror', timerColor: 'text-purple-400', timerClass: 'animate-pulse shadow-purple-500', timerIconClass: 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]', popupType: 'correct' },
   'reality collapse': { id: 'reality-collapse', name: 'Reality Collapse', timerColor: 'text-purple-400', timerClass: 'animate-pulse shadow-purple-500', timerIconClass: 'text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]', popupType: 'correct' },
+
+  // ── New Upgrades Expansion ──
+  'solar ember': { id: 'solar-ember', name: 'Solar Ember', timerColor: 'text-amber-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'feather shield': { id: 'feather-shield', name: 'Feather Shield', timerColor: 'text-amber-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'blazing resurrection': { id: 'blazing-resurrection', name: 'Blazing Resurrection', timerColor: 'text-amber-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'phoenix overlord': { id: 'phoenix-overlord', name: 'Phoenix Overlord', timerColor: 'text-amber-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'lucky seven': { id: 'lucky-seven', name: 'Lucky Seven', timerColor: 'text-emerald-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'high stakes': { id: 'high-stakes', name: 'High Stakes', timerColor: 'text-emerald-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'royal flush': { id: 'royal-flush', name: 'Royal Flush', timerColor: 'text-emerald-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'casino empire': { id: 'casino-empire', name: 'Casino Empire', timerColor: 'text-emerald-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'wild card': { id: 'wild-card', name: 'Wild Card', timerColor: 'text-purple-400', timerClass: 'animate-pulse shadow-purple-500', timerIconClass: 'text-purple-400', popupType: 'correct' },
+  'pandora overdrive': { id: 'pandora-overdrive', name: 'Pandora Overdrive', timerColor: 'text-purple-400', timerClass: 'animate-pulse shadow-purple-500', timerIconClass: 'text-purple-400', popupType: 'correct' },
+  'combo burst': { id: 'combo-burst', name: 'Combo Burst', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'hyper combo': { id: 'hyper-combo', name: 'Hyper Combo', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'reflective barrier': { id: 'reflective-barrier', name: 'Reflective Barrier', timerColor: 'text-cyan-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'aegis sanctuary': { id: 'aegis-sanctuary', name: 'Aegis Sanctuary', timerColor: 'text-cyan-400', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'overcharge': { id: 'overcharge', name: 'Overcharge', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'cataclysm': { id: 'cataclysm', name: 'Cataclysm', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'velocity shield': { id: 'velocity-shield', name: 'Velocity Shield', timerColor: 'text-cyan-300', timerClass: '', timerIconClass: '', popupType: 'speedster' },
+  'hyperdrive': { id: 'hyperdrive', name: 'Hyperdrive', timerColor: 'text-cyan-300', timerClass: '', timerIconClass: '', popupType: 'speedster' },
+  'inner eye': { id: 'inner-eye', name: 'Inner Eye', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'prophecy': { id: 'prophecy', name: 'Prophecy', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'contract hunter': { id: 'contract-hunter', name: 'Contract Hunter', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'mission legend': { id: 'mission-legend', name: 'Mission Legend', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'zen momentum': { id: 'zen-momentum', name: 'Zen Momentum', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
+  'serenity': { id: 'serenity', name: 'Serenity', timerColor: 'text-lightOrange', timerClass: '', timerIconClass: '', popupType: 'correct' },
 }
 
 // ── Fallback ──────────────────────────────────────────────────────────────────

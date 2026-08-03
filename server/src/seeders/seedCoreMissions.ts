@@ -109,17 +109,45 @@ const MISSION_SEEDS: Record<string, { mission_type: string; target_value: number
   'phoenix flame': { mission_type: 'matches_played', target_value: 3, description: 'Complete 3 matches with Phoenix core.' },
   'rebirth': { mission_type: 'words_typed', target_value: 30, description: 'Recover lost momentum 30 times.' },
   'ashes to ashes': { mission_type: 'matches_played', target_value: 6, description: 'Complete 6 matches using Phoenix core.' },
+  'solar ember': { mission_type: 'words_typed', target_value: 40, description: 'Convert 40 mistake penalties into bonus points.' },
+  'feather shield': { mission_type: 'shields_used', target_value: 5, description: 'Recover 5 mistake penalties to gain Aegis Shields.' },
   'immortal phoenix': { mission_type: 'max_combo', target_value: 12, description: 'Reach a 12-word Phoenix streak.' },
   'eternal rebirth': { mission_type: 'words_typed', target_value: 80, description: 'Type 80 words under Phoenix rebirth.' },
   'supernova ashes': { mission_type: 'max_combo', target_value: 18, description: 'Reach an 18-word Phoenix streak.' },
+  'blazing resurrection': { mission_type: 'words_typed', target_value: 120, description: 'Maintain a 3-streak after recovering from mistake debt.' },
+  'phoenix overlord': { mission_type: 'matches_played', target_value: 15, description: 'Complete 15 Phoenix typing matches.' },
 
   // High Roller Branch Upgrades
   'jackpot': { mission_type: 'matches_played', target_value: 3, description: 'Complete 3 matches with High Roller core.' },
   'safe bet': { mission_type: 'words_typed', target_value: 30, description: 'Type 30 words in gambling mode.' },
   'double or nothing': { mission_type: 'matches_played', target_value: 6, description: 'Complete 6 High Roller matches.' },
+  'lucky seven': { mission_type: 'max_combo', target_value: 7, description: 'Trigger 7th-word 3x multiplier streaks.' },
+  'high stakes': { mission_type: 'words_typed', target_value: 50, description: 'Type 50 correct words under high stakes.' },
   'all in': { mission_type: 'max_combo', target_value: 10, description: 'Reach a 10-word streak while gambling.' },
   'house advantage': { mission_type: 'words_typed', target_value: 80, description: 'Type 80 correct words under High Roller mode.' },
-  'russian roulette': { mission_type: 'max_combo', target_value: 15, description: 'Reach a 15-word High Roller streak.' }
+  'russian roulette': { mission_type: 'max_combo', target_value: 15, description: 'Reach a 15-word High Roller streak.' },
+  'royal flush': { mission_type: 'max_combo', target_value: 20, description: 'Achieve a 5-streak in gamble mode for +2000 jackpot.' },
+  'casino empire': { mission_type: 'matches_played', target_value: 15, description: 'Complete 15 High Roller competitive matches.' },
+
+  // Pandora Branch Upgrades
+  'wild card': { mission_type: 'words_typed', target_value: 40, description: 'Type 40 words under Wild Card shape-shifting.' },
+  'pandora overdrive': { mission_type: 'max_combo', target_value: 15, description: 'Achieve a 15-word streak during Pandora Overdrive.' },
+
+  // Additional New Upgrades Across All Families
+  'combo burst': { mission_type: 'max_combo', target_value: 5, description: 'Trigger 5-streak point bursts.' },
+  'hyper combo': { mission_type: 'max_combo', target_value: 10, description: 'Maintain a 10-word streak for double combo points.' },
+  'reflective barrier': { mission_type: 'shields_used', target_value: 5, description: 'Reflect 5 mistake penalties with Aegis Shields.' },
+  'aegis sanctuary': { mission_type: 'shields_used', target_value: 10, description: 'Generate 10 Aegis Shields from correct answers.' },
+  'overcharge': { mission_type: 'words_typed', target_value: 40, description: 'Type 40 words rapidly in under 3 seconds.' },
+  'cataclysm': { mission_type: 'words_typed', target_value: 100, description: 'Type 100 correct words under Cataclysm multiplier.' },
+  'velocity shield': { mission_type: 'words_typed', target_value: 30, description: 'Type 30 fast words to generate protective shields.' },
+  'hyperdrive': { mission_type: 'max_combo', target_value: 15, description: 'Reach a 15-word hyper-speed typing streak.' },
+  'inner eye': { mission_type: 'words_typed', target_value: 30, description: 'Type 30 words using Inner Eye length indicators.' },
+  'prophecy': { mission_type: 'words_typed', target_value: 80, description: 'Type 80 words with Oracle Prophecy hints.' },
+  'contract hunter': { mission_type: 'words_typed', target_value: 40, description: 'Complete 40 target contract word missions.' },
+  'mission legend': { mission_type: 'max_combo', target_value: 15, description: 'Complete an 8-streak mission objective.' },
+  'zen momentum': { mission_type: 'max_combo', target_value: 8, description: 'Reach an 8-word steady pace streak.' },
+  'serenity': { mission_type: 'matches_played', target_value: 10, description: 'Complete 10 matches with Serenity core.' }
 }
 
 export async function seedCoreMissions() {
