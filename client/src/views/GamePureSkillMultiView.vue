@@ -1456,7 +1456,6 @@ async function skipQuestion() {
 
   // Capture state before reset
   const questionId = currentQuestion.value.id
-  const capturedOracleLevel = oracleRevealLevel.value
   const capturedCombo = currentCombo.value
   const capturedShields = aegisShieldCount.value
   const capturedMission = missionProgress.value
@@ -1909,42 +1908,6 @@ async function finalizeMatch() {
     await callTimeoutEndpoint(sid, activeCoreId.value, oracleRevealLevel.value)
   }
   showMatchResult.value = true
-}
-
-
-function runRecapCountdown() {
-  timeoutCountdown.value = 15
-  stopTimeoutInterval()
-
-  timeoutInterval = setInterval(() => {
-    timeoutCountdown.value--
-    if (timeoutCountdown.value <= 0) {
-      skipRecapCountdown()
-    }
-  }, 1000)
-}
-
-function skipRecapCountdown() {
-  timeoutCountdown.value = 0
-  stopTimeoutInterval()
-  if (!matchStore.isFinalRound()) {
-    // Use goToUpgrade so Round 3 correctly skips to Race Mode (Round 4)
-    // instead of wrongly showing the CoreUpgradeOverlay
-    goToUpgrade()
-  } else {
-    if (matchResult.value) {
-      showMatchResult.value = true
-    } else {
-      let attempts = 0
-      const waitResult = setInterval(() => {
-        attempts++
-        if (matchResult.value || attempts >= 10) { // Max wait 5 seconds (10 * 500ms)
-          clearInterval(waitResult)
-          showMatchResult.value = true
-        }
-      }, 500)
-    }
-  }
 }
 
 function goToUpgrade() {

@@ -1478,7 +1478,6 @@ async function skipQuestion() {
 
   // Capture state before reset
   const questionId = currentQuestion.value.id
-  const capturedOracleLevel = oracleRevealLevel.value
   const capturedCombo = currentCombo.value
   const capturedShields = aegisShieldCount.value
   const capturedMission = missionProgress.value
