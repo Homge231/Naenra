@@ -54,6 +54,26 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
 
     const elo = profile?.elo ?? 0
 
+    // Fetch Base Cores (unlocked by default for all users)
+    const { data: baseCores } = await supabase
+      .from('cores')
+      .select('id')
+      .or('tier.eq.1,core_type.eq.main')
+
+    const baseCoreIds = (baseCores || []).map((c: any) => String(c.id))
+
+    // Fetch user unlocked cores from user_core_progress table
+    const { data: userUnlockedProgress } = await supabase
+      .from('user_core_progress')
+      .select('core_id')
+      .eq('user_id', req.user!.id)
+      .eq('is_unlocked', true)
+
+    const userUnlockedIds = (userUnlockedProgress || []).map((p: any) => String(p.core_id))
+
+    // Merge unique unlocked core IDs
+    const unlockedCoreIds = Array.from(new Set([...baseCoreIds, ...userUnlockedIds]))
+
     return res.status(200).json({
       id: req.user!.id,
       username,
@@ -63,7 +83,8 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       wins: profile?.wins ?? 0,
       losses: profile?.losses ?? 0,
       total_matches: profile?.total_matches ?? 0,
-      is_first_play: profile?.is_first_play ?? true
+      is_first_play: profile?.is_first_play ?? true,
+      unlocked_core_ids: unlockedCoreIds
     })
   } catch (error) {
     console.error('getUserProfile error:', error)
