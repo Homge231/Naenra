@@ -156,11 +156,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
-import { useAuthStore } from '../stores/authStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
@@ -171,7 +170,7 @@ import { audioService } from '../services/audioService'
 
 const router = useRouter()
 const gameStore = useGameStore()
-const authStore = useAuthStore()
+const matchStore = useMatchStore()
 const tutorial = useTutorial()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
