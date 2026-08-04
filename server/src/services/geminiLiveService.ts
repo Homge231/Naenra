@@ -131,13 +131,14 @@ Always respond naturally, concisely, and encouragingly. Keep spoken responses br
     geminiWs.on('error', (err) => {
       console.error(`[GeminiLiveRelay] Gemini WS Error (${username}):`, err)
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ error: 'Gemini Live Service Error' }))
+        ws.send(JSON.stringify({ error: 'Gemini API Key đã hết Quota (Resource Exhausted). Vui lòng cập nhật GEMINI_API_KEY mới.' }))
       }
     })
 
     geminiWs.on('close', (code, reason) => {
       console.log(`[GeminiLiveRelay] Gemini WS Closed (${username}): ${code} ${reason}`)
       if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ error: 'Kết nối Gemini API bị ngắt. Vui lòng kiểm tra GEMINI_API_KEY trong server/.env.' }))
         ws.close(1000, 'Gemini connection closed')
       }
     })

@@ -401,7 +401,9 @@ async function startVoiceMode() {
 
   voiceWs.onerror = (err) => {
     console.error('Voice WebSocket Error:', err)
-    errorMsg.value = 'Lỗi kết nối Voice Server.'
+    if (!errorMsg.value) {
+      errorMsg.value = 'Lỗi kết nối Voice Server. (Vui lòng kiểm tra API Key)'
+    }
   }
 
   voiceWs.onclose = () => {
@@ -462,6 +464,12 @@ function setupAudioRecording() {
 }
 
 function handleGeminiLiveMessage(msg: any) {
+  if (msg.error) {
+    errorMsg.value = msg.error
+    stopVoiceMode()
+    return
+  }
+
   // Handle server content
   if (msg.serverContent) {
     const sc = msg.serverContent
