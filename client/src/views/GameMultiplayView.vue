@@ -1453,6 +1453,15 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
         oldTier: data.old_tier,
         currentTier: data.current_tier
       }
+
+      // US-74: Sync unlocked cores to profile
+      if (data.newly_unlocked_cores && data.newly_unlocked_cores.length > 0) {
+        if (authStore.profile) {
+          const unlockedSet = new Set(authStore.profile.unlocked_core_ids || [])
+          data.newly_unlocked_cores.forEach((c: any) => unlockedSet.add(String(c.id)))
+          authStore.profile.unlocked_core_ids = Array.from(unlockedSet)
+        }
+      }
       // Wait for runRecapCountdown to finish before showing result
     }
   } catch (err) {

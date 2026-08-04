@@ -6,6 +6,7 @@ import crypto from 'crypto'
 import { runScoring, getCoreStrategy } from '../cores/index'
 import { getUpgradesForCore, getCoreFamily } from '../cores/families'
 import { getTierForElo } from '../utils/ranks'
+import { evaluatePostMatchMissions } from '../services/missionEvaluatorService'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -1045,6 +1046,16 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
 
     if (updateErr) throw updateErr
 
+    // US-74: Post-Match Mission Evaluation Engine
+    const { newlyUnlockedCores, progressUpdates } = await evaluatePostMatchMissions({
+      userId: playerId,
+      score: finalScore,
+      questionsAnswered: session.questions_answered ?? 0,
+      accuracy: 100, // Default post-match accuracy estimation
+      isWin,
+      activeCoreName: undefined
+    })
+
     res.status(200).json({
       message: 'Session ended',
       score: finalScore,
@@ -1055,7 +1066,9 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
       expected_score: expectedScore,
       is_win: isWin,
       old_tier: oldTier,
-      current_tier: currentTier
+      current_tier: currentTier,
+      newly_unlocked_cores: newlyUnlockedCores,
+      mission_progress_updates: progressUpdates
     })
   } catch (err) {
     console.error('timeoutSession error:', err)
