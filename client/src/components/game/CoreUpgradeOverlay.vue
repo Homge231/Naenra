@@ -225,7 +225,9 @@ function handleTouchEnd(core: any, e: TouchEvent) {
 // ── State ───────────────────────────────────────────────────────────────────
 
 import { useAuthStore } from '../../stores/authStore'
+import { useMissionsStore } from '../../stores/missionsStore'
 const authStore = useAuthStore()
+const missionsStore = useMissionsStore()
 
 type CoreOption = { id: string; name: string; description: string; icon: string; flat_buff: number; multiplier_buff: number; classification?: string; tier?: number; isLocked?: boolean; missionText?: string }
 
@@ -294,11 +296,11 @@ async function fetchUpgradeCores() {
     }
 
     const unlockedIds = new Set(authStore.profile?.unlocked_core_ids || [])
-    const hasUnlockedData = unlockedIds.size > 0
 
     upgradeCores.value = (data.cores ?? []).map((c: any) => {
       const isBaseCore = c.tier === 1 || c.core_type === 'main'
-      const isLocked = hasUnlockedData && !isBaseCore && !unlockedIds.has(String(c.id))
+      const isUnlockedInMissions = missionsStore.isCoreUnlocked(c.name) || missionsStore.isCoreUnlocked(c.id)
+      const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !unlockedIds.has(c.name) && !isUnlockedInMissions
       return {
         id: c.id,
         name: c.name,

@@ -2,6 +2,7 @@
   <div class="app-wrapper relative">
     <RouterView />
     <ErrorNotification />
+    <MissionToastOverlay />
     
     <!-- Global Settings Modal -->
     <GlobalSettingsOverlay />
@@ -10,7 +11,7 @@
     <button 
       v-if="showSettingsButton"
       @click="settingsStore.isSettingsOpen = true"
-      class="fixed bottom-24 right-6 z-[9990] w-12 h-12 bg-black/50 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/70 hover:scale-110 transition-all shadow-lg focus:outline-none"
+      class="fixed bottom-8 right-6 z-[9990] w-12 h-12 bg-black/60 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-black/80 hover:scale-110 active:scale-95 transition-all shadow-xl focus:outline-none cursor-pointer"
       title="Global Settings"
     >
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,6 +27,7 @@ import { computed, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import ErrorNotification from './components/ErrorNotification.vue'
 import GlobalSettingsOverlay from './components/GlobalSettingsOverlay.vue'
+import MissionToastOverlay from './components/MissionToastOverlay.vue'
 import { useSettingsStore } from './stores/settingsStore'
 import { useAuthStore } from './stores/authStore'
 

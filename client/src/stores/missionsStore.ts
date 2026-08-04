@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
+import { audioService } from '../services/audioService'
 
 export interface CoreMission {
   id: string
@@ -17,9 +18,36 @@ export interface CoreMission {
   icon: string
 }
 
+export interface MissionToast {
+  id: number
+  title: string
+  message: string
+  coreName: string
+  icon: string
+  type: 'completed' | 'unlocked'
+}
+
 export const useMissionsStore = defineStore('missions', () => {
   const STORAGE_KEY = 'naenra_core_missions_v3'
   const UNLOCKED_CORES_KEY = 'naenra_unlocked_cores_v3'
+
+  const activeToasts = ref<MissionToast[]>([])
+  let toastIdCounter = 0
+
+  function showToast(title: string, message: string, coreName: string, icon: string, type: 'completed' | 'unlocked' = 'completed') {
+    const id = ++toastIdCounter
+    activeToasts.value.push({ id, title, message, coreName, icon, type })
+    if (activeToasts.value.length > 4) {
+      activeToasts.value.shift()
+    }
+    setTimeout(() => {
+      dismissToast(id)
+    }, 5500)
+  }
+
+  function dismissToast(id: number) {
+    activeToasts.value = activeToasts.value.filter(t => t.id !== id)
+  }
 
   const initialMissions: CoreMission[] = [
     // Combo Family
@@ -390,6 +418,15 @@ export const useMissionsStore = defineStore('missions', () => {
         }
       }
 
+      // Pop-up Toast Notification for Core Unlock
+      showToast(
+        '🔓 SUPPORT CORE UNLOCKED!',
+        `${mission.unlockCoreName} is now unlocked and available in gameplay matches!`,
+        mission.unlockCoreName,
+        '✨',
+        'unlocked'
+      )
+
       saveState()
       return mission.rewardXp
     }
@@ -402,6 +439,13 @@ export const useMissionsStore = defineStore('missions', () => {
       mission.currentProgress = Math.min(mission.targetCount, mission.currentProgress + amount)
       if (mission.currentProgress >= mission.targetCount) {
         mission.isCompleted = true
+        showToast(
+          '🎉 MISSION COMPLETED!',
+          `Unlocked requirement for ${mission.unlockCoreName}! Claim in Missions Dashboard.`,
+          mission.unlockCoreName,
+          mission.icon || '🎁',
+          'completed'
+        )
       }
       saveState()
     }
@@ -414,6 +458,8 @@ export const useMissionsStore = defineStore('missions', () => {
     missions.value.forEach(m => {
       if (m.isCompleted) return
 
+      let justCompleted = false
+
       // 1. Score-based missions (e.g. Cataclysm, High Stakes, Casino Empire)
       if (stats.score !== undefined && stats.score > 0) {
         if (['Cataclysm', 'High Stakes', 'Casino Empire'].includes(m.unlockCoreName)) {
@@ -421,6 +467,7 @@ export const useMissionsStore = defineStore('missions', () => {
             m.currentProgress = Math.min(m.targetCount, stats.score)
             if (m.currentProgress >= m.targetCount) {
               m.isCompleted = true
+              justCompleted = true
             }
             stateChanged = true
           }
@@ -434,6 +481,7 @@ export const useMissionsStore = defineStore('missions', () => {
             m.currentProgress = Math.min(m.targetCount, stats.comboStreak)
             if (m.currentProgress >= m.targetCount) {
               m.isCompleted = true
+              justCompleted = true
             }
             stateChanged = true
           }
@@ -447,6 +495,7 @@ export const useMissionsStore = defineStore('missions', () => {
             m.currentProgress = Math.min(m.targetCount, stats.wpm)
             if (m.currentProgress >= m.targetCount) {
               m.isCompleted = true
+              justCompleted = true
             }
             stateChanged = true
           }
@@ -459,9 +508,20 @@ export const useMissionsStore = defineStore('missions', () => {
           m.currentProgress = Math.min(m.targetCount, m.currentProgress + stats.roundsCompleted)
           if (m.currentProgress >= m.targetCount) {
             m.isCompleted = true
+            justCompleted = true
           }
           stateChanged = true
         }
+      }
+
+      if (justCompleted) {
+        showToast(
+          '🎉 MISSION COMPLETED!',
+          `Unlocked requirement for ${m.unlockCoreName}! Claim in Missions Dashboard.`,
+          m.unlockCoreName,
+          m.icon || '🎁',
+          'completed'
+        )
       }
     })
 
@@ -473,12 +533,14 @@ export const useMissionsStore = defineStore('missions', () => {
   function resetMissions() {
     missions.value = JSON.parse(JSON.stringify(initialMissions))
     unlockedCoreNames.value = []
+    activeToasts.value = []
     saveState()
   }
 
   return {
     missions,
     unlockedCoreNames,
+    activeToasts,
     completedCount,
     totalCount,
     claimedCount,
@@ -492,6 +554,8 @@ export const useMissionsStore = defineStore('missions', () => {
     claimReward,
     updateProgress,
     evaluateGameplayProgress,
+    showToast,
+    dismissToast,
     resetMissions
   }
 })
