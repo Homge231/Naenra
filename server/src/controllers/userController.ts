@@ -54,13 +54,36 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
 
     const elo = profile?.elo ?? 0
 
-    // Fetch Base Cores (Tier 1 & Tier 2 unlocked by default for all users, Tier 3 Ultimate require missions)
-    const { data: baseCores } = await supabase
+    // Fetch all cores to filter by default locked list
+    const { data: allDBCores } = await supabase
       .from('cores')
-      .select('id')
-      .or('tier.eq.1,tier.eq.2,core_type.eq.main')
+      .select('id, name, tier, core_type')
 
-    const baseCoreIds = (baseCores || []).map((c: any) => String(c.id))
+    const DEFAULT_LOCKED_CORES = new Set([
+      // Round 2 (Tier 2) default locked
+      'combo burst', 'velocity shield', 'inner eye', 'contract hunter', 
+      'reflective barrier', 'zen momentum', 'overcharge', 'wild card', 
+      'feather shield', 'high stakes',
+      
+      // Round 3 (Tier 3) default locked
+      'hyper combo', 'hyperdrive', 'prophecy', 'mission legend', 
+      'aegis sanctuary', 'serenity', 'cataclysm', 'pandora overdrive', 
+      'phoenix overlord', 'casino empire'
+    ])
+
+    const baseCoreIds = (allDBCores || [])
+      .filter((c: any) => {
+        const isBaseCore = c.tier === 1 || c.core_type === 'main'
+        const nameKey = String(c.name || '').trim().toLowerCase()
+        
+        // Tier 1 / Main is always unlocked
+        if (isBaseCore) return true
+        
+        // Otherwise, unlock if it is NOT in DEFAULT_LOCKED_CORES
+        return !DEFAULT_LOCKED_CORES.has(nameKey)
+      })
+      .map((c: any) => String(c.id))
+
 
     // Fetch user unlocked cores from user_core_progress table
     const { data: userUnlockedProgress } = await supabase

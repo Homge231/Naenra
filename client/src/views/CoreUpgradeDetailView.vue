@@ -178,10 +178,35 @@ const rawUpgrades = ref<any[]>([])
 
 const upgrades = computed(() => {
   const unlockedIds = new Set(authStore.profile?.unlocked_core_ids || [])
+  
+  const DEFAULT_LOCKED_CORES = new Set([
+    // Round 2 (Tier 2) default locked
+    'combo burst', 'velocity shield', 'inner eye', 'contract hunter', 
+    'reflective barrier', 'zen momentum', 'overcharge', 'wild card', 
+    'feather shield', 'high stakes',
+    
+    // Round 3 (Tier 3) default locked
+    'hyper combo', 'hyperdrive', 'prophecy', 'mission legend', 
+    'aegis sanctuary', 'serenity', 'cataclysm', 'pandora overdrive', 
+    'phoenix overlord', 'casino empire'
+  ])
+
   return rawUpgrades.value.map(upgrade => {
-    const isTier3 = upgrade.computedTier === 3
+    const isBaseCore = upgrade.computedTier === 1 || upgrade.tier === 1 || upgrade.core_type === 'main'
     const isMock = String(upgrade.id).startsWith('mock-')
-    const isLocked = isTier3 && (isMock || !unlockedIds.has(String(upgrade.id)))
+    const nameKey = String(upgrade.name || '').trim().toLowerCase()
+    
+    let isLocked = false
+    if (!isBaseCore) {
+      if (isMock) {
+        // Fallback or mock cores
+        isLocked = DEFAULT_LOCKED_CORES.has(nameKey)
+      } else {
+        // Database cores (checked against user profile unlocked_core_ids)
+        isLocked = !unlockedIds.has(String(upgrade.id))
+      }
+    }
+    
     const missionText = isLocked ? `Complete gameplay missions to unlock ${upgrade.name}.` : ''
     
     return {
