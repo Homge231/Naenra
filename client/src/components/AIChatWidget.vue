@@ -371,15 +371,10 @@ async function startVoiceMode() {
   nextPlayTime = audioContext.currentTime
 
   // 3. Connect to backend WebSocket Relay
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  let serverHost = ''
-  if (import.meta.env.VITE_SERVER_URL) {
-    serverHost = import.meta.env.VITE_SERVER_URL.replace(/^http/, 'ws')
-  } else {
-    serverHost = `${wsProtocol}//${window.location.host}`
-  }
+  const baseUrl = import.meta.env.VITE_SERVER_URL || (window.location.protocol === 'https:' ? `https://${window.location.host}` : 'http://localhost:3000')
+  const serverHost = baseUrl.replace(/^http/, 'ws')
 
-  const token = authStore.token || ''
+  const token = localStorage.getItem('arena_token') || ''
   const wsUrl = `${serverHost}/api/ai/live?token=${encodeURIComponent(token)}`
 
   try {
@@ -406,7 +401,9 @@ async function startVoiceMode() {
 
   voiceWs.onerror = (err) => {
     console.error('Voice WebSocket Error:', err)
-    errorMsg.value = 'Lỗi kết nối Voice Server.'
+    if (!errorMsg.value) {
+      errorMsg.value = 'Lỗi kết nối Voice Server. (Vui lòng kiểm tra API Key)'
+    }
   }
 
   voiceWs.onclose = () => {
@@ -467,6 +464,12 @@ function setupAudioRecording() {
 }
 
 function handleGeminiLiveMessage(msg: any) {
+  if (msg.error) {
+    errorMsg.value = msg.error
+    stopVoiceMode()
+    return
+  }
+
   // Handle server content
   if (msg.serverContent) {
     const sc = msg.serverContent
