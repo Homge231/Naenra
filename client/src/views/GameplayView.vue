@@ -8,6 +8,13 @@
       class="transition-opacity duration-500 ease-in-out"
       :class="{ 'opacity-0': isBgFading, 'opacity-100': !isBgFading }" />
 
+    <!-- US-74: Core Unlock Celebration Modal -->
+    <CoreUnlockCelebrationModal
+      :isOpen="showCelebrationModal"
+      :unlockedCores="unlockedCoresCelebrationList"
+      @close="showCelebrationModal = false"
+    />
+
     <div class="absolute inset-0 bg-black/45 pointer-events-none z-0"></div>
 
     <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
@@ -540,9 +547,14 @@ import Avatar from '../components/Avatar.vue'
 import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
 import PandoraOverlay from '../components/game/PandoraOverlay.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
+import CoreUnlockCelebrationModal, { type UnlockedCoreDetail } from '../components/CoreUnlockCelebrationModal.vue'
 import { useTutorial } from '../composables/useTutorial'
 import { useGameStore } from '../stores/gameStore'
 import { useMissionsStore } from '../stores/missionsStore'
+
+const showCelebrationModal = ref(false)
+const unlockedCoresCelebrationList = ref<UnlockedCoreDetail[]>([])
+const missionToastUpdates = ref<any[]>([])
 import { getCoreFamily } from '../game/cores/families'
 import { useMatchStore } from '../stores/matchStore'
 
@@ -1097,6 +1109,21 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       const data = await res.json()
       score.value = data.score ?? score.value
       questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+
+      // US-74: Update unlocked cores and trigger celebration modal
+      if (data.newly_unlocked_cores && data.newly_unlocked_cores.length > 0) {
+        if (authStore.profile) {
+          const unlockedSet = new Set(authStore.profile.unlocked_core_ids || [])
+          data.newly_unlocked_cores.forEach((c: any) => unlockedSet.add(String(c.id)))
+          authStore.profile.unlocked_core_ids = Array.from(unlockedSet)
+        }
+        unlockedCoresCelebrationList.value = data.newly_unlocked_cores
+        showCelebrationModal.value = true
+      }
+
+      if (data.mission_progress_updates && data.mission_progress_updates.length > 0) {
+        missionToastUpdates.value = data.mission_progress_updates
+      }
     }
   } catch (err) {
     console.error(err)

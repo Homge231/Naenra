@@ -16,18 +16,15 @@
         <!-- Header -->
         <div class="chat-header">
           <div class="chat-header-info">
-            <div class="chat-avatar" :class="{ 'chat-avatar--speaking': isSpeaking }">
+            <div class="chat-avatar">
               <div class="chat-avatar-inner">✨</div>
             </div>
             <div>
               <h3 class="chat-title flex items-center gap-1.5">
                 Naenra Assistant
                 <span class="chat-badge">AI</span>
-                <span v-if="isVoiceMode" class="live-badge animate-pulse">LIVE VOICE</span>
               </h3>
-              <p class="chat-subtitle">
-                {{ isSpeaking ? 'Đang trả lời bằng giọng nói...' : (isListening ? 'Đang lắng nghe...' : 'Game Guide & Helper') }}
-              </p>
+              <p class="chat-subtitle">Game Guide & Helper</p>
             </div>
           </div>
           <button
@@ -66,7 +63,7 @@
             :class="['chat-bubble-wrap', msg.role === 'user' ? 'chat-bubble-wrap--user' : 'chat-bubble-wrap--ai']"
           >
             <div :class="['chat-bubble', msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--ai']">
-              <span v-if="msg.role !== 'user'" class="chat-bubble-label">🤖 AI</span>
+              <span v-if="msg.role !== 'user'" class="chat-bubble-label">🤖 AI Assistant</span>
               <div
                 v-if="msg.role !== 'user'"
                 class="chat-bubble-text"
@@ -77,7 +74,7 @@
           </div>
 
           <!-- Typing indicator -->
-          <div v-if="isLoading && !isVoiceMode" class="chat-typing">
+          <div v-if="isLoading" class="chat-typing">
             <span></span><span></span><span></span>
           </div>
 
@@ -88,57 +85,25 @@
           </div>
         </div>
 
-        <!-- Live Voice Waveform Indicator -->
-        <div v-if="isVoiceMode" class="voice-wave-bar">
-          <div class="voice-status-info">
-            <span class="pulse-dot" :class="{ 'pulse-dot--active': isListening || isSpeaking }"></span>
-            <span class="voice-status-text">
-              {{ isSpeaking ? 'AI Voice Speaking...' : (isListening ? 'Listening to your voice...' : 'Voice Mode Ready') }}
-            </span>
-          </div>
-          <div class="waveform-anim" :class="{ 'waveform-anim--active': isListening || isSpeaking }">
-            <span v-for="n in 7" :key="n" class="wave-bar"></span>
-          </div>
-        </div>
-
         <!-- Input Footer -->
         <div class="chat-footer">
           <div class="chat-input-wrap">
             <input
               v-model="inputText"
               @keyup.enter="sendMessage"
-              :disabled="isLoading || isVoiceMode"
+              :disabled="isLoading"
               type="text"
-              :placeholder="isVoiceMode ? 'Đang ở chế độ Voice Stream...' : 'Nhập câu hỏi...'"
+              placeholder="Nhập câu hỏi..."
               class="chat-input"
               id="ai-chat-input"
               autocomplete="off"
               maxlength="300"
             />
 
-            <!-- Voice Mode Toggle Button -->
-            <button
-              @click="toggleVoiceMode"
-              class="chat-mic-btn"
-              :class="{ 'chat-mic-btn--active': isVoiceMode, 'chat-mic-btn--pulse': isListening }"
-              id="ai-chat-mic-btn"
-              :title="isVoiceMode ? 'Tắt Voice Mode' : 'Bật Gemini Live Voice Chat'"
-              type="button"
-            >
-              <svg v-if="!isVoiceMode" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
-              </svg>
-              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
-
             <!-- Send Button -->
             <button
               @click="sendMessage"
-              :disabled="isLoading || !inputText.trim() || isVoiceMode"
+              :disabled="isLoading || !inputText.trim()"
               class="chat-send-btn"
               id="ai-chat-send-btn"
               aria-label="Gửi"
@@ -152,9 +117,7 @@
               </svg>
             </button>
           </div>
-          <p class="chat-footer-note">
-            {{ isVoiceMode ? 'Gemini 2.0 Multimodal Live Voice (Beta)' : 'Powered by Gemini 2.5 Flash' }}
-          </p>
+          <p class="chat-footer-note">Powered by Gemini 3.5 Flash</p>
         </div>
       </div>
     </Transition>
@@ -209,19 +172,6 @@ const errorMsg = ref('')
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
 
-// Voice Mode State
-const isVoiceMode = ref(false)
-const isListening = ref(false)
-const isSpeaking = ref(false)
-
-let voiceWs: WebSocket | null = null
-let mediaStream: MediaStream | null = null
-let audioContext: AudioContext | null = null
-let scriptProcessor: ScriptProcessorNode | null = null
-let nextPlayTime = 0
-let activeSources: AudioBufferSourceNode[] = []
-let activeModelMsgIndex: number | null = null
-
 const username = computed(() =>
   authStore.profile?.username ||
   authStore.user?.user_metadata?.full_name ||
@@ -245,7 +195,6 @@ function handleClickOutside(e: MouseEvent) {
 onMounted(() => document.addEventListener('mousedown', handleClickOutside))
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
-  stopVoiceMode()
 })
 
 // ── Toggle / Close ───────────────────────────────────────────────────
@@ -253,14 +202,11 @@ function toggleChat() {
   isChatOpen.value = !isChatOpen.value
   if (isChatOpen.value) {
     nextTick(() => scrollToBottom())
-  } else {
-    stopVoiceMode()
   }
 }
 
 function closeChat() {
   isChatOpen.value = false
-  stopVoiceMode()
 }
 
 // ── Scroll helpers ───────────────────────────────────────────────────
@@ -278,10 +224,10 @@ function sendQuick(text: string) {
   sendMessage()
 }
 
-// ── Send message (Text Mode) ─────────────────────────────────────────
+// ── Send message ─────────────────────────────────────────────────────
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || isLoading.value || isVoiceMode.value) return
+  if (!text || isLoading.value) return
 
   inputText.value = ''
   errorMsg.value = ''
@@ -309,7 +255,8 @@ async function sendMessage() {
     }
 
     const data = await res.json()
-    messages.value.push({ role: 'model', content: data.reply || 'Xin lỗi, tôi chưa hiểu rõ ý bạn.' })
+    const replyText = data.reply || 'Xin lỗi, tôi chưa hiểu rõ ý bạn.'
+    messages.value.push({ role: 'model', content: replyText })
   } catch (err: any) {
     errorMsg.value = err.message || 'Đã có lỗi xảy ra. Vui lòng thử lại sau.'
   } finally {
@@ -330,281 +277,6 @@ function renderMarkdown(raw: string): string {
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
   html = html.replace(/\n/g, '<br/>')
   return html
-}
-
-// ── Gemini Live Voice Mode Implementation ────────────────────────────
-
-async function toggleVoiceMode() {
-  if (isVoiceMode.value) {
-    stopVoiceMode()
-  } else {
-    await startVoiceMode()
-  }
-}
-
-async function startVoiceMode() {
-  errorMsg.value = ''
-  
-  // 1. Request microphone access
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        sampleRate: 16000,
-        echoCancellation: true,
-        noiseSuppression: true
-      }
-    })
-  } catch (err: any) {
-    console.error('Microphone access denied:', err)
-    errorMsg.value = 'Chưa thể truy cập microphone. Vui lòng cấp quyền truy cập mic trên trình duyệt.'
-    isVoiceMode.value = false
-    return
-  }
-
-  isVoiceMode.value = true
-  isListening.value = true
-
-  // 2. Setup Web Audio API Context
-  const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-  audioContext = new AudioCtx({ sampleRate: 16000 })
-  nextPlayTime = audioContext.currentTime
-
-  // 3. Connect to backend WebSocket Relay
-  const baseUrl = import.meta.env.VITE_SERVER_URL || (window.location.protocol === 'https:' ? `https://${window.location.host}` : 'http://localhost:3000')
-  const serverHost = baseUrl.replace(/^http/, 'ws')
-
-  const token = localStorage.getItem('arena_token') || ''
-  const wsUrl = `${serverHost}/api/ai/live?token=${encodeURIComponent(token)}`
-
-  try {
-    voiceWs = new WebSocket(wsUrl)
-  } catch (e: any) {
-    errorMsg.value = 'Không thể kết nối đến Voice Relay Server.'
-    stopVoiceMode()
-    return
-  }
-
-  voiceWs.onopen = () => {
-    console.log('[AIChatWidget] Voice Mode WebSocket connected.')
-    setupAudioRecording()
-  }
-
-  voiceWs.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data)
-      handleGeminiLiveMessage(data)
-    } catch (e) {
-      console.warn('Failed to parse Gemini Live message:', e)
-    }
-  }
-
-  voiceWs.onerror = (err) => {
-    console.error('Voice WebSocket Error:', err)
-    if (!errorMsg.value) {
-      errorMsg.value = 'Lỗi kết nối Voice Server. (Vui lòng kiểm tra API Key)'
-    }
-  }
-
-  voiceWs.onclose = () => {
-    console.log('[AIChatWidget] Voice WebSocket closed.')
-    if (isVoiceMode.value) {
-      stopVoiceMode()
-    }
-  }
-}
-
-function setupAudioRecording() {
-  if (!audioContext || !mediaStream) return
-
-  const source = audioContext.createMediaStreamSource(mediaStream)
-  // ScriptProcessor bufferSize = 2048 (~128ms chunks at 16kHz)
-  scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1)
-
-  scriptProcessor.onaudioprocess = (e) => {
-    if (!isVoiceMode.value || !voiceWs || voiceWs.readyState !== WebSocket.OPEN) return
-
-    const inputData = e.inputBuffer.getChannelData(0)
-    
-    // Check audio volume level for wave visualizer
-    let sum = 0
-    for (let i = 0; i < inputData.length; i++) {
-      sum += inputData[i] * inputData[i]
-    }
-    const rms = Math.sqrt(sum / inputData.length)
-    isListening.value = rms > 0.01
-
-    // Convert Float32 [-1.0, 1.0] to Int16 PCM
-    const pcm16 = new Int16Array(inputData.length)
-    for (let i = 0; i < inputData.length; i++) {
-      const s = Math.max(-1, Math.min(1, inputData[i]))
-      pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
-    }
-
-    // Convert Int16Array to Base64
-    const base64Audio = arrayBufferToBase64(pcm16.buffer)
-
-    // Stream realtime input chunk to Gemini
-    const frame = {
-      realtimeInput: {
-        mediaChunks: [
-          {
-            mimeType: 'audio/pcm',
-            data: base64Audio
-          }
-        ]
-      }
-    }
-
-    voiceWs.send(JSON.stringify(frame))
-  }
-
-  source.connect(scriptProcessor)
-  scriptProcessor.connect(audioContext.destination)
-}
-
-function handleGeminiLiveMessage(msg: any) {
-  if (msg.error) {
-    errorMsg.value = msg.error
-    stopVoiceMode()
-    return
-  }
-
-  // Handle server content
-  if (msg.serverContent) {
-    const sc = msg.serverContent
-    
-    // 1. Interruption / Barge-in check
-    if (sc.interrupted) {
-      stopActiveAudioPlayback()
-      isSpeaking.value = false
-      activeModelMsgIndex = null
-      return
-    }
-
-    // 2. Model Turn Parts (Audio and Text)
-    if (sc.modelTurn && sc.modelTurn.parts) {
-      for (const part of sc.modelTurn.parts) {
-        // Text transcription
-        if (part.text) {
-          if (activeModelMsgIndex === null) {
-            messages.value.push({ role: 'model', content: part.text })
-            activeModelMsgIndex = messages.value.length - 1
-          } else {
-            messages.value[activeModelMsgIndex].content += part.text
-          }
-          scrollToBottom()
-        }
-
-        // Inline Audio PCM Data
-        if (part.inlineData && part.inlineData.data) {
-          const base64 = part.inlineData.data
-          playPcmAudioChunk(base64)
-        }
-      }
-    }
-
-    // 3. Turn complete
-    if (sc.turnComplete) {
-      activeModelMsgIndex = null
-    }
-  }
-}
-
-function playPcmAudioChunk(base64Data: string) {
-  if (!audioContext) return
-
-  const pcmBuffer = base64ToArrayBuffer(base64Data)
-  const int16Array = new Int16Array(pcmBuffer)
-  
-  // Gemini Live returns 24kHz PCM by default
-  const sampleRate = 24000
-  const float32Array = new Float32Array(int16Array.length)
-  for (let i = 0; i < int16Array.length; i++) {
-    float32Array[i] = int16Array[i] / 32768.0
-  }
-
-  const audioBuf = audioContext.createBuffer(1, float32Array.length, sampleRate)
-  audioBuf.getChannelData(0).set(float32Array)
-
-  const sourceNode = audioContext.createBufferSource()
-  sourceNode.buffer = audioBuf
-  sourceNode.connect(audioContext.destination)
-
-  const startTime = Math.max(audioContext.currentTime, nextPlayTime)
-  sourceNode.start(startTime)
-  nextPlayTime = startTime + audioBuf.duration
-
-  activeSources.push(sourceNode)
-  isSpeaking.value = true
-
-  sourceNode.onended = () => {
-    activeSources = activeSources.filter(s => s !== sourceNode)
-    if (activeSources.length === 0) {
-      isSpeaking.value = false
-    }
-  }
-}
-
-function stopActiveAudioPlayback() {
-  activeSources.forEach(s => {
-    try { s.stop() } catch (e) {}
-  })
-  activeSources = []
-  if (audioContext) {
-    nextPlayTime = audioContext.currentTime
-  }
-  isSpeaking.value = false
-}
-
-function stopVoiceMode() {
-  isVoiceMode.value = false
-  isListening.value = false
-  isSpeaking.value = false
-  activeModelMsgIndex = null
-
-  stopActiveAudioPlayback()
-
-  if (scriptProcessor) {
-    scriptProcessor.disconnect()
-    scriptProcessor = null
-  }
-
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(t => t.stop())
-    mediaStream = null
-  }
-
-  if (audioContext) {
-    audioContext.close().catch(() => {})
-    audioContext = null
-  }
-
-  if (voiceWs) {
-    voiceWs.close()
-    voiceWs = null
-  }
-}
-
-// ── ArrayBuffer / Base64 Helpers ─────────────────────────────────────
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  let binary = ''
-  const bytes = new Uint8Array(buffer)
-  const len = bytes.byteLength
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return window.btoa(binary)
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = window.atob(base64)
-  const len = binaryString.length
-  const bytes = new Uint8Array(len)
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
-  }
-  return bytes.buffer
 }
 </script>
 
@@ -669,18 +341,6 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.chat-avatar--speaking {
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
-  border-color: #3b82f6;
-  animation: pulse-avatar 1.5s infinite;
-}
-
-@keyframes pulse-avatar {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
 }
 
 .chat-avatar-inner {
@@ -703,17 +363,6 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   background: rgba(59, 130, 246, 0.25);
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.4);
-}
-
-.live-badge {
-  font-size: 9px;
-  font-weight: 900;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(239, 68, 68, 0.25);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  letter-spacing: 0.5px;
 }
 
 .chat-subtitle {
@@ -893,73 +542,6 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
   font-size: 12px;
 }
 
-/* ── Live Wave Bar ────────────────────────────── */
-.voice-wave-bar {
-  background: rgba(15, 23, 42, 0.95);
-  border-top: 1px solid rgba(59, 130, 246, 0.2);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.voice-status-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #94a3b8;
-  transition: all 0.3s;
-}
-
-.pulse-dot--active {
-  background: #ef4444;
-  box-shadow: 0 0 10px #ef4444;
-}
-
-.voice-status-text {
-  font-size: 11px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.waveform-anim {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 16px;
-}
-
-.wave-bar {
-  width: 3px;
-  height: 4px;
-  background: #3b82f6;
-  border-radius: 2px;
-  transition: height 0.2s;
-}
-
-.waveform-anim--active .wave-bar {
-  animation: wave 1s ease-in-out infinite alternate;
-}
-
-.waveform-anim--active .wave-bar:nth-child(1) { animation-delay: 0.1s; }
-.waveform-anim--active .wave-bar:nth-child(2) { animation-delay: 0.3s; }
-.waveform-anim--active .wave-bar:nth-child(3) { animation-delay: 0.2s; }
-.waveform-anim--active .wave-bar:nth-child(4) { animation-delay: 0.4s; }
-.waveform-anim--active .wave-bar:nth-child(5) { animation-delay: 0.15s; }
-.waveform-anim--active .wave-bar:nth-child(6) { animation-delay: 0.35s; }
-.waveform-anim--active .wave-bar:nth-child(7) { animation-delay: 0.25s; }
-
-@keyframes wave {
-  0% { height: 4px; background: #3b82f6; }
-  100% { height: 16px; background: #ef4444; }
-}
-
 /* ── Footer / Input ──────────────────────────── */
 .chat-footer {
   padding: 12px 16px;
@@ -992,37 +574,6 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 .chat-input::placeholder {
   color: #64748b;
-}
-
-.chat-mic-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.chat-mic-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #3b82f6;
-}
-.chat-mic-btn--active {
-  background: rgba(239, 68, 68, 0.2) !important;
-  color: #f87171 !important;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-.chat-mic-btn--pulse {
-  animation: mic-pulse 1.2s infinite;
-}
-
-@keyframes mic-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
 }
 
 .chat-send-btn {
