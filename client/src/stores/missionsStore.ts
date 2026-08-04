@@ -395,7 +395,21 @@ export const useMissionsStore = defineStore('missions', () => {
   function isCoreUnlocked(coreNameOrId: string): boolean {
     if (!coreNameOrId) return false
     const nameLower = String(coreNameOrId).trim().toLowerCase()
-    return unlockedCoreNames.value.some(unlockedName => unlockedName.trim().toLowerCase() === nameLower)
+
+    // 1. Check if explicitly in unlockedCoreNames
+    const inUnlockedNames = unlockedCoreNames.value.some(unlockedName => unlockedName.trim().toLowerCase() === nameLower)
+    if (inUnlockedNames) return true
+
+    // 2. Check if any completed mission unlocks this core (by name or ID)
+    const completedMission = missions.value.find(m =>
+      m.isCompleted && (
+        m.unlockCoreName.trim().toLowerCase() === nameLower ||
+        m.id.trim().toLowerCase() === nameLower
+      )
+    )
+    if (completedMission) return true
+
+    return false
   }
 
   function claimReward(missionId: string) {
