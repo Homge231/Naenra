@@ -329,6 +329,10 @@ function speakText(text: string) {
   if (!('speechSynthesis' in window)) return
   window.speechSynthesis.cancel()
 
+  if (speechRecognition) {
+    try { speechRecognition.stop() } catch (e) {}
+  }
+
   const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/[*_#`]/g, '')
   const utterance = new SpeechSynthesisUtterance(cleanText)
   utterance.lang = 'vi-VN'
@@ -344,10 +348,16 @@ function speakText(text: string) {
 
   utterance.onend = () => {
     isSpeaking.value = false
+    if (isVoiceMode.value && speechRecognition) {
+      try { speechRecognition.start() } catch (e) {}
+    }
   }
 
   utterance.onerror = () => {
     isSpeaking.value = false
+    if (isVoiceMode.value && speechRecognition) {
+      try { speechRecognition.start() } catch (e) {}
+    }
   }
 
   window.speechSynthesis.speak(utterance)
@@ -400,36 +410,51 @@ async function startVoiceMode() {
   isVoiceMode.value = true
   isListening.value = true
 
-  // 2. Setup Web Speech Recognition for continuous speech listening
+  // 2. Setup Web Speech Recognition for instant speech listening
   const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
   if (SpeechRecognition) {
     speechRecognition = new SpeechRecognition()
     speechRecognition.lang = 'vi-VN'
-    speechRecognition.continuous = true
-    speechRecognition.interimResults = false
+    speechRecognition.continuous = false
+    speechRecognition.interimResults = true
 
     speechRecognition.onresult = (event: any) => {
-      const lastIndex = event.results.length - 1
-      const transcript = event.results[lastIndex][0].transcript
-      if (transcript && transcript.trim()) {
-        inputText.value = transcript.trim()
+      let interim = ''
+      let finalStr = ''
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalStr += event.results[i][0].transcript
+        } else {
+          interim += event.results[i][0].transcript
+        }
+      }
+
+      if (interim) {
+        inputText.value = interim
+      }
+
+      if (finalStr && finalStr.trim()) {
+        inputText.value = finalStr.trim()
         sendMessage()
       }
     }
 
     speechRecognition.onerror = (err: any) => {
-      console.warn('Speech Recognition error:', err)
+      console.warn('[AIChatWidget] Speech Recognition error:', err)
     }
 
     speechRecognition.onend = () => {
-      if (isVoiceMode.value && speechRecognition) {
+      if (isVoiceMode.value && !isSpeaking.value) {
         try { speechRecognition.start() } catch (e) {}
       }
     }
 
     try {
       speechRecognition.start()
-    } catch (e) {}
+    } catch (e) {
+      console.warn('SpeechRecognition start error:', e)
+    }
   }
 
   // 3. Setup WebSocket connection for Gemini Live Stream
