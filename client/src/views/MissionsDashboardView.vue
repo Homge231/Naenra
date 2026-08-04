@@ -140,7 +140,7 @@
         </div>
       </div>
 
-      <!-- Controls: Category Tabs, Search & Hide Claimed Toggle -->
+      <!-- Controls: Category Tabs, Search & Hide Claimed Toggle Switch -->
       <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <div class="flex flex-wrap gap-2 w-full md:w-auto">
           <button v-for="tab in categoryTabs" :key="tab" @click="activeTab = tab"
@@ -154,18 +154,41 @@
           </button>
         </div>
 
-        <div class="flex items-center gap-4 w-full md:w-auto">
-          <!-- Hide Claimed Switch -->
-          <label class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white/80 px-4 py-2 rounded-full border border-white/80 shadow-xs cursor-pointer select-none">
-            <input type="checkbox" v-model="hideClaimed" class="accent-orange w-4 h-4 cursor-pointer" />
-            <span>Hide Claimed & Unlocked</span>
-          </label>
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <!-- Animated Toggle Switch (Nút gạt) for Hide Claimed -->
+          <div 
+            class="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 bg-white/90 backdrop-blur-xl px-4 py-2.5 rounded-full border border-white/90 shadow-sm select-none cursor-pointer hover:border-orange/40 transition-all"
+            @click="hideClaimed = !hideClaimed"
+          >
+            <span class="text-xs font-black uppercase tracking-wider text-gray-700">Hide Claimed</span>
+            <button 
+              type="button"
+              class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none"
+              :class="hideClaimed ? 'bg-orange' : 'bg-gray-300'"
+            >
+              <span 
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-300 ease-in-out"
+                :class="hideClaimed ? 'translate-x-5' : 'translate-x-0'"
+              ></span>
+            </button>
+          </div>
 
-          <!-- Search Input -->
-          <div class="w-full md:w-60 relative">
-            <input v-model="searchQuery" type="text" placeholder="Search missions..."
-              class="w-full pl-10 pr-4 py-2 rounded-full bg-white/80 border border-white/80 text-xs font-bold text-gray-700 placeholder-gray-400 outline-none focus:border-orange transition-all shadow-xs" />
-            <span class="absolute left-3.5 top-2.5 text-xs text-gray-400">🔍</span>
+          <!-- Modern Search Input (Thanh tìm kiếm) -->
+          <div class="w-full sm:w-64 relative">
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="Search missions or cores..."
+              class="w-full pl-10 pr-9 py-2.5 rounded-full bg-white/90 border border-white/90 text-xs font-bold text-gray-800 placeholder-gray-400 outline-none focus:border-orange focus:ring-2 focus:ring-orange/20 transition-all shadow-sm" 
+            />
+            <span class="absolute left-3.5 top-3 text-xs text-gray-400">🔍</span>
+            <button 
+              v-if="searchQuery" 
+              @click="searchQuery = ''" 
+              class="absolute right-3 top-2.5 text-xs text-gray-400 hover:text-gray-600 font-black cursor-pointer bg-gray-100 rounded-full w-4 h-4 flex items-center justify-center"
+            >
+              ✕
+            </button>
           </div>
         </div>
       </div>
@@ -180,9 +203,18 @@
           <div>
             <div class="flex justify-between items-start mb-4">
               <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange/20 to-hexred/20 border border-white flex items-center justify-center text-2xl shadow-xs">
-                  {{ mission.icon }}
+                <!-- Matching Official Core Icon Asset -->
+                <div class="w-14 h-14 rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred shrink-0">
+                  <div class="w-full h-full bg-white rounded-[13px] flex items-center justify-center overflow-hidden">
+                    <img 
+                      :src="resolveIcon(mission)" 
+                      :alt="mission.unlockCoreName"
+                      @error="onImgError"
+                      class="w-9 h-9 object-contain drop-shadow-sm" 
+                    />
+                  </div>
                 </div>
+
                 <div>
                   <div class="flex items-center gap-2">
                     <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">
@@ -282,6 +314,7 @@ import { useRouter } from 'vue-router'
 import { useMissionsStore } from '../stores/missionsStore'
 import { audioService } from '../services/audioService'
 import ScrollToTopButton from '../components/ScrollToTopButton.vue'
+import { getCoreIconPath, DEFAULT_ICON } from '../game/cores/icons'
 
 const router = useRouter()
 const missionsStore = useMissionsStore()
@@ -290,6 +323,24 @@ const categoryTabs = ['All', 'Attack', 'Defense', 'Utility', 'Economy', 'Strateg
 const activeTab = ref<string>('All')
 const searchQuery = ref('')
 const hideClaimed = ref(false)
+
+const resolveIcon = (mission: any) => {
+  if (mission.unlockCoreName) {
+    const icon = getCoreIconPath(mission.unlockCoreName)
+    if (icon !== DEFAULT_ICON) return icon
+  }
+  if (mission.coreFamily) {
+    return getCoreIconPath(mission.coreFamily)
+  }
+  return DEFAULT_ICON
+}
+
+const onImgError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target && target.src !== DEFAULT_ICON) {
+    target.src = DEFAULT_ICON
+  }
+}
 
 const filteredMissions = computed(() => {
   return missionsStore.missions.filter(m => {
