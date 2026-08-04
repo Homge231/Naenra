@@ -29,6 +29,9 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }))
 
 const httpServer = createServer(app)
 
+import { initGeminiLiveRelay } from './services/geminiLiveService'
+initGeminiLiveRelay(httpServer)
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
