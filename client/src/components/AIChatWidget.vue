@@ -26,7 +26,7 @@
                 <span v-if="isVoiceMode" class="live-badge animate-pulse">LIVE VOICE</span>
               </h3>
               <p class="chat-subtitle">
-                {{ isSpeaking ? 'Đang trả lời bằng giọng nói...' : (isListening ? 'Đang lắng nghe...' : 'Game Guide & Helper') }}
+                {{ isSpeaking ? 'Đang đọc câu trả lời...' : (isListening ? 'Đang lắng nghe giọng nói...' : 'Game Guide & Helper') }}
               </p>
             </div>
           </div>
@@ -66,7 +66,7 @@
             :class="['chat-bubble-wrap', msg.role === 'user' ? 'chat-bubble-wrap--user' : 'chat-bubble-wrap--ai']"
           >
             <div :class="['chat-bubble', msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--ai']">
-              <span v-if="msg.role !== 'user'" class="chat-bubble-label">🤖 AI</span>
+              <span v-if="msg.role !== 'user'" class="chat-bubble-label">🤖 AI Assistant</span>
               <div
                 v-if="msg.role !== 'user'"
                 class="chat-bubble-text"
@@ -77,7 +77,7 @@
           </div>
 
           <!-- Typing indicator -->
-          <div v-if="isLoading && !isVoiceMode" class="chat-typing">
+          <div v-if="isLoading" class="chat-typing">
             <span></span><span></span><span></span>
           </div>
 
@@ -93,7 +93,7 @@
           <div class="voice-status-info">
             <span class="pulse-dot" :class="{ 'pulse-dot--active': isListening || isSpeaking }"></span>
             <span class="voice-status-text">
-              {{ isSpeaking ? 'AI Voice Speaking...' : (isListening ? 'Listening to your voice...' : 'Voice Mode Active') }}
+              {{ isSpeaking ? 'AI Voice Assistant Speaking...' : (isListening ? 'Listening to your voice...' : 'Voice Mode Ready') }}
             </span>
           </div>
           <div class="waveform-anim" :class="{ 'waveform-anim--active': isListening || isSpeaking }">
@@ -107,9 +107,9 @@
             <input
               v-model="inputText"
               @keyup.enter="sendMessage"
-              :disabled="isLoading || isVoiceMode"
+              :disabled="isLoading"
               type="text"
-              :placeholder="isVoiceMode ? 'Đang bật Voice Chat (Nói để hỏi)...' : 'Nhập câu hỏi...'"
+              :placeholder="isVoiceMode ? 'Hãy nói câu hỏi của bạn...' : 'Nhập câu hỏi...'"
               class="chat-input"
               id="ai-chat-input"
               autocomplete="off"
@@ -122,7 +122,7 @@
               class="chat-mic-btn"
               :class="{ 'chat-mic-btn--active': isVoiceMode, 'chat-mic-btn--pulse': isListening }"
               id="ai-chat-mic-btn"
-              :title="isVoiceMode ? 'Tắt Voice Mode' : 'Bật Gemini Live Voice Chat'"
+              :title="isVoiceMode ? 'Tắt Voice Mode' : 'Bật Voice Chat Assistant'"
               type="button"
             >
               <svg v-if="!isVoiceMode" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -138,7 +138,7 @@
             <!-- Send Button -->
             <button
               @click="sendMessage"
-              :disabled="isLoading || !inputText.trim() || isVoiceMode"
+              :disabled="isLoading || !inputText.trim()"
               class="chat-send-btn"
               id="ai-chat-send-btn"
               aria-label="Gửi"
@@ -153,7 +153,7 @@
             </button>
           </div>
           <p class="chat-footer-note">
-            {{ isVoiceMode ? 'Gemini Live Multimodal Voice Assistant' : 'Powered by Gemini 3.5 Flash' }}
+            {{ isVoiceMode ? 'Voice Mode Active • Nói hoặc gõ câu hỏi' : 'Powered by Gemini 3.5 Flash' }}
           </p>
         </div>
       </div>
@@ -214,13 +214,6 @@ const isVoiceMode = ref(false)
 const isListening = ref(false)
 const isSpeaking = ref(false)
 
-let voiceWs: WebSocket | null = null
-let mediaStream: MediaStream | null = null
-let audioContext: AudioContext | null = null
-let scriptProcessor: ScriptProcessorNode | null = null
-let nextPlayTime = 0
-let activeSources: AudioBufferSourceNode[] = []
-let activeModelMsgIndex: number | null = null
 let speechRecognition: any = null
 
 const username = computed(() =>
@@ -279,7 +272,7 @@ function sendQuick(text: string) {
   sendMessage()
 }
 
-// ── Send message (Text Mode) ─────────────────────────────────────────
+// ── Send message ─────────────────────────────────────────────────────
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isLoading.value) return
@@ -377,306 +370,85 @@ function renderMarkdown(raw: string): string {
   return html
 }
 
-// ── Gemini Live Voice Mode Implementation ────────────────────────────
+// ── Voice Mode Implementation ────────────────────────────────────────
 
-async function toggleVoiceMode() {
+function toggleVoiceMode() {
   if (isVoiceMode.value) {
     stopVoiceMode()
   } else {
-    await startVoiceMode()
+    startVoiceMode()
   }
 }
 
-async function startVoiceMode() {
+function startVoiceMode() {
   errorMsg.value = ''
-  
-  // 1. Request microphone access
-  try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: 1,
-        sampleRate: 16000,
-        echoCancellation: true,
-        noiseSuppression: true
-      }
-    })
-  } catch (err: any) {
-    console.error('Microphone access denied:', err)
-    errorMsg.value = 'Chưa thể truy cập microphone. Vui lòng cấp quyền truy cập mic trên trình duyệt.'
-    isVoiceMode.value = false
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+  if (!SpeechRecognition) {
+    errorMsg.value = 'Trình duyệt không hỗ trợ nhận diện giọng nói (Web Speech API).'
     return
   }
 
   isVoiceMode.value = true
   isListening.value = true
 
-  // 2. Setup Web Speech Recognition for instant speech listening
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  if (SpeechRecognition) {
-    speechRecognition = new SpeechRecognition()
-    speechRecognition.lang = 'vi-VN'
-    speechRecognition.continuous = false
-    speechRecognition.interimResults = true
+  speechRecognition = new SpeechRecognition()
+  speechRecognition.lang = 'vi-VN'
+  speechRecognition.continuous = false
+  speechRecognition.interimResults = true
 
-    speechRecognition.onresult = (event: any) => {
-      let interim = ''
-      let finalStr = ''
+  speechRecognition.onresult = (event: any) => {
+    let interim = ''
+    let finalStr = ''
 
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalStr += event.results[i][0].transcript
-        } else {
-          interim += event.results[i][0].transcript
-        }
-      }
-
-      if (interim) {
-        inputText.value = interim
-      }
-
-      if (finalStr && finalStr.trim()) {
-        inputText.value = finalStr.trim()
-        sendMessage()
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalStr += event.results[i][0].transcript
+      } else {
+        interim += event.results[i][0].transcript
       }
     }
 
-    speechRecognition.onerror = (err: any) => {
-      console.warn('[AIChatWidget] Speech Recognition error:', err)
+    if (interim) {
+      inputText.value = interim
     }
 
-    speechRecognition.onend = () => {
-      if (isVoiceMode.value && !isSpeaking.value) {
-        try { speechRecognition.start() } catch (e) {}
-      }
-    }
-
-    try {
-      speechRecognition.start()
-    } catch (e) {
-      console.warn('SpeechRecognition start error:', e)
+    if (finalStr && finalStr.trim()) {
+      inputText.value = finalStr.trim()
+      sendMessage()
     }
   }
 
-  // 3. Setup WebSocket connection for Gemini Live Stream
-  const baseUrl = import.meta.env.VITE_SERVER_URL || (window.location.protocol === 'https:' ? `https://${window.location.host}` : 'http://localhost:3000')
-  const serverHost = baseUrl.replace(/^http/, 'ws')
+  speechRecognition.onerror = (err: any) => {
+    console.warn('[AIChatWidget] Speech Recognition error:', err)
+  }
 
-  const token = localStorage.getItem('arena_token') || ''
-  const wsUrl = `${serverHost}/api/ai/live?token=${encodeURIComponent(token)}`
+  speechRecognition.onend = () => {
+    if (isVoiceMode.value && !isSpeaking.value && !isLoading.value) {
+      try { speechRecognition.start() } catch (e) {}
+    }
+  }
 
   try {
-    voiceWs = new WebSocket(wsUrl)
-  } catch (e: any) {
-    return
+    speechRecognition.start()
+  } catch (e) {
+    console.warn('[AIChatWidget] SpeechRecognition start error:', e)
   }
-
-  voiceWs.onopen = () => {
-    console.log('[AIChatWidget] Voice Mode WebSocket connected.')
-    setupAudioRecording()
-  }
-
-  voiceWs.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data)
-      handleGeminiLiveMessage(data)
-    } catch (e) {
-      console.warn('Failed to parse Gemini Live message:', e)
-    }
-  }
-
-  voiceWs.onerror = () => {
-    // Silent fallback to SpeechRecognition + SpeechSynthesis
-  }
-
-  voiceWs.onclose = () => {
-    console.log('[AIChatWidget] Voice WebSocket closed.')
-  }
-}
-
-function setupAudioRecording() {
-  const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-  if (!AudioCtx || !mediaStream) return
-
-  audioContext = new AudioCtx({ sampleRate: 16000 })
-  const source = audioContext.createMediaStreamSource(mediaStream)
-  scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1)
-
-  scriptProcessor.onaudioprocess = (e) => {
-    if (!isVoiceMode.value) return
-
-    const inputData = e.inputBuffer.getChannelData(0)
-    let sum = 0
-    for (let i = 0; i < inputData.length; i++) {
-      sum += inputData[i] * inputData[i]
-    }
-    const rms = Math.sqrt(sum / inputData.length)
-    isListening.value = rms > 0.01
-
-    if (voiceWs && voiceWs.readyState === WebSocket.OPEN) {
-      const pcm16 = new Int16Array(inputData.length)
-      for (let i = 0; i < inputData.length; i++) {
-        const s = Math.max(-1, Math.min(1, inputData[i]))
-        pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
-      }
-
-      const base64Audio = arrayBufferToBase64(pcm16.buffer)
-      const frame = {
-        realtimeInput: {
-          mediaChunks: [
-            {
-              mimeType: 'audio/pcm',
-              data: base64Audio
-            }
-          ]
-        }
-      }
-      voiceWs.send(JSON.stringify(frame))
-    }
-  }
-
-  source.connect(scriptProcessor)
-  scriptProcessor.connect(audioContext.destination)
-}
-
-function handleGeminiLiveMessage(msg: any) {
-  if (msg.error) return
-
-  if (msg.serverContent) {
-    const sc = msg.serverContent
-    
-    if (sc.interrupted) {
-      stopActiveAudioPlayback()
-      isSpeaking.value = false
-      activeModelMsgIndex = null
-      return
-    }
-
-    if (sc.modelTurn && sc.modelTurn.parts) {
-      for (const part of sc.modelTurn.parts) {
-        if (part.text) {
-          if (activeModelMsgIndex === null) {
-            messages.value.push({ role: 'model', content: part.text })
-            activeModelMsgIndex = messages.value.length - 1
-          } else {
-            messages.value[activeModelMsgIndex].content += part.text
-          }
-          scrollToBottom()
-        }
-
-        if (part.inlineData && part.inlineData.data) {
-          const base64 = part.inlineData.data
-          playPcmAudioChunk(base64)
-        }
-      }
-    }
-
-    if (sc.turnComplete) {
-      activeModelMsgIndex = null
-    }
-  }
-}
-
-function playPcmAudioChunk(base64Data: string) {
-  if (!audioContext) return
-
-  const pcmBuffer = base64ToArrayBuffer(base64Data)
-  const int16Array = new Int16Array(pcmBuffer)
-  
-  const sampleRate = 24000
-  const float32Array = new Float32Array(int16Array.length)
-  for (let i = 0; i < int16Array.length; i++) {
-    float32Array[i] = int16Array[i] / 32768.0
-  }
-
-  const audioBuf = audioContext.createBuffer(1, float32Array.length, sampleRate)
-  audioBuf.getChannelData(0).set(float32Array)
-
-  const sourceNode = audioContext.createBufferSource()
-  sourceNode.buffer = audioBuf
-  sourceNode.connect(audioContext.destination)
-
-  const startTime = Math.max(audioContext.currentTime, nextPlayTime)
-  sourceNode.start(startTime)
-  nextPlayTime = startTime + audioBuf.duration
-
-  activeSources.push(sourceNode)
-  isSpeaking.value = true
-
-  sourceNode.onended = () => {
-    activeSources = activeSources.filter(s => s !== sourceNode)
-    if (activeSources.length === 0) {
-      isSpeaking.value = false
-    }
-  }
-}
-
-function stopActiveAudioPlayback() {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
-  activeSources.forEach(s => {
-    try { s.stop() } catch (e) {}
-  })
-  activeSources = []
-  if (audioContext) {
-    nextPlayTime = audioContext.currentTime
-  }
-  isSpeaking.value = false
 }
 
 function stopVoiceMode() {
   isVoiceMode.value = false
   isListening.value = false
   isSpeaking.value = false
-  activeModelMsgIndex = null
 
-  stopActiveAudioPlayback()
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
 
   if (speechRecognition) {
     try { speechRecognition.stop() } catch (e) {}
     speechRecognition = null
   }
-
-  if (scriptProcessor) {
-    scriptProcessor.disconnect()
-    scriptProcessor = null
-  }
-
-  if (mediaStream) {
-    mediaStream.getTracks().forEach(t => t.stop())
-    mediaStream = null
-  }
-
-  if (audioContext) {
-    audioContext.close().catch(() => {})
-    audioContext = null
-  }
-
-  if (voiceWs) {
-    voiceWs.close()
-    voiceWs = null
-  }
-}
-
-// ── ArrayBuffer / Base64 Helpers ─────────────────────────────────────
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  let binary = ''
-  const bytes = new Uint8Array(buffer)
-  const len = bytes.byteLength
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return window.btoa(binary)
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = window.atob(base64)
-  const len = binaryString.length
-  const bytes = new Uint8Array(len)
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i)
-  }
-  return bytes.buffer
 }
 </script>
 
