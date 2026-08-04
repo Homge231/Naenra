@@ -59,7 +59,12 @@ export function initGeminiLiveRelay(httpServer: HttpServer) {
 
     // Connect to Gemini Live WebSocket API
     const geminiUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`
-    const geminiWs = new WebSocket(geminiUrl)
+    const geminiWs = new WebSocket(geminiUrl, {
+      headers: {
+        'x-goog-api-key': apiKey,
+        'Authorization': `Bearer ${apiKey}`
+      }
+    })
 
     console.log(`[GeminiLiveRelay] Client connected for user "${username}". Relay connecting to Gemini Live API...`)
 
