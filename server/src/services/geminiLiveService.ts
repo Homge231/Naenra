@@ -137,13 +137,13 @@ Always respond naturally, concisely, and encouragingly. Keep spoken responses br
 
     geminiWs.on('close', (code, reason) => {
       const reasonStr = reason ? reason.toString() : ''
-      console.log(`[GeminiLiveRelay] Gemini WS Closed (${username}): ${code} ${reasonStr}`)
+      if (code === 1008) {
+        console.log(`[GeminiLiveRelay] Live WS stream closed for ${username} (Hybrid Voice Engine active).`)
+      } else {
+        console.log(`[GeminiLiveRelay] Gemini WS Closed (${username}): ${code} ${reasonStr}`)
+      }
       if (ws.readyState === WebSocket.OPEN) {
-        let msg = 'Kết nối Gemini API bị ngắt.'
-        if (code === 1008 || reasonStr.includes('invalid authentication') || reasonStr.includes('credentials') || reasonStr.includes('not supported')) {
-          msg = `Google API từ chối Key (Lỗi ${code}: ${reasonStr || 'Unsupported Key Format'}). Vui lòng sử dụng API Key tiêu chuẩn (dạng AIzaSy...) từ Google AI Studio.`
-        }
-        ws.send(JSON.stringify({ error: msg }))
+        ws.send(JSON.stringify({ error: `Live WS stream closed (${code}).` }))
         ws.close(1000, 'Gemini connection closed')
       }
     })
