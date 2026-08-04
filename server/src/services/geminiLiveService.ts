@@ -141,9 +141,14 @@ Always respond naturally, concisely, and encouragingly. Keep spoken responses br
     })
 
     geminiWs.on('close', (code, reason) => {
-      console.log(`[GeminiLiveRelay] Gemini WS Closed (${username}): ${code} ${reason}`)
+      const reasonStr = reason ? reason.toString() : ''
+      console.log(`[GeminiLiveRelay] Gemini WS Closed (${username}): ${code} ${reasonStr}`)
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ error: 'Kết nối Gemini API bị ngắt. Vui lòng kiểm tra GEMINI_API_KEY trong server/.env.' }))
+        let msg = 'Kết nối Gemini API bị ngắt.'
+        if (code === 1008 || reasonStr.includes('invalid authentication') || reasonStr.includes('credentials')) {
+          msg = `Google API từ chối Key (Lỗi ${code}: ${reasonStr || 'Invalid credentials'}). Vui lòng tạo API Key mới (dạng AIzaSy...) từ Google AI Studio.`
+        }
+        ws.send(JSON.stringify({ error: msg }))
         ws.close(1000, 'Gemini connection closed')
       }
     })
