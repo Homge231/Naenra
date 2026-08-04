@@ -12,7 +12,6 @@ import { Server } from 'colyseus'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { MatchRoom } from './rooms/MatchRoom'
 import { QueueRoom } from './rooms/QueueRoom'
-import { initGeminiLiveRelay } from './services/geminiLiveService'
 
 dotenv.config()
 
@@ -66,9 +65,6 @@ const gameServer = new Server({
 
 gameServer.define('match_room', MatchRoom)
 gameServer.define('queue_room', QueueRoom)
-
-// Initialize Gemini Live WebSocket Relay AFTER Colyseus so upgrade listeners are properly wrapped
-initGeminiLiveRelay(httpServer)
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000
 

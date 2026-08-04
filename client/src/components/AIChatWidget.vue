@@ -16,18 +16,15 @@
         <!-- Header -->
         <div class="chat-header">
           <div class="chat-header-info">
-            <div class="chat-avatar" :class="{ 'chat-avatar--speaking': isSpeaking }">
+            <div class="chat-avatar">
               <div class="chat-avatar-inner">✨</div>
             </div>
             <div>
               <h3 class="chat-title flex items-center gap-1.5">
                 Naenra Assistant
                 <span class="chat-badge">AI</span>
-                <span v-if="isVoiceMode" class="live-badge animate-pulse">LIVE VOICE</span>
               </h3>
-              <p class="chat-subtitle">
-                {{ isSpeaking ? 'Đang đọc câu trả lời...' : (isListening ? 'Đang lắng nghe giọng nói...' : 'Game Guide & Helper') }}
-              </p>
+              <p class="chat-subtitle">Game Guide & Helper</p>
             </div>
           </div>
           <button
@@ -88,19 +85,6 @@
           </div>
         </div>
 
-        <!-- Live Voice Waveform Indicator -->
-        <div v-if="isVoiceMode" class="voice-wave-bar">
-          <div class="voice-status-info">
-            <span class="pulse-dot" :class="{ 'pulse-dot--active': isListening || isSpeaking }"></span>
-            <span class="voice-status-text">
-              {{ isSpeaking ? 'AI Voice Assistant Speaking...' : (isListening ? 'Listening to your voice...' : 'Voice Mode Ready') }}
-            </span>
-          </div>
-          <div class="waveform-anim" :class="{ 'waveform-anim--active': isListening || isSpeaking }">
-            <span v-for="n in 7" :key="n" class="wave-bar"></span>
-          </div>
-        </div>
-
         <!-- Input Footer -->
         <div class="chat-footer">
           <div class="chat-input-wrap">
@@ -109,31 +93,12 @@
               @keyup.enter="sendMessage"
               :disabled="isLoading"
               type="text"
-              :placeholder="isVoiceMode ? 'Hãy nói câu hỏi của bạn...' : 'Nhập câu hỏi...'"
+              placeholder="Nhập câu hỏi..."
               class="chat-input"
               id="ai-chat-input"
               autocomplete="off"
               maxlength="300"
             />
-
-            <!-- Voice Mode Toggle Button -->
-            <button
-              @click="toggleVoiceMode"
-              class="chat-mic-btn"
-              :class="{ 'chat-mic-btn--active': isVoiceMode, 'chat-mic-btn--pulse': isListening }"
-              id="ai-chat-mic-btn"
-              :title="isVoiceMode ? 'Tắt Voice Mode' : 'Bật Voice Chat Assistant'"
-              type="button"
-            >
-              <svg v-if="!isVoiceMode" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
-              </svg>
-              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-            </button>
 
             <!-- Send Button -->
             <button
@@ -152,9 +117,7 @@
               </svg>
             </button>
           </div>
-          <p class="chat-footer-note">
-            {{ isVoiceMode ? 'Voice Mode Active • Nói hoặc gõ câu hỏi' : 'Powered by Gemini 3.5 Flash' }}
-          </p>
+          <p class="chat-footer-note">Powered by Gemini 3.5 Flash</p>
         </div>
       </div>
     </Transition>
@@ -209,13 +172,6 @@ const errorMsg = ref('')
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
 
-// Voice Mode State
-const isVoiceMode = ref(false)
-const isListening = ref(false)
-const isSpeaking = ref(false)
-
-let speechRecognition: any = null
-
 const username = computed(() =>
   authStore.profile?.username ||
   authStore.user?.user_metadata?.full_name ||
@@ -239,7 +195,6 @@ function handleClickOutside(e: MouseEvent) {
 onMounted(() => document.addEventListener('mousedown', handleClickOutside))
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
-  stopVoiceMode()
 })
 
 // ── Toggle / Close ───────────────────────────────────────────────────
@@ -247,14 +202,11 @@ function toggleChat() {
   isChatOpen.value = !isChatOpen.value
   if (isChatOpen.value) {
     nextTick(() => scrollToBottom())
-  } else {
-    stopVoiceMode()
   }
 }
 
 function closeChat() {
   isChatOpen.value = false
-  stopVoiceMode()
 }
 
 // ── Scroll helpers ───────────────────────────────────────────────────
@@ -305,55 +257,12 @@ async function sendMessage() {
     const data = await res.json()
     const replyText = data.reply || 'Xin lỗi, tôi chưa hiểu rõ ý bạn.'
     messages.value.push({ role: 'model', content: replyText })
-
-    if (isVoiceMode.value) {
-      speakText(replyText)
-    }
   } catch (err: any) {
     errorMsg.value = err.message || 'Đã có lỗi xảy ra. Vui lòng thử lại sau.'
   } finally {
     isLoading.value = false
     scrollToBottom()
   }
-}
-
-// ── Speak reply text via Web Speech Synthesis ─────────────────────────
-function speakText(text: string) {
-  if (!('speechSynthesis' in window)) return
-  window.speechSynthesis.cancel()
-
-  if (speechRecognition) {
-    try { speechRecognition.stop() } catch (e) {}
-  }
-
-  const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/[*_#`]/g, '')
-  const utterance = new SpeechSynthesisUtterance(cleanText)
-  utterance.lang = 'vi-VN'
-  utterance.rate = 1.05
-
-  const voices = window.speechSynthesis.getVoices()
-  const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VI'))
-  if (viVoice) utterance.voice = viVoice
-
-  utterance.onstart = () => {
-    isSpeaking.value = true
-  }
-
-  utterance.onend = () => {
-    isSpeaking.value = false
-    if (isVoiceMode.value && speechRecognition) {
-      try { speechRecognition.start() } catch (e) {}
-    }
-  }
-
-  utterance.onerror = () => {
-    isSpeaking.value = false
-    if (isVoiceMode.value && speechRecognition) {
-      try { speechRecognition.start() } catch (e) {}
-    }
-  }
-
-  window.speechSynthesis.speak(utterance)
 }
 
 // ── Simple Markdown renderer ─────────────────────────────────────────
@@ -368,87 +277,6 @@ function renderMarkdown(raw: string): string {
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
   html = html.replace(/\n/g, '<br/>')
   return html
-}
-
-// ── Voice Mode Implementation ────────────────────────────────────────
-
-function toggleVoiceMode() {
-  if (isVoiceMode.value) {
-    stopVoiceMode()
-  } else {
-    startVoiceMode()
-  }
-}
-
-function startVoiceMode() {
-  errorMsg.value = ''
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-
-  if (!SpeechRecognition) {
-    errorMsg.value = 'Trình duyệt không hỗ trợ nhận diện giọng nói (Web Speech API).'
-    return
-  }
-
-  isVoiceMode.value = true
-  isListening.value = true
-
-  speechRecognition = new SpeechRecognition()
-  speechRecognition.lang = 'vi-VN'
-  speechRecognition.continuous = false
-  speechRecognition.interimResults = true
-
-  speechRecognition.onresult = (event: any) => {
-    let interim = ''
-    let finalStr = ''
-
-    for (let i = event.resultIndex; i < event.results.length; ++i) {
-      if (event.results[i].isFinal) {
-        finalStr += event.results[i][0].transcript
-      } else {
-        interim += event.results[i][0].transcript
-      }
-    }
-
-    if (interim) {
-      inputText.value = interim
-    }
-
-    if (finalStr && finalStr.trim()) {
-      inputText.value = finalStr.trim()
-      sendMessage()
-    }
-  }
-
-  speechRecognition.onerror = (err: any) => {
-    console.warn('[AIChatWidget] Speech Recognition error:', err)
-  }
-
-  speechRecognition.onend = () => {
-    if (isVoiceMode.value && !isSpeaking.value && !isLoading.value) {
-      try { speechRecognition.start() } catch (e) {}
-    }
-  }
-
-  try {
-    speechRecognition.start()
-  } catch (e) {
-    console.warn('[AIChatWidget] SpeechRecognition start error:', e)
-  }
-}
-
-function stopVoiceMode() {
-  isVoiceMode.value = false
-  isListening.value = false
-  isSpeaking.value = false
-
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
-
-  if (speechRecognition) {
-    try { speechRecognition.stop() } catch (e) {}
-    speechRecognition = null
-  }
 }
 </script>
 
@@ -513,18 +341,6 @@ function stopVoiceMode() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.chat-avatar--speaking {
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
-  border-color: #3b82f6;
-  animation: pulse-avatar 1.5s infinite;
-}
-
-@keyframes pulse-avatar {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
 }
 
 .chat-avatar-inner {
@@ -547,17 +363,6 @@ function stopVoiceMode() {
   background: rgba(59, 130, 246, 0.25);
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.4);
-}
-
-.live-badge {
-  font-size: 9px;
-  font-weight: 900;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(239, 68, 68, 0.25);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  letter-spacing: 0.5px;
 }
 
 .chat-subtitle {
@@ -737,73 +542,6 @@ function stopVoiceMode() {
   font-size: 12px;
 }
 
-/* ── Live Wave Bar ────────────────────────────── */
-.voice-wave-bar {
-  background: rgba(15, 23, 42, 0.95);
-  border-top: 1px solid rgba(59, 130, 246, 0.2);
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.voice-status-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pulse-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #94a3b8;
-  transition: all 0.3s;
-}
-
-.pulse-dot--active {
-  background: #ef4444;
-  box-shadow: 0 0 10px #ef4444;
-}
-
-.voice-status-text {
-  font-size: 11px;
-  font-weight: 600;
-  color: #cbd5e1;
-}
-
-.waveform-anim {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 16px;
-}
-
-.wave-bar {
-  width: 3px;
-  height: 4px;
-  background: #3b82f6;
-  border-radius: 2px;
-  transition: height 0.2s;
-}
-
-.waveform-anim--active .wave-bar {
-  animation: wave 1s ease-in-out infinite alternate;
-}
-
-.waveform-anim--active .wave-bar:nth-child(1) { animation-delay: 0.1s; }
-.waveform-anim--active .wave-bar:nth-child(2) { animation-delay: 0.3s; }
-.waveform-anim--active .wave-bar:nth-child(3) { animation-delay: 0.2s; }
-.waveform-anim--active .wave-bar:nth-child(4) { animation-delay: 0.4s; }
-.waveform-anim--active .wave-bar:nth-child(5) { animation-delay: 0.15s; }
-.waveform-anim--active .wave-bar:nth-child(6) { animation-delay: 0.35s; }
-.waveform-anim--active .wave-bar:nth-child(7) { animation-delay: 0.25s; }
-
-@keyframes wave {
-  0% { height: 4px; background: #3b82f6; }
-  100% { height: 16px; background: #ef4444; }
-}
-
 /* ── Footer / Input ──────────────────────────── */
 .chat-footer {
   padding: 12px 16px;
@@ -836,37 +574,6 @@ function stopVoiceMode() {
 }
 .chat-input::placeholder {
   color: #64748b;
-}
-
-.chat-mic-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.chat-mic-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #3b82f6;
-}
-.chat-mic-btn--active {
-  background: rgba(239, 68, 68, 0.2) !important;
-  color: #f87171 !important;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-.chat-mic-btn--pulse {
-  animation: mic-pulse 1.2s infinite;
-}
-
-@keyframes mic-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
 }
 
 .chat-send-btn {
