@@ -8,6 +8,12 @@ import gameRoutes from './routes/gameRoutes'
 import aiRoutes from './routes/aiRoutes'
 import rateLimit from 'express-rate-limit'
 import { initQuestionCron } from './cron/questionCron'
+import { Server } from 'colyseus'
+import { WebSocketTransport } from '@colyseus/ws-transport'
+import { MatchRoom } from './rooms/MatchRoom'
+import { QueueRoom } from './rooms/QueueRoom'
+import { initGeminiLiveRelay } from './services/geminiLiveService'
+
 dotenv.config()
 
 // Initialize cron jobs
@@ -28,9 +34,6 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ limit: '10mb', extended: true }))
 
 const httpServer = createServer(app)
-
-import { initGeminiLiveRelay } from './services/geminiLiveService'
-initGeminiLiveRelay(httpServer)
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -54,11 +57,7 @@ app.use('/api/user', userRoutes)
 app.use('/api/game', gameRoutes)
 app.use('/api/ai', aiRoutes)
 
-import { Server } from 'colyseus'
-import { WebSocketTransport } from '@colyseus/ws-transport'
-import { MatchRoom } from './rooms/MatchRoom'
-import { QueueRoom } from './rooms/QueueRoom'
-
+// Initialize Colyseus Game Server
 const gameServer = new Server({
   transport: new WebSocketTransport({
     server: httpServer
@@ -67,6 +66,9 @@ const gameServer = new Server({
 
 gameServer.define('match_room', MatchRoom)
 gameServer.define('queue_room', QueueRoom)
+
+// Initialize Gemini Live WebSocket Relay AFTER Colyseus so upgrade listeners are properly wrapped
+initGeminiLiveRelay(httpServer)
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000
 
