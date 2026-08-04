@@ -371,13 +371,8 @@ async function startVoiceMode() {
   nextPlayTime = audioContext.currentTime
 
   // 3. Connect to backend WebSocket Relay
-  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  let serverHost = ''
-  if (import.meta.env.VITE_SERVER_URL) {
-    serverHost = import.meta.env.VITE_SERVER_URL.replace(/^http/, 'ws')
-  } else {
-    serverHost = `${wsProtocol}//${window.location.host}`
-  }
+  const baseUrl = import.meta.env.VITE_SERVER_URL || (window.location.protocol === 'https:' ? `https://${window.location.host}` : 'http://localhost:3000')
+  const serverHost = baseUrl.replace(/^http/, 'ws')
 
   const token = authStore.token || ''
   const wsUrl = `${serverHost}/api/ai/live?token=${encodeURIComponent(token)}`

@@ -10,7 +10,7 @@
     <button 
       v-if="showSettingsButton"
       @click="settingsStore.isSettingsOpen = true"
-      class="fixed bottom-6 right-6 z-[9990] w-12 h-12 bg-black/50 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/70 hover:scale-110 transition-all shadow-lg focus:outline-none"
+      class="fixed bottom-24 right-6 z-[9990] w-12 h-12 bg-black/50 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/70 hover:scale-110 transition-all shadow-lg focus:outline-none"
       title="Global Settings"
     >
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,7 +34,8 @@ const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
 
 const showSettingsButton = computed(() => {
-  return authStore.isLoggedIn && route.meta.requiresAuth === true
+  const hasToken = !!localStorage.getItem('arena_token')
+  return (authStore.isLoggedIn || hasToken) && route.meta.requiresAuth === true
 })
 
 // Auto-close settings modal when navigating to a view where setting is not allowed
