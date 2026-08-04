@@ -14,7 +14,8 @@
             </div>
 
             <div v-for="letter in floatingLetters" :key="letter.id"
-                class="absolute top-0 font-black uppercase text-gray-300 select-none animate-matrix-drift opacity-40"
+                class="absolute top-0 font-black uppercase select-none animate-matrix-drift"
+                :class="letter.color"
                 :style="{
                     left: letter.left + '%',
                     fontSize: letter.size + 'rem',
@@ -86,7 +87,8 @@
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
 
                 <div v-for="core in filteredCores" :key="core.id" @click="router.push(`/library/core/${getCoreSlug(core)}`)"
-                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer">
+                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer"
+                    :class="{ 'opacity-65 grayscale-[30%]': core.isLocked }">
 
                     <div class="flex justify-between items-start mb-6">
                         <div
@@ -101,7 +103,8 @@
                         </div>
 
                         <!-- Category Pill -->
-                        <div class="px-3 py-1 rounded-full border shadow-sm bg-orange/10 text-orange border-orange/30">
+                        <div class="px-3 py-1 rounded-full border shadow-sm bg-orange/10 text-orange border-orange/30 flex items-center gap-1">
+                            <span v-if="core.isLocked" class="text-[10px]" title="Core Locked">🔒</span>
                             <span class="text-[10px] font-black tracking-widest uppercase">{{ getCategory(core) }}</span>
                         </div>
                     </div>
@@ -135,8 +138,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const coresData = ref<any[]>([])
 const loading = ref(true)
 
@@ -169,8 +174,19 @@ const getCategory = (core: any): string => {
 }
 
 const filteredCores = computed(() => {
-    if (activeTab.value === 'All') return coresData.value
-    return coresData.value.filter(c => getCategory(c).toLowerCase() === activeTab.value.toLowerCase())
+    const unlockedIds = new Set(authStore.profile?.unlocked_core_ids || [])
+    const baseCores = activeTab.value === 'All' 
+        ? coresData.value 
+        : coresData.value.filter(c => getCategory(c).toLowerCase() === activeTab.value.toLowerCase())
+        
+    return baseCores.map((c: any) => {
+        const isBaseCore = c.tier === 1 || c.core_type === 'main'
+        const isLocked = !isBaseCore && !unlockedIds.has(String(c.id))
+        return {
+            ...c,
+            isLocked
+        }
+    })
 })
 
 import { getCoreIconPath } from '../game/cores/icons'
@@ -221,13 +237,21 @@ onMounted(async () => {
 
 // Background Floating Animations
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const colors = [
+    'text-orange/20',
+    'text-hexred/20',
+    'text-lightBlue/25',
+    'text-lightOrange/20',
+    'text-violet-400/20'
+]
 const floatingLetters = alphabet.map((char, index) => ({
     id: index,
     char: char,
     left: Math.random() * 95,
     size: 1.5 + Math.random() * 4,
     delay: Math.random() * 15,
-    duration: 15 + Math.random() * 20
+    duration: 15 + Math.random() * 20,
+    color: colors[index % colors.length]
 }))
 </script>
 

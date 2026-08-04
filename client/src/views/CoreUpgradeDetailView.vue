@@ -8,7 +8,8 @@
       <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-lightBlue/20 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
       
       <div v-for="letter in floatingLetters" :key="letter.id"
-        class="absolute top-0 font-black uppercase text-gray-300 select-none animate-matrix-drift opacity-40"
+        class="absolute top-0 font-black uppercase select-none animate-matrix-drift"
+        :class="letter.color"
         :style="{ left: letter.left + '%', fontSize: letter.size + 'rem', animationDelay: letter.delay + 's', animationDuration: letter.duration + 's' }">
         {{ letter.char }}
       </div>
@@ -84,12 +85,14 @@
               @touchstart="showTooltip($event, upgrade)"
               @touchend="hideTooltip"
               class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-help relative overflow-hidden"
+              :class="{ 'opacity-60 grayscale-[40%]': upgrade.isLocked }"
             >
               <!-- Tier Badge -->
               <div :class="[
-                'absolute top-5 right-5 text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase shadow-sm border',
+                'absolute top-5 right-5 text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase shadow-sm border flex items-center gap-1',
                 upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange'
               ]">
+                <span v-if="upgrade.isLocked" class="text-[10px]" title="Core Locked">🔒</span>
                 Round {{ upgrade.computedTier || 2 }}
               </div>
 
@@ -161,6 +164,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
+import { useAuthStore } from '../stores/authStore'
+
+const authStore = useAuthStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -168,7 +174,23 @@ const coreId = route.params.id
 
 const loading = ref(true)
 const baseCore = ref<any>(null)
-const upgrades = ref<any[]>([])
+const rawUpgrades = ref<any[]>([])
+
+const upgrades = computed(() => {
+  const unlockedIds = new Set(authStore.profile?.unlocked_core_ids || [])
+  return rawUpgrades.value.map(upgrade => {
+    const isTier3 = upgrade.computedTier === 3
+    const isMock = String(upgrade.id).startsWith('mock-')
+    const isLocked = isTier3 && (isMock || !unlockedIds.has(String(upgrade.id)))
+    const missionText = isLocked ? `Complete gameplay missions to unlock ${upgrade.name}.` : ''
+    
+    return {
+      ...upgrade,
+      isLocked,
+      missionText
+    }
+  })
+})
 
 const isTooltipVisible = ref(false)
 const hoveredCore = ref<any>(null)
@@ -452,7 +474,7 @@ onMounted(async () => {
              }
           })
 
-          upgrades.value = matchedUpgrades
+          rawUpgrades.value = matchedUpgrades
         }
       }
     }
@@ -475,7 +497,9 @@ const formattedTooltipCore = computed(() => {
     tier: c.computedTier || c.tier || mapData.tier || 2,
     multiplier_buff: c.multiplier_buff || mapData.multiplier_buff || 1.0,
     flat_buff: c.flat_buff || mapData.flat_buff || 0,
-    classification: c.classification || mapData.classification || 'upgrade'
+    classification: c.classification || mapData.classification || 'upgrade',
+    isLocked: c.isLocked,
+    missionText: c.missionText
   }
 })
 
@@ -506,13 +530,21 @@ const hideTooltip = () => {
 }
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const colors = [
+  'text-orange/20',
+  'text-hexred/20',
+  'text-lightBlue/25',
+  'text-lightOrange/20',
+  'text-violet-400/20'
+]
 const floatingLetters = alphabet.map((char, index) => ({
   id: index,
   char: char,
   left: Math.random() * 95,
   size: 1.5 + Math.random() * 4,
   delay: Math.random() * 15,
-  duration: 15 + Math.random() * 20
+  duration: 15 + Math.random() * 20,
+  color: colors[index % colors.length]
 }))
 </script>
 

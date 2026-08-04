@@ -13,7 +13,8 @@
             </div>
 
             <div v-for="letter in floatingLetters" :key="letter.id"
-                class="absolute top-0 font-black uppercase text-gray-300 select-none animate-matrix-drift opacity-40"
+                class="absolute top-0 font-black uppercase select-none animate-matrix-drift"
+                :class="letter.color"
                 :style="{
                     left: letter.left + '%',
                     fontSize: letter.size + 'rem',
@@ -154,13 +155,21 @@ onMounted(async () => {
 
 // Background Animation Array
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const colors = [
+    'text-orange/20',
+    'text-hexred/20',
+    'text-lightBlue/25',
+    'text-lightOrange/20',
+    'text-violet-400/20'
+]
 const floatingLetters = alphabet.map((char, index) => ({
     id: index,
     char: char,
     left: Math.random() * 95,
     size: 1.5 + Math.random() * 4,
     delay: Math.random() * 15,
-    duration: 15 + Math.random() * 20
+    duration: 15 + Math.random() * 20,
+    color: colors[index % colors.length]
 }))
 </script>
 

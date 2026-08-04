@@ -8,6 +8,7 @@
 
     <!-- Floating Global Settings Button -->
     <button 
+      v-if="showSettingsButton"
       @click="settingsStore.isSettingsOpen = true"
       class="fixed bottom-6 right-6 z-[9990] w-12 h-12 bg-black/50 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-black/70 hover:scale-110 transition-all shadow-lg focus:outline-none"
       title="Global Settings"
@@ -21,13 +22,29 @@
 </template>
 
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
+import { computed, watch } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import ErrorNotification from './components/ErrorNotification.vue'
 import GlobalSettingsOverlay from './components/GlobalSettingsOverlay.vue'
 import { useSettingsStore } from './stores/settingsStore'
+import { useAuthStore } from './stores/authStore'
 
+const route = useRoute()
 const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
+
+const showSettingsButton = computed(() => {
+  return authStore.isLoggedIn && route.meta.requiresAuth === true
+})
+
+// Auto-close settings modal when navigating to a view where setting is not allowed
+watch(showSettingsButton, (newVal) => {
+  if (!newVal) {
+    settingsStore.isSettingsOpen = false
+  }
+})
 </script>
+
 
 <style scoped>
 </style>
