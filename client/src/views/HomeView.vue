@@ -104,20 +104,25 @@
           </div>
         </div>
 
-        <div class="w-full grid grid-cols-3 gap-3 px-4">
+        <div class="w-full grid grid-cols-2 md:grid-cols-4 gap-3 px-4">
           <button @click="goToLeaderboard" @mouseenter="audioService.playHover()"
-            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5">
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
             <span>🏆</span> Leaderboard
           </button>
           
           <button @click="router.push('/library'); audioService.playClick()" @mouseenter="audioService.playHover()"
-            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-blue-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5">
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-blue-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
             <span>📚</span> Library
           </button>
 
+          <button @click="router.push('/missions'); audioService.playClick()" @mouseenter="audioService.playHover()"
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-hexred hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>🎯</span> Missions
+          </button>
+
           <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
-            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5">
-            <span>🎯</span> Training
+            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>🎮</span> Training
           </button>
         </div>
 

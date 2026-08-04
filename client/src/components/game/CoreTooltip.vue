@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getCoreFamily } from '../../game/cores/families'
+import { useMissionsStore } from '../../stores/missionsStore'
 
 const props = withDefaults(
   defineProps<{
@@ -13,6 +14,8 @@ const props = withDefaults(
       tier?: number
       core_type?: string
       classification?: string
+      isLocked?: boolean
+      missionText?: string
     }
     isLocked?: boolean
     missionText?: string
@@ -24,6 +27,24 @@ const props = withDefaults(
     position: 'top'
   }
 )
+
+const missionsStore = useMissionsStore()
+
+// Evaluate whether the core is locked from either prop or core object
+const isCoreLocked = computed(() => {
+  return props.isLocked || (props.core as any)?.isLocked || false
+})
+
+// Find matching mission in missionsStore for locked core progress
+const relatedMission = computed(() => {
+  if (!props.core?.name) return null
+  const coreNameLower = props.core.name.trim().toLowerCase()
+  return missionsStore.missions.find(m =>
+    m.unlockCoreName.trim().toLowerCase() === coreNameLower ||
+    m.title.trim().toLowerCase() === coreNameLower ||
+    m.coreFamily.trim().toLowerCase() === coreNameLower
+  )
+})
 
 const familyName = computed(() => {
   return getCoreFamily(props.core.name) || 'unknown'
@@ -100,117 +121,90 @@ const FAMILY_CONFIGS: Record<string, {
     displayName: 'Phoenix'
   },
   highroller: {
-    color: 'text-emerald-400',
-    border: 'border-emerald-500 shadow-[0_20px_50px_rgba(0,0,0,0.9)]',
-    dot: 'bg-emerald-500',
-    pointerBorder: 'border-t-emerald-500',
+    color: 'text-yellow-400',
+    border: 'border-yellow-500 shadow-[0_20px_50px_rgba(0,0,0,0.9)]',
+    dot: 'bg-yellow-500',
+    pointerBorder: 'border-t-yellow-500',
     displayName: 'High Roller'
-  },
-  unknown: {
-    color: 'text-gray-400',
-    border: 'border-gray-500 shadow-[0_20px_50px_rgba(0,0,0,0.95)]',
-    dot: 'bg-gray-400',
-    pointerBorder: 'border-t-gray-500',
-    displayName: 'Standard'
   }
 }
 
 const currentConfig = computed(() => {
-  return FAMILY_CONFIGS[familyName.value] || FAMILY_CONFIGS.unknown
-})
-
-const coreTrait = computed(() => {
-  const c = (props.core.classification ?? '').toLowerCase()
-  if (c === 'power' || c === 'attack') return 'power'
-  if (c === 'effect' || c === 'defense' || c === 'economy') return 'effect'
-  
   const family = familyName.value
-  if (['power', 'balanced', 'combo', 'speedster'].includes(family)) return 'power'
-  if (['aegis', 'oracle', 'mission', 'pandora', 'phoenix', 'highroller'].includes(family)) return 'effect'
-  
-  return 'power'
-})
-
-// MÀU NỀN ĐẶC CHO TRAIT BOX (bg-slate-900)
-const TRAIT_CONFIG = {
-  power: {
-    label: 'Power Core',
-    icon: '⚡',
-    color: 'text-orange-400',
-    bg: 'bg-slate-900 border-orange-500/50',
-    desc: 'Amplifies score — multipliers, flat buffs & speed bonuses.'
-  },
-  effect: {
-    label: 'Effect Core',
-    icon: '🛡️',
-    color: 'text-violet-400',
-    bg: 'bg-slate-900 border-violet-500/50',
-    desc: 'Grants special mechanics — shields, hints, missions & chaos.'
-  },
-  unknown: {
-    label: 'Standard',
-    icon: '★',
+  return FAMILY_CONFIGS[family] || {
     color: 'text-gray-400',
-    bg: 'bg-slate-900 border-gray-500/50',
-    desc: 'Base scoring — no bonus mechanics.'
+    border: 'border-gray-600 shadow-[0_20px_50px_rgba(0,0,0,0.9)]',
+    dot: 'bg-gray-500',
+    pointerBorder: 'border-t-gray-600',
+    displayName: family.toUpperCase()
   }
-}
-
-const traitConfig = computed(() => TRAIT_CONFIG[coreTrait.value])
+})
 
 const tierRoman = computed(() => {
-  const t = props.core.tier ?? 1
-  if (t === 2) return 'II'
-  if (t === 3) return 'III'
-  return 'I'
+  const t = props.core.tier || 1
+  return t === 3 ? 'III' : t === 2 ? 'II' : 'I'
+})
+
+const traitConfig = computed(() => {
+  const family = familyName.value
+  if (['power', 'combo', 'speedster', 'highroller'].includes(family)) {
+    return {
+      label: 'Score Multiplier',
+      icon: '🔥',
+      color: 'text-orange-400',
+      bg: 'bg-orange-950/60 border-orange-800',
+      desc: 'Amplifies base typing score per correct word.'
+    }
+  }
+  if (['aegis', 'oracle', 'mission', 'pandora', 'phoenix'].includes(family)) {
+    return {
+      label: 'Special Mechanic',
+      icon: '🔮',
+      color: 'text-violet-400',
+      bg: 'bg-violet-950/60 border-violet-800',
+      desc: 'Grants unique tactical abilities in battle.'
+    }
+  }
+  return {
+    label: 'Standard Buff',
+    icon: '⚡',
+    color: 'text-blue-400',
+    bg: 'bg-blue-950/60 border-blue-800',
+    desc: 'Provides steady performance boost.'
+  }
 })
 
 const stats = computed(() => {
-  const m = props.core.multiplier_buff ?? 1.0
-  const f = props.core.flat_buff ?? 0
+  const mult = props.core.multiplier_buff ?? 1.0
+  const flat = props.core.flat_buff ?? 0
+  const family = familyName.value
 
-  let multiplierStr = `x${m.toFixed(1)}`
-  let flatStr = f > 0 ? `+${f} PTS` : '0'
+  const multiplierStr = mult > 1.0 ? `+${Math.round((mult - 1) * 100)}%` : 'Base'
+  const flatStr = flat > 0 ? `+${flat} pts` : '0 pts'
   let penaltyStr = 'Standard'
   let specialMechanic = ''
 
-  switch (familyName.value) {
-    case 'power':
-      penaltyStr = props.core.tier === 3 ? 'Triple (3.0x)' : 'Double (2.0x)'
-      specialMechanic = 'Sacrifices stability for raw scoring power. Highly volatile.'
-      break
-    case 'balanced':
-      penaltyStr = 'None (0x)'
-      specialMechanic = 'Protects score from dropping. Completely immune to wrong answer penalties.'
-      break
-    case 'combo':
-      specialMechanic = 'Gives cumulative streak bonuses up to +100 points per correct answer.'
-      break
-    case 'speedster':
-      multiplierStr = m > 1.0 ? `x${m.toFixed(1)}` : 'N/A'
-      flatStr = f > 0 ? `+${f} PTS` : 'Up to +150'
-      specialMechanic = 'Adds score bonuses based on how quickly you type the words.'
+  switch (family) {
+    case 'aegis':
+      penaltyStr = 'Protected'
+      specialMechanic = 'Consumes 1 shield instead of applying full penalty on wrong answer.'
       break
     case 'oracle':
-      penaltyStr = 'High (Stacking)'
-      specialMechanic = 'Gives progressive letter hints but penalizes wrong answers based on hint levels used.'
-      break
-    case 'aegis':
-      specialMechanic = 'Generates shields that absorb mistakes. Shield capacity is tier-dependent.'
+      specialMechanic = 'Reveals letter slot hints during typing rounds.'
       break
     case 'mission':
-      specialMechanic = 'Awards massive points once you complete typing-streak milestones.'
+      specialMechanic = 'Awards massive points once milestone is reached.'
       break
     case 'pandora':
-      specialMechanic = 'Randomly shapeshifts into another Tier 1 core every 15-20 seconds during battle.'
+      specialMechanic = 'Shapeshifts randomly into another core during match.'
       break
     case 'phoenix':
       penaltyStr = 'Recoverable'
-      specialMechanic = 'Reborn from mistakes. Restores lost score momentum when building streaks.'
+      specialMechanic = 'Restores score momentum when building streaks.'
       break
     case 'highroller':
       penaltyStr = 'High Risk'
-      specialMechanic = 'Gamble mechanics. Takes risky bets for high multiplier and jackpot payouts.'
+      specialMechanic = 'High risk gamble for maximum multiplier payouts.'
       break
   }
 
@@ -225,91 +219,135 @@ const stats = computed(() => {
 
 <template>
   <div 
-    class="absolute z-[9999] left-1/2 -translate-x-1/2 w-[340px] max-w-[90vw] p-5 rounded-2xl border-2 text-left flex flex-col gap-4 transition-all duration-300 pointer-events-none select-none bg-slate-950"
+    class="absolute z-[9999] left-1/2 -translate-x-1/2 w-[350px] max-w-[90vw] p-5 rounded-2xl border-2 text-left flex flex-col gap-4 transition-all duration-300 pointer-events-none select-none bg-slate-950 shadow-2xl"
     :class="[
-      currentConfig.border,
+      isCoreLocked ? 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.4)]' : currentConfig.border,
       position === 'bottom' ? 'top-full mt-3' : 'bottom-full mb-6'
     ]"
   >
-    <div class="flex items-start justify-between border-b border-slate-700 pb-3">
-      <div class="flex flex-col gap-1">
-        <h4 class="text-white text-base font-black tracking-wide uppercase">
-          {{ core.name }}
-        </h4>
-        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          Tier {{ tierRoman }} Core
-        </span>
-        <span
-          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border-2 text-[9px] font-black uppercase tracking-widest w-fit mt-0.5"
-          :class="[traitConfig.color, traitConfig.bg]"
-        >
-          {{ traitConfig.icon }} {{ traitConfig.label }}
-        </span>
-      </div>
-      <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border-2 border-slate-700 text-[9px] font-bold uppercase tracking-widest text-gray-300">
-        <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="currentConfig.dot"></span>
-        {{ currentConfig.displayName }}
-      </span>
-    </div>
-
-    <div class="grid grid-cols-3 gap-2 py-1">
-      <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-2 py-2 rounded-lg border border-slate-700">
-        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Multiplier</span>
-        <span class="text-sm font-black text-white font-mono flex-1 flex items-center">{{ stats.multiplier }}</span>
-      </div>
-      <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-2 py-2 rounded-lg border border-slate-700">
-        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Flat Buff</span>
-        <span class="text-sm font-black text-white font-mono flex-1 flex items-center">{{ stats.flat }}</span>
-      </div>
-      <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-1 py-2 rounded-lg border border-slate-700">
-        <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Mistakes</span>
-        <span class="text-[10px] leading-tight font-black font-mono text-center flex-1 flex items-center justify-center" 
-              :class="stats.penalty !== 'Standard' ? 'text-orange-400' : 'text-gray-300'">
-          {{ stats.penalty }}
+    <!-- 🔒 LOCKED POPUP CONTENT (Replaces upgrade stats until unlocked) -->
+    <template v-if="isCoreLocked">
+      <div class="flex items-start justify-between border-b border-red-900/60 pb-3">
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-1.5 text-red-400">
+            <span class="text-base">🔒</span>
+            <h4 class="text-white text-base font-black tracking-wide uppercase">
+              {{ core.name }}
+            </h4>
+          </div>
+          <span class="text-[10px] font-bold text-red-300/80 uppercase tracking-widest">
+            Tier {{ tierRoman }} Core • LOCKED
+          </span>
+        </div>
+        <span class="px-2.5 py-1 rounded-full bg-red-950 border border-red-700 text-[9px] font-black uppercase tracking-widest text-red-300 animate-pulse">
+          Locked
         </span>
       </div>
-    </div>
 
-    <!-- Locked Mission Banner -->
-    <div v-if="isLocked" class="flex flex-col gap-1 p-3 rounded-xl bg-red-950/80 border-2 border-red-500 text-red-200">
-      <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-red-400">
-        <svg class="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
-        <span>🔒 Core Locked • Unlock Mission</span>
+      <!-- Mission Progress & Details Box -->
+      <div class="flex flex-col gap-3 p-3.5 rounded-xl bg-red-950/70 border border-red-600/80 text-red-100">
+        <div class="flex items-center justify-between text-xs font-black uppercase tracking-wider text-red-300">
+          <span class="flex items-center gap-1.5">🎯 Mission Requirement</span>
+          <span class="text-[10px] bg-red-900/90 px-2 py-0.5 rounded text-white">
+            {{ relatedMission ? `${relatedMission.currentProgress}/${relatedMission.targetCount}` : 'Required' }}
+          </span>
+        </div>
+
+        <p class="text-xs font-bold text-red-100 leading-relaxed">
+          {{ relatedMission?.description || props.missionText || props.core.missionText || `Complete the gameplay mission challenge to unlock ${core.name}.` }}
+        </p>
+
+        <!-- Mission Progress Bar -->
+        <div v-if="relatedMission" class="flex flex-col gap-1 mt-1">
+          <div class="flex justify-between text-[10px] font-black text-red-300">
+            <span>Mission Progress</span>
+            <span>{{ Math.round((relatedMission.currentProgress / relatedMission.targetCount) * 100) }}%</span>
+          </div>
+          <div class="w-full h-2.5 bg-red-950 rounded-full overflow-hidden p-0.5 border border-red-800">
+            <div 
+              class="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"
+              :style="{ width: `${Math.min(100, (relatedMission.currentProgress / relatedMission.targetCount) * 100)}%` }"
+            ></div>
+          </div>
+        </div>
       </div>
-      <p class="text-[11px] font-bold text-red-100 leading-snug">
-        {{ missionText || 'Complete gameplay missions to unlock this Support Core.' }}
-      </p>
-    </div>
 
-    <div
-      class="flex items-start gap-2 px-3 py-2 rounded-xl border-2 text-[10px] leading-relaxed"
-      :class="[traitConfig.color, traitConfig.bg]"
-    >
-      <span class="mt-0.5 shrink-0">{{ traitConfig.icon }}</span>
-      <span class="text-gray-200">{{ traitConfig.desc }}</span>
-    </div>
-
-    <div class="flex flex-col gap-1.5 text-xs text-gray-300 leading-relaxed">
-      <p class="font-bold text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Tactical Description</p>
-      <p class="italic text-gray-400 mb-1">
-        "{{ core.description }}"
-      </p>
-      <div v-if="stats.mechanic" class="p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-[11px] leading-relaxed text-blue-300">
-        {{ stats.mechanic }}
+      <div class="p-2.5 rounded-xl bg-slate-900 border border-red-900/50 text-[11px] font-bold text-gray-300 leading-relaxed flex items-center gap-2">
+        <span class="text-base shrink-0">💡</span>
+        <span>Complete & claim this mission in <strong class="text-orange-400">Missions Dashboard</strong> to view full stats & unlock this Core!</span>
       </div>
-    </div>
+    </template>
 
+    <!-- ✨ UNLOCKED UPGRADE DETAILS (Shown ONLY after core is unlocked) -->
+    <template v-else>
+      <div class="flex items-start justify-between border-b border-slate-700 pb-3">
+        <div class="flex flex-col gap-1">
+          <h4 class="text-white text-base font-black tracking-wide uppercase">
+            {{ core.name }}
+          </h4>
+          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Tier {{ tierRoman }} Core
+          </span>
+          <span
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border-2 text-[9px] font-black uppercase tracking-widest w-fit mt-0.5"
+            :class="[traitConfig.color, traitConfig.bg]"
+          >
+            {{ traitConfig.icon }} {{ traitConfig.label }}
+          </span>
+        </div>
+        <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border-2 border-slate-700 text-[9px] font-bold uppercase tracking-widest text-gray-300">
+          <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="currentConfig.dot"></span>
+          {{ currentConfig.displayName }}
+        </span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 py-1">
+        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-2 py-2 rounded-lg border border-slate-700">
+          <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Multiplier</span>
+          <span class="text-sm font-black text-white font-mono flex-1 flex items-center">{{ stats.multiplier }}</span>
+        </div>
+        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-2 py-2 rounded-lg border border-slate-700">
+          <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Flat Buff</span>
+          <span class="text-sm font-black text-white font-mono flex-1 flex items-center">{{ stats.flat }}</span>
+        </div>
+        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-1 py-2 rounded-lg border border-slate-700">
+          <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Mistakes</span>
+          <span class="text-[10px] leading-tight font-black font-mono text-center flex-1 flex items-center justify-center" 
+                :class="stats.penalty !== 'Standard' ? 'text-orange-400' : 'text-gray-300'">
+            {{ stats.penalty }}
+          </span>
+        </div>
+      </div>
+
+      <div
+        class="flex items-start gap-2 px-3 py-2 rounded-xl border-2 text-[10px] leading-relaxed"
+        :class="[traitConfig.color, traitConfig.bg]"
+      >
+        <span class="mt-0.5 shrink-0">{{ traitConfig.icon }}</span>
+        <span class="text-gray-200">{{ traitConfig.desc }}</span>
+      </div>
+
+      <div class="flex flex-col gap-1.5 text-xs text-gray-300 leading-relaxed">
+        <p class="font-bold text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Tactical Description</p>
+        <p class="italic text-gray-400 mb-1">
+          "{{ core.description }}"
+        </p>
+        <div v-if="stats.mechanic" class="p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-[11px] leading-relaxed text-blue-300">
+          {{ stats.mechanic }}
+        </div>
+      </div>
+    </template>
+
+    <!-- Pointer arrow -->
     <div 
       v-if="position === 'bottom'"
       class="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px]"
-      :class="currentConfig.pointerBorder.replace('border-t-', 'border-b-')"
+      :class="isCoreLocked ? 'border-b-red-500' : currentConfig.pointerBorder.replace('border-t-', 'border-b-')"
     ></div>
     <div 
       v-else
       class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px]"
-      :class="currentConfig.pointerBorder"
+      :class="isCoreLocked ? 'border-t-red-500' : currentConfig.pointerBorder"
     ></div>
   </div>
 </template>

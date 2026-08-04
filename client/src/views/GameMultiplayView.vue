@@ -747,8 +747,11 @@ import PandoraOverlay from '../components/game/PandoraOverlay.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { useTutorial } from '../composables/useTutorial'
 import { useGameStore } from '../stores/gameStore'
+import { useMissionsStore } from '../stores/missionsStore'
 import { getCoreFamily } from '../game/cores/families'
 import { useMatchStore } from '../stores/matchStore'
+
+const missionsStore = useMissionsStore()
 import {
   initAudio,
   playKeystroke,
@@ -1792,6 +1795,12 @@ async function checkAnswer() {
         updateScoreAnimated(newScore)
         sendScoreUpdate(newScore)
 
+        // Evaluate mission progress for score and streaks
+        missionsStore.evaluateGameplayProgress({
+          score: newScore,
+          comboStreak: currentCombo.value
+        })
+
         questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
         pointsEarned.value = data.points_earned ?? pointsEarned.value
         pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
@@ -1930,6 +1939,13 @@ function startTimeoutPhase() {
   gameState.value = 'timeout'
   inputRef.value?.blur()
   stopTimeoutInterval()
+
+  // Evaluate mission progress for score, streak, and round completion
+  missionsStore.evaluateGameplayProgress({
+    score: score.value,
+    comboStreak: currentCombo.value,
+    roundsCompleted: 1
+  })
 
   if (isMultiplayer.value && !isForfeitWin.value) {
     waitingForOpponent.value = true

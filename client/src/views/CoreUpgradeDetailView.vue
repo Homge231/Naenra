@@ -16,11 +16,34 @@
     </div>
 
     <!-- Header Navigation -->
-    <header class="relative z-30 w-full px-6 md:px-12 pt-8 pb-4 flex justify-between items-center">
-      <button @click="router.push('/library')" class="flex items-center gap-3 group bg-white/60 backdrop-blur-md px-5 py-3 rounded-2xl shadow-sm border border-white/50 active:scale-95 transition-all hover:bg-orange-50 cursor-pointer">
-        <svg class="w-6 h-6 text-gray-500 group-hover:text-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
-        <span class="font-black tracking-widest text-sm text-gray-600 group-hover:text-orange uppercase transition-colors">Back to Library</span>
-      </button>
+    <header class="relative z-30 w-full px-6 md:px-12 pt-6 pb-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <!-- NAENRA Logo (Click to go Home) -->
+        <div class="flex items-center gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50 active:scale-95 transition-transform"
+          @click="router.push('/home')" title="Go to Home">
+          <div class="w-12 h-12 flex items-center justify-center">
+            <svg class="w-full h-full text-orange fill-current group-hover:scale-110 transition-transform"
+              viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
+            </svg>
+          </div>
+          <div class="leading-none">
+            <h1 class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
+              NAENRA
+            </h1>
+            <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">EVOLUTION PATHS</p>
+          </div>
+        </div>
+
+        <!-- Compact Icon Button: Back to Library right next to Logo -->
+        <button @click="router.push('/library')"
+          class="w-12 h-12 rounded-2xl bg-white/60 backdrop-blur-md border border-white/50 text-gray-600 hover:text-orange hover:bg-white transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center group"
+          title="Back to Core Library">
+          <svg class="w-6 h-6 text-gray-500 group-hover:text-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+      </div>
     </header>
 
     <div class="relative z-20 w-full max-w-[1400px] mx-auto flex flex-col flex-1 pb-16">
@@ -153,8 +176,16 @@
       class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
       :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
     >
-      <CoreTooltip :core="formattedTooltipCore" />
+      <CoreTooltip 
+        v-if="formattedTooltipCore" 
+        :core="formattedTooltipCore" 
+        :isLocked="formattedTooltipCore.isLocked" 
+        :missionText="formattedTooltipCore.missionText" 
+      />
     </div>
+
+    <!-- Floating Scroll To Top Button -->
+    <ScrollToTopButton />
 
   </div>
 </template>
@@ -165,8 +196,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useAuthStore } from '../stores/authStore'
+import { useMissionsStore } from '../stores/missionsStore'
+import ScrollToTopButton from '../components/ScrollToTopButton.vue'
 
 const authStore = useAuthStore()
+const missionsStore = useMissionsStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -195,9 +229,10 @@ const upgrades = computed(() => {
     const isBaseCore = upgrade.computedTier === 1 || upgrade.tier === 1 || upgrade.core_type === 'main'
     const isMock = String(upgrade.id).startsWith('mock-')
     const nameKey = String(upgrade.name || '').trim().toLowerCase()
+    const isUnlockedInMissions = missionsStore.isCoreUnlocked(upgrade.name) || missionsStore.isCoreUnlocked(upgrade.id)
     
     let isLocked = false
-    if (!isBaseCore) {
+    if (!isBaseCore && !isUnlockedInMissions) {
       if (isMock) {
         // Fallback or mock cores
         isLocked = DEFAULT_LOCKED_CORES.has(nameKey)

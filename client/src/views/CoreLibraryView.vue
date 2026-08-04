@@ -44,6 +44,11 @@
                     <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">SELECTION CORES</p>
                 </div>
             </div>
+
+            <button @click="router.push('/missions')"
+                class="px-5 py-2.5 rounded-full font-black text-xs uppercase tracking-widest bg-white/80 text-gray-700 border border-white/60 hover:bg-orange/10 hover:text-orange transition-all shadow-sm flex items-center gap-2 cursor-pointer">
+                <span>🎯</span> Missions Tracker
+            </button>
         </header>
 
         <!-- Main Content -->
@@ -86,8 +91,11 @@
             <!-- Grid Layout -->
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
 
-                <div v-for="core in filteredCores" :key="core.id" @click="router.push(`/library/core/${getCoreSlug(core)}`)"
-                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer"
+                <div v-for="core in filteredCores" :key="core.id" 
+                    @click="router.push(`/library/core/${getCoreSlug(core)}`)"
+                    @mouseenter="showTooltip($event, core)"
+                    @mouseleave="hideTooltip"
+                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative"
                     :class="{ 'opacity-65 grayscale-[30%]': core.isLocked }">
 
                     <div class="flex justify-between items-start mb-6">
@@ -132,6 +140,16 @@
             </div>
 
         </main>
+
+        <!-- Hover Tooltip Container -->
+        <div v-if="isTooltipVisible && hoveredCore"
+            class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
+            :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }">
+            <CoreTooltip :core="hoveredCore" :isLocked="hoveredCore.isLocked" />
+        </div>
+
+        <!-- Floating Scroll To Top Button -->
+        <ScrollToTopButton />
     </div>
 </template>
 
@@ -139,11 +157,33 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useMissionsStore } from '../stores/missionsStore'
+import ScrollToTopButton from '../components/ScrollToTopButton.vue'
+import CoreTooltip from '../components/game/CoreTooltip.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const missionsStore = useMissionsStore()
 const coresData = ref<any[]>([])
 const loading = ref(true)
+
+const isTooltipVisible = ref(false)
+const hoveredCore = ref<any>(null)
+const tooltipX = ref(0)
+const tooltipY = ref(0)
+
+function showTooltip(event: MouseEvent, core: any) {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    tooltipX.value = rect.left + rect.width / 2
+    tooltipY.value = rect.top
+    hoveredCore.value = core
+    isTooltipVisible.value = true
+}
+
+function hideTooltip() {
+    isTooltipVisible.value = false
+    hoveredCore.value = null
+}
 
 const activeTab = ref('All')
 const tabs = ['All', 'Attack', 'Defense', 'Economy']
@@ -153,12 +193,14 @@ const CATEGORY_MAP: Record<string, string> = {
     'power strike': 'Attack',
     'speedster': 'Attack',
     'argus eyes': 'Economy',
-    'mission impossible': 'Economy',
-    'balance': 'Economy',
-    'high roller': 'Economy',
-    'pandora\'s box': 'Attack',
+    'aegis shield': 'Defense',
+    'oracle': 'Economy',
     'phoenix': 'Defense',
-    'aegis shield': 'Defense'
+    'high roller': 'Economy',
+    'mission': 'Attack',
+    'pandora': 'Defense',
+    'balanced': 'Economy',
+    'power': 'Attack'
 }
 
 const getCategory = (core: any): string => {
@@ -181,7 +223,8 @@ const filteredCores = computed(() => {
         
     return baseCores.map((c: any) => {
         const isBaseCore = c.tier === 1 || c.core_type === 'main'
-        const isLocked = !isBaseCore && !unlockedIds.has(String(c.id))
+        const isUnlockedInMissions = missionsStore.isCoreUnlocked(c.name) || missionsStore.isCoreUnlocked(c.id)
+        const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !isUnlockedInMissions
         return {
             ...c,
             isLocked

@@ -116,6 +116,12 @@ const router = createRouter({
       component: () => import('../views/CoreUpgradeDetailView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/missions',
+      name: 'missions',
+      component: () => import('../views/MissionsDashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
   ]
 })
 
