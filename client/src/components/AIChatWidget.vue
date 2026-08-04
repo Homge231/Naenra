@@ -374,7 +374,7 @@ async function startVoiceMode() {
   const baseUrl = import.meta.env.VITE_SERVER_URL || (window.location.protocol === 'https:' ? `https://${window.location.host}` : 'http://localhost:3000')
   const serverHost = baseUrl.replace(/^http/, 'ws')
 
-  const token = authStore.token || ''
+  const token = localStorage.getItem('arena_token') || ''
   const wsUrl = `${serverHost}/api/ai/live?token=${encodeURIComponent(token)}`
 
   try {
