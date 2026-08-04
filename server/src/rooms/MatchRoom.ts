@@ -146,7 +146,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
       if (isSkip) {
         this.raceLockedPlayers.add(client.sessionId);
-        client.send("race_wrong", { playerId: client.sessionId, penalty: 0 }); // send 0 penalty to lock their input locally
+        this.broadcast("race_wrong", { playerId: client.sessionId, penalty: 0 }); // broadcast to let both players see the lock status
         
         if (this.raceLockedPlayers.size === this.state.players.size) {
           this.nextRaceQuestion();
