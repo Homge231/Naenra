@@ -67,7 +67,7 @@
         <div class="inline-flex items-center gap-2 bg-white border-2 border-orange-200 text-orange-600 px-5 py-2 rounded-full mb-6 shadow-sm">
           <span class="text-sm animate-pulse">🔥</span>
           <span class="text-xs font-black tracking-widest uppercase">
-            {{ authStore.isGuest ? 'Playing as Guest — Press Enter to Play!' : 'Season 1 is Live!' }}
+            {{ authStore.isGuest ? 'Playing as Guest' : 'Season 1 is Live!' }}
           </span>
         </div>
 
@@ -142,16 +142,15 @@
 
           <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
             :class="[
-              'relative h-14 rounded-2xl transition-all font-black text-xs tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-md',
+              'relative h-14 rounded-2xl transition-all font-black text-xs tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer active:scale-95',
               authStore.isGuest
-                ? 'border-2 border-white/80 shadow-orange-500/40 scale-105 hover:scale-110'
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white border-2 border-orange-200 shadow-lg shadow-orange-500/30 ring-4 ring-orange-400/30 scale-105 hover:scale-110'
                 : 'bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white shadow-sm'
-            ]"
-            :style="authStore.isGuest ? 'background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%) !important; color: #ffffff !important;' : ''">
+            ]">
             <span class="text-base">🎮</span>
-            <span :style="authStore.isGuest ? 'color: #ffffff !important;' : ''">Single Mode</span>
-            <span v-if="authStore.isGuest" class="absolute -top-2.5 -right-2 bg-amber-300 text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border border-white">
-              FREE PLAY ⚡
+            <span>Single Mode</span>
+            <span v-if="authStore.isGuest" class="absolute -top-2.5 -right-2 bg-hexred text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border border-white">
+              FREE PLAY
             </span>
           </button>
         </div>
