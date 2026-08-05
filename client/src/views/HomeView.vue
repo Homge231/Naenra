@@ -82,7 +82,7 @@
 
         <div class="w-full px-4 mb-8">
           <button @click="handlePrimaryPlay" @mouseenter="audioService.playHover()" :disabled="isSearching"
-            class="group relative w-full h-[80px] rounded-[2rem] bg-gradient-to-b from-orange to-hexred text-gray-900 font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02]"
+            class="group relative w-full h-[80px] rounded-[2rem] bg-gradient-to-b from-[#fb923c] to-[#ef4444] text-gray-900 font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02]"
             :style="!isSearching ? 'box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7)' : 'box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px)'">
             
             <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
