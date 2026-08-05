@@ -29,7 +29,7 @@
       </p>
 
       <!-- ⚔️ / 🔮 Core Type Legend (new player guide) -->
-      <div id="tutorial-core-legend" class="flex items-center justify-center gap-4 mb-8 flex-wrap">
+      <div id="tutorial-core-legend" class="flex items-center justify-center gap-4 mb-4 flex-wrap">
         <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/30">
           <span class="text-base">⚔️</span>
           <span class="text-xs font-black uppercase tracking-widest text-orange-400">Power Core</span>
@@ -40,6 +40,14 @@
           <span class="text-xs font-black uppercase tracking-widest text-violet-400">Effect Core</span>
           <span class="text-xs text-gray-400 hidden sm:inline">— Special mechanics</span>
         </div>
+      </div>
+
+      <!-- ⚡ Admin Skip Core Selection Button -->
+      <div v-if="authStore.isAdmin" class="mb-6 flex justify-center z-30">
+        <button @click="adminSkipCore"
+          class="px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest bg-gradient-to-r from-amber-500 via-orange-500 to-purple-600 hover:scale-105 active:scale-95 text-white shadow-lg shadow-purple-500/30 border-2 border-white/80 transition-all cursor-pointer flex items-center gap-2">
+          <span>⚡</span> ADMIN: SKIP CORE SELECTION ➔
+        </button>
       </div>
       <div v-if="loading && randomCores.length === 0" class="flex justify-center py-16">
         <svg class="animate-spin w-10 h-10 text-lightBlue" fill="none" viewBox="0 0 24 24">
@@ -308,6 +316,13 @@ function stopTimer() {
     clearInterval(selectionTimer)
     selectionTimer = null
   }
+}
+
+function adminSkipCore() {
+  audioService.playClick()
+  stopTimer()
+  const coreToSubmit = selectedCore.value || randomCores.value[0] || { id: 'combo core', name: 'combo core', description: '', flat_buff: 0, multiplier_buff: 0, icon: '', classification: 'power' }
+  submitCore(coreToSubmit)
 }
 
 function triggerTimeout() {

@@ -544,6 +544,40 @@ export const useMissionsStore = defineStore('missions', () => {
     }
   }
 
+  function adminIncrementProgress(missionId: string, amount: number = 1) {
+    const mission = missions.value.find(m => m.id === missionId)
+    if (mission) {
+      mission.currentProgress = Math.min(mission.targetCount, mission.currentProgress + amount)
+      if (mission.currentProgress >= mission.targetCount) {
+        mission.isCompleted = true
+        showToast(
+          '⚡ ADMIN: MISSION COMPLETED!',
+          `Unlocked requirement for ${mission.unlockCoreName}!`,
+          mission.unlockCoreName,
+          mission.icon || '🎁',
+          'completed'
+        )
+      }
+      saveState()
+    }
+  }
+
+  function adminCompleteMission(missionId: string) {
+    const mission = missions.value.find(m => m.id === missionId)
+    if (mission) {
+      mission.currentProgress = mission.targetCount
+      mission.isCompleted = true
+      showToast(
+        '⚡ ADMIN: INSTANT COMPLETED!',
+        `Unlocked requirement for ${mission.unlockCoreName}!`,
+        mission.unlockCoreName,
+        mission.icon || '🎁',
+        'completed'
+      )
+      saveState()
+    }
+  }
+
   function resetMissions() {
     missions.value = JSON.parse(JSON.stringify(initialMissions))
     unlockedCoreNames.value = []
@@ -568,6 +602,8 @@ export const useMissionsStore = defineStore('missions', () => {
     claimReward,
     updateProgress,
     evaluateGameplayProgress,
+    adminIncrementProgress,
+    adminCompleteMission,
     showToast,
     dismissToast,
     resetMissions

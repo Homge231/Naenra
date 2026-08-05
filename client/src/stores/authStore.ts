@@ -26,6 +26,20 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => !!user.value)
   const isFirstPlay = computed(() => profile.value?.is_first_play ?? false)
 
+  const isAdmin = computed(() => {
+    if (localStorage.getItem('arena_admin_mode') === 'true') return true
+    if (profile.value?.role === 'admin') return true
+    if (user.value?.email?.toLowerCase().includes('admin')) return true
+    if (profile.value?.username?.toLowerCase().includes('admin')) return true
+    return false
+  })
+
+  function toggleAdminMode() {
+    const current = localStorage.getItem('arena_admin_mode') === 'true'
+    localStorage.setItem('arena_admin_mode', String(!current))
+    location.reload()
+  }
+
   function cleanOAuthUrlFragment() {
     if (window.location.hash.includes('access_token')) {
       const cleanUrl = window.location.pathname + window.location.search
@@ -440,9 +454,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user, profile, loading, isLoggedIn, isFirstPlay, isGuest,
+    user, profile, loading, isLoggedIn, isFirstPlay, isGuest, isAdmin,
     init, loginWithGoogle, loginWithEmail, loginAsGuest,
     registerWithEmail, logout, fetchProfile,
-    exchangeTokenAfterOAuth, skipTutorial
+    exchangeTokenAfterOAuth, skipTutorial, toggleAdminMode
   }
 })

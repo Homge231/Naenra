@@ -97,6 +97,15 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
     // Merge unique unlocked core IDs
     const unlockedCoreIds = Array.from(new Set([...baseCoreIds, ...userUnlockedIds]))
 
+    const isAdmin = (profile as any)?.is_admin === true || 
+                    (profile as any)?.role === 'admin' || 
+                    userMeta.is_admin === true || 
+                    userMeta.role === 'admin' || 
+                    user?.email?.toLowerCase().includes('admin') ||
+                    username.toLowerCase().includes('admin') || false
+
+    const role = isAdmin ? 'admin' : ((profile as any)?.role || 'user')
+
     return res.status(200).json({
       id: req.user!.id,
       username,
@@ -107,6 +116,8 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       losses: profile?.losses ?? 0,
       total_matches: profile?.total_matches ?? 0,
       is_first_play: profile?.is_first_play ?? true,
+      role,
+      is_admin: isAdmin,
       unlocked_core_ids: unlockedCoreIds
     })
   } catch (error) {
