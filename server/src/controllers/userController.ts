@@ -34,7 +34,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
   try {
     const { data: profile, error } = await supabase
       .from('players')
-      .select('username, avatar_url, elo, wins, losses, total_matches, is_first_play')
+      .select('username, avatar_url, elo, wins, losses, total_matches, is_first_play, role, is_admin')
       .eq('id', req.user!.id)
       .maybeSingle()
 
