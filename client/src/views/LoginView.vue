@@ -203,9 +203,9 @@
       <button
         @click="handleGuestPlay"
         :disabled="loading"
-        class="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-xs font-black tracking-widest uppercase shadow-md mb-3 cursor-pointer"
+        class="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-orange to-lightOrange text-white font-black tracking-widest uppercase shadow-[0_4px_15px_rgba(255,123,0,0.4)] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-xs mb-3 cursor-pointer border border-white/20"
       >
-        <span>⚡ PLAY NOW AS GUEST</span>
+        <span class="drop-shadow-md">⚡ PLAY NOW AS GUEST</span>
       </button>
 
       <button
