@@ -141,8 +141,17 @@
           </button>
 
           <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
-            class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
-            <span>🎮</span> Single Mode
+            :class="[
+              'relative h-14 rounded-2xl transition-all font-black text-xs tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer active:scale-95',
+              authStore.isGuest
+                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white border-2 border-orange-200 shadow-lg shadow-orange-500/30 ring-4 ring-orange-400/30 scale-105 hover:scale-110'
+                : 'bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white shadow-sm'
+            ]">
+            <span class="text-base">🎮</span>
+            <span>Single Mode</span>
+            <span v-if="authStore.isGuest" class="absolute -top-2.5 -right-2 bg-hexred text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border border-white">
+              FREE PLAY
+            </span>
           </button>
         </div>
 
