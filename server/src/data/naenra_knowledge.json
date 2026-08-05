@@ -1,0 +1,117 @@
+{
+  "game_title": "Naenra (ARENA.ENG)",
+  "game_description": "Competitive real-time 60-second timed vocabulary typing arena with Support Core tactical abilities.",
+  "match_loop": {
+    "rounds_count": 3,
+    "round_1_duration_seconds": 60,
+    "round_2_duration_seconds": 60,
+    "round_3_duration_seconds": 60,
+    "core_selection_duration_seconds": 15,
+    "race_mode_round_4": "Colyseus v0.17+ 1v1 Race Mode enabled in multiplayer matches."
+  },
+  "support_core_families": [
+    {
+      "name": "Combo Core",
+      "category": "Attack",
+      "tier1": "Perfect Combo",
+      "tier2": "Combo Burst",
+      "tier3": "Hyper Combo",
+      "mechanics": "Multiplies score output based on consecutive correct answer streaks. Ideal for high-accuracy players with over 80% accuracy.",
+      "best_for": "Players with high accuracy who can maintain 10+ word typing streaks."
+    },
+    {
+      "name": "Speedster Core",
+      "category": "Attack",
+      "tier1": "Speedster",
+      "tier2": "Speed Demon",
+      "tier3": "Hyperdrive",
+      "mechanics": "Awards up to +200 speed bonus points for fast answers under 2.5 seconds. Features cyan timer glow and wind speed overlay.",
+      "best_for": "Fast typists (>80 WPM) who answer words rapidly in under 2 seconds."
+    },
+    {
+      "name": "Oracle Core",
+      "category": "Utility",
+      "tier1": "Oracle",
+      "tier2": "Inner Eye",
+      "tier3": "Prophecy",
+      "mechanics": "Reveals letter slot hints progressively for tough vocabulary words. Eliminates guesswork on complex terms.",
+      "best_for": "Players facing difficult or unfamiliar vocabulary categories."
+    },
+    {
+      "name": "Aegis Core",
+      "category": "Defense",
+      "tier1": "Aegis Shield",
+      "tier2": "Velocity Shield",
+      "tier3": "Aegis Sanctuary",
+      "mechanics": "Grants protective shield stacks that absorb spelling mistakes without deducting total match points.",
+      "best_for": "Defensive playstyles or players aiming to preserve point momentum."
+    },
+    {
+      "name": "Mission Core",
+      "category": "Strategy",
+      "tier1": "Mission Core",
+      "tier2": "Contract Hunter",
+      "tier3": "Mission Legend",
+      "mechanics": "Issues in-match mini bounties (e.g. 5 consecutive correct answers) for massive milestone bonus payouts.",
+      "best_for": "Strategic players focused on completing high-value milestone targets."
+    },
+    {
+      "name": "Phoenix Core",
+      "category": "Defense / Strategy",
+      "tier1": "Phoenix Core",
+      "tier2": "Feather Shield",
+      "tier3": "Phoenix Overlord",
+      "mechanics": "Grants rebirth and comeback bonuses when player score drops or recovery is needed after errors.",
+      "best_for": "Players seeking high resilience and comeback potential."
+    },
+    {
+      "name": "Pandora Core",
+      "category": "Utility / Chaos",
+      "tier1": "Pandora's Box",
+      "tier2": "Wild Card",
+      "tier3": "Pandora Overdrive",
+      "mechanics": "Shapeshifts randomly into another Support Core during match rounds with unpredictable multiplier gambles.",
+      "best_for": "Versatile typists who enjoy dynamic, chaotic game mechanics."
+    },
+    {
+      "name": "High Roller Core",
+      "category": "Economy",
+      "tier1": "High Roller",
+      "tier2": "High Stakes",
+      "tier3": "Casino Empire",
+      "mechanics": "High-risk gambling score multipliers. Correct answers yield massive payouts; errors apply heavier penalties.",
+      "best_for": "Risk-takers confident in scoring 1,000+ points per round."
+    },
+    {
+      "name": "Power Core",
+      "category": "Attack",
+      "tier1": "Power Strike",
+      "tier2": "Overcharge",
+      "tier3": "Cataclysm",
+      "mechanics": "Provides raw score output, hypercharge multipliers, and explosive point surges per word.",
+      "best_for": "Pure offensive scoring power."
+    },
+    {
+      "name": "Balanced Core",
+      "category": "Economy / General",
+      "tier1": "Balanced Core",
+      "tier2": "Zen Momentum",
+      "tier3": "Serenity",
+      "mechanics": "Provides steady equilibrium score scaling with high error tolerance and consistent performance.",
+      "best_for": "Beginners or players seeking stable, risk-free point growth."
+    }
+  ],
+  "elo_ranks": [
+    { "name": "Bronze I-III", "min_elo": 0, "max_elo": 1499 },
+    { "name": "Silver I-III", "min_elo": 1500, "max_elo": 2999 },
+    { "name": "Gold I-III", "min_elo": 3000, "max_elo": 4499 },
+    { "name": "Platinum I-III", "min_elo": 4500, "max_elo": 5999 },
+    { "name": "Diamond I-III", "min_elo": 6000, "max_elo": 7499 },
+    { "name": "Master", "min_elo": 7500, "max_elo": 7999 },
+    { "name": "Grandmaster", "min_elo": 8000, "max_elo": 99999 }
+  ],
+  "scoring_formulas": {
+    "base_correct_score": 100,
+    "levenshtein_penalty": "High accuracy (≥80%): penalty = distance × 2. Low accuracy (<80% or Skip): penalty = clamp(distance × 10, 10 to 50 pts)."
+  }
+}

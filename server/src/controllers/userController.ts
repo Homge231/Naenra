@@ -216,14 +216,14 @@ export const getAiCoachAnalysis = async (req: AuthRequest, res: Response): Promi
 
 export const getAiChatResponse = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
-    const { prompt, history } = req.body
+    const { prompt, history, playerHistory } = req.body
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       return res.status(400).json({ error: 'prompt is required' })
     }
 
     const username = req.user?.username || req.user?.email?.split('@')[0] || 'Player'
-    const reply = await generateChatResponse(username, prompt.trim(), history)
+    const reply = await generateChatResponse(username, prompt.trim(), history, playerHistory)
     return res.status(200).json({ reply })
   } catch (error: any) {
     console.error('getAiChatResponse error:', error)
