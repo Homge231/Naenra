@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useSettingsStore } from '../../stores/settingsStore'
+import { useAuthStore } from '../../stores/authStore'
+import { useRouter } from 'vue-router'
 import { currentRoom } from '../../services/multiplayerService'
+
+const router = useRouter()
+const authStore = useAuthStore()
 
 const isCustomRoom = computed(() => {
   return currentRoom?.state?.isCustom === true
@@ -283,6 +288,21 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
             </div>
           </div>
         </transition>
+
+        <!-- Guest Conversion CTA Banner -->
+        <div v-if="authStore.isGuest" class="w-full bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-2 border-orange-400/40 rounded-2xl p-4 mb-4 flex items-center justify-between text-left shadow-lg">
+          <div>
+            <h4 class="font-black text-amber-300 uppercase tracking-wide text-sm flex items-center gap-1.5">
+              <span>⚡</span> Save Your High Score & Rank!
+            </h4>
+            <p class="text-xs text-gray-300 mt-0.5">
+              You played as a Guest. Register now to save your {{ playerScore }} points on the Global Leaderboard!
+            </p>
+          </div>
+          <button @click="router.push('/login')" class="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:scale-105 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer">
+            Register Now ➔
+          </button>
+        </div>
 
         <!-- Action Buttons -->
         <div class="flex justify-center gap-4 w-full stat-row" style="animation-delay: 0.5s">

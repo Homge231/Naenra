@@ -39,6 +39,12 @@ export async function authMiddleware(
   try {
     const decoded = verifyToken(token)
 
+    if (decoded.isGuest) {
+      req.user = decoded
+      next()
+      return
+    }
+
     const { data: player, error } = await supabase
       .from('players')
       .select('session_version')

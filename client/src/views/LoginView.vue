@@ -194,16 +194,24 @@
         </button>
       </div>
 
-      <div class="relative flex py-8 items-center">
+      <div class="relative flex py-6 items-center">
         <div class="flex-grow border-t border-gray-200"></div>
-        <span class="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-black tracking-[0.2em] uppercase">SYSTEM OVERRIDE</span>
+        <span class="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-black tracking-[0.2em] uppercase">OR INSTANT PLAY</span>
         <div class="flex-grow border-t border-gray-200"></div>
       </div>
 
       <button
+        @click="handleGuestPlay"
+        :disabled="loading"
+        class="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-xs font-black tracking-widest uppercase shadow-md mb-3 cursor-pointer"
+      >
+        <span>⚡ PLAY NOW AS GUEST</span>
+      </button>
+
+      <button
         @click="handleGoogle"
         :disabled="loading"
-        class="w-full flex items-center justify-center gap-3 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-300 text-gray-600 text-xs font-black tracking-widest uppercase disabled:opacity-50 shadow-sm"
+        class="w-full flex items-center justify-center gap-3 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-300 text-gray-600 text-xs font-black tracking-widest uppercase disabled:opacity-50 shadow-sm cursor-pointer"
       >
         <svg width="18" height="18" viewBox="0 0 48 48">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -235,6 +243,13 @@ const loading = ref(false)
 const successMessage = ref('')
 const sessionInvalidatedMessage = ref('')
 const rememberMe = ref(false)
+
+async function handleGuestPlay() {
+  loading.value = true
+  await auth.loginAsGuest()
+  loading.value = false
+  router.push('/home')
+}
 
 const REMEMBER_ME_KEY = 'arena_remember_me'
 const SAVED_EMAIL_KEY = 'arena_saved_email'

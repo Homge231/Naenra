@@ -148,7 +148,7 @@ Timer 0 → POST /api/game/timeout → status='timeout', score locked
 
 Sprint 2.5 fixes: Aegis Shield 0-shield default, `getCoreIconPath` crash fix, `@error` icon fallback→default.svg, Oracle Tier-1 penalty-bypass fix, Phoenix bonus 200→100 (total 200 not 300), Session State Leak fix (clear `gameStore.sessionId` on goHome/submitCore).
 
-Sprint 5 fixes & groundwork: `session_version` enforcement, `fetchWithAuth` race condition resolved, Colyseus `@colyseus/sdk` v0.17+ alignment done. Multiplayer base (Custom Rooms, Game loop, Real-time event broadcasting/Toast UI) complete. US-77 (Fix Upgrade Selection Timeout & Disconnect Navigation Bug) implemented via server `room_terminated` event broadcasting, `/lobby` route aliasing, and FE state cleanup.
+Sprint 5 fixes & groundwork: `session_version` enforcement, `fetchWithAuth` race condition resolved, Colyseus `@colyseus/sdk` v0.17+ alignment done. Multiplayer base (Custom Rooms, Game loop, Real-time event broadcasting/Toast UI) complete. US-77 (Fix Upgrade Selection Timeout & Disconnect Navigation Bug) implemented via server `room_terminated` event broadcasting, `/lobby` route aliasing, and FE state cleanup. US-88 (IN-352: Homepage Instant Play & Guest Feature Restrictions) implemented with io-game direct landing on HomeView, Enter key match launcher, anonymous guest token generator (`/auth/guest`), guest feature lock indicators, and match result account conversion CTA.
 
 ⚠️ ELO-post-match and full Colyseus matchmaking rooms are **not confirmed scheduled to any sprint** — không đủ dữ liệu để xác minh; check Jira backlog before planning against them.
 

@@ -21,6 +21,8 @@ export const useAuthStore = defineStore('auth', () => {
   // establishing the new email session.
   let isLoggingInWithEmail = false
 
+  const isGuest = ref(false)
+
   const isLoggedIn = computed(() => !!user.value)
   const isFirstPlay = computed(() => profile.value?.is_first_play ?? false)
 
@@ -182,17 +184,27 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    // Email login users have no Supabase session — restore from arena JWT
+    // Email or Guest login users have no Supabase session — restore from arena JWT
     if (!user.value && token) {
       try {
         const base64Url = token.split('.')[1]
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
         const payload = JSON.parse(atob(base64))
-        user.value = { id: payload.id, email: payload.email }
+        user.value = { id: payload.id, email: payload.email, isGuest: !!payload.isGuest }
+        if (payload.isGuest) {
+          isGuest.value = true
+          profile.value = {
+            id: payload.id,
+            username: payload.username,
+            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(payload.username)}`,
+            elo: 1000,
+            isGuest: true
+          }
+        }
       } catch {}
     }
 
-    if (user.value || localStorage.getItem('arena_token')) await fetchProfile()
+    if (!isGuest.value && (user.value || localStorage.getItem('arena_token'))) await fetchProfile()
 
     // Restore session_version tracking + realtime subscription on page reload
     const currentToken = localStorage.getItem('arena_token')
@@ -355,6 +367,32 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function loginAsGuest(): Promise<{ success: boolean }> {
+    try {
+      const res = await fetch(`${SERVER_URL}/auth/guest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Failed to initialize guest session')
+      
+      localStorage.setItem('arena_token', data.token)
+      user.value = { id: data.user.id, email: data.user.email, isGuest: true }
+      profile.value = {
+        id: data.user.id,
+        username: data.user.username,
+        avatar_url: data.user.avatar_url,
+        elo: data.user.elo,
+        isGuest: true
+      }
+      isGuest.value = true
+      return { success: true }
+    } catch (err) {
+      console.error('loginAsGuest error:', err)
+      return { success: false }
+    }
+  }
+
   async function logout() {
     stopSessionPolling()
     unsubscribeSessionChanges()
@@ -363,9 +401,11 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('arena_token')
     user.value = null
     profile.value = null
+    isGuest.value = false
   }
 
   async function fetchProfile() {
+    if (isGuest.value) return
     const token = localStorage.getItem('arena_token')
     if (!token) return
 
@@ -381,8 +421,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user, profile, loading, isLoggedIn, isFirstPlay,
-    init, loginWithGoogle, loginWithEmail,
+    user, profile, loading, isLoggedIn, isFirstPlay, isGuest,
+    init, loginWithGoogle, loginWithEmail, loginAsGuest,
     registerWithEmail, logout, fetchProfile,
     exchangeTokenAfterOAuth, skipTutorial
   }
