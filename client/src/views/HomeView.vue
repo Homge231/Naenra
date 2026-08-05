@@ -89,15 +89,15 @@
             
             <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
 
-            <span v-if="!isSearching" class="drop-shadow-md z-10 flex items-center gap-2 text-white">
+            <span v-if="!isSearching" class="drop-shadow-md z-10 flex items-center gap-2" style="color: #ffffff !important;">
               {{ authStore.isGuest ? 'PLAY NOW' : 'FIND MATCH 1V1' }}
-              <span class="text-xs bg-black/20 text-white px-2.5 py-1 rounded-full border border-white/30 font-mono hidden sm:inline-block">PRESS ENTER ↵</span>
+              <span class="text-xs bg-black/20 px-2.5 py-1 rounded-full border border-white/30 font-mono hidden sm:inline-block" style="color: #ffffff !important;">PRESS ENTER ↵</span>
             </span>
-            <span v-else class="animate-pulse z-10 text-white">
+            <span v-else class="animate-pulse z-10" style="color: #ffffff !important;">
               {{ authStore.isGuest ? 'Starting... ☁️' : 'Finding Match... ☁️' }}
             </span>
             
-            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10" style="color: #ffffff !important;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
 
