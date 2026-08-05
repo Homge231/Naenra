@@ -297,7 +297,7 @@ async function fetchUpgradeCores() {
 
     const unlockedIds = new Set(authStore.profile?.unlocked_core_ids || [])
 
-    upgradeCores.value = (data.cores ?? []).map((c: any) => {
+    const mappedCores = (data.cores ?? []).map((c: any) => {
       const isBaseCore = c.tier === 1 || c.core_type === 'main'
       const isUnlockedInMissions = missionsStore.isCoreUnlocked(c.name) || missionsStore.isCoreUnlocked(c.id)
       const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !unlockedIds.has(c.name) && !isUnlockedInMissions
@@ -313,7 +313,17 @@ async function fetchUpgradeCores() {
         isLocked,
         missionText: isLocked ? `Complete gameplay missions to unlock ${c.name}.` : ''
       }
-    }).slice(0, 2)
+    })
+
+    const unlockedCores = mappedCores.filter((c: any) => !c.isLocked)
+    if (unlockedCores.length > 0 && mappedCores.slice(0, 2).every((c: any) => c.isLocked)) {
+      // Guarantee at least one unlocked card is displayed
+      const firstUnlocked = unlockedCores[0]
+      const remainingCores = mappedCores.filter((c: any) => c.id !== firstUnlocked.id)
+      upgradeCores.value = [firstUnlocked, remainingCores[0]].filter(Boolean).sort(() => 0.5 - Math.random())
+    } else {
+      upgradeCores.value = mappedCores.slice(0, 2)
+    }
   } catch (err) {
     console.error('Failed to fetch upgrade cores', err)
   } finally {

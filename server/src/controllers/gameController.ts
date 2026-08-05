@@ -26,6 +26,32 @@ const WRONG_PENALTY_PER_CHAR = 10     // -10 pts per wrong/missing character for
 const MIN_WRONG_PENALTY = 10          // floor — even a 1-character miss costs at least this much
 const MAX_WRONG_PENALTY = 50          // ceiling — caps penalty for a full skip / completely unrelated guess
 
+const DEFAULT_LOCKED_CORES = new Set([
+  // Round 2 (Tier 2) default locked (3 cores per family)
+  'combo burst', 'combo shield', 'combo focus',
+  'velocity shield', 'speed demon', 'mach speed',
+  'inner eye', 'future sight', 'divine guidance',
+  'contract hunter', 'swift mission', 'shield mission',
+  'reflective barrier', 'fortress aegis', 'shield burst',
+  'zen momentum', 'yin yang', 'harmony wave',
+  'overcharge', 'brute force', 'overload',
+  'wild card', 'warp reality', "pandora's curse",
+  'feather shield', 'ashes to ashes', 'solar ember',
+  'high stakes', 'double or nothing', 'lucky seven',
+  
+  // Round 3 (Tier 3) default locked (3 cores per family)
+  'hyper combo', 'super combo', 'chain lightning',
+  'hyperdrive', 'sonic boom', 'time freeze',
+  'prophecy', 'cosmic wisdom', 'predictive strike',
+  'mission legend', 'apex predator', 'bounty overlord',
+  'aegis sanctuary', 'spiked shield', 'guardian angel',
+  'serenity', 'nirvana', 'universal harmony',
+  'cataclysm', 'absolute power', 'desperado',
+  'pandora overdrive', 'reality collapse', 'butterfly effect',
+  'phoenix overlord', 'blazing resurrection', 'supernova ashes',
+  'casino empire', 'russian roulette', 'royal flush'
+])
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface CoreRow {
   id: string
@@ -272,8 +298,36 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
           )
           
           if (synergyPool.length > 0) {
-            const shuffledPool = [...synergyPool].sort(() => 0.5 - Math.random())
-            offeredCores = shuffledPool.slice(0, 3)
+            // Check user's unlocked cores to prioritize offering at least one unlocked core
+            let userUnlockedSet = new Set<string>()
+            if (req.user?.id) {
+              const { data: userUnlockedProgress } = await supabase
+                .from('user_core_progress')
+                .select('core_id')
+                .eq('user_id', req.user.id)
+                .eq('is_unlocked', true)
+
+              userUnlockedSet = new Set((userUnlockedProgress || []).map((p: any) => String(p.core_id)))
+            }
+
+            const unlockedCores = synergyPool.filter(c => 
+              c.tier === 1 || 
+              !DEFAULT_LOCKED_CORES.has(c.name.toLowerCase()) || 
+              userUnlockedSet.has(String(c.id))
+            )
+            const lockedCores = synergyPool.filter(c => !unlockedCores.some(u => u.id === c.id))
+
+            const shuffledUnlocked = [...unlockedCores].sort(() => 0.5 - Math.random())
+            const shuffledLocked = [...lockedCores].sort(() => 0.5 - Math.random())
+
+            if (shuffledUnlocked.length > 0) {
+              // Guarantee AT LEAST ONE unlocked core in offered choices
+              const primaryUnlocked = shuffledUnlocked[0]
+              const remaining = [...shuffledUnlocked.slice(1), ...shuffledLocked].sort(() => 0.5 - Math.random())
+              offeredCores = [primaryUnlocked, ...remaining.slice(0, 2)].sort(() => 0.5 - Math.random())
+            } else {
+              offeredCores = [...synergyPool].sort(() => 0.5 - Math.random()).slice(0, 3)
+            }
           }
         }
       }
