@@ -75,9 +75,9 @@
             </p>
           </div>
 
-          <button @click="handleReset"
-            class="self-start md:self-auto text-xs font-bold text-gray-400 hover:text-hexred transition-colors underline cursor-pointer">
-            Reset Mission Progress
+          <button v-if="authStore.isAdmin" @click="handleReset"
+            class="self-start md:self-auto text-xs font-bold text-amber-600 hover:text-hexred transition-colors underline cursor-pointer">
+            ⚡ Admin: Reset Mission Progress
           </button>
         </div>
 
