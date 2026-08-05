@@ -166,6 +166,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
@@ -177,6 +178,7 @@ import { initAudio } from '../composables/game/useAudioEngine'
 import { audioService } from '../services/audioService'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const gameStore = useGameStore()
 const matchStore = useMatchStore()
 const tutorial = useTutorial()

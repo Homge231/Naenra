@@ -177,6 +177,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { onBeforeRouteLeave } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
@@ -189,6 +190,7 @@ import { audioService } from '../services/audioService'
 import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const gameStore = useGameStore()
 const tutorial = useTutorial()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
