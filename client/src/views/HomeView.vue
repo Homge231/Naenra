@@ -267,10 +267,10 @@ function startSinglePlayer() {
 
 function handlePrimaryPlay() {
   if (authStore.isGuest) {
-    startSinglePlayer()
-  } else {
-    startMatchmaking()
+    handleGuestRestrictedClick('Tìm Trận Đấu Online')
+    return
   }
+  startMatchmaking()
 }
 
 function handleKeydown(e: KeyboardEvent) {
