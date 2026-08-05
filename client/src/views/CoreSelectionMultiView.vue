@@ -497,27 +497,35 @@ onMounted(async () => {
       }
     })
 
+    const handleTermination = (msg: string) => {
+      if (navigatingToGame.value) return
+      waitingForOpponent.value = false
+      stopTimer()
+      if (msg) alert(msg)
+      leaveMatchRoom()
+      router.push('/lobby')
+    }
+
     currentRoom.onMessage('start_next_round', () => {
       handleStartGame()
     })
+
+    currentRoom.onMessage('room_terminated', () => {
+      handleTermination("Trận đấu đã bị chấm dứt do hết thời gian hoặc sự cố kết nối!")
+    })
     
     currentRoom.onMessage('opponent_left', () => {
-      if (navigatingToGame.value) return
-      alert("Đối thủ đã thoát trận đấu! Bạn sẽ được đưa về màn hình chính.")
-      leaveMatchRoom()
-      router.push('/home')
+      handleTermination("Đối thủ đã thoát trận đấu! Bạn sẽ được đưa về màn hình chính.")
     })
     
     currentRoom.onMessage('opponent_forfeit', () => {
-      if (navigatingToGame.value) return
-      alert("Đối thủ đã thoát. Trận đấu bị hủy!")
-      leaveMatchRoom()
-      router.push('/home')
+      handleTermination("Đối thủ đã thoát. Trận đấu bị hủy!")
     })
   }
 })
 
 onUnmounted(() => {
+  waitingForOpponent.value = false
   stopTimer()
   if (touchTimeout) clearTimeout(touchTimeout)
   for (const t of activeTimeouts) clearTimeout(t)

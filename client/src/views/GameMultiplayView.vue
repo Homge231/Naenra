@@ -2114,12 +2114,14 @@ async function playAgain() {
 }
 
 function goHome() {
+  waitingForOpponent.value = false
   stopMatchTimer()
   stopTimeoutInterval()
   abandonCurrentSession()
   gameStore.sessionId = null
   matchStore.resetMatch(4)
-  router.push('/home')
+  leaveMatchRoom()
+  router.push('/lobby')
 }
 
 async function debugSkipRound() {
@@ -2329,10 +2331,22 @@ function setupRoomEventHandlers(room: any) {
     startTimeoutPhase()
   })
 
+  room.onMessage('room_terminated', () => {
+    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+      return
+    }
+    waitingForOpponent.value = false
+    clearOpponentReconnectCountdown()
+    stopMatchTimer()
+    leaveMatchRoom()
+    router.push('/lobby')
+  })
+
   room.onMessage('opponent_left', () => {
     if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
       return // Match is effectively over, ignore
     }
+    waitingForOpponent.value = false
     alert("Your opponent has left the match! You will be returned to the main menu.")
     goHome()
   })

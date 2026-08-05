@@ -409,11 +409,17 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     if (isMatchActive) {
       // Immediate forfeit, no reconnection allowed per new requirement
       console.log(`[MatchRoom] Client ${client.sessionId} left during active match. Forfeiting.`);
+      this.broadcast("room_terminated", { reason: "player_left", disconnectedSessionId: client.sessionId }, { except: client });
       this.broadcast("opponent_forfeit", { disconnectedSessionId: client.sessionId }, { except: client });
     }
   }
 
   onDispose() {
     console.log(`MatchRoom disposed: ${this.roomId}`);
+    if (this.raceQuestionTimer) {
+      clearTimeout(this.raceQuestionTimer);
+      this.raceQuestionTimer = null;
+    }
+    this.broadcast("room_terminated", { reason: "room_disposed" });
   }
 }
