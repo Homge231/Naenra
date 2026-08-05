@@ -82,22 +82,22 @@
 
         <div class="w-full px-4 mb-8">
           <button @click="handlePrimaryPlay" @mouseenter="audioService.playHover()" :disabled="isSearching"
-            class="group relative w-full h-[80px] rounded-[2rem] text-white font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02] cursor-pointer"
+            class="main-play-btn group relative w-full h-[80px] rounded-[2rem] font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02] cursor-pointer"
             :style="!isSearching 
-              ? 'background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%); color: #ffffff !important; box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7)' 
-              : 'background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%); color: #ffffff !important; box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px)'">
+              ? 'box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7);' 
+              : 'box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px);'">
             
             <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
 
-            <span v-if="!isSearching" class="drop-shadow-md z-10 flex items-center gap-2" style="color: #ffffff !important;">
+            <span v-if="!isSearching" class="drop-shadow-md z-10 flex items-center gap-2">
               {{ authStore.isGuest ? 'PLAY NOW' : 'FIND MATCH 1V1' }}
-              <span class="text-xs bg-black/20 px-2.5 py-1 rounded-full border border-white/30 font-mono hidden sm:inline-block" style="color: #ffffff !important;">PRESS ENTER ↵</span>
+              <span class="text-xs bg-black/20 px-2.5 py-1 rounded-full border border-white/30 font-mono hidden sm:inline-block">PRESS ENTER ↵</span>
             </span>
-            <span v-else class="animate-pulse z-10" style="color: #ffffff !important;">
+            <span v-else class="animate-pulse z-10">
               {{ authStore.isGuest ? 'Starting... ☁️' : 'Finding Match... ☁️' }}
             </span>
             
-            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10" style="color: #ffffff !important;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
 
@@ -391,5 +391,19 @@ onUnmounted(() => {
 @keyframes shimmer {
   0% { transform: translateX(-150%); }
   100% { transform: translateX(250%); }
+}
+
+.main-play-btn {
+  background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%) !important;
+  color: #ffffff !important;
+}
+
+.main-play-btn,
+.main-play-btn *,
+.main-play-btn span,
+.main-play-btn svg {
+  color: #ffffff !important;
+  fill: none;
+  stroke: #ffffff;
 }
 </style>
