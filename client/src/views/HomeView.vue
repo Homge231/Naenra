@@ -37,7 +37,7 @@
       </div>
 
       <div class="flex items-center gap-3 bg-white/80 backdrop-blur-md border border-white p-2 pr-4 rounded-full shadow-[0_4px_15px_rgba(251,146,60,0.08)]">
-        <div class="w-11 h-11 bg-gradient-to-br from-orange-400 to-red-400 p-[2.5px] cursor-pointer rounded-full overflow-hidden hover:scale-105 transition-transform"
+        <div class="w-11 h-11 bg-gradient-to-br from-orange to-hexred p-[2.5px] cursor-pointer rounded-full overflow-hidden hover:scale-105 transition-transform"
           @click="router.push('/profile')" @mouseenter="audioService.playHover()" title="View Profile">
           <img :src="avatarUrl" :alt="username" class="w-full h-full bg-white object-cover rounded-full"
             @error="(e) => (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`" />
@@ -49,7 +49,7 @@
         
         <div class="flex gap-1 border-l-2 border-orange-100 pl-3 ml-1">
           <button v-if="authStore.isGuest" @click="router.push('/login')" @mouseenter="audioService.playHover()" 
-            class="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white font-black text-xs uppercase tracking-widest rounded-full shadow-md hover:scale-105 transition-all">
+            class="px-4 py-2 bg-gradient-to-r from-orange to-hexred text-white font-black text-xs uppercase tracking-widest rounded-full shadow-md hover:scale-105 transition-all cursor-pointer border border-white/20">
             Login / Register
           </button>
           <button v-else @click="handleLogout" @mouseenter="audioService.playHover()" 
@@ -72,7 +72,7 @@
 
         <h2 class="text-6xl md:text-[5rem] font-black uppercase tracking-tight text-gray-800 mb-6 drop-shadow-sm leading-none">
           Ready to <br/>
-          <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500">Type?</span>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred">Type?</span>
         </h2>
         
         <p class="text-gray-600 font-bold max-w-sm mx-auto text-sm md:text-base leading-relaxed mb-10 bg-white/60 p-4 rounded-3xl border border-white shadow-sm backdrop-blur-sm">
@@ -81,7 +81,7 @@
 
         <div class="w-full px-4 mb-8">
           <button @click="handlePrimaryPlay" @mouseenter="audioService.playHover()" :disabled="isSearching"
-            class="group relative w-full h-[80px] rounded-[2rem] bg-gradient-to-b from-orange-400 to-red-500 text-gray-900 font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02]"
+            class="group relative w-full h-[80px] rounded-[2rem] bg-gradient-to-b from-orange to-hexred text-gray-900 font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02]"
             :style="!isSearching ? 'box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7)' : 'box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px)'">
             
             <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
