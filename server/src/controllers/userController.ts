@@ -60,15 +60,29 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       .select('id, name, tier, core_type')
 
     const DEFAULT_LOCKED_CORES = new Set([
-      // Round 2 (Tier 2) default locked
-      'combo burst', 'velocity shield', 'inner eye', 'contract hunter', 
-      'reflective barrier', 'zen momentum', 'overcharge', 'wild card', 
-      'feather shield', 'high stakes',
+      // Round 2 (Tier 2) default locked (3 cores per family)
+      'combo burst', 'combo shield', 'combo focus',
+      'velocity shield', 'speed demon', 'mach speed',
+      'inner eye', 'future sight', 'divine guidance',
+      'contract hunter', 'swift mission', 'shield mission',
+      'reflective barrier', 'fortress aegis', 'shield burst',
+      'zen momentum', 'yin yang', 'harmony wave',
+      'overcharge', 'brute force', 'overload',
+      'wild card', 'warp reality', "pandora's curse",
+      'feather shield', 'ashes to ashes', 'solar ember',
+      'high stakes', 'double or nothing', 'lucky seven',
       
-      // Round 3 (Tier 3) default locked
-      'hyper combo', 'hyperdrive', 'prophecy', 'mission legend', 
-      'aegis sanctuary', 'serenity', 'cataclysm', 'pandora overdrive', 
-      'phoenix overlord', 'casino empire'
+      // Round 3 (Tier 3) default locked (3 cores per family)
+      'hyper combo', 'super combo', 'chain lightning',
+      'hyperdrive', 'sonic boom', 'time freeze',
+      'prophecy', 'cosmic wisdom', 'predictive strike',
+      'mission legend', 'apex predator', 'bounty overlord',
+      'aegis sanctuary', 'spiked shield', 'guardian angel',
+      'serenity', 'nirvana', 'universal harmony',
+      'cataclysm', 'absolute power', 'desperado',
+      'pandora overdrive', 'reality collapse', 'butterfly effect',
+      'phoenix overlord', 'blazing resurrection', 'supernova ashes',
+      'casino empire', 'russian roulette', 'royal flush'
     ])
 
     const baseCoreIds = (allDBCores || [])
