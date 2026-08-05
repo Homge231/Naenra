@@ -165,19 +165,21 @@
         <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-orange-200">
           🔒
         </div>
-        <h3 class="text-xl font-black text-gray-800 uppercase tracking-wide mb-2">Login Required</h3>
-        <p class="text-sm font-bold text-gray-500 mb-6 leading-relaxed">
-          The <span class="text-orange-500">"{{ guestFeatureName }}"</span> feature is for registered players only. 
+        <h3 class="text-xl font-black text-gray-800 uppercase tracking-wide mb-2">LOGIN REQUIRED</h3>
+        <p class="text-sm font-bold text-gray-600 mb-6 leading-relaxed">
+          The <span class="text-orange-600 font-extrabold">"{{ guestFeatureName }}"</span> feature is for registered players only. 
           <br/>Sign in to climb the ranks and unlock cores!
         </p>
         <div class="flex gap-3 w-full">
           <button @click="showGuestModal = false; audioService.playClick()"
-            class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-            Cancel
+            class="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer shadow-xs hover:bg-gray-200 active:scale-95"
+            style="background: #f3f4f6 !important; color: #374151 !important; border: 1px solid #e5e7eb !important;">
+            CANCEL
           </button>
           <button @click="router.push('/login'); audioService.playClick()"
-            class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md hover:scale-105 active:scale-95 transition-all">
-            Login
+            class="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
+            style="background: linear-gradient(135deg, #ff7b00 0%, #e63946 100%) !important; color: #ffffff !important; border: 1px solid rgba(255,255,255,0.4) !important;">
+            LOGIN
           </button>
         </div>
       </div>
@@ -225,7 +227,7 @@ function handleGuestRestrictedClick(featureName: string) {
 
 function joinExistingRoom() {
   if (authStore.isGuest) {
-    handleGuestRestrictedClick('Đấu Custom Room')
+    handleGuestRestrictedClick('Custom Room')
     return
   }
   if (!joinCode.value) return
@@ -242,7 +244,7 @@ function joinExistingRoom() {
 
 function goToCustomRoom() {
   if (authStore.isGuest) {
-    handleGuestRestrictedClick('Tạo Phòng Custom')
+    handleGuestRestrictedClick('Create Room')
     return
   }
   audioService.playClick()
@@ -256,7 +258,7 @@ function goToCustomRoom() {
 
 function goToLeaderboard() {
   if (authStore.isGuest) {
-    handleGuestRestrictedClick('Bảng Xếp Hạng')
+    handleGuestRestrictedClick('Leaderboard')
     return
   }
   audioService.playClick()
@@ -265,7 +267,7 @@ function goToLeaderboard() {
 
 function goToMissions() {
   if (authStore.isGuest) {
-    handleGuestRestrictedClick('Nhiệm Vụ Lõi')
+    handleGuestRestrictedClick('Core Missions')
     return
   }
   audioService.playClick()
@@ -280,7 +282,7 @@ function handleLogout() {
 
 function startMatchmaking() {
   if (authStore.isGuest) {
-    handleGuestRestrictedClick('Tìm Trận Đấu Online')
+    handleGuestRestrictedClick('1v1 Matchmaking')
     return
   }
   audioService.playClick()
@@ -299,7 +301,7 @@ function startSinglePlayer() {
 
 function handlePrimaryPlay() {
   if (authStore.isGuest) {
-    handleGuestRestrictedClick('Tìm Trận Đấu Online')
+    handleGuestRestrictedClick('1v1 Matchmaking')
     return
   }
   startMatchmaking()
