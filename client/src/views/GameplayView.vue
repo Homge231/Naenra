@@ -124,13 +124,13 @@
               Quit Match
             </button>
             <button
-              v-if="!matchStore.isFinalRound() && (gameState === 'playing' || gameState === 'correct' || gameState === 'wrong')"
+              v-if="authStore.isAdmin && !matchStore.isFinalRound() && (gameState === 'playing' || gameState === 'correct' || gameState === 'wrong')"
               @click.stop="skipGameplay"
               class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-yellow-400 hover:bg-yellow-400/10 transition-colors text-left border-t border-white/10">
               <svg class="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
-              Skip to Core Selection
+              ⚡ Admin: Skip to Core Selection
             </button>
             <button v-if="isDev" @click.stop="debugSkipRound"
               class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-yellow-400 hover:bg-yellow-400/10 transition-colors text-left border-t border-white/10">
