@@ -141,16 +141,12 @@
           </button>
 
           <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
-            :class="[
-              'relative h-14 rounded-2xl transition-all font-black text-xs tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer active:scale-95',
-              authStore.isGuest
-                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white border-2 border-orange-200 shadow-lg shadow-orange-500/30 ring-4 ring-orange-400/30 scale-105 hover:scale-110'
-                : 'bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white shadow-sm'
-            ]">
+            class="relative h-14 rounded-2xl transition-all font-black text-xs tracking-widest uppercase flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-sm"
+            :class="authStore.isGuest ? 'guest-single-mode-btn scale-105 hover:scale-110' : 'bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white'">
             <span class="text-base">🎮</span>
             <span>Single Mode</span>
-            <span v-if="authStore.isGuest" class="absolute -top-2.5 -right-2 bg-hexred text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border border-white">
-              FREE PLAY
+            <span v-if="authStore.isGuest" class="absolute -top-2.5 -right-2 bg-yellow-400 text-gray-950 text-[9px] font-black px-2 py-0.5 rounded-full shadow-md animate-bounce border border-white">
+              FREE PLAY ⚡
             </span>
           </button>
         </div>
@@ -414,5 +410,17 @@ onUnmounted(() => {
   color: #111827 !important;
   fill: none;
   stroke: #111827;
+}
+
+.guest-single-mode-btn {
+  background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 8px 20px rgba(255, 123, 0, 0.45) !important;
+}
+
+.guest-single-mode-btn span {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 </style>
