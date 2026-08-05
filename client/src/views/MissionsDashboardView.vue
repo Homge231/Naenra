@@ -41,6 +41,24 @@
     <!-- Main Content -->
     <main class="relative z-20 flex-1 w-full max-w-7xl mx-auto px-6 md:px-12 py-6 flex flex-col">
 
+      <!-- Guest Lock Banner -->
+      <div v-if="authStore.isGuest" class="mb-8 p-6 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-2 border-amber-400/50 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-black shrink-0 shadow-md">
+            🔒
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-amber-900 uppercase">Guest Mission Progress Locked</h3>
+            <p class="text-xs font-bold text-amber-800/80 mt-0.5">
+              Mission progress tracking and Core unlocking are locked for Guest accounts. Register now to save your progress and unlock new Support Cores!
+            </p>
+          </div>
+        </div>
+        <button @click="router.push('/login')" class="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:scale-105 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer">
+          Login / Register ➔
+        </button>
+      </div>
+
       <!-- Hero Header & Global Unlock Progress Bar -->
       <div class="mb-8">
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
@@ -312,12 +330,14 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMissionsStore } from '../stores/missionsStore'
+import { useAuthStore } from '../stores/authStore'
 import { audioService } from '../services/audioService'
 import ScrollToTopButton from '../components/ScrollToTopButton.vue'
 import { getCoreIconPath, DEFAULT_ICON } from '../game/cores/icons'
 
 const router = useRouter()
 const missionsStore = useMissionsStore()
+const authStore = useAuthStore()
 
 const categoryTabs = ['All', 'Attack', 'Defense', 'Utility', 'Economy', 'Strategy'] as const
 const activeTab = ref<string>('All')

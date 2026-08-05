@@ -2030,7 +2030,7 @@ function goHome() {
   if (isMultiplayer.value && currentRoom) {
     leaveMatchRoom()
   }
-  router.push('/home')
+  router.push('/lobby')
 }
 
 async function debugSkipRound() {
@@ -2239,6 +2239,16 @@ function setupRoomEventHandlers(room: any) {
     isForfeitWin.value = true
     matchStore.currentRound = 3 // Force end of match
     startTimeoutPhase()
+  })
+
+  room.onMessage('room_terminated', () => {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
+      return
+    }
+    clearOpponentReconnectCountdown()
+    stopMatchTimer()
+    leaveMatchRoom()
+    router.push('/lobby')
   })
 
   room.onMessage('opponent_left', () => {

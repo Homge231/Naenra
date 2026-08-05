@@ -237,8 +237,8 @@ const upgrades = computed(() => {
         // Fallback or mock cores
         isLocked = DEFAULT_LOCKED_CORES.has(nameKey)
       } else {
-        // Database cores (checked against user profile unlocked_core_ids)
-        isLocked = !unlockedIds.has(String(upgrade.id))
+        // Database cores (checked against user profile unlocked_core_ids by ID and Name)
+        isLocked = !unlockedIds.has(String(upgrade.id)) && !unlockedIds.has(nameKey) && !unlockedIds.has(upgrade.name)
       }
     }
     

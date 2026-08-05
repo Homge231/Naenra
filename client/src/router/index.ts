@@ -6,11 +6,16 @@ const router = createRouter({
   routes: [
     {
       path: '/', 
+      redirect: '/home'
+    },
+    {
+      path: '/login', 
       name: 'login',
       component: () => import('../views/LoginView.vue')
     },
     {
       path: '/home',
+      alias: '/lobby',
       name: 'home',
       component: () => import('../views/HomeView.vue'),
       meta: { requiresAuth: true }
@@ -131,7 +136,7 @@ router.beforeEach(async (to) => {
     return true;
   }
 
-  if (to.name === 'reset-password' || to.name === 'forgot-password') {
+  if (to.name === 'login' || to.name === 'reset-password' || to.name === 'forgot-password') {
     return true
   }
 
@@ -139,15 +144,27 @@ router.beforeEach(async (to) => {
     return true
   }
 
-  // arena_token alone is sufficient — email login users have no Supabase session
   const token = localStorage.getItem('arena_token')
-  if (token) return true
+  let isGuestToken = false
+
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+      isGuestToken = !!payload.isGuest
+    } catch {}
+
+    const guestRestrictedRoutes = ['matchmaking', 'CustomRoom', 'leaderboard', 'missions', 'profile']
+    if (isGuestToken && guestRestrictedRoutes.includes(String(to.name))) {
+      return { name: 'login', query: { locked: '1' } }
+    }
+    return true
+  }
 
   // Fallback for Google OAuth users
   const { data: { session } } = await supabase.auth.getSession()
   if (session) return true
 
-  return { name: 'login' }
+  return true
 })
 
 // Handle chunk load errors when deploying new versions

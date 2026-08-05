@@ -223,8 +223,9 @@ const filteredCores = computed(() => {
         
     return baseCores.map((c: any) => {
         const isBaseCore = c.tier === 1 || c.core_type === 'main'
+        const nameKey = (c.name || '').toLowerCase()
         const isUnlockedInMissions = missionsStore.isCoreUnlocked(c.name) || missionsStore.isCoreUnlocked(c.id)
-        const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !isUnlockedInMissions
+        const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !unlockedIds.has(nameKey) && !unlockedIds.has(c.name) && !isUnlockedInMissions
         return {
             ...c,
             isLocked
