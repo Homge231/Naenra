@@ -78,6 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
     realtimeChannel = supabase
       .channel(`session-kick:${userId}`)
       .on('broadcast', { event: 'session_invalidated' }, (payload: any) => {
+        if (isLoggingInWithEmail || isExchanging) return
         const newVersion = payload.payload?.session_version
         if (
           typeof newVersion === 'number' &&
@@ -130,6 +131,11 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     profile.value = null
     currentSessionVersion.value = null
+
+    try {
+      supabase.auth.signOut()
+    } catch {}
+
     window.location.href = '/login?reason=session_invalidated'
   }
 
@@ -176,8 +182,13 @@ export const useAuthStore = defineStore('auth', () => {
     // If this tab was force-kicked by a new login on another tab/device,
     // do not auto-restore the session from localStorage — the token stored
     // there now belongs to the new session and is not ours to use.
-    if (sessionStorage.getItem('arena_force_logged_out')) {
+    if (sessionStorage.getItem('arena_force_logged_out') || window.location.search.includes('reason=session_invalidated')) {
       sessionStorage.removeItem('arena_force_logged_out')
+      try {
+        await supabase.auth.signOut()
+      } catch {}
+      user.value = null
+      profile.value = null
       loading.value = false
       return
     }
