@@ -1875,7 +1875,7 @@ function resetTypingBoard() {
   typedLetters.value = []
   currentCombo.value = 0
   missionProgress.value = 0
-  aegisShieldCount.value = 0
+  // Aegis active shields are preserved between rounds
   scoreFlash.value = null
   pointPopups.value = []
   oracleRevealLevel.value = 0
