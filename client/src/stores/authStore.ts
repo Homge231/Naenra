@@ -147,6 +147,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   let isExchanging = false
 
+  function hasNonGuestArenaToken(): boolean {
+    const token = localStorage.getItem('arena_token')
+    if (!token) return false
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+      return !payload.isGuest
+    } catch {
+      return false
+    }
+  }
+
   async function init() {
     // If this tab was force-kicked by a new login on another tab/device,
     // do not auto-restore the session from localStorage — the token stored
@@ -167,13 +178,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (session?.access_token) {
       // Only exchange the Supabase token for an arena token when:
       // 1. This is a fresh OAuth redirect (hash contains access_token), OR
-      // 2. We have no arena_token yet (first-time Google login from this browser).
-      // On every subsequent page load, the Supabase session persists in the
-      // browser but we already have a valid arena_token — calling exchange here
-      // would increment session_version again, instantly invalidating the stored
-      // token and causing 401 UNAUTHORIZED on the very next API call.
-      const hasArenaToken = !!localStorage.getItem('arena_token')
-      if ((isFreshOAuthRedirect || !hasArenaToken) && !isExchanging) {
+      // 2. We have no valid non-guest arena_token yet (e.g. guest token or first-time Google login).
+      const hasRealToken = hasNonGuestArenaToken()
+      if ((isFreshOAuthRedirect || !hasRealToken) && !isExchanging) {
         isExchanging = true
         try {
           await exchangeTokenAfterOAuth()
@@ -225,11 +232,9 @@ export const useAuthStore = defineStore('auth', () => {
     supabase.auth.onAuthStateChange(async (event, session) => {
       user.value = session?.user ?? null
       if (event === 'SIGNED_IN' && user.value) {
-        // Guard: only exchange/bump session_version on a real new login redirect,
-        // not on routine token refreshes (Supabase fires SIGNED_IN every ~1h).
         const isFreshOAuthRedirect = window.location.hash.includes('access_token')
-        const hasArenaToken = !!localStorage.getItem('arena_token')
-        if ((isFreshOAuthRedirect || !hasArenaToken) && !isExchanging) {
+        const hasRealToken = hasNonGuestArenaToken()
+        if ((isFreshOAuthRedirect || !hasRealToken) && !isExchanging) {
           isExchanging = true
           try {
             await exchangeTokenAfterOAuth()
