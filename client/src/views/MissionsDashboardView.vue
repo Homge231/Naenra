@@ -293,18 +293,30 @@
                 <span class="text-gray-400 font-bold ml-1">• Unlocks Core</span>
               </div>
 
-              <button v-if="mission.isCompleted && !mission.isClaimed" @click="claim(mission.id)"
-                class="px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest bg-gradient-to-r from-orange to-hexred text-white shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5">
-                <span>Claim & Unlock Core 🔓</span>
-              </button>
-              <button v-else-if="mission.isClaimed" disabled
-                class="px-4 py-1.5 rounded-xl font-bold text-xs uppercase tracking-widest bg-gray-100 text-gray-400 cursor-not-allowed">
-                Unlocked ✓
-              </button>
-              <button v-else @click="simulateProgress(mission.id)"
-                class="px-4 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-orange/10 text-orange hover:bg-orange/20 transition-all cursor-pointer">
-                + Progress (Demo)
-              </button>
+              <div class="flex items-center gap-2">
+                <!-- Admin Mission Controls -->
+                <div v-if="authStore.isAdmin" class="flex items-center gap-1.5 bg-amber-50 border border-amber-300 p-1 rounded-xl">
+                  <button @click="missionsStore.adminIncrementProgress(mission.id, 1)"
+                    title="Admin: +1 Progress"
+                    class="px-2.5 py-1 rounded-lg font-black text-[10px] uppercase bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-all cursor-pointer">
+                    +1
+                  </button>
+                  <button @click="missionsStore.adminCompleteMission(mission.id)"
+                    title="Admin: Complete Mission"
+                    class="px-2.5 py-1 rounded-lg font-black text-[10px] uppercase bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition-all cursor-pointer">
+                    ⚡ Complete
+                  </button>
+                </div>
+
+                <button v-if="mission.isCompleted && !mission.isClaimed" @click="claim(mission.id)"
+                  class="px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest bg-gradient-to-r from-orange to-hexred text-white shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center gap-1.5">
+                  <span>Claim & Unlock Core 🔓</span>
+                </button>
+                <button v-else-if="mission.isClaimed" disabled
+                  class="px-4 py-1.5 rounded-xl font-bold text-xs uppercase tracking-widest bg-gray-100 text-gray-400 cursor-not-allowed">
+                  Unlocked ✓
+                </button>
+              </div>
             </div>
           </div>
         </div>

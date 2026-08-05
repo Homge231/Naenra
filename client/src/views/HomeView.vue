@@ -158,6 +158,31 @@
       <div class="w-1/3 h-full bg-gradient-to-r from-orange-400 to-red-400 rounded-tr-full"></div>
     </div>
 
+    <!-- Guest Login Required Modal -->
+    <div v-if="showGuestModal" class="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showGuestModal = false"></div>
+      <div class="relative bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border-2 border-orange-200 flex flex-col items-center text-center animate-bounce-in">
+        <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-orange-200">
+          🔒
+        </div>
+        <h3 class="text-xl font-black text-gray-800 uppercase tracking-wide mb-2">Login Required</h3>
+        <p class="text-sm font-bold text-gray-500 mb-6 leading-relaxed">
+          The <span class="text-orange-500">"{{ guestFeatureName }}"</span> feature is for registered players only. 
+          <br/>Sign in to climb the ranks and unlock cores!
+        </p>
+        <div class="flex gap-3 w-full">
+          <button @click="showGuestModal = false; audioService.playClick()"
+            class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+            Cancel
+          </button>
+          <button @click="router.push('/login'); audioService.playClick()"
+            class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest bg-gradient-to-r from-orange-400 to-red-500 text-white shadow-md hover:scale-105 active:scale-95 transition-all">
+            Login
+          </button>
+        </div>
+      </div>
+    </div>
+
     <AIChatWidget />
   </div>
 </template>
@@ -175,6 +200,8 @@ const authStore = useAuthStore()
 const isSearching = ref(false)
 const joinCode = ref('')
 const isJoiningCustom = ref(false)
+const showGuestModal = ref(false)
+const guestFeatureName = ref('')
 
 const username = computed(() =>
   authStore.profile?.username ||
@@ -192,8 +219,8 @@ const elo = computed(() => authStore.profile?.elo ?? 0)
 
 function handleGuestRestrictedClick(featureName: string) {
   audioService.playClick()
-  alert(`Tính năng ${featureName} chỉ dành cho tài khoản đã đăng nhập. Bạn sẽ được chuyển tới trang đăng nhập!`)
-  router.push('/login')
+  guestFeatureName.value = featureName
+  showGuestModal.value = true
 }
 
 function joinExistingRoom() {
@@ -416,11 +443,19 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%) !important;
   color: #ffffff !important;
   border: 2px solid #ffffff !important;
-  box-shadow: 0 8px 20px rgba(255, 123, 0, 0.45) !important;
+  box-shadow: 0 4px 15px rgba(255, 123, 0, 0.4) !important;
 }
 
-.guest-single-mode-btn span {
+.guest-single-mode-btn span:not(.text-gray-950) {
   color: #ffffff !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-bounce-in {
+  animation: bounce-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 </style>
