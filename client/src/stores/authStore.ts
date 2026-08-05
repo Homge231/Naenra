@@ -289,6 +289,7 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
       if (res.ok && data.token) {
         localStorage.setItem('arena_token', data.token)
+        isGuest.value = false
         await fetchProfile()
 
         const version = data.user?.session_version ?? extractSessionVersionFromToken(data.token)
@@ -351,6 +352,7 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
       if (!res.ok) return { success: false, error: data.error }
       localStorage.setItem('arena_token', data.token)
+      isGuest.value = false
       user.value = { id: data.user.id, email: data.user.email }
       await fetchProfile()
       startSessionPolling()
@@ -405,9 +407,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchProfile() {
-    if (isGuest.value) return
     const token = localStorage.getItem('arena_token')
     if (!token) return
+
+    let tokenIsGuest = false
+    try {
+      const base64Url = token.split('.')[1]
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      tokenIsGuest = !!JSON.parse(atob(base64)).isGuest
+    } catch {}
+
+    if (tokenIsGuest) {
+      isGuest.value = true
+      return
+    }
 
     try {
       // fetchWithAuth handles 401 (including SessionInvalidated) globally
@@ -415,6 +428,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (!res.ok) return
       const data = await res.json()
       profile.value = data
+      isGuest.value = false
     } catch (err) {
       console.error('fetchProfile error:', err)
     }
