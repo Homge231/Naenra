@@ -82,20 +82,22 @@
 
         <div class="w-full px-4 mb-8">
           <button @click="handlePrimaryPlay" @mouseenter="audioService.playHover()" :disabled="isSearching"
-            class="group relative w-full h-[80px] rounded-[2rem] bg-gradient-to-b from-[#fb923c] to-[#ef4444] text-gray-900 font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02]"
-            :style="!isSearching ? 'box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7)' : 'box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px)'">
+            class="group relative w-full h-[80px] rounded-[2rem] text-white font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02] cursor-pointer"
+            :style="!isSearching 
+              ? 'background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%); color: #ffffff !important; box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7)' 
+              : 'background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%); color: #ffffff !important; box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px)'">
             
             <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
 
-            <span v-if="!isSearching" class="drop-shadow-md z-10 flex items-center gap-2">
+            <span v-if="!isSearching" class="drop-shadow-md z-10 flex items-center gap-2 text-white">
               {{ authStore.isGuest ? 'PLAY NOW' : 'FIND MATCH 1V1' }}
               <span class="text-xs bg-black/20 text-white px-2.5 py-1 rounded-full border border-white/30 font-mono hidden sm:inline-block">PRESS ENTER ↵</span>
             </span>
-            <span v-else class="animate-pulse z-10">
+            <span v-else class="animate-pulse z-10 text-white">
               {{ authStore.isGuest ? 'Starting... ☁️' : 'Finding Match... ☁️' }}
             </span>
             
-            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
 
