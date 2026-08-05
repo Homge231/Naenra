@@ -80,23 +80,25 @@
         </p>
 
         <div class="w-full px-4 mb-8">
-          <button @click="startSinglePlayer" @mouseenter="audioService.playHover()" :disabled="isSearching"
+          <button @click="handlePrimaryPlay" @mouseenter="audioService.playHover()" :disabled="isSearching"
             class="group relative w-full h-[80px] rounded-[2rem] bg-gradient-to-b from-orange-400 to-red-500 text-gray-900 font-black text-2xl tracking-widest uppercase transition-all duration-150 disabled:opacity-70 flex items-center justify-center gap-3 border-4 border-white active:translate-y-[8px] active:shadow-none overflow-hidden hover:scale-[1.02]"
             :style="!isSearching ? 'box-shadow: 0 8px 0 #b91c1c, 0 15px 40px rgba(239,68,68,0.7)' : 'box-shadow: 0 0px 0 #b91c1c; transform: translateY(8px)'">
             
             <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
 
             <span v-if="!isSearching" class="drop-shadow-md z-10 flex items-center gap-2">
-              PLAY NOW
+              {{ authStore.isGuest ? 'PLAY NOW' : 'FIND MATCH 1V1' }}
               <span class="text-xs bg-black/20 text-white px-2.5 py-1 rounded-full border border-white/30 font-mono hidden sm:inline-block">PRESS ENTER ↵</span>
             </span>
-            <span v-else class="animate-pulse z-10">Starting... ☁️</span>
+            <span v-else class="animate-pulse z-10">
+              {{ authStore.isGuest ? 'Starting... ☁️' : 'Finding Match... ☁️' }}
+            </span>
             
             <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-md z-10 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
 
-        <div class="w-full grid grid-cols-2 gap-4 px-4 mb-4">
+        <div class="w-full grid gap-4 px-4 mb-4" :class="authStore.isGuest ? 'grid-cols-2' : 'grid-cols-2'">
           <button @click="goToCustomRoom" @mouseenter="audioService.playHover()" :disabled="isJoiningCustom"
             class="relative h-16 rounded-2xl bg-white border-b-4 border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300 transition-all font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 active:border-b-0 active:translate-y-1 shadow-sm">
             <span class="text-xl">🤝</span>
@@ -117,7 +119,7 @@
           </div>
         </div>
 
-        <div class="w-full grid grid-cols-2 md:grid-cols-4 gap-3 px-4">
+        <div class="w-full grid gap-3 px-4" :class="authStore.isGuest ? 'grid-cols-3' : 'grid-cols-2 md:grid-cols-4'">
           <button @click="goToLeaderboard" @mouseenter="audioService.playHover()"
             class="relative h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
             <span>🏆</span> Leaderboard
@@ -135,7 +137,7 @@
             <span v-if="authStore.isGuest" class="text-xs text-amber-500">🔒</span>
           </button>
 
-          <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
+          <button v-if="!authStore.isGuest" @click="startSinglePlayer" @mouseenter="audioService.playHover()"
             class="h-14 rounded-2xl bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white transition-all font-black text-xs tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
             <span>🎮</span> Training
           </button>
@@ -260,6 +262,14 @@ function startSinglePlayer() {
   router.push('/core')
 }
 
+function handlePrimaryPlay() {
+  if (authStore.isGuest) {
+    startSinglePlayer()
+  } else {
+    startMatchmaking()
+  }
+}
+
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter') {
     const activeEl = document.activeElement
@@ -267,7 +277,7 @@ function handleKeydown(e: KeyboardEvent) {
       return
     }
     e.preventDefault()
-    startSinglePlayer()
+    handlePrimaryPlay()
   }
 }
 
