@@ -49,7 +49,8 @@
         
         <div class="flex gap-1 border-l-2 border-orange-100 pl-3 ml-1">
           <button v-if="authStore.isGuest" @click="router.push('/login')" @mouseenter="audioService.playHover()" 
-            class="px-4 py-2 bg-gradient-to-r from-orange to-hexred text-white font-black text-xs uppercase tracking-widest rounded-full shadow-md hover:scale-105 transition-all cursor-pointer border border-white/20">
+            class="px-4 py-2 font-black text-xs uppercase tracking-widest rounded-full shadow-md hover:scale-105 transition-all cursor-pointer border border-white/30"
+            style="background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%); color: #ffffff !important;">
             Login / Register
           </button>
           <button v-else @click="handleLogout" @mouseenter="audioService.playHover()" 
