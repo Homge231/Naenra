@@ -15,14 +15,16 @@
       <div class="power-glow"></div>
     </div>
 
-    <!-- High Roller Core Family VFX: Gambler & Cowboy style (card suits and sheriff stars) -->
+    <!-- High Roller Core Family VFX: Gambler & Cowboy style (card suits, dice, gold coins, and sheriff stars) -->
     <div v-if="family === 'high-roller'" class="vfx-wrapper high-roller-gambler">
       <span class="gambler-item spade st1">♠</span>
       <span class="gambler-item heart st2">♥</span>
       <span class="gambler-item diamond st3">♦</span>
       <span class="gambler-item club st4">♣</span>
       <span class="gambler-item badge st5">⭐</span>
-      <span class="gambler-item badge st6">⭐</span>
+      <span class="gambler-item dice st6">🎲</span>
+      <span class="gambler-item coin st7">🪙</span>
+      <span class="gambler-item badge st8">⭐</span>
       <!-- Dust storm/Sunset glow overlay -->
       <div class="desert-sunset"></div>
     </div>
@@ -134,35 +136,59 @@ const family = computed(() => {
 /* --- High Roller Gambler & Cowboy VFX --- */
 .gambler-item {
   position: absolute;
-  font-size: 16px;
-  animation: gamblerDrift 4s ease-in-out infinite;
+  font-size: 22px; /* Made larger and clearer */
+  font-weight: bold;
+  animation: gamblerDrift 5s ease-in-out infinite;
   opacity: 0;
   user-select: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
-.spade { color: rgba(139, 92, 246, 0.75); text-shadow: 0 0 8px rgba(139, 92, 246, 0.6); }
-.heart { color: rgba(239, 68, 68, 0.75); text-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
-.diamond { color: rgba(245, 158, 11, 0.75); text-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
-.club { color: rgba(59, 130, 246, 0.75); text-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
+.spade { 
+  color: #a78bfa; 
+  text-shadow: 0 0 10px #8b5cf6, 0 0 20px rgba(139, 92, 246, 0.4); 
+}
+.heart { 
+  color: #f87171; 
+  text-shadow: 0 0 10px #ef4444, 0 0 20px rgba(239, 68, 68, 0.4); 
+}
+.diamond { 
+  color: #fb923c; 
+  text-shadow: 0 0 10px #f59e0b, 0 0 20px rgba(245, 158, 11, 0.4); 
+}
+.club { 
+  color: #60a5fa; 
+  text-shadow: 0 0 10px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4); 
+}
 .badge { 
-  color: rgba(250, 204, 21, 0.95); 
-  font-size: 18px; 
-  text-shadow: 0 0 10px rgba(250, 204, 21, 0.85);
-  animation: badgeSpin 5s linear infinite; 
+  color: #fcd34d; 
+  font-size: 26px; 
+  text-shadow: 0 0 12px #fbbf24, 0 0 25px rgba(245, 158, 11, 0.6);
+  animation: badgeSpin 6s linear infinite; 
+}
+.dice {
+  font-size: 24px;
+  animation: diceTumble 4.5s ease-in-out infinite;
+}
+.coin {
+  font-size: 20px;
+  animation: coinFlip 4s ease-in-out infinite;
 }
 
-.st1 { top: 12%; left: 8%; animation-delay: 0s; }
-.st2 { top: 22%; right: 10%; animation-delay: 0.8s; }
-.st3 { bottom: 18%; left: 15%; animation-delay: 1.6s; }
-.st4 { bottom: 14%; right: 12%; animation-delay: 2.4s; }
-.st5 { top: 75%; left: 6%; animation-delay: 0.4s; }
-.st6 { top: 40%; right: 8%; animation-delay: 1.2s; }
+.st1 { top: 10%; left: 6%; animation-delay: 0s; }
+.st2 { top: 20%; right: 8%; animation-delay: 1.2s; }
+.st3 { bottom: 25%; left: 8%; animation-delay: 2.4s; }
+.st4 { bottom: 20%; right: 10%; animation-delay: 3.6s; }
+.st5 { top: 65%; left: 5%; animation-delay: 0.8s; }
+.st6 { top: 40%; right: 6%; animation-delay: 1.8s; }
+.st7 { bottom: 45%; left: 4%; animation-delay: 3s; }
+.st8 { top: 5%; right: 25%; animation-delay: 2s; }
 
 @keyframes gamblerDrift {
-  0% { opacity: 0; transform: translateY(10px) rotate(0deg) scale(0.8); }
-  35% { opacity: 0.8; }
-  75% { opacity: 0.8; }
-  100% { opacity: 0; transform: translateY(-20px) rotate(360deg) scale(1.1); }
+  0% { opacity: 0; transform: translateY(20px) rotate(0deg) scale(0.7); }
+  20% { opacity: 0.95; }
+  80% { opacity: 0.95; }
+  100% { opacity: 0; transform: translateY(-30px) rotate(360deg) scale(1.2); }
 }
 
 @keyframes badgeSpin {
@@ -170,13 +196,35 @@ const family = computed(() => {
   100% { transform: rotate(360deg); }
 }
 
+@keyframes diceTumble {
+  0% { opacity: 0; transform: translate(0, 20px) rotate(0deg) scale(0.7); }
+  25% { opacity: 0.9; transform: translate(-10px, 0) rotate(90deg) scale(1); }
+  50% { opacity: 0.9; transform: translate(5px, -20px) rotate(180deg) scale(1.1); }
+  75% { opacity: 0.9; transform: translate(-5px, -35px) rotate(270deg) scale(1); }
+  100% { opacity: 0; transform: translate(0, -50px) rotate(360deg) scale(0.8); }
+}
+
+@keyframes coinFlip {
+  0% { opacity: 0; transform: scale(0.6) rotateY(0deg); }
+  20% { opacity: 0.95; }
+  80% { opacity: 0.95; }
+  100% { opacity: 0; transform: translateY(-40px) scale(1.1) rotateY(720deg); }
+}
+
 .desert-sunset {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.04) 0%, transparent 60%),
-              radial-gradient(circle at bottom left, rgba(239, 68, 68, 0.04) 0%, transparent 60%);
+  background: radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.05) 0%, transparent 60%),
+              radial-gradient(circle at bottom left, rgba(239, 68, 68, 0.05) 0%, transparent 60%);
   pointer-events: none;
   border-radius: inherit;
+  box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.05);
+  animation: sunsetGlow 8s ease-in-out infinite alternate;
+}
+
+@keyframes sunsetGlow {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
 }
 
 /* --- Balanced Zen VFX --- */
