@@ -99,9 +99,9 @@
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <div>
-              <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-1">Matchmaking Rules</h3>
+              <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-1">Ranked Matchmaking Rules</h3>
               <p class="text-xs text-gray-500 font-bold leading-relaxed">
-                System is matching you with an opponent based on ELO rating (±100 variance). Please do not close this window.
+                System is matching you with an opponent based on ELO rating (±100 variance). If no human opponent is found within 30s, an AI Bot of similar rank will match automatically.
               </p>
             </div>
           </div>

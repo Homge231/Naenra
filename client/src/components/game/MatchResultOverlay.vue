@@ -46,22 +46,16 @@ const settingsStore = useSettingsStore()
 
 const animatedPlayerScore = ref(0)
 const animatedOpponentScore = ref(0)
+const animatedElo = ref(1000)
+const animatedRankProgress = ref(0)
 
 const correctCount = computed(() => props.matchHistory.filter(h => h.isCorrect).length)
 const totalCount = computed(() => props.matchHistory.length)
 const accuracy = computed(() => totalCount.value > 0 ? ((correctCount.value / totalCount.value) * 100).toFixed(1) : '0.0')
 
-const rankProgress = computed(() => {
-  if (!props.currentTier) return 0
-  const range = props.currentTier.max - props.currentTier.min
-  const progress = (props.newElo ?? 0) - props.currentTier.min
-  return Math.min(Math.max((progress / range) * 100, 0), 100)
-})
-
 const showRankUp = ref(false)
 
 // WPM: (total chars of correct answers / 5) / (match duration in minutes)
-// Standard WPM formula uses 5 chars = 1 word
 const avgWpm = computed(() => {
   if (totalCount.value === 0) return 0
   const totalCorrectChars = props.matchHistory
@@ -72,29 +66,93 @@ const avgWpm = computed(() => {
   return Math.round((totalCorrectChars / 5) / durationMinutes)
 })
 
+// Effective ELO resolution (never default to 0!)
+const effectiveNewElo = computed(() => {
+  if (props.newElo && props.newElo > 0) return props.newElo
+  if (authStore.profile?.elo && authStore.profile.elo > 0) return authStore.profile.elo
+  return 1000
+})
 
+const effectiveOldElo = computed(() => {
+  if (props.oldElo && props.oldElo > 0) return props.oldElo
+  const change = props.eloChange ?? 0
+  return Math.max(0, effectiveNewElo.value - change)
+})
 
-let animationFrameId: number
+const activeTier = computed(() => {
+  if (props.currentTier && props.currentTier.min !== undefined && props.currentTier.max !== undefined) {
+    return props.currentTier
+  }
+  const elo = effectiveNewElo.value
+  if (elo < 1500) return { name: 'BRONZE', min: 0, max: 1499, color: '#cd7f32' }
+  if (elo < 3000) return { name: 'SILVER', min: 1500, max: 2999, color: '#c0c0c0' }
+  if (elo < 4500) return { name: 'GOLD', min: 3000, max: 4499, color: '#ffd700' }
+  if (elo < 6000) return { name: 'PLATINUM', min: 4500, max: 5999, color: '#00f2fe' }
+  if (elo < 7500) return { name: 'DIAMOND', min: 6000, max: 7499, color: '#a855f7' }
+  return { name: 'MASTER', min: 7500, max: 999999, color: '#ff4b4b' }
+})
+
+function calculateProgressPercentage(eloValue: number, tier: any) {
+  if (!tier || tier.max === undefined || tier.min === undefined) return 50
+  const min = tier.min
+  const max = tier.max === 999999 ? min + 1000 : tier.max
+  const range = Math.max(1, max - min)
+  const prog = (eloValue - min) / range
+  return Math.min(Math.max(prog * 100, 0), 100)
+}
+
+let scoreAnimationFrame: number
+let progressAnimationFrame: number
+
 function animateValue(obj: any, start: number, end: number, duration: number) {
-  let startTimestamp: number | null = null;
+  let startTimestamp: number | null = null
   const step = (timestamp: number) => {
-    if (!startTimestamp) startTimestamp = timestamp;
-    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-    const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-    obj.value = Math.floor(start + easeOutCubic * (end - start));
+    if (!startTimestamp) startTimestamp = timestamp
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1)
+    const easeOutCubic = 1 - Math.pow(1 - progress, 3)
+    obj.value = Math.floor(start + easeOutCubic * (end - start))
     if (progress < 1) {
-      animationFrameId = window.requestAnimationFrame(step);
+      scoreAnimationFrame = window.requestAnimationFrame(step)
     } else {
-      obj.value = end;
+      obj.value = end
     }
-  };
-  animationFrameId = window.requestAnimationFrame(step);
+  }
+  scoreAnimationFrame = window.requestAnimationFrame(step)
+}
+
+function animateRankProgress(startProg: number, endProg: number, startElo: number, endElo: number, duration: number = 1500) {
+  let startTimestamp: number | null = null
+  const step = (timestamp: number) => {
+    if (!startTimestamp) startTimestamp = timestamp
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1)
+    const easeOutCubic = 1 - Math.pow(1 - progress, 3)
+    
+    animatedRankProgress.value = startProg + easeOutCubic * (endProg - startProg)
+    animatedElo.value = Math.floor(startElo + easeOutCubic * (endElo - startElo))
+
+    if (progress < 1) {
+      progressAnimationFrame = window.requestAnimationFrame(step)
+    } else {
+      animatedRankProgress.value = endProg
+      animatedElo.value = endElo
+    }
+  }
+  progressAnimationFrame = window.requestAnimationFrame(step)
 }
 
 watch(() => props.isVisible, (newVal) => {
   if (newVal) {
     animatedPlayerScore.value = 0
     animatedOpponentScore.value = 0
+    
+    const startEloVal = effectiveOldElo.value
+    const endEloVal = effectiveNewElo.value
+
+    const startProg = calculateProgressPercentage(startEloVal, activeTier.value)
+    const endProg = calculateProgressPercentage(endEloVal, activeTier.value)
+
+    animatedElo.value = startEloVal
+    animatedRankProgress.value = startProg
     
     if (props.oldTier && props.currentTier && props.oldTier.name !== props.currentTier.name && (props.newElo ?? 0) > (props.oldElo ?? 0)) {
       setTimeout(() => {
@@ -105,12 +163,14 @@ watch(() => props.isVisible, (newVal) => {
     setTimeout(() => {
       animateValue(animatedPlayerScore, 0, props.playerScore, 1500)
       animateValue(animatedOpponentScore, 0, props.opponentScore, 1500)
-    }, 500)
+      animateRankProgress(startProg, endProg, startEloVal, endEloVal, 1500)
+    }, 400)
   } else {
     showRankUp.value = false
-    if (animationFrameId) window.cancelAnimationFrame(animationFrameId)
+    if (scoreAnimationFrame) window.cancelAnimationFrame(scoreAnimationFrame)
+    if (progressAnimationFrame) window.cancelAnimationFrame(progressAnimationFrame)
   }
-})
+}, { immediate: true })
 
 // Confetti setup for Victory
 const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
@@ -237,35 +297,40 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
           </div>
         </div>
 
-        <!-- Rank Progression (Hidden in Custom Rooms) -->
-        <div v-if="currentTier && !isCustomRoom" class="w-full mb-10 stat-row" style="animation-delay: 0.4s">
+        <!-- 🌟 ANIMATED RANK PROGRESSION & ELO RATING BAR -->
+        <div v-if="activeTier && !isCustomRoom" class="w-full mb-10 stat-row" style="animation-delay: 0.4s">
           <div class="flex justify-between items-end mb-2">
             <div>
               <div class="text-[10px] tracking-widest uppercase text-white/50">Current Rank</div>
-              <div class="text-2xl font-black tracking-widest uppercase" :style="{ color: currentTier.color }">
-                {{ currentTier.name }}
+              <div class="text-2xl font-black tracking-widest uppercase" :style="{ color: activeTier.color }">
+                {{ activeTier.name }}
               </div>
             </div>
             <div class="text-right">
               <div class="text-[10px] tracking-widest uppercase text-white/50">Rating</div>
-              <div class="text-xl font-bold flex items-center gap-2">
-                {{ newElo }} 
+              <div class="text-xl font-bold flex items-center gap-2 font-mono">
+                <span>{{ animatedElo }}</span> 
                 <span v-if="eloChange !== undefined && eloChange !== 0" 
-                      class="text-sm px-2 py-0.5 rounded-full"
+                      class="text-sm px-2 py-0.5 rounded-full font-bold"
                       :class="eloChange > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
                   {{ eloChange > 0 ? '+' : '' }}{{ eloChange }}
                 </span>
               </div>
             </div>
           </div>
-          <div class="w-full h-3 bg-white/10 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
-            <div class="h-full rounded-full transition-all duration-1000 ease-out"
-                 :style="{ width: `${rankProgress}%`, backgroundColor: currentTier.color, boxShadow: `0 0 10px ${currentTier.color}80` }">
+          <!-- Animated Progress Fill Bar -->
+          <div class="w-full h-3.5 bg-white/10 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
+            <div class="h-full rounded-full transition-all duration-75 ease-linear"
+                 :style="{ 
+                   width: `${animatedRankProgress}%`, 
+                   backgroundColor: activeTier.color, 
+                   boxShadow: `0 0 12px ${activeTier.color}` 
+                 }">
             </div>
           </div>
-          <div class="flex justify-between mt-1 text-[10px] text-white/40">
-            <span>{{ currentTier.min }}</span>
-            <span>{{ currentTier.max === 999999 ? '∞' : currentTier.max }}</span>
+          <div class="flex justify-between mt-1 text-[10px] font-mono text-white/40">
+            <span>{{ activeTier.min }}</span>
+            <span>{{ activeTier.max === 999999 ? '∞' : activeTier.max }}</span>
           </div>
         </div>
 
@@ -274,15 +339,15 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
           <div v-if="showRankUp" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl">
             <div class="text-center p-8 bg-gradient-to-b from-white/10 to-transparent border border-white/20 rounded-2xl shadow-[0_0_50px_rgba(255,255,255,0.1)] transform scale-110">
               <div class="text-sm font-black tracking-widest uppercase text-white/70 mb-2">Rank Up!</div>
-              <div class="text-6xl font-black tracking-widest uppercase mb-4" :style="{ color: currentTier?.color, textShadow: `0 0 30px ${currentTier?.color}` }">
-                {{ currentTier?.name }}
+              <div class="text-6xl font-black tracking-widest uppercase mb-4" :style="{ color: activeTier?.color, textShadow: `0 0 30px ${activeTier?.color}` }">
+                {{ activeTier?.name }}
               </div>
               <div class="text-white/60 mb-6 flex items-center justify-center gap-2">
                 <span class="line-through opacity-50">{{ oldTier?.name }}</span>
                 <span>➔</span>
-                <span class="font-bold text-white">{{ currentTier?.name }}</span>
+                <span class="font-bold text-white">{{ activeTier?.name }}</span>
               </div>
-              <button @click="showRankUp = false" class="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition-colors uppercase tracking-widest text-xs font-bold">
+              <button @click="showRankUp = false" class="px-6 py-2 rounded bg-white/10 hover:bg-white/20 transition-colors uppercase tracking-widest text-xs font-bold cursor-pointer">
                 Continue
               </button>
             </div>
@@ -306,13 +371,13 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
 
         <!-- Action Buttons -->
         <div class="flex justify-center gap-4 w-full stat-row" style="animation-delay: 0.5s">
-          <button @click="emit('goHome')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-white/5 hover:bg-white/10 border border-white/10 transition-colors">
+          <button @click="emit('goHome')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer">
             Home
           </button>
-          <button @click="emit('showFeedback')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 transition-all text-white shadow-lg">
+          <button @click="emit('showFeedback')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 transition-all text-white shadow-lg cursor-pointer">
             Feedback
           </button>
-          <button v-if="!isMultiplayer || isCustomRoom" @click="emit('playAgain')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 transition-all text-white shadow-lg"
+          <button v-if="!isMultiplayer || isCustomRoom" @click="emit('playAgain')" class="px-8 py-3 rounded-lg font-bold uppercase tracking-widest text-sm bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 transition-all text-white shadow-lg cursor-pointer"
                   :class="{'animate-pulse': settingsStore.vfxEnabled}">
             Play Again
           </button>

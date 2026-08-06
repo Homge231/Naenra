@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { generateOracleHints, normalizeAnswer } from "../controllers/gameController";
 import { addActiveClient, removeActiveClient } from "../utils/activeClients";
 import { generateQuestions } from "../services/aiService";
+import { BotProfile, getRandomBotCoreName } from "../services/botGeneratorService";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
@@ -15,11 +16,35 @@ export class MatchRoom extends Room<{ state: MatchState }> {
   private raceQuestionTimer: ReturnType<typeof setTimeout> | null = null;
   private raceLockedPlayers: Set<string> = new Set();
 
+  // AI Bot Match fields
+  private isBotMatch: boolean = false;
+  private botProfile: BotProfile | null = null;
+  private botSessionId: string = "";
+  private botSimInterval: ReturnType<typeof setInterval> | null = null;
+  private botSelectionTimeout: ReturnType<typeof setTimeout> | null = null;
+  private botRaceTimeout: ReturnType<typeof setTimeout> | null = null;
+
   onCreate(options: any) {
     this.setState(new MatchState());
     this.isCustomRoom = options.isCustom === true;
     this.state.isCustom = this.isCustomRoom;
 
+    // AI Bot Match initialization
+    if (options.isBotMatch && options.botProfile) {
+      this.isBotMatch = true;
+      this.botProfile = options.botProfile;
+      this.botSessionId = options.botProfile.id;
+
+      // Register bot player in Colyseus schema
+      const botPlayer = new Player(
+        options.botProfile.id,
+        options.botProfile.name,
+        options.botProfile.avatar,
+        options.botProfile.elo
+      );
+      this.state.players.set(this.botSessionId, botPlayer);
+      console.log(`[MatchRoom ${this.roomId}] Initialized AI Bot opponent: ${options.botProfile.name} (Elo: ${options.botProfile.elo})`);
+    }
 
     this.onMessage("updateMetadata", (client, message) => {
       const isHost = client.userData?.userId === this.state.hostId;
@@ -43,19 +68,22 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       if (this.state.players.size === 2) {
         this.state.status = "starting";
         this.broadcast("match_started");
+        if (this.isBotMatch) {
+          this.scheduleBotCoreSelection();
+        }
       }
     });
 
     this.onMessage("return_to_lobby", (client) => {
       console.log(`Received return_to_lobby from ${client.sessionId}`);
-      // Full reset for both players so the room is clean for next match
+      this.clearBotTimers();
       this.state.status = "waiting";
       this.state.currentRound = 1;
       this.state.currentRaceQuestion.id = "";
       this.state.currentRaceQuestion.question_text = "";
       this.state.currentRaceQuestion.target_length = 0;
       this.state.currentRaceQuestion.oracle_hints.clear();
-      // Cancel any pending race timers
+      
       if (this.raceQuestionTimer) {
         clearTimeout(this.raceQuestionTimer);
         this.raceQuestionTimer = null;
@@ -63,13 +91,12 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       this.raceQuestions = [];
       this.currentRaceQuestionIndex = 0;
       this.raceLockedPlayers.clear();
-      // Reset all players
+
       this.state.players.forEach((player) => {
         player.isReady = false;
         player.isFinished = false;
         player.score = 0;
       });
-      // Broadcast to all clients so they can update their UI
       this.broadcast("returned_to_lobby");
     });
 
@@ -109,6 +136,14 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       if (player) {
         player.isFinished = true;
       }
+
+      // In Bot match, auto-finish bot when human finishes or timer expires
+      if (this.isBotMatch) {
+        const botPlayer = this.state.players.get(this.botSessionId);
+        if (botPlayer) botPlayer.isFinished = true;
+        this.clearBotTimers();
+      }
+
       const players = Array.from(this.state.players.values());
       console.log(`Player ${client.sessionId} finished round. (${players.filter(p => p.isFinished).length}/${players.length})`);
       if (players.length === 2 && players.every(p => p.isFinished)) {
@@ -146,7 +181,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
       if (isSkip) {
         this.raceLockedPlayers.add(client.sessionId);
-        this.broadcast("race_wrong", { playerId: client.sessionId, penalty: 0 }); // broadcast to let both players see the lock status
+        this.broadcast("race_wrong", { playerId: client.sessionId, penalty: 0 });
         
         if (this.raceLockedPlayers.size === this.state.players.size) {
           this.nextRaceQuestion();
@@ -158,8 +193,8 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
       if (normalizedAnswer === normalizedTarget) {
         if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
+        if (this.botRaceTimeout) clearTimeout(this.botRaceTimeout);
         
-        // First correct = 500, Second correct = 250
         const points = this.raceLockedPlayers.size === 0 ? 500 : 250;
         player.score += points;
         
@@ -203,6 +238,13 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       if (player) {
         player.isReady = true;
       }
+
+      // In Bot match, bot automatically readies up
+      if (this.isBotMatch) {
+        const botPlayer = this.state.players.get(this.botSessionId);
+        if (botPlayer) botPlayer.isReady = true;
+      }
+
       const players = Array.from(this.state.players.values());
       console.log(`Player ${client.sessionId} ready for next round. (${players.filter(p => p.isReady).length}/${players.length})`);
       if (players.length === 2 && players.every(p => p.isReady)) {
@@ -212,16 +254,19 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         const targetRound = message?.round || (this.state.currentRound + 1);
         this.state.currentRound = targetRound;
 
-        if (targetRound === 4) {
+        if (targetRound <= 3) {
+          if (this.isBotMatch) {
+            this.startBotGameplaySimulation();
+          }
+          this.broadcast("start_next_round", { round: targetRound });
+        } else if (targetRound === 4) {
           // Fetch chaos-random questions
           let { data: ids } = await supabase.from('questions').select('id').eq('topic', 'chaos-random');
           if (!ids || ids.length < 5) {
-            // Fallback to any random questions if chaos-random has fewer than 5
             const res = await supabase.from('questions').select('id').limit(100);
             if (res.data && res.data.length >= 5) {
               ids = res.data;
             } else {
-              // Dynamically generate AI questions if DB has fewer than 5
               try {
                 const generated = await generateQuestions('chaos-random', 'medium', 5);
                 if (generated && generated.length > 0) {
@@ -242,7 +287,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
             }
           }
           if (ids && ids.length > 0) {
-            const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, 5); // 5 questions limit
+            const shuffled = [...ids].sort(() => Math.random() - 0.5).slice(0, 5);
             const pickedIds = shuffled.map(r => r.id);
             const { data: questions } = await supabase
               .from('questions')
@@ -253,7 +298,6 @@ export class MatchRoom extends Room<{ state: MatchState }> {
               this.raceQuestions = questions.sort(() => Math.random() - 0.5);
               this.currentRaceQuestionIndex = 0;
               this.broadcast("start_next_round", { round: 4 });
-              // Small delay to allow client to show UI before sending first question
               setTimeout(() => {
                 this.nextRaceQuestion();
               }, 3000);
@@ -263,8 +307,6 @@ export class MatchRoom extends Room<{ state: MatchState }> {
           } else {
             this.broadcast("start_next_round", { round: targetRound });
           }
-        } else {
-          this.broadcast("start_next_round", { round: targetRound });
         }
       }
     });
@@ -272,29 +314,142 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     console.log(`MatchRoom created: ${this.roomId}`);
   }
 
+  // ── AI Bot Mechanics ─────────────────────────────────────────────
+  private scheduleBotCoreSelection() {
+    if (!this.isBotMatch || !this.botProfile) return;
+
+    if (this.botSelectionTimeout) clearTimeout(this.botSelectionTimeout);
+
+    // Pick core after 2 to 4 seconds
+    const delay = Math.floor(Math.random() * 2000) + 2000;
+    this.botSelectionTimeout = setTimeout(() => {
+      const botPlayer = this.state.players.get(this.botSessionId);
+      if (botPlayer) {
+        const coreName = getRandomBotCoreName();
+        botPlayer.activeCoreId = coreName;
+        botPlayer.isReady = true;
+        console.log(`[MatchRoom ${this.roomId}] Bot selected core: ${coreName}`);
+      }
+    }, delay);
+  }
+
+  private startBotGameplaySimulation() {
+    if (!this.isBotMatch || !this.botProfile) return;
+    this.clearBotTimers();
+
+    const botPlayer = this.state.players.get(this.botSessionId);
+    if (!botPlayer) return;
+
+    botPlayer.isFinished = false;
+
+    // Periodically solve questions based on Bot WPM & Accuracy stats
+    this.botSimInterval = setInterval(() => {
+      if (this.state.status !== "playing" || botPlayer.isFinished) return;
+
+      const isCorrect = Math.random() < (this.botProfile?.accuracy || 0.85);
+
+      if (isCorrect) {
+        const pts = this.botProfile?.pointsPerSolve || 120;
+        botPlayer.score += pts;
+
+        // Broadcast random milestone occasionally for immersion
+        if (Math.random() < 0.25) {
+          this.broadcast("opponent_milestone", {
+            type: "combo",
+            message: `${botPlayer.name} is on a streak! 🔥`,
+            icon: "🔥",
+            color: "#f97316"
+          });
+        }
+      } else {
+        // Bot human-like mistake: deduct penalty and broadcast skip
+        const penalty = Math.floor(Math.random() * 30) + 30; // 30-60 pt penalty
+        botPlayer.score = Math.max(0, botPlayer.score - penalty);
+        this.broadcast("opponent_skip", {});
+      }
+    }, this.botProfile.solveIntervalMs);
+
+    // End bot round after 60 seconds
+    setTimeout(() => {
+      if (botPlayer) botPlayer.isFinished = true;
+    }, 60000);
+  }
+
+  private simulateBotRaceAnswer() {
+    if (!this.isBotMatch || !this.botProfile || this.state.currentRound !== 4) return;
+    if (this.raceLockedPlayers.has(this.botSessionId)) return;
+
+    if (this.botRaceTimeout) clearTimeout(this.botRaceTimeout);
+
+    // 1.5s to 3.5s delay based on WPM
+    const delay = Math.floor(Math.random() * 2000) + 1500;
+
+    this.botRaceTimeout = setTimeout(() => {
+      if (this.state.currentRound !== 4 || !this.state.currentRaceQuestion.id) return;
+      if (this.raceLockedPlayers.has(this.botSessionId)) return;
+
+      const botPlayer = this.state.players.get(this.botSessionId);
+      if (!botPlayer) return;
+
+      const isCorrect = Math.random() < (this.botProfile?.accuracy || 0.85);
+
+      if (isCorrect) {
+        if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
+
+        const points = this.raceLockedPlayers.size === 0 ? 500 : 250;
+        botPlayer.score += points;
+
+        this.broadcast("race_won", { winnerId: this.botSessionId, points });
+        this.nextRaceQuestion();
+      } else {
+        const penalty = 200;
+        botPlayer.score = Math.max(0, botPlayer.score - penalty);
+
+        this.raceLockedPlayers.add(this.botSessionId);
+        this.broadcast("race_wrong", { playerId: this.botSessionId, penalty });
+
+        if (this.raceLockedPlayers.size === this.state.players.size) {
+          this.nextRaceQuestion();
+        }
+      }
+    }, delay);
+  }
+
+  private clearBotTimers() {
+    if (this.botSimInterval) {
+      clearInterval(this.botSimInterval);
+      this.botSimInterval = null;
+    }
+    if (this.botSelectionTimeout) {
+      clearTimeout(this.botSelectionTimeout);
+      this.botSelectionTimeout = null;
+    }
+    if (this.botRaceTimeout) {
+      clearTimeout(this.botRaceTimeout);
+      this.botRaceTimeout = null;
+    }
+  }
+
   private nextRaceQuestion() {
     if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);
+    if (this.botRaceTimeout) clearTimeout(this.botRaceTimeout);
     this.raceLockedPlayers.clear();
 
     if (this.currentRaceQuestionIndex >= this.raceQuestions.length) {
-      // Out of questions, maybe end the round?
       this.broadcast("start_recap_countdown");
       return;
     }
 
     const q = this.raceQuestions[this.currentRaceQuestionIndex++];
     
-    // Mask question
     this.state.currentRaceQuestion.id = q.id;
     this.state.currentRaceQuestion.question_text = q.question_text;
     this.state.currentRaceQuestion.target_length = q.target_word ? q.target_word.length : 0;
     
     const hints = generateOracleHints(q.target_word || "");
-    // ArraySchema requires length assignment or push
     this.state.currentRaceQuestion.oracle_hints.clear();
     hints.forEach(h => this.state.currentRaceQuestion.oracle_hints.push(h));
 
-    // Also broadcast it directly so clients can listen easily
     this.broadcast("next_race_question", {
       id: q.id,
       question_text: q.question_text,
@@ -304,7 +459,10 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       hint: q.hint
     });
 
-    // 12 seconds timer
+    if (this.isBotMatch) {
+      this.simulateBotRaceAnswer();
+    }
+
     this.raceQuestionTimer = setTimeout(() => {
       this.broadcast("race_timeout");
       this.nextRaceQuestion();
@@ -337,7 +495,6 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         throw new Error("Session expired due to login elsewhere");
       }
 
-      // Auto-abandon any stuck previous sessions
       const { data: activeSessions } = await supabase
         .from('game_sessions')
         .select('id')
@@ -389,8 +546,9 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         console.log(`[MatchRoom ${this.roomId}] 2 players joined! Auto-starting match...`);
         this.state.status = "starting";
         this.broadcast("match_started");
-      } else {
-        console.log(`[MatchRoom ${this.roomId}] 2 players joined custom room. Waiting for host to start...`);
+        if (this.isBotMatch) {
+          this.scheduleBotCoreSelection();
+        }
       }
     }
   }
@@ -407,7 +565,6 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     this.state.players.delete(client.sessionId);
 
     if (isMatchActive) {
-      // Immediate forfeit, no reconnection allowed per new requirement
       console.log(`[MatchRoom] Client ${client.sessionId} left during active match. Forfeiting.`);
       this.broadcast("room_terminated", { reason: "player_left", disconnectedSessionId: client.sessionId }, { except: client });
       this.broadcast("opponent_forfeit", { disconnectedSessionId: client.sessionId }, { except: client });
@@ -416,6 +573,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
   onDispose() {
     console.log(`MatchRoom disposed: ${this.roomId}`);
+    this.clearBotTimers();
     if (this.raceQuestionTimer) {
       clearTimeout(this.raceQuestionTimer);
       this.raceQuestionTimer = null;
