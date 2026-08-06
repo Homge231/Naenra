@@ -15,9 +15,16 @@
       <div class="power-glow"></div>
     </div>
 
-    <!-- High Roller Core Family VFX: Golden neon sparkles -->
-    <div v-if="family === 'high-roller'" class="vfx-wrapper high-roller-stars">
-      <span v-for="n in 6" :key="'star-'+n" class="star" :class="'st' + n">✦</span>
+    <!-- High Roller Core Family VFX: Gambler & Cowboy style (card suits and sheriff stars) -->
+    <div v-if="family === 'high-roller'" class="vfx-wrapper high-roller-gambler">
+      <span class="gambler-item spade st1">♠</span>
+      <span class="gambler-item heart st2">♥</span>
+      <span class="gambler-item diamond st3">♦</span>
+      <span class="gambler-item club st4">♣</span>
+      <span class="gambler-item badge st5">⭐</span>
+      <span class="gambler-item badge st6">⭐</span>
+      <!-- Dust storm/Sunset glow overlay -->
+      <div class="desert-sunset"></div>
     </div>
 
     <!-- Balanced Core Family VFX: Zen radial gradient pulse -->
@@ -124,26 +131,52 @@ const family = computed(() => {
   50% { box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.18); }
 }
 
-/* --- High Roller Stars VFX --- */
-.star {
+/* --- High Roller Gambler & Cowboy VFX --- */
+.gambler-item {
   position: absolute;
-  color: rgba(250, 204, 21, 0.85);
-  font-size: 14px;
-  text-shadow: 0 0 6px rgba(250, 204, 21, 0.8);
-  animation: starTwinkle 2.5s ease-in-out infinite;
+  font-size: 16px;
+  animation: gamblerDrift 4s ease-in-out infinite;
   opacity: 0;
+  user-select: none;
 }
 
-.st1 { top: 15%; left: 8%; animation-delay: 0s; }
-.st2 { top: 25%; right: 10%; animation-delay: 0.4s; }
-.st3 { bottom: 20%; left: 12%; animation-delay: 0.8s; }
-.st4 { bottom: 15%; right: 14%; animation-delay: 1.2s; }
-.st5 { top: 75%; left: 4%; animation-delay: 0.2s; }
-.st6 { top: 45%; right: 6%; animation-delay: 1.5s; }
+.spade { color: rgba(139, 92, 246, 0.75); text-shadow: 0 0 8px rgba(139, 92, 246, 0.6); }
+.heart { color: rgba(239, 68, 68, 0.75); text-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
+.diamond { color: rgba(245, 158, 11, 0.75); text-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
+.club { color: rgba(59, 130, 246, 0.75); text-shadow: 0 0 8px rgba(59, 130, 246, 0.6); }
+.badge { 
+  color: rgba(250, 204, 21, 0.95); 
+  font-size: 18px; 
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.85);
+  animation: badgeSpin 5s linear infinite; 
+}
 
-@keyframes starTwinkle {
-  0%, 100% { opacity: 0; transform: scale(0.6) rotate(0deg); }
-  50% { opacity: 0.7; transform: scale(1.1) rotate(180deg); }
+.st1 { top: 12%; left: 8%; animation-delay: 0s; }
+.st2 { top: 22%; right: 10%; animation-delay: 0.8s; }
+.st3 { bottom: 18%; left: 15%; animation-delay: 1.6s; }
+.st4 { bottom: 14%; right: 12%; animation-delay: 2.4s; }
+.st5 { top: 75%; left: 6%; animation-delay: 0.4s; }
+.st6 { top: 40%; right: 8%; animation-delay: 1.2s; }
+
+@keyframes gamblerDrift {
+  0% { opacity: 0; transform: translateY(10px) rotate(0deg) scale(0.8); }
+  35% { opacity: 0.8; }
+  75% { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-20px) rotate(360deg) scale(1.1); }
+}
+
+@keyframes badgeSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.desert-sunset {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.04) 0%, transparent 60%),
+              radial-gradient(circle at bottom left, rgba(239, 68, 68, 0.04) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
 }
 
 /* --- Balanced Zen VFX --- */
