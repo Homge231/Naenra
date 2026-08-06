@@ -237,6 +237,9 @@
       <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
         :playing="gameState === 'playing'" />
 
+      <!-- Active Core UI VFX Micro-animations -->
+      <CoreVfxOverlay :activeCoreName="activeCoreNameDynamic" :playing="gameState === 'playing'" />
+
       <section class="w-full max-w-4xl flex flex-col gap-10" style="perspective: 1500px;">
 
         <div v-if="gameState === 'loading'" class="w-full flex flex-col gap-10">
@@ -546,6 +549,7 @@ import PhaserBackground from '../components/game/PhaserBackground.vue'
 import Avatar from '../components/Avatar.vue'
 import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
 import PandoraOverlay from '../components/game/PandoraOverlay.vue'
+import CoreVfxOverlay from '../components/game/CoreVfxOverlay.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import CoreUnlockCelebrationModal, { type UnlockedCoreDetail } from '../components/CoreUnlockCelebrationModal.vue'
 import { useTutorial } from '../composables/useTutorial'

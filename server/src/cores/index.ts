@@ -26,23 +26,23 @@ import { HighRollerStrategy } from './HighRollerStrategy'
 // Key = lowercase core name as stored in the DB `cores.name` column.
 
 const CORE_REGISTRY: Record<string, BaseCore> = {
-  // Phoenix Branch (Accumulated Debt Rebirth Mechanic)
+  // Phoenix Branch (Accumulated Debt Rebirth Mechanic) - Nerfed due to low risk
   'phoenix': new PhoenixCoreStrategy('phoenix', 0, 0, 0, 0, 0),
-  'phoenix flame': new PhoenixCoreStrategy('phoenix flame', 0.20, 0, 0, 0, 25),
-  'rebirth': new PhoenixCoreStrategy('rebirth', 0, 1, 0, 0, 40),
-  'ashes to ashes': new PhoenixCoreStrategy('ashes to ashes', 0, 0, 0.3, 2.0, 0),
-  'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 0.40, 0, 0, 0, 80),
-  'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 0.20, 2, 0, 0, 80),
-  'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 0.20, 0, 0.6, 3.0, 50),
+  'phoenix flame': new PhoenixCoreStrategy('phoenix flame', 0.10, 0, 0, 0, 15),
+  'rebirth': new PhoenixCoreStrategy('rebirth', 0, 1, 0, 0, 20),
+  'ashes to ashes': new PhoenixCoreStrategy('ashes to ashes', 0, 0, 0.15, 1.6, 0),
+  'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 0.20, 0, 0, 0, 40),
+  'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 0.10, 2, 0, 0, 40),
+  'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 0.10, 0, 0.30, 2.2, 30),
 
-  // High Roller Branch
-  'high roller': new HighRollerStrategy('high roller', 0.5, 2, 0.5),
-  'jackpot': new HighRollerStrategy('jackpot', 0.3, 3, 0.5),
+  // High Roller Branch - Buffed to reward high risk
+  'high roller': new HighRollerStrategy('high roller', 0.5, 2.2, 0.5),
+  'jackpot': new HighRollerStrategy('jackpot', 0.3, 3.5, 0.5),
   'safe bet': new HighRollerStrategy('safe bet', 0.8, 1.5, 0.5),
-  'double or nothing': new HighRollerStrategy('double or nothing', 0.5, 2, 0),
-  'all in': new HighRollerStrategy('all in', 0.1, 10, 0.1),
-  'house advantage': new HighRollerStrategy('house advantage', 0.7, 2, 0.5),
-  'russian roulette': new HighRollerStrategy('russian roulette', 1/6, 12, 0),
+  'double or nothing': new HighRollerStrategy('double or nothing', 0.5, 2.4, 0),
+  'all in': new HighRollerStrategy('all in', 0.1, 12.0, 0.1),
+  'house advantage': new HighRollerStrategy('house advantage', 0.7, 2.2, 0.5),
+  'russian roulette': new HighRollerStrategy('russian roulette', 1/6, 15.0, 0),
   // Balanced Branch
   'balance': new BalancedCoreStrategy('balance'),
   'balanced core': new BalancedCoreStrategy('balanced core'),

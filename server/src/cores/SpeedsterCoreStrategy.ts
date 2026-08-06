@@ -91,8 +91,8 @@ export class SpeedsterCoreStrategy extends BaseCore {
     if (this.coreName === 'sonic boom') {
       const isCorrect = typeof ctx.wrongPenalty === 'number' && ctx.wrongPenalty > 0 ? false : true;
       if (isCorrect) {
-        // Bonus is 5s * combo, max +30s
-        timerDelta = Math.min(ctx.combo * 5000, 30000)
+        // Bonus is 1s * combo, max +5s
+        timerDelta = Math.min(ctx.combo * 1000, 5000)
       } else {
         // Penalty is fixed -5s
         timerDelta = -5000
