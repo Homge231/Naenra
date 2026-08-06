@@ -5,17 +5,22 @@
       <div class="fire-glow"></div>
     </div>
 
-    <!-- Aegis Core Family: Defensive Dome & Guard Plates (Protector Style) -->
-    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-protector">
-      <div class="shield-dome"></div>
-      <div class="guard-plate left"></div>
-      <div class="guard-plate right"></div>
+    <!-- Aegis Core Family: Magical Runic Protection (Algiz shield rune) -->
+    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-runic">
+      <span class="shield-rune top-left">ᛉ</span>
+      <span class="shield-rune top-right">ᛉ</span>
+      <span class="shield-rune bottom-left">ᛉ</span>
+      <span class="shield-rune bottom-right">ᛉ</span>
+      <div class="runic-shield-glow"></div>
     </div>
 
-    <!-- Power Core Family: Blazing Energy Aura & Overload Vibration (Strong Style) -->
-    <div v-if="family === 'power'" class="vfx-wrapper power-strong">
-      <div class="blazing-aura"></div>
-      <div class="heavy-braces"></div>
+    <!-- Power Core Family: Volcanic Might & Strength Rune (Uruz strength rune) -->
+    <div v-if="family === 'power'" class="vfx-wrapper power-runic">
+      <span class="strength-rune top-left">ᚢ</span>
+      <span class="strength-rune top-right">ᚢ</span>
+      <span class="strength-rune bottom-left">ᚢ</span>
+      <span class="strength-rune bottom-right">ᚢ</span>
+      <div class="magma-glow"></div>
     </div>
 
     <!-- High Roller Core Family: Casino Gold Card Corners & Flashing Marquee -->
@@ -90,90 +95,78 @@ const family = computed(() => {
   100% { box-shadow: inset 0 0 45px rgba(239, 68, 68, 0.28); filter: contrast(1.08); }
 }
 
-/* --- Aegis Protector VFX --- */
-.aegis-protector {
+/* --- Aegis Runic Protection VFX --- */
+.aegis-runic {
   position: absolute;
   inset: 0;
   border-radius: inherit;
 }
-.shield-dome {
+.shield-rune {
   position: absolute;
-  inset: 10px;
-  border: 3px solid rgba(59, 130, 246, 0.35);
-  border-radius: 20px;
-  background: radial-gradient(circle, transparent 65%, rgba(59, 130, 246, 0.06) 100%);
-  box-shadow: 0 0 25px rgba(59, 130, 246, 0.25), inset 0 0 20px rgba(59, 130, 246, 0.15);
-  animation: domePulse 3s ease-in-out infinite alternate;
+  font-size: 28px;
+  color: #93c5fd;
+  text-shadow: 0 0 10px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.6);
+  animation: runeGlow 2.5s ease-in-out infinite alternate;
+  user-select: none;
+  font-weight: bold;
 }
-.guard-plate {
+.shield-rune.top-left { top: 12px; left: 16px; }
+.shield-rune.top-right { top: 12px; right: 16px; }
+.shield-rune.bottom-left { bottom: 12px; left: 16px; }
+.shield-rune.bottom-right { bottom: 12px; right: 16px; }
+
+.runic-shield-glow {
   position: absolute;
-  top: 15%;
-  height: 70%;
-  width: 6px;
-  background: #3b82f6;
-  border-radius: 9999px;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
-  animation: guardPulse 3s ease-in-out infinite alternate;
-}
-.guard-plate.left { left: 4px; border-radius: 0 9999px 9999px 0; }
-.guard-plate.right { right: 4px; border-radius: 9999px 0 0 9999px; }
-
-@keyframes domePulse {
-  0% { transform: scale(0.99); opacity: 0.7; box-shadow: 0 0 15px rgba(59, 130, 246, 0.15), inset 0 0 15px rgba(59, 130, 246, 0.1); }
-  100% { transform: scale(1.01); opacity: 1; box-shadow: 0 0 35px rgba(59, 130, 246, 0.35), inset 0 0 30px rgba(59, 130, 246, 0.25); }
+  inset: 0;
+  border: 2px solid rgba(59, 130, 246, 0.25);
+  border-radius: inherit;
+  box-shadow: inset 0 0 25px rgba(59, 130, 246, 0.15);
+  animation: simplePulse 3s ease-in-out infinite alternate;
 }
 
-@keyframes guardPulse {
-  0% { transform: scaleY(0.95); opacity: 0.6; }
-  100% { transform: scaleY(1.05); opacity: 1; }
+@keyframes runeGlow {
+  0% { opacity: 0.5; filter: brightness(0.9); }
+  100% { opacity: 1; filter: brightness(1.3); }
 }
 
-/* --- Power Strong VFX --- */
-.power-strong {
+@keyframes simplePulse {
+  0% { opacity: 0.6; box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.1); }
+  100% { opacity: 1; box-shadow: inset 0 0 35px rgba(59, 130, 246, 0.25); }
+}
+
+/* --- Power Volcanic Might VFX --- */
+.power-runic {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  animation: boardVibrate 0.25s linear infinite;
 }
-.blazing-aura {
+.strength-rune {
+  position: absolute;
+  font-size: 28px;
+  color: #fdba74;
+  text-shadow: 0 0 12px #f97316, 0 0 24px rgba(239, 68, 68, 0.8);
+  animation: runeGlow 2s ease-in-out infinite alternate;
+  user-select: none;
+  font-weight: bold;
+}
+.strength-rune.top-left { top: 12px; left: 16px; }
+.strength-rune.top-right { top: 12px; right: 16px; }
+.strength-rune.bottom-left { bottom: 12px; left: 16px; }
+.strength-rune.bottom-right { bottom: 12px; right: 16px; }
+
+.magma-glow {
   position: absolute;
   inset: 0;
-  border: 4px solid rgba(239, 68, 68, 0.3);
+  border: 2px solid rgba(239, 68, 68, 0.3);
   border-radius: inherit;
-  box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.2);
-  background: radial-gradient(circle, transparent 60%, rgba(239, 68, 68, 0.12) 100%);
-  animation: energyBlaze 2s ease-in-out infinite alternate;
-}
-.heavy-braces {
-  position: absolute;
-  inset: 6px;
-  border: 3px double #ef4444;
-  border-radius: inherit;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
-  animation: braceFlicker 1s steps(2) infinite;
+  box-shadow: inset 0 0 30px rgba(249, 115, 22, 0.18);
+  background: radial-gradient(circle, transparent 65%, rgba(239, 68, 68, 0.08) 100%);
+  animation: magmaPulse 2.5s ease-in-out infinite alternate;
 }
 
-@keyframes energyBlaze {
-  0% { 
-    box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.15), 0 0 15px rgba(239, 68, 68, 0.3); 
-    border-color: rgba(239, 68, 68, 0.3);
-  }
-  100% { 
-    box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.35), 0 0 30px rgba(239, 68, 68, 0.6); 
-    border-color: rgba(239, 68, 68, 0.6);
-  }
-}
-
-@keyframes braceFlicker {
-  0%, 100% { opacity: 0.9; }
-  50% { opacity: 0.65; }
-}
-
-@keyframes boardVibrate {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(0.5px, -0.5px); }
-  50% { transform: translate(-0.5px, 0.5px); }
-  75% { transform: translate(0.5px, 0.5px); }
+@keyframes magmaPulse {
+  0% { opacity: 0.6; box-shadow: inset 0 0 20px rgba(249, 115, 22, 0.12); }
+  100% { opacity: 1; box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.3); }
 }
 
 /* --- High Roller Marquee VFX --- */
