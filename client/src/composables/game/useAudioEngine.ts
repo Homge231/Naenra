@@ -80,27 +80,40 @@ function getNoiseBuffer(): AudioBuffer | null {
 
 // ── 1. General & Keystroke SFX ──────────────────────────────────────────
 
-export function playKeystroke(speedsterActive = false, rate = 1.0) {
+export function playKeystroke(speedsterActive = false, rate = 1.0, powerActive = false) {
   if (!audioCtx || !masterGainNode) {
-    // console.warn('[AudioEngine] playKeystroke aborted: missing audioCtx');
     return;
   }
   
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   
-  osc.type = speedsterActive ? 'square' : 'sine';
-  osc.frequency.setValueAtTime(speedsterActive ? 800 * rate : 600 * rate, audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1); // Increased duration
-
-  gain.gain.setValueAtTime(0.6, audioCtx.currentTime); // Louder
-  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+  if (powerActive) {
+    // Heavy, aggressive energy crackle for Power core keystrokes
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(350 * rate, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+  } else if (speedsterActive) {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(800 * rate, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+  } else {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600 * rate, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+  }
 
   osc.connect(gain);
   gain.connect(masterGainNode);
   
   osc.start();
-  osc.stop(audioCtx.currentTime + 0.1);
+  osc.stop(audioCtx.currentTime + 0.15);
 }
 
 // ── 2. Speedster SFX ────────────────────────────────────────────────────
@@ -377,6 +390,40 @@ export function playOracleHint() {
   gain.connect(masterGainNode);
   osc.start();
   osc.stop(audioCtx.currentTime + 0.1);
+}
+
+export function playPhoenixRebirth() {
+  if (!audioCtx || !masterGainNode) return;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  const noiseSource = audioCtx.createBufferSource();
+  const noiseBuffer = getNoiseBuffer();
+  if (noiseBuffer) noiseSource.buffer = noiseBuffer;
+
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(1800, audioCtx.currentTime + 0.6); // Rising swoop
+
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.6);
+
+  osc.connect(gain);
+  if (noiseSource.buffer) {
+    noiseSource.connect(filter);
+    filter.connect(gain);
+    noiseSource.start();
+    noiseSource.stop(audioCtx.currentTime + 0.6);
+  }
+  
+  gain.connect(masterGainNode);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.6);
 }
 
 // Removed Core Algorithmic BGM Layer as we now use actual MP3 files.

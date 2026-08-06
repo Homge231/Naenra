@@ -4,7 +4,7 @@
     :class="{
       'exodia-shake': showMissionCelebration && isExodia
     }" @click="refocusInput">
-    <PhaserBackground :vfx-enabled="settingsStore.vfxEnabled" :image-url="currentBgImage"
+    <PhaserBackground :vfx-enabled="settingsStore.vfxEnabled" :image-url="currentBgImage" :active-core-name="activeCoreNameDynamic"
       class="transition-opacity duration-500 ease-in-out"
       :class="{ 'opacity-0': isBgFading, 'opacity-100': !isBgFading }" />
 
@@ -366,7 +366,13 @@
 
                 <div
                   class="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300 transform-gpu"
-                  :class="{ 'burning-edge-active': isBurningComboActive }">
+                  :class="{
+                    'burning-edge-active': isBurningComboActive,
+                    'shake-error': isTypingError,
+                    'combo-fire-5': currentCombo >= 5 && currentCombo < 10,
+                    'combo-fire-10': currentCombo >= 10 && currentCombo < 15,
+                    'combo-fire-15': currentCombo >= 15
+                  }">
                   <p class="text-xl md:text-3xl font-medium text-gray-200 leading-relaxed max-w-3xl">
                     <span v-if="currentQuestion?.question_text?.split(/_+/)[0]">
                       {{ currentQuestion.question_text?.split(/_+/)[0] }}
@@ -768,7 +774,8 @@ import {
   playSpeedWhoosh,
   playPandoraWarp,
   playPandoraTransform,
-  playOracleHint
+  playOracleHint,
+  playPhoenixRebirth
 } from '../composables/game/useAudioEngine'
 import {
   getCoreModule,
@@ -778,7 +785,8 @@ import {
   isMissionCore as checkMissionCore,
   isAegisCore as checkAegisCore,
   isPandoraCore as checkPandoraCore,
-  getMaxShields as checkMaxShields
+  getMaxShields as checkMaxShields,
+  isPowerCore as checkPowerCore
 } from '../game/cores/registry'
 import { useSettingsStore } from '../stores/settingsStore'
 
@@ -1184,6 +1192,13 @@ const isMissionCore = computed(() => {
   if (checkMissionCore(name)) return true
   return gameStore.coreHistory.some(c => checkMissionCore(c.name))
 })
+const isPowerCore = computed(() => {
+  const name = getActiveName()
+  if (checkPowerCore(name)) return true
+  return gameStore.coreHistory.some(c => checkPowerCore(c.name))
+})
+const isTypingError = ref(false)
+
 const isTimeWarp = computed(() => {
   const name = getActiveName()
   if (name === 'time warp') return true
@@ -1651,7 +1666,7 @@ function handleKeydown(e: KeyboardEvent) {
     if (matchStore.currentRound === 4 && currentRoom) {
       currentRoom.send('player_typing', { text: typedLetters.value.join('') })
     }
-    playKeystroke(isSpeedsterCore.value, 0.8) // slightly lower pitch for backspace
+    playKeystroke(isSpeedsterCore.value, 0.8, isPowerCore.value) // slightly lower pitch for backspace
     return
   }
 
@@ -1666,7 +1681,7 @@ function handleKeydown(e: KeyboardEvent) {
     }
 
     // Play keystroke sound
-    playKeystroke(isSpeedsterCore.value, isSpeedsterCore.value ? 1.15 : 1.0)
+    playKeystroke(isSpeedsterCore.value, isSpeedsterCore.value ? 1.15 : 1.0, isPowerCore.value)
 
     if (matchStore.currentRound !== 4 && typedLetters.value.length === maxLen) checkAnswer()
   }
@@ -1801,6 +1816,13 @@ async function checkAnswer() {
       if (res.ok) {
         const data = await res.json()
 
+        if (!data.correct) {
+          isTypingError.value = true
+          setTimeout(() => {
+            isTypingError.value = false
+          }, 300)
+        }
+
         if (data.lock_input_ms) {
           lockInputMs = data.lock_input_ms
         }
@@ -1849,6 +1871,7 @@ async function checkAnswer() {
           // If Phoenix rebirth happened, the points popup already covers it — show REBIRTH! instead
           if (data.breakdown?.phoenix_miss_count > 0) {
             spawnPointPopup(0, 'custom', '🔥 REBIRTH!')
+            playPhoenixRebirth()
           } else {
             const shieldLabel = data.shield_delta >= 2 ? `+${data.shield_delta} SHIELDS!` : '+1 SHIELD!'
             spawnPointPopup(0, 'custom', shieldLabel)

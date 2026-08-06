@@ -14,7 +14,11 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch } from 'vue'
 
-
+const props = defineProps<{
+  imageUrl: string
+  vfxEnabled?: boolean
+  activeCoreName?: string | null
+}>()
 
 let phaserGame: import('phaser').Game | null = null
 let cancelled = false
@@ -24,32 +28,72 @@ const initPhaser = async () => {
   if (cancelled) return
 
   class MagicScene extends Phaser.Scene {
+    emitter: any = null
     constructor() {
       super('MagicScene')
     }
 
     create() {
       const g = this.add.graphics()
-      g.fillStyle(0xffeeba, 1)
+      g.fillStyle(0xffffff, 1) // Pure white for perfect tinting
       g.fillCircle(4, 4, 4)
       g.generateTexture('dust-mote', 8, 8)
       g.destroy()
 
+      this.updateEmitterConfig(props.activeCoreName)
+    }
+
+    updateEmitterConfig(coreName: string | null | undefined) {
+      if (this.emitter) {
+        this.emitter.destroy()
+        this.emitter = null
+      }
+
       const width = this.scale.width
       const height = this.scale.height
+      const name = coreName?.toLowerCase() || ''
 
-      this.add.particles(0, 0, 'dust-mote', {
+      const config: any = {
         x: { min: 0, max: width },
         y: { min: 0, max: height },
         lifespan: { min: 5000, max: 10000 },
-        speedX: { min: -10, max: 20 },
-        speedY: { min: -10, max: 20 },
         scale: { min: 0.1, max: 0.4 },
         alpha: { start: 0.6, end: 0 },
         quantity: 1,
-        frequency: 150,
         blendMode: 'SCREEN'
-      })
+      }
+
+      if (name.includes('phoenix') || name === 'rebirth' || name === 'ashes to ashes') {
+        // Phoenix Core: Fire sparks floating upwards rapidly
+        config.tint = 0xff5500
+        config.speedX = { min: -30, max: 30 }
+        config.speedY = { min: -120, max: -40 }
+        config.frequency = 60
+        config.scale = { min: 0.15, max: 0.55 }
+      } else if (name.includes('aegis') || name.includes('shield') || name === 'bastion of light' || name === 'indomitable') {
+        // Aegis Core: Shield blue defensive matrix drifting slowly
+        config.tint = 0x3b82f6
+        config.speedX = { min: -40, max: 40 }
+        config.speedY = { min: -40, max: 40 }
+        config.frequency = 90
+        config.scale = { min: 0.2, max: 0.6 }
+      } else if (name.includes('roller') || name === 'jackpot' || name === 'safe bet' || name.includes('nothing') || name === 'all in' || name === 'russian roulette' || name === 'house advantage') {
+        // High Roller: Golden sparkles falling downwards
+        config.tint = 0xfcbf24
+        config.speedX = { min: -15, max: 15 }
+        config.speedY = { min: 40, max: 150 }
+        config.frequency = 80
+        config.scale = { min: 0.15, max: 0.5 }
+      } else {
+        // Default gold-tinted dust motes
+        config.tint = 0xffeeba
+        config.speedX = { min: -10, max: 20 }
+        config.speedY = { min: -10, max: 20 }
+        config.frequency = 150
+        config.scale = { min: 0.1, max: 0.4 }
+      }
+
+      this.emitter = this.add.particles(0, 0, 'dust-mote', config)
     }
   }
 
@@ -68,14 +112,8 @@ const initPhaser = async () => {
   phaserGame = new Phaser.Game(config)
 }
 
-const props = defineProps<{
-  imageUrl: string
-  vfxEnabled?: boolean
-}>()
-
 watch(() => props.vfxEnabled, (newVal) => {
   if (phaserGame && phaserGame.scene) {
-    // If scene is not ready yet, this might fail, but it's safe if we catch or check.
     const scene = phaserGame.scene.getScene('MagicScene')
     if (scene) {
       if (newVal === false) {
@@ -87,9 +125,17 @@ watch(() => props.vfxEnabled, (newVal) => {
   }
 })
 
+watch(() => props.activeCoreName, (newVal) => {
+  if (phaserGame && phaserGame.scene) {
+    const scene = phaserGame.scene.getScene('MagicScene') as any
+    if (scene && typeof scene.updateEmitterConfig === 'function') {
+      scene.updateEmitterConfig(newVal)
+    }
+  }
+})
+
 onMounted(() => {
   initPhaser().then(() => {
-    // Apply initial state if vfx is off initially
     if (props.vfxEnabled === false && phaserGame && phaserGame.scene) {
       const scene = phaserGame.scene.getScene('MagicScene')
       if (scene) scene.scene.pause()
