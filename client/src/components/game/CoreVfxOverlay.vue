@@ -5,13 +5,11 @@
       <div class="fire-glow"></div>
     </div>
 
-    <!-- Aegis Core Family: Magical Runic Protection (Algiz shield rune) -->
-    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-runic">
-      <span class="shield-rune top-left">ᛉ</span>
-      <span class="shield-rune top-right">ᛉ</span>
-      <span class="shield-rune bottom-left">ᛉ</span>
-      <span class="shield-rune bottom-right">ᛉ</span>
-      <div class="runic-shield-glow"></div>
+    <!-- Aegis Core Family: Rotating Ancient Ward Crests & Side Barriers (Distinct Protective Style) -->
+    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-magical">
+      <span class="ward-crest left">❂</span>
+      <span class="ward-crest right">❂</span>
+      <div class="ward-barrier"></div>
     </div>
 
     <!-- Power Core Family: Volcanic Might & Strength Rune (Uruz strength rune) -->
@@ -95,43 +93,42 @@ const family = computed(() => {
   100% { box-shadow: inset 0 0 45px rgba(239, 68, 68, 0.28); filter: contrast(1.08); }
 }
 
-/* --- Aegis Runic Protection VFX --- */
-.aegis-runic {
+/* --- Aegis Magical Shield Wards --- */
+.aegis-magical {
   position: absolute;
   inset: 0;
   border-radius: inherit;
 }
-.shield-rune {
+.ward-crest {
   position: absolute;
-  font-size: 28px;
-  color: #93c5fd;
-  text-shadow: 0 0 10px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.6);
-  animation: runeGlow 2.5s ease-in-out infinite alternate;
+  top: 40%;
+  font-size: 32px;
+  color: #60a5fa;
+  text-shadow: 0 0 12px #3b82f6, 0 0 25px rgba(59, 130, 246, 0.6);
+  animation: crestSpin 12s linear infinite;
   user-select: none;
-  font-weight: bold;
 }
-.shield-rune.top-left { top: 12px; left: 16px; }
-.shield-rune.top-right { top: 12px; right: 16px; }
-.shield-rune.bottom-left { bottom: 12px; left: 16px; }
-.shield-rune.bottom-right { bottom: 12px; right: 16px; }
+.ward-crest.left { left: -16px; }
+.ward-crest.right { right: -16px; }
 
-.runic-shield-glow {
+.ward-barrier {
   position: absolute;
-  inset: 0;
-  border: 2px solid rgba(59, 130, 246, 0.25);
-  border-radius: inherit;
-  box-shadow: inset 0 0 25px rgba(59, 130, 246, 0.15);
-  animation: simplePulse 3s ease-in-out infinite alternate;
+  inset: 8px;
+  border-left: 3px solid rgba(96, 165, 250, 0.35);
+  border-right: 3px solid rgba(96, 165, 250, 0.35);
+  border-radius: 12px;
+  box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.1);
+  animation: barrierPulse 3s ease-in-out infinite alternate;
 }
 
-@keyframes runeGlow {
-  0% { opacity: 0.5; filter: brightness(0.9); }
-  100% { opacity: 1; filter: brightness(1.3); }
+@keyframes crestSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-@keyframes simplePulse {
-  0% { opacity: 0.6; box-shadow: inset 0 0 15px rgba(59, 130, 246, 0.1); }
-  100% { opacity: 1; box-shadow: inset 0 0 35px rgba(59, 130, 246, 0.25); }
+@keyframes barrierPulse {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
 }
 
 /* --- Power Volcanic Might VFX --- */
