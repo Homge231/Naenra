@@ -1,42 +1,35 @@
 <template>
   <div v-if="playing && settingsStore.vfxEnabled" class="core-vfx-container pointer-events-none">
-    <!-- Phoenix Core Family VFX: Floating orange/red fire embers -->
-    <div v-if="family === 'phoenix'" class="vfx-wrapper phoenix-embers">
-      <span v-for="n in 8" :key="'ember-'+n" class="ember" :class="'eb' + n"></span>
+    <!-- Phoenix Core Family: Fire Vignette & Heat Pulse (No floating particles) -->
+    <div v-if="family === 'phoenix'" class="vfx-wrapper phoenix-vignette">
+      <div class="fire-glow"></div>
     </div>
 
-    <!-- Aegis Core Family VFX: Shimmering hexagonal energy grid -->
-    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-honeycomb">
-      <span class="aegis-item hex st1">⬢</span>
-      <span class="aegis-item hex st2">⬡</span>
-      <span class="aegis-item hex st3">⬢</span>
-      <span class="aegis-item hex st4">⬡</span>
-      <span class="aegis-item hex st5">⬢</span>
-      <span class="aegis-item hex st6">⬢</span>
-      <div class="honeycomb-grid"></div>
+    <!-- Aegis Core Family: Tactical Cyber HUD Corner Brackets & Scan Line -->
+    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-hud">
+      <div class="hud-bracket top-left"></div>
+      <div class="hud-bracket top-right"></div>
+      <div class="hud-bracket bottom-left"></div>
+      <div class="hud-bracket bottom-right"></div>
+      <div class="hud-scanner"></div>
     </div>
 
-    <!-- Power Core Family VFX: Red lightning & hypercharge energy surge -->
-    <div v-if="family === 'power'" class="vfx-wrapper power-surge">
-      <span class="power-item bolt st1">⚡</span>
-      <span class="power-item bolt st2">⚡</span>
-      <span class="power-item bolt st3">⚡</span>
-      <span class="power-item bolt st4">⚡</span>
-      <div class="overclock-glow"></div>
+    <!-- Power Core Family: Overclock Alert Brackets & Danger Scanline -->
+    <div v-if="family === 'power'" class="vfx-wrapper power-alert">
+      <div class="alert-bracket top-left"></div>
+      <div class="alert-bracket top-right"></div>
+      <div class="alert-bracket bottom-left"></div>
+      <div class="alert-bracket bottom-right"></div>
+      <div class="alert-scanline"></div>
     </div>
 
-    <!-- High Roller Core Family VFX: Gambler & Cowboy style (card suits, dice, gold coins, and sheriff stars) -->
-    <div v-if="family === 'high-roller'" class="vfx-wrapper high-roller-gambler">
-      <span class="gambler-item spade st1">♠</span>
-      <span class="gambler-item heart st2">♥</span>
-      <span class="gambler-item diamond st3">♦</span>
-      <span class="gambler-item club st4">♣</span>
-      <span class="gambler-item badge st5">⭐</span>
-      <span class="gambler-item dice st6">🎲</span>
-      <span class="gambler-item coin st7">🪙</span>
-      <span class="gambler-item badge st8">⭐</span>
-      <!-- Dust storm/Sunset glow overlay -->
-      <div class="desert-sunset"></div>
+    <!-- High Roller Core Family: Casino Gold Card Corners & Flashing Marquee -->
+    <div v-if="family === 'high-roller'" class="vfx-wrapper high-roller-marquee">
+      <div class="marquee-border"></div>
+      <div class="gold-card-corner top-left"></div>
+      <div class="gold-card-corner top-right"></div>
+      <div class="gold-card-corner bottom-left"></div>
+      <div class="gold-card-corner bottom-right"></div>
     </div>
 
     <!-- Balanced Core Family VFX: Zen radial gradient pulse -->
@@ -84,205 +77,142 @@ const family = computed(() => {
   inset: 0;
 }
 
-/* --- Phoenix Embers VFX --- */
-.ember {
+/* --- Phoenix Vignette VFX --- */
+.phoenix-vignette {
+  background: radial-gradient(circle, transparent 50%, rgba(239, 68, 68, 0.08) 100%);
+  border-radius: inherit;
+}
+.fire-glow {
   position: absolute;
-  bottom: -20px;
-  width: 6px;
-  height: 6px;
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.9), rgba(251, 146, 60, 0.4));
-  border-radius: 50%;
-  filter: blur(1px);
-  animation: emberRise 3s linear infinite;
-  box-shadow: 0 0 8px rgba(251, 146, 60, 0.8);
-  opacity: 0;
+  inset: 0;
+  box-shadow: inset 0 0 35px rgba(249, 115, 22, 0.15);
+  animation: fireBreath 4s ease-in-out infinite alternate;
+  border-radius: inherit;
 }
 
-.eb1 { left: 15%; animation-delay: 0s; animation-duration: 2.5s; width: 4px; height: 4px; }
-.eb2 { left: 30%; animation-delay: 0.5s; animation-duration: 3.2s; width: 6px; height: 6px; }
-.eb3 { left: 45%; animation-delay: 1.2s; animation-duration: 2.8s; width: 5px; height: 5px; }
-.eb4 { left: 60%; animation-delay: 0.2s; animation-duration: 3.5s; width: 4px; height: 4px; }
-.eb5 { left: 75%; animation-delay: 1.8s; animation-duration: 2.9s; width: 7px; height: 7px; }
-.eb6 { left: 85%; animation-delay: 0.8s; animation-duration: 3.1s; width: 5px; height: 5px; }
-.eb7 { left: 25%; animation-delay: 2.2s; animation-duration: 3.6s; width: 6px; height: 6px; }
-.eb8 { left: 70%; animation-delay: 1.5s; animation-duration: 2.7s; width: 5px; height: 5px; }
+@keyframes fireBreath {
+  0% { box-shadow: inset 0 0 25px rgba(249, 115, 22, 0.15); filter: contrast(1); }
+  100% { box-shadow: inset 0 0 45px rgba(239, 68, 68, 0.28); filter: contrast(1.08); }
+}
 
-@keyframes emberRise {
-  0% { transform: translateY(0) scale(1); opacity: 0; }
+/* --- Aegis HUD VFX --- */
+.aegis-hud {
+  box-shadow: inset 0 0 25px rgba(59, 130, 246, 0.08);
+  border-radius: inherit;
+}
+.hud-bracket {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #60a5fa;
+  filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.8));
+  animation: bracketPulse 3s ease-in-out infinite;
+}
+.hud-bracket.top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+.hud-bracket.top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+.hud-bracket.bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+.hud-bracket.bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+@keyframes bracketPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.hud-scanner {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.4), transparent);
+  animation: scanMove 4s linear infinite;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+@keyframes scanMove {
+  0% { top: 0%; opacity: 0; }
   10% { opacity: 0.8; }
-  90% { opacity: 0.4; }
-  100% { transform: translateY(-110vh) scale(0.5); opacity: 0; }
+  90% { opacity: 0.8; }
+  100% { top: 100%; opacity: 0; }
 }
 
-/* --- Aegis Hexagonal Honeycomb VFX --- */
-.aegis-item {
-  position: absolute;
-  font-size: 24px;
-  animation: hexPulseFloat 5s ease-in-out infinite;
-  opacity: 0;
-  user-select: none;
-}
-
-.hex {
-  color: rgba(96, 165, 250, 0.5);
-  text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
-}
-
-@keyframes hexPulseFloat {
-  0% { opacity: 0; transform: scale(0.8) translateY(10px) rotate(0deg); }
-  30% { opacity: 0.7; }
-  70% { opacity: 0.7; }
-  100% { opacity: 0; transform: scale(1.1) translateY(-20px) rotate(180deg); }
-}
-
-.honeycomb-grid {
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(rgba(59, 130, 246, 0.12) 1.5px, transparent 1.5px);
-  background-size: 16px 16px;
-  mask-image: radial-gradient(circle at center, transparent 30%, black 100%);
-  animation: gridShimmer 8s linear infinite;
-  pointer-events: none;
+/* --- Power Alert VFX --- */
+.power-alert {
+  box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.12);
   border-radius: inherit;
 }
-
-@keyframes gridShimmer {
-  0% { opacity: 0.4; transform: scale(1.0); }
-  50% { opacity: 0.8; transform: scale(1.03); }
-  100% { opacity: 0.4; transform: scale(1.0); }
-}
-
-/* --- Power Lightning Surge VFX --- */
-.power-item {
+.alert-bracket {
   position: absolute;
-  font-size: 24px;
-  font-weight: bold;
-  animation: lightningSurge 2.5s ease-in-out infinite;
-  opacity: 0;
-  user-select: none;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #f87171;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8));
+  animation: alertFlicker 1.8s ease-in-out infinite;
+}
+.alert-bracket.top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+.alert-bracket.top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+.alert-bracket.bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+.alert-bracket.bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+@keyframes alertFlicker {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  5% { opacity: 0.3; }
+  10% { opacity: 0.9; }
+  15% { opacity: 0.4; }
+  50% { opacity: 1; transform: scale(1.08); }
 }
 
-.bolt {
-  color: #f87171;
-  text-shadow: 0 0 12px #ef4444, 0 0 24px rgba(239, 68, 68, 0.8);
-}
-
-@keyframes lightningSurge {
-  0% { opacity: 0; transform: scale(0.6) translateY(5px); filter: brightness(1); }
-  10% { opacity: 1; filter: brightness(1.8); }
-  15% { opacity: 0.4; filter: brightness(1); }
-  20% { opacity: 1; filter: brightness(1.8); }
-  75% { opacity: 0.8; }
-  100% { opacity: 0; transform: scale(1.2) translateY(-15px); filter: brightness(1); }
-}
-
-.overclock-glow {
+.alert-scanline {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top, rgba(239, 68, 68, 0.05) 0%, transparent 60%);
-  pointer-events: none;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+  animation: scanlineCrack 3s ease-in-out infinite;
+}
+
+@keyframes scanlineCrack {
+  0% { top: 20%; opacity: 0; }
+  5% { opacity: 0.8; }
+  10% { top: 40%; opacity: 0.3; }
+  12% { opacity: 0.9; }
+  30% { top: 80%; opacity: 0.8; }
+  35% { opacity: 0; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* --- High Roller Marquee VFX --- */
+.high-roller-marquee {
+  background: radial-gradient(circle at center, transparent 40%, rgba(245, 158, 11, 0.06) 100%);
   border-radius: inherit;
-  animation: alarmPulse 1.5s ease-in-out infinite alternate;
 }
-
-@keyframes alarmPulse {
-  0% { opacity: 0.3; }
-  100% { opacity: 1; }
-}
-
-/* --- High Roller Gambler & Cowboy VFX --- */
-.gambler-item {
+.marquee-border {
   position: absolute;
-  font-size: 22px; /* Made larger and clearer */
-  font-weight: bold;
-  animation: gamblerDrift 5s ease-in-out infinite;
-  opacity: 0;
-  user-select: none;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
-}
-
-.spade { 
-  color: #a78bfa; 
-  text-shadow: 0 0 10px #8b5cf6, 0 0 20px rgba(139, 92, 246, 0.4); 
-}
-.heart { 
-  color: #f87171; 
-  text-shadow: 0 0 10px #ef4444, 0 0 20px rgba(239, 68, 68, 0.4); 
-}
-.diamond { 
-  color: #fb923c; 
-  text-shadow: 0 0 10px #f59e0b, 0 0 20px rgba(245, 158, 11, 0.4); 
-}
-.club { 
-  color: #60a5fa; 
-  text-shadow: 0 0 10px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.4); 
-}
-.badge { 
-  color: #fcd34d; 
-  font-size: 26px; 
-  text-shadow: 0 0 12px #fbbf24, 0 0 25px rgba(245, 158, 11, 0.6);
-  animation: badgeSpin 6s linear infinite; 
-}
-.dice {
-  font-size: 24px;
-  animation: diceTumble 4.5s ease-in-out infinite;
-}
-.coin {
-  font-size: 20px;
-  animation: coinFlip 4s ease-in-out infinite;
-}
-
-.st1 { top: 10%; left: 6%; animation-delay: 0s; }
-.st2 { top: 20%; right: 8%; animation-delay: 1.2s; }
-.st3 { bottom: 25%; left: 8%; animation-delay: 2.4s; }
-.st4 { bottom: 20%; right: 10%; animation-delay: 3.6s; }
-.st5 { top: 65%; left: 5%; animation-delay: 0.8s; }
-.st6 { top: 40%; right: 6%; animation-delay: 1.8s; }
-.st7 { bottom: 45%; left: 4%; animation-delay: 3s; }
-.st8 { top: 5%; right: 25%; animation-delay: 2s; }
-
-@keyframes gamblerDrift {
-  0% { opacity: 0; transform: translateY(20px) rotate(0deg) scale(0.7); }
-  20% { opacity: 0.95; }
-  80% { opacity: 0.95; }
-  100% { opacity: 0; transform: translateY(-30px) rotate(360deg) scale(1.2); }
-}
-
-@keyframes badgeSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-@keyframes diceTumble {
-  0% { opacity: 0; transform: translate(0, 20px) rotate(0deg) scale(0.7); }
-  25% { opacity: 0.9; transform: translate(-10px, 0) rotate(90deg) scale(1); }
-  50% { opacity: 0.9; transform: translate(5px, -20px) rotate(180deg) scale(1.1); }
-  75% { opacity: 0.9; transform: translate(-5px, -35px) rotate(270deg) scale(1); }
-  100% { opacity: 0; transform: translate(0, -50px) rotate(360deg) scale(0.8); }
-}
-
-@keyframes coinFlip {
-  0% { opacity: 0; transform: scale(0.6) rotateY(0deg); }
-  20% { opacity: 0.95; }
-  80% { opacity: 0.95; }
-  100% { opacity: 0; transform: translateY(-40px) scale(1.1) rotateY(720deg); }
-}
-
-.desert-sunset {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.05) 0%, transparent 60%),
-              radial-gradient(circle at bottom left, rgba(239, 68, 68, 0.05) 0%, transparent 60%);
-  pointer-events: none;
+  inset: 6px;
+  border: 2px dashed #fbbf24;
   border-radius: inherit;
-  box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.05);
-  animation: sunsetGlow 8s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 8px #f59e0b);
+  animation: marqueeChase 0.8s linear infinite;
 }
 
-@keyframes sunsetGlow {
-  0% { opacity: 0.6; }
-  100% { opacity: 1; }
+@keyframes marqueeChase {
+  0% { border-style: dashed; border-color: #fbbf24; }
+  50% { border-color: #f43f5e; } /* Flashing gold to rose-gold */
+  100% { border-style: dashed; border-color: #fbbf24; }
 }
+
+.gold-card-corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 2px solid #fbbf24;
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.8));
+  opacity: 0.85;
+}
+.gold-card-corner.top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; border-radius: 4px 0 0 0; }
+.gold-card-corner.top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; border-radius: 0 4px 0 0; }
+.gold-card-corner.bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; border-radius: 0 0 0 4px; }
+.gold-card-corner.bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; border-radius: 0 0 4px 0; }
 
 /* --- Balanced Zen VFX --- */
 .zen-pulse {
