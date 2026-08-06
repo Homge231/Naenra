@@ -622,6 +622,71 @@ export function isPandoraCore(name: string | null | undefined): boolean {
 }
 
 /**
+ * Checks if the given core name belongs to the Power Strike family.
+ */
+export function isPowerCore(name: string | null | undefined): boolean {
+  if (!name) return false
+  const key = name.trim().toLowerCase()
+  return [
+    'power strike',
+    'overclock',
+    'hypercharge',
+    'desperado',
+    'brute force',
+    'overload',
+    'supermassive'
+  ].some(x => key.includes(x))
+}
+
+/**
+ * Checks if the given core name belongs to the Phoenix Rebirth family.
+ */
+export function isPhoenixCore(name: string | null | undefined): boolean {
+  if (!name) return false
+  const key = name.trim().toLowerCase()
+  return [
+    'phoenix',
+    'rebirth',
+    'ashes to ashes'
+  ].some(x => key.includes(x))
+}
+
+/**
+ * Checks if the given core name belongs to the High Roller family.
+ */
+export function isHighRollerCore(name: string | null | undefined): boolean {
+  if (!name) return false
+  const key = name.trim().toLowerCase()
+  return [
+    'roller',
+    'jackpot',
+    'safe bet',
+    'nothing',
+    'all in',
+    'russian roulette',
+    'house advantage'
+  ].some(x => key.includes(x))
+}
+
+/**
+ * Checks if the given core name belongs to the Balanced Core family.
+ */
+export function isBalancedCore(name: string | null | undefined): boolean {
+  if (!name) return false
+  const key = name.trim().toLowerCase()
+  return [
+    'balance',
+    'harmony',
+    'zenith',
+    'equilibrium',
+    'steady pace',
+    'yin yang',
+    'cosmic balance',
+    'nirvana'
+  ].some(x => key.includes(x))
+}
+
+/**
  * Returns the maximum shield count for the given Aegis-family core name.
  */
 export function getMaxShields(name: string | null | undefined): number {

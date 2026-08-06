@@ -61,7 +61,7 @@ export class PandoraCoreStrategy extends BaseCore {
     }
 
     if (this.coreName === 'butterfly effect' && isCorrect) {
-      const bonusMult = 1 + (ctx.combo * 0.1)
+      const bonusMult = 1 + (ctx.combo * 0.15)
       newResult.pointsDelta = Math.floor(newResult.pointsDelta * bonusMult)
       newResult.breakdown.multiplier_buff = (newResult.breakdown.multiplier_buff || 1) * bonusMult
     }
@@ -74,13 +74,13 @@ export class PandoraCoreStrategy extends BaseCore {
 
     if (this.coreName === 'reality collapse' && isCorrect) {
       const isDoubled = Math.random() > 0.5
-      const factor = isDoubled ? 2.0 : 0.5
+      const factor = isDoubled ? 2.5 : 0.5
       newResult.pointsDelta = Math.floor(newResult.pointsDelta * factor)
       newResult.breakdown.multiplier_buff = (newResult.breakdown.multiplier_buff || 1) * factor
     }
 
     if (this.coreName === "pandora's curse") {
-      if (isCorrect) newResult.pointsDelta *= 2
+      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 2.5)
       else newResult.pointsDelta = -Math.abs(newResult.pointsDelta) * 2
     }
 
@@ -92,19 +92,21 @@ export class PandoraCoreStrategy extends BaseCore {
     }
 
     if (this.coreName === 'chaos prism') {
-      if (isCorrect) newResult.pointsDelta += 50
+      if (isCorrect) newResult.pointsDelta += 80
     }
 
     if (this.coreName === 'warp reality') {
-      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 1.5)
+      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 1.75)
     }
 
     if (this.coreName === "pandora's wrath") {
       if (isCorrect) {
-        newResult.pointsDelta += 500
-        newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + 500
+        newResult.pointsDelta += 600
+        newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + 600
       } else {
-        newResult.pointsDelta = 200
+        newResult.pointsDelta = 0
+        newResult.breakdown.penalty = 0
+        newResult.breakdown.oracle_penalty = 0
       }
     }
 

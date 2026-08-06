@@ -71,8 +71,8 @@ export class PhoenixCoreStrategy extends BaseCore {
       }
     }
 
-    // Recover 50% accumulated debt (Nerfed) + bonus rate on debt + extra flat rebirth bonus
-    const baseRefundRate = 0.5
+    // Recover 30% accumulated debt (Nerfed from 50% since it is easy/low-risk) + bonus rate on debt + extra flat rebirth bonus
+    const baseRefundRate = 0.3
     const debtRefund = debt > 0 ? Math.floor(debt * baseRefundRate) : 0
     const debtBonus = debt > 0 ? Math.floor(debt * this.debtBonusRate) : 0
     const totalDebtRefund = debtRefund + debtBonus

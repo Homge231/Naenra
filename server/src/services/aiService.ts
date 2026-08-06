@@ -5,15 +5,20 @@ import path from 'path'
 // We instantiate it dynamically inside the function to ensure dotenv is loaded
 let ai: GoogleGenAI | null = null;
 
-// Load knowledge base JSON
+// Load knowledge base JSON and Markdown
 let gameKnowledgeBase: any = null
+let gameKnowledgeBaseMd: string = ''
 try {
-  const knowledgePath = path.join(__dirname, '../data/naenra_knowledge.json')
-  if (fs.existsSync(knowledgePath)) {
-    gameKnowledgeBase = JSON.parse(fs.readFileSync(knowledgePath, 'utf-8'))
+  const jsonPath = path.join(__dirname, '../data/naenra_knowledge.json')
+  if (fs.existsSync(jsonPath)) {
+    gameKnowledgeBase = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
+  }
+  const mdPath = path.join(__dirname, '../data/naenra_knowledge_base.md')
+  if (fs.existsSync(mdPath)) {
+    gameKnowledgeBaseMd = fs.readFileSync(mdPath, 'utf-8')
   }
 } catch (e) {
-  console.warn('Failed to load naenra_knowledge.json:', e)
+  console.warn('Failed to load knowledge base files:', e)
 }
 
 export interface GeneratedQuestion {
@@ -180,7 +185,7 @@ export async function generateChatResponse(
         ai = new GoogleGenAI({ apiKey })
       }
 
-      const knowledgeString = gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge'
+      const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
       const historyString = playerHistory ? JSON.stringify(playerHistory, null, 2) : 'No recent selection history'
 
       const systemContext = `You are Naenra Cyber Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
@@ -189,19 +194,15 @@ Player username: "${username}".
 PLAYER CORE SELECTION & MATCH HISTORY:
 ${historyString}
 
-CENTRALIZED NAENRA GAME KNOWLEDGE FILE DATA:
+CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
 ${knowledgeString}
 
 STRICT RESPONSE RULES:
 1. MATCH USER LANGUAGE EXACTLY: If the user asks in Vietnamese, YOU MUST RESPOND IN VIETNAMESE! If in English, respond in English!
-2. CONTINUITY & CONTEXT AWARENESS: Pay close attention to conversation history! If the user asks follow-up questions like "cách hoạt động của lõi đó" (how does that core work?), "giải thích thêm", or "tại sao", refer back to the exact Support Cores mentioned in the previous turn and explain their detailed mechanics!
-3. NO REPETITIVE INTROS: Jump directly into answering the user's question. Do NOT repeat generic greetings or bot introductions.
-4. FOR HIGH SCORE QUESTIONS ("điểm cao nhất", "highest score", "lõi nào mạnh nhất"):
-   Explain clearly:
-   - **Power Core / High Roller Core**: Cho điểm bùng nổ từng từ cao nhất (nhân điểm up to 3.0x, High Stakes Jackpot).
-   - **Combo Core**: Nếu độ chính xác >85%, chuỗi Combo liên tục cho tổng điểm tối đa cao nhất toàn ván.
-   - **Speedster Core**: Cho tốc độ gõ dưới 2.5 giây (+200 điểm thưởng/từ).
-5. Concise markdown formatting (bold, bullet points). Keep under 180 words.`
+2. CORES VALIDATION & GUARDRAILS: You must only answer questions regarding game rules, ranking system, scoring formulas, and cores listed in the CENTRALIZED NAENRA GAME KNOWLEDGE BASE. If a user asks about an off-topic topic or a core that is NOT in the knowledge base, you MUST decline to answer or explicitly state that the core/information does not exist in your database.
+3. CONTEXT & CORES KNOWLEDGE: If the user asks about mechanics, explain using the specific values and rules from the knowledge base (e.g. correct scoring, Levenshtein distance penalties, ELO thresholds, flat buffs, multiplier buffs, and unlock conditions). Prevent all hallucinations.
+4. SHORT CHATBOX FORMAT: Keep responses under 100 words, utilizing concise bullet points where possible to fit inside the small frontend Chatbox UI.
+5. NO REPETITIVE INTROS: Do not start with generic introductions or bot greetings; answer directly.`
 
       let fullPrompt = systemContext
 
@@ -241,6 +242,42 @@ STRICT RESPONSE RULES:
   // Detect Vietnamese language input
   const isVietnamese = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(prompt) ||
                       ['lõi', 'chọn', 'điểm', 'đeimr', 'mạnh', 'tôi', 'đạt', 'cao', 'nào', 'hoạt động'].some(w => q.includes(w))
+
+  // 0.1 Greeting Handler
+  if (['hello', 'hi', 'hey', 'xin chào', 'chào', 'chào bạn', 'greetings', 'hello guide', 'cyber guide'].some(w => q === w || q.startsWith(w + ' ') || q.endsWith(' ' + w))) {
+    if (isVietnamese) {
+      return `Xin chào ${username}! Tôi là Naenra Cyber Guide. Bạn muốn tìm hiểu về luật chơi, cơ chế tính điểm hay cách hoạt động của các Lõi Hỗ trợ (Support Cores) nào?`
+    } else {
+      return `Hello ${username}! I am the Naenra Cyber Guide. What would you like to know about the game rules, scoring formulas, or Support Cores today?`
+    }
+  }
+
+  // 0.2 Off-topic Handler
+  if (!['lõi', 'core', 'phoenix', 'aegis', 'shield', 'speedster', 'combo', 'oracle', 'mission', 'roller', 'power', 'balanced', 'pandora', 'game', 'play', 'luật', 'điểm', 'score', 'elo', 'rank', 'hạng', 'wpm', 'acc', 'rules', 'how to', 'tutorial', 'hướng dẫn', 'chơi', 'leaderboard', 'bảng xếp hạng', 'level', 'up'].some(w => q.includes(w))) {
+    if (isVietnamese) {
+      return `Tôi chỉ có thể giải đáp các câu hỏi liên quan đến luật chơi, cơ chế tính điểm, ELO và các Lõi Hỗ trợ (Support Cores) của Naenra. Hãy thử hỏi tôi về một Core nhé!`
+    } else {
+      return `I can only answer questions related to Naenra game rules, scoring formulas, ELO ranks, and Support Cores. Try asking me about a specific Core!`
+    }
+  }
+
+  // 0.3 Rules Query Handler
+  if (['rule', 'luật', 'play', 'chơi', 'tutorial', 'hướng dẫn'].some(w => q.includes(w))) {
+    if (isVietnamese) {
+      return `📖 **Luật chơi Naenra:**\n- Trận đấu tính giờ kéo dài **60 giây**.\n- Bạn cần điền ký tự khuyết để hoàn thành từ tiếng Anh.\n- Có **15 giây** để chọn Lõi Hỗ trợ (Support Cores) giúp nhận buff điểm/thời gian.\n- Gõ sai từ sẽ bị phạt điểm dựa trên khoảng cách Levenshtein (số ký tự khác biệt).`
+    } else {
+      return `📖 **Naenra Match Rules:**\n- Timed matches last **60 seconds**.\n- Complete words by filling in the missing characters.\n- You have **15 seconds** to choose a Support Core for score/time buffs.\n- Typos incur a score penalty calculated by Levenshtein distance (mismatched characters).`
+    }
+  }
+
+  // 0.4 Rank & ELO Query Handler
+  if (['rank', 'elo', 'hạng', 'leaderboard', 'level', 'up'].some(w => q.includes(w))) {
+    if (isVietnamese) {
+      return `🏆 **Cơ chế xếp hạng & ELO trong Naenra:**\n- **Đấu Multiplayer**: Thắng nhận ELO, thua trừ ELO. Lượng ELO thay đổi tính theo K-factor (K=32) dựa trên chênh lệch trình độ hai người.\n- **Trận đấu Bạn bè**: Custom Rooms không thay đổi ELO để tránh cày điểm.\n- **Chơi đơn**: Vượt mốc điểm mong đợi so với ELO hiện tại để tăng thứ hạng.`
+    } else {
+      return `🏆 **Ranking & ELO System in Naenra:**\n- **Multiplayer Matches**: Winning increases ELO, losing decreases it. Changes are calculated via K-factor (K=32) based on relative opponent skill.\n- **Custom matches**: Friend matches in Custom Rooms do NOT modify ELO ratings to prevent boosting.\n- **Single Player**: Clear the expected target score threshold relative to your current ELO to level up.`
+    }
+  }
 
   // Inspect previous turn in history to see which Cores were discussed
   const previousAIContext = history && history.length > 0 

@@ -979,7 +979,7 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
     const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id, active_core_id, oracle_reveal_level, is_multiplayer, opponent_id, is_win } = req.body
+    const { session_id, active_core_id, oracle_reveal_level, is_multiplayer, opponent_id, is_win, is_custom } = req.body
     if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
 
     const { data: session, error: fetchErr } = await supabase
@@ -1029,7 +1029,7 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
         const losses = playerProfile.losses ?? 0
         const totalMatches = playerProfile.total_matches ?? 0
 
-        if (is_multiplayer && opponent_id) {
+        if (is_multiplayer && opponent_id && !is_custom) {
           const { data: oppProfile } = await supabase.from('players').select('elo').eq('id', opponent_id).single()
           const oppElo = oppProfile?.elo ?? 1000
           
@@ -1042,11 +1042,15 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
           isWin = is_win
           
           eloDelta = Math.round(K * (actualScore - expectedScore))
-        } else {
+        } else if (!is_multiplayer) {
           // Expected score based on current Elo for single player
           expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
           eloDelta = Math.floor(0.05 * (finalScore - expectedScore))
           isWin = finalScore >= expectedScore
+        } else {
+          // Custom match: ELO delta is 0
+          eloDelta = 0
+          isWin = is_win
         }
         
         // Clamp the delta to avoid extreme shifts (only for single player since multiplayer is naturally bounded by K)
@@ -1060,8 +1064,8 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
           .from('players')
           .update({
             elo: newElo,
-            wins: wins + (isWin ? 1 : 0),
-            losses: losses + (isWin ? 0 : 1),
+            wins: wins + ((isWin && !is_custom) ? 1 : 0),
+            losses: losses + ((!isWin && !is_custom) ? 1 : 0),
             total_matches: totalMatches + 1
           })
           .eq('id', playerId)

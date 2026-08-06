@@ -96,8 +96,6 @@
             <span v-else class="animate-pulse z-10" style="color: #111827 !important;">
               Finding Match... ☁️
             </span>
-            
-            <svg v-if="!isSearching" class="w-8 h-8 drop-shadow-sm z-10 text-gray-900" style="color: #111827 !important; stroke: #111827 !important;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
           </button>
         </div>
 
@@ -307,23 +305,11 @@ function handlePrimaryPlay() {
   startMatchmaking()
 }
 
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') {
-    const activeEl = document.activeElement
-    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
-      return
-    }
-    e.preventDefault()
-    handlePrimaryPlay()
-  }
-}
-
 import { getSavedReconnectionToken, reconnectMatchRoom, currentRoom } from '../services/multiplayerService'
 import { onUnmounted } from 'vue'
 
 onMounted(async () => {
   audioService.stopBGM()
-  window.addEventListener('keydown', handleKeydown)
 
   if (!localStorage.getItem('arena_token')) {
     await authStore.loginAsGuest()
@@ -347,9 +333,7 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
+onUnmounted(() => {})
 </script>
 
 <style scoped>
