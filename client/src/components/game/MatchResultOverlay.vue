@@ -103,24 +103,26 @@ function calculateProgressPercentage(eloValue: number, tier: any) {
 
 let scoreAnimationFrame: number
 let progressAnimationFrame: number
+let hasAnimatedRank = false
 
-function animateValue(obj: any, start: number, end: number, duration: number) {
+function animateScore(start: number, end: number, targetRef: any, duration: number = 1500) {
   let startTimestamp: number | null = null
   const step = (timestamp: number) => {
     if (!startTimestamp) startTimestamp = timestamp
     const progress = Math.min((timestamp - startTimestamp) / duration, 1)
     const easeOutCubic = 1 - Math.pow(1 - progress, 3)
-    obj.value = Math.floor(start + easeOutCubic * (end - start))
+    targetRef.value = Math.floor(start + easeOutCubic * (end - start))
     if (progress < 1) {
       scoreAnimationFrame = window.requestAnimationFrame(step)
     } else {
-      obj.value = end
+      targetRef.value = end
     }
   }
   scoreAnimationFrame = window.requestAnimationFrame(step)
 }
 
-function animateRankProgress(startProg: number, endProg: number, startElo: number, endElo: number, duration: number = 1500) {
+function animateRankProgress(startProg: number, endProg: number, startElo: number, endElo: number, duration: number = 1800) {
+  if (progressAnimationFrame) window.cancelAnimationFrame(progressAnimationFrame)
   let startTimestamp: number | null = null
   const step = (timestamp: number) => {
     if (!startTimestamp) startTimestamp = timestamp
@@ -140,37 +142,50 @@ function animateRankProgress(startProg: number, endProg: number, startElo: numbe
   progressAnimationFrame = window.requestAnimationFrame(step)
 }
 
-watch(() => props.isVisible, (newVal) => {
-  if (newVal) {
-    animatedPlayerScore.value = 0
-    animatedOpponentScore.value = 0
-    
-    const startEloVal = effectiveOldElo.value
-    const endEloVal = effectiveNewElo.value
+function runRankAnimation() {
+  const startEloVal = effectiveOldElo.value
+  const endEloVal = effectiveNewElo.value
 
-    const startProg = calculateProgressPercentage(startEloVal, activeTier.value)
-    const endProg = calculateProgressPercentage(endEloVal, activeTier.value)
+  const startProg = calculateProgressPercentage(startEloVal, activeTier.value)
+  const endProg = calculateProgressPercentage(endEloVal, activeTier.value)
 
-    animatedElo.value = startEloVal
-    animatedRankProgress.value = startProg
-    
-    if (props.oldTier && props.currentTier && props.oldTier.name !== props.currentTier.name && (props.newElo ?? 0) > (props.oldElo ?? 0)) {
-      setTimeout(() => {
-        showRankUp.value = true
-      }, 1500)
-    }
-    
+  animatedElo.value = startEloVal
+  animatedRankProgress.value = startProg
+
+  if (props.oldTier && props.currentTier && props.oldTier.name !== props.currentTier.name && (props.newElo ?? 0) > (props.oldElo ?? 0)) {
     setTimeout(() => {
-      animateValue(animatedPlayerScore, 0, props.playerScore, 1500)
-      animateValue(animatedOpponentScore, 0, props.opponentScore, 1500)
-      animateRankProgress(startProg, endProg, startEloVal, endEloVal, 1500)
-    }, 400)
-  } else {
-    showRankUp.value = false
-    if (scoreAnimationFrame) window.cancelAnimationFrame(scoreAnimationFrame)
-    if (progressAnimationFrame) window.cancelAnimationFrame(progressAnimationFrame)
+      showRankUp.value = true
+    }, 1500)
   }
-}, { immediate: true })
+
+  setTimeout(() => {
+    animateRankProgress(startProg, endProg, startEloVal, endEloVal, 1800)
+  }, 300)
+}
+
+// Watch both visibility and ELO changes so animation triggers when API response returns!
+watch(
+  [() => props.isVisible, () => props.newElo, () => props.eloChange],
+  ([visible, newElo, eloChange]) => {
+    if (visible) {
+      animatedPlayerScore.value = 0
+      animatedOpponentScore.value = 0
+
+      setTimeout(() => {
+        animateScore(0, props.playerScore, animatedPlayerScore, 1500)
+        animateScore(0, props.opponentScore, animatedOpponentScore, 1500)
+      }, 300)
+
+      runRankAnimation()
+    } else {
+      showRankUp.value = false
+      hasAnimatedRank = false
+      if (scoreAnimationFrame) window.cancelAnimationFrame(scoreAnimationFrame)
+      if (progressAnimationFrame) window.cancelAnimationFrame(progressAnimationFrame)
+    }
+  },
+  { immediate: true }
+)
 
 // Confetti setup for Victory
 const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
@@ -297,9 +312,9 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
           </div>
         </div>
 
-        <!-- 🌟 ANIMATED RANK PROGRESSION & ELO RATING BAR -->
-        <div v-if="activeTier && !isCustomRoom" class="w-full mb-10 stat-row" style="animation-delay: 0.4s">
-          <div class="flex justify-between items-end mb-2">
+        <!-- 🌟 ANIMATED RANK PROGRESSION & ELO RATING BAR WITH PHYSICAL TRAVELLING PIN BADGE -->
+        <div v-if="activeTier && !isCustomRoom" class="w-full mb-10 stat-row relative" style="animation-delay: 0.4s">
+          <div class="flex justify-between items-end mb-6">
             <div>
               <div class="text-[10px] tracking-widest uppercase text-white/50">Current Rank</div>
               <div class="text-2xl font-black tracking-widest uppercase" :style="{ color: activeTier.color }">
@@ -308,26 +323,46 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
             </div>
             <div class="text-right">
               <div class="text-[10px] tracking-widest uppercase text-white/50">Rating</div>
-              <div class="text-xl font-bold flex items-center gap-2 font-mono">
+              <div class="text-xl font-bold flex items-center gap-2 font-mono text-white">
                 <span>{{ animatedElo }}</span> 
                 <span v-if="eloChange !== undefined && eloChange !== 0" 
-                      class="text-sm px-2 py-0.5 rounded-full font-bold"
-                      :class="eloChange > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                      class="text-sm px-2.5 py-0.5 rounded-full font-bold transition-all"
+                      :class="eloChange > 0 ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'">
                   {{ eloChange > 0 ? '+' : '' }}{{ eloChange }}
                 </span>
               </div>
             </div>
           </div>
-          <!-- Animated Progress Fill Bar -->
-          <div class="w-full h-3.5 bg-white/10 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
-            <div class="h-full rounded-full transition-all duration-75 ease-linear"
+
+          <!-- Dynamic Progress Track & Floating Travelling Badge Pin -->
+          <div class="w-full h-4 bg-black/50 rounded-full p-0.5 relative border border-white/10 shadow-inner my-5">
+            <!-- Animated Fill Bar -->
+            <div class="h-full rounded-full transition-all duration-75 ease-linear relative overflow-hidden"
                  :style="{ 
                    width: `${animatedRankProgress}%`, 
                    backgroundColor: activeTier.color, 
-                   boxShadow: `0 0 12px ${activeTier.color}` 
+                   boxShadow: `0 0 15px ${activeTier.color}` 
                  }">
+              <div class="absolute right-0 top-0 bottom-0 w-3 bg-white/90 rounded-full blur-[1px] animate-pulse"></div>
+            </div>
+
+            <!-- FLOATING RATING BADGE PIN THAT PHYSICALLY TRAVELS/SLIDES FORWARD (THẮNG) OR BACKWARD (THUA) ALONG THE BAR -->
+            <div class="absolute top-[-38px] -translate-x-1/2 transition-all duration-75 ease-linear pointer-events-none z-20 flex flex-col items-center"
+                 :style="{ left: `${Math.max(6, Math.min(94, animatedRankProgress))}%` }">
+              <div class="px-3 py-1 rounded-full font-black text-xs font-mono tracking-wider shadow-xl flex items-center gap-1 border whitespace-nowrap"
+                   :class="(eloChange ?? 0) >= 0 
+                     ? 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.8)]' 
+                     : 'bg-rose-500 text-white border-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.8)]'">
+                <span>{{ animatedElo }} pts</span>
+                <span v-if="eloChange !== undefined && eloChange !== 0" class="text-[10px]">
+                  ({{ eloChange > 0 ? '+' : '' }}{{ eloChange }})
+                </span>
+              </div>
+              <div class="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] -mt-0.5"
+                   :class="(eloChange ?? 0) >= 0 ? 'border-t-emerald-500' : 'border-t-rose-500'"></div>
             </div>
           </div>
+
           <div class="flex justify-between mt-1 text-[10px] font-mono text-white/40">
             <span>{{ activeTier.min }}</span>
             <span>{{ activeTier.max === 999999 ? '∞' : activeTier.max }}</span>

@@ -381,17 +381,29 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
     if (this.botRaceTimeout) clearTimeout(this.botRaceTimeout);
 
-    // 1.5s to 3.5s delay based on WPM
-    const delay = Math.floor(Math.random() * 2000) + 1500;
+    const botPlayer = this.state.players.get(this.botSessionId);
+    if (!botPlayer) return;
+
+    // 1. Give human player a fair window: Bot reaction delay is 4.5s to 8.5s (out of 12s)
+    let minDelay = 4500;
+    let maxDelay = 8500;
+
+    // Check if bot is leading in score -> if bot is leading, increase delay to allow human comeback (lật kèo)
+    const humanPlayer = Array.from(this.state.players.values()).find(p => p.id !== this.botSessionId);
+    if (humanPlayer && botPlayer.score > humanPlayer.score) {
+      minDelay += 1500; // 6.0s
+      maxDelay += 1500; // 10.0s
+    }
+
+    const delay = Math.floor(Math.random() * (maxDelay - minDelay)) + minDelay;
 
     this.botRaceTimeout = setTimeout(() => {
       if (this.state.currentRound !== 4 || !this.state.currentRaceQuestion.id) return;
       if (this.raceLockedPlayers.has(this.botSessionId)) return;
 
-      const botPlayer = this.state.players.get(this.botSessionId);
-      if (!botPlayer) return;
-
-      const isCorrect = Math.random() < (this.botProfile?.accuracy || 0.85);
+      // Race mode high-pressure accuracy: ~55-65% so bot can make mistakes and get locked
+      const raceAccuracy = Math.min(0.65, (this.botProfile?.accuracy || 0.85) * 0.75);
+      const isCorrect = Math.random() < raceAccuracy;
 
       if (isCorrect) {
         if (this.raceQuestionTimer) clearTimeout(this.raceQuestionTimer);

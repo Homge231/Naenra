@@ -11,7 +11,7 @@
     <button 
       v-if="showSettingsButton"
       @click="settingsStore.isSettingsOpen = true"
-      class="fixed bottom-[88px] right-6 z-[9990] w-12 h-12 bg-slate-900/80 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-slate-800 hover:scale-110 transition-all shadow-xl focus:outline-none"
+      class="fixed bottom-6 right-6 z-[9990] w-12 h-12 bg-slate-900/80 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-slate-800 hover:scale-110 transition-all shadow-xl focus:outline-none"
       title="Global Settings"
     >
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

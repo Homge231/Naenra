@@ -1030,8 +1030,15 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
         const totalMatches = playerProfile.total_matches ?? 0
 
         if (is_multiplayer && opponent_id && !is_custom) {
-          const { data: oppProfile } = await supabase.from('players').select('elo').eq('id', opponent_id).single()
-          const oppElo = oppProfile?.elo ?? 1000
+          let oppElo = 1000
+          
+          if (typeof opponent_id === 'string' && opponent_id.startsWith('bot_')) {
+            // For AI bot match, bot Elo is matched close to player's current Elo
+            oppElo = req.body.opponent_elo || (currentElo > 0 ? (currentElo + Math.floor(Math.random() * 50) - 25) : 1000)
+          } else {
+            const { data: oppProfile } = await supabase.from('players').select('elo').eq('id', opponent_id).single()
+            oppElo = oppProfile?.elo ?? (currentElo > 0 ? currentElo : 1000)
+          }
           
           // K-Factor Elo Algorithm
           // Expected Score formula: 1 / (1 + 10^((oppElo - currentElo) / 400))
@@ -1042,6 +1049,15 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
           isWin = is_win
           
           eloDelta = Math.round(K * (actualScore - expectedScore))
+
+          // Enforce meaningful Ranked ELO bounds:
+          // Win: +16 to +32 ELO
+          // Loss: -16 to -32 ELO (Fixes issue where loss only deducted 1 point)
+          if (is_win) {
+            eloDelta = Math.max(16, Math.min(32, eloDelta))
+          } else {
+            eloDelta = Math.min(-16, Math.max(-32, eloDelta))
+          }
         } else if (!is_multiplayer) {
           // Expected score based on current Elo for single player
           expectedScore = Math.max(500, 500 + Math.floor(currentElo * 0.5))
