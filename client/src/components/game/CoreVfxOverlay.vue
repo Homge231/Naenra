@@ -1,26 +1,21 @@
 <template>
   <div v-if="playing && settingsStore.vfxEnabled" class="core-vfx-container pointer-events-none">
-    <!-- Phoenix Core Family: Fire Vignette & Heat Pulse (No floating particles) -->
+    <!-- Phoenix Core Family: Fire Vignette & Heat Pulse -->
     <div v-if="family === 'phoenix'" class="vfx-wrapper phoenix-vignette">
       <div class="fire-glow"></div>
     </div>
 
-    <!-- Aegis Core Family: Tactical Cyber HUD Corner Brackets & Scan Line -->
-    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-hud">
-      <div class="hud-bracket top-left"></div>
-      <div class="hud-bracket top-right"></div>
-      <div class="hud-bracket bottom-left"></div>
-      <div class="hud-bracket bottom-right"></div>
-      <div class="hud-scanner"></div>
+    <!-- Aegis Core Family: Defensive Dome & Guard Plates (Protector Style) -->
+    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-protector">
+      <div class="shield-dome"></div>
+      <div class="guard-plate left"></div>
+      <div class="guard-plate right"></div>
     </div>
 
-    <!-- Power Core Family: Overclock Alert Brackets & Danger Scanline -->
-    <div v-if="family === 'power'" class="vfx-wrapper power-alert">
-      <div class="alert-bracket top-left"></div>
-      <div class="alert-bracket top-right"></div>
-      <div class="alert-bracket bottom-left"></div>
-      <div class="alert-bracket bottom-right"></div>
-      <div class="alert-scanline"></div>
+    <!-- Power Core Family: Blazing Energy Aura & Overload Vibration (Strong Style) -->
+    <div v-if="family === 'power'" class="vfx-wrapper power-strong">
+      <div class="blazing-aura"></div>
+      <div class="heavy-braces"></div>
     </div>
 
     <!-- High Roller Core Family: Casino Gold Card Corners & Flashing Marquee -->
@@ -95,90 +90,90 @@ const family = computed(() => {
   100% { box-shadow: inset 0 0 45px rgba(239, 68, 68, 0.28); filter: contrast(1.08); }
 }
 
-/* --- Aegis HUD VFX --- */
-.aegis-hud {
-  box-shadow: inset 0 0 25px rgba(59, 130, 246, 0.08);
+/* --- Aegis Protector VFX --- */
+.aegis-protector {
+  position: absolute;
+  inset: 0;
   border-radius: inherit;
 }
-.hud-bracket {
+.shield-dome {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  border: 3px solid #60a5fa;
-  filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.8));
-  animation: bracketPulse 3s ease-in-out infinite;
+  inset: 10px;
+  border: 3px solid rgba(59, 130, 246, 0.35);
+  border-radius: 20px;
+  background: radial-gradient(circle, transparent 65%, rgba(59, 130, 246, 0.06) 100%);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.25), inset 0 0 20px rgba(59, 130, 246, 0.15);
+  animation: domePulse 3s ease-in-out infinite alternate;
 }
-.hud-bracket.top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; }
-.hud-bracket.top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; }
-.hud-bracket.bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; }
-.hud-bracket.bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; }
-
-@keyframes bracketPulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
-}
-
-.hud-scanner {
+.guard-plate {
   position: absolute;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.4), transparent);
-  animation: scanMove 4s linear infinite;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  top: 15%;
+  height: 70%;
+  width: 6px;
+  background: #3b82f6;
+  border-radius: 9999px;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+  animation: guardPulse 3s ease-in-out infinite alternate;
+}
+.guard-plate.left { left: 4px; border-radius: 0 9999px 9999px 0; }
+.guard-plate.right { right: 4px; border-radius: 9999px 0 0 9999px; }
+
+@keyframes domePulse {
+  0% { transform: scale(0.99); opacity: 0.7; box-shadow: 0 0 15px rgba(59, 130, 246, 0.15), inset 0 0 15px rgba(59, 130, 246, 0.1); }
+  100% { transform: scale(1.01); opacity: 1; box-shadow: 0 0 35px rgba(59, 130, 246, 0.35), inset 0 0 30px rgba(59, 130, 246, 0.25); }
 }
 
-@keyframes scanMove {
-  0% { top: 0%; opacity: 0; }
-  10% { opacity: 0.8; }
-  90% { opacity: 0.8; }
-  100% { top: 100%; opacity: 0; }
+@keyframes guardPulse {
+  0% { transform: scaleY(0.95); opacity: 0.6; }
+  100% { transform: scaleY(1.05); opacity: 1; }
 }
 
-/* --- Power Alert VFX --- */
-.power-alert {
-  box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.12);
+/* --- Power Strong VFX --- */
+.power-strong {
+  position: absolute;
+  inset: 0;
   border-radius: inherit;
+  animation: boardVibrate 0.25s linear infinite;
 }
-.alert-bracket {
+.blazing-aura {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  border: 3px solid #f87171;
-  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8));
-  animation: alertFlicker 1.8s ease-in-out infinite;
+  inset: 0;
+  border: 4px solid rgba(239, 68, 68, 0.3);
+  border-radius: inherit;
+  box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.2);
+  background: radial-gradient(circle, transparent 60%, rgba(239, 68, 68, 0.12) 100%);
+  animation: energyBlaze 2s ease-in-out infinite alternate;
 }
-.alert-bracket.top-left { top: 12px; left: 12px; border-right: none; border-bottom: none; }
-.alert-bracket.top-right { top: 12px; right: 12px; border-left: none; border-bottom: none; }
-.alert-bracket.bottom-left { bottom: 12px; left: 12px; border-right: none; border-top: none; }
-.alert-bracket.bottom-right { bottom: 12px; right: 12px; border-left: none; border-top: none; }
-
-@keyframes alertFlicker {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  5% { opacity: 0.3; }
-  10% { opacity: 0.9; }
-  15% { opacity: 0.4; }
-  50% { opacity: 1; transform: scale(1.08); }
-}
-
-.alert-scanline {
+.heavy-braces {
   position: absolute;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: rgba(239, 68, 68, 0.6);
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
-  animation: scanlineCrack 3s ease-in-out infinite;
+  inset: 6px;
+  border: 3px double #ef4444;
+  border-radius: inherit;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+  animation: braceFlicker 1s steps(2) infinite;
 }
 
-@keyframes scanlineCrack {
-  0% { top: 20%; opacity: 0; }
-  5% { opacity: 0.8; }
-  10% { top: 40%; opacity: 0.3; }
-  12% { opacity: 0.9; }
-  30% { top: 80%; opacity: 0.8; }
-  35% { opacity: 0; }
-  100% { top: 100%; opacity: 0; }
+@keyframes energyBlaze {
+  0% { 
+    box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.15), 0 0 15px rgba(239, 68, 68, 0.3); 
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+  100% { 
+    box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.35), 0 0 30px rgba(239, 68, 68, 0.6); 
+    border-color: rgba(239, 68, 68, 0.6);
+  }
+}
+
+@keyframes braceFlicker {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.65; }
+}
+
+@keyframes boardVibrate {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(0.5px, -0.5px); }
+  50% { transform: translate(-0.5px, 0.5px); }
+  75% { transform: translate(0.5px, 0.5px); }
 }
 
 /* --- High Roller Marquee VFX --- */
@@ -197,7 +192,7 @@ const family = computed(() => {
 
 @keyframes marqueeChase {
   0% { border-style: dashed; border-color: #fbbf24; }
-  50% { border-color: #f43f5e; } /* Flashing gold to rose-gold */
+  50% { border-color: #f43f5e; }
   100% { border-style: dashed; border-color: #fbbf24; }
 }
 
