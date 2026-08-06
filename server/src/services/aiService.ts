@@ -243,6 +243,24 @@ STRICT RESPONSE RULES:
   const isVietnamese = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(prompt) ||
                       ['lõi', 'chọn', 'điểm', 'đeimr', 'mạnh', 'tôi', 'đạt', 'cao', 'nào', 'hoạt động'].some(w => q.includes(w))
 
+  // 0.1 Greeting Handler
+  if (['hello', 'hi', 'hey', 'xin chào', 'chào', 'chào bạn', 'greetings', 'hello guide', 'cyber guide'].some(w => q === w || q.startsWith(w + ' ') || q.endsWith(' ' + w))) {
+    if (isVietnamese) {
+      return `Xin chào ${username}! Tôi là Naenra Cyber Guide. Bạn muốn tìm hiểu về luật chơi, cơ chế tính điểm hay cách hoạt động của các Lõi Hỗ trợ (Support Cores) nào?`
+    } else {
+      return `Hello ${username}! I am the Naenra Cyber Guide. What would you like to know about the game rules, scoring formulas, or Support Cores today?`
+    }
+  }
+
+  // 0.2 Off-topic Handler
+  if (!['lõi', 'core', 'phoenix', 'aegis', 'shield', 'speedster', 'combo', 'oracle', 'mission', 'roller', 'power', 'balanced', 'pandora', 'game', 'play', 'luật', 'điểm', 'score', 'elo', 'rank', 'hạng', 'wpm', 'acc'].some(w => q.includes(w))) {
+    if (isVietnamese) {
+      return `Tôi chỉ có thể giải đáp các câu hỏi liên quan đến luật chơi, cơ chế tính điểm, ELO và các Lõi Hỗ trợ (Support Cores) của Naenra. Hãy thử hỏi tôi về một Core nhé!`
+    } else {
+      return `I can only answer questions related to Naenra game rules, scoring formulas, ELO ranks, and Support Cores. Try asking me about a specific Core!`
+    }
+  }
+
   // Inspect previous turn in history to see which Cores were discussed
   const previousAIContext = history && history.length > 0 
     ? history.filter(h => h.role === 'model').slice(-1)[0]?.message || '' 
