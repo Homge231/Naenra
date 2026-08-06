@@ -5,14 +5,24 @@
       <span v-for="n in 8" :key="'ember-'+n" class="ember" :class="'eb' + n"></span>
     </div>
 
-    <!-- Aegis Core Family VFX: Shimmering blue shield aura outline -->
-    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-shield-glow">
-      <div class="shield-border"></div>
+    <!-- Aegis Core Family VFX: Shimmering hexagonal energy grid -->
+    <div v-if="family === 'aegis'" class="vfx-wrapper aegis-honeycomb">
+      <span class="aegis-item hex st1">⬢</span>
+      <span class="aegis-item hex st2">⬡</span>
+      <span class="aegis-item hex st3">⬢</span>
+      <span class="aegis-item hex st4">⬡</span>
+      <span class="aegis-item hex st5">⬢</span>
+      <span class="aegis-item hex st6">⬢</span>
+      <div class="honeycomb-grid"></div>
     </div>
 
-    <!-- Power Core Family VFX: Red lightning energy pulses -->
-    <div v-if="family === 'power'" class="vfx-wrapper power-sparks">
-      <div class="power-glow"></div>
+    <!-- Power Core Family VFX: Red lightning & hypercharge energy surge -->
+    <div v-if="family === 'power'" class="vfx-wrapper power-surge">
+      <span class="power-item bolt st1">⚡</span>
+      <span class="power-item bolt st2">⚡</span>
+      <span class="power-item bolt st3">⚡</span>
+      <span class="power-item bolt st4">⚡</span>
+      <div class="overclock-glow"></div>
     </div>
 
     <!-- High Roller Core Family VFX: Gambler & Cowboy style (card suits, dice, gold coins, and sheriff stars) -->
@@ -104,33 +114,80 @@ const family = computed(() => {
   100% { transform: translateY(-110vh) scale(0.5); opacity: 0; }
 }
 
-/* --- Aegis Shield Glow VFX --- */
-.shield-border {
+/* --- Aegis Hexagonal Honeycomb VFX --- */
+.aegis-item {
+  position: absolute;
+  font-size: 24px;
+  animation: hexPulseFloat 5s ease-in-out infinite;
+  opacity: 0;
+  user-select: none;
+}
+
+.hex {
+  color: rgba(96, 165, 250, 0.5);
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+@keyframes hexPulseFloat {
+  0% { opacity: 0; transform: scale(0.8) translateY(10px) rotate(0deg); }
+  30% { opacity: 0.7; }
+  70% { opacity: 0.7; }
+  100% { opacity: 0; transform: scale(1.1) translateY(-20px) rotate(180deg); }
+}
+
+.honeycomb-grid {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(59, 130, 246, 0.15);
-  box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.08);
-  animation: shieldPulse 4s ease-in-out infinite;
+  background-image: radial-gradient(rgba(59, 130, 246, 0.12) 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
+  mask-image: radial-gradient(circle at center, transparent 30%, black 100%);
+  animation: gridShimmer 8s linear infinite;
+  pointer-events: none;
   border-radius: inherit;
 }
 
-@keyframes shieldPulse {
-  0%, 100% { border-color: rgba(59, 130, 246, 0.15); box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.08); }
-  50% { border-color: rgba(59, 130, 246, 0.35); box-shadow: inset 0 0 35px rgba(59, 130, 246, 0.2); }
+@keyframes gridShimmer {
+  0% { opacity: 0.4; transform: scale(1.0); }
+  50% { opacity: 0.8; transform: scale(1.03); }
+  100% { opacity: 0.4; transform: scale(1.0); }
 }
 
-/* --- Power Sparks VFX --- */
-.power-glow {
+/* --- Power Lightning Surge VFX --- */
+.power-item {
+  position: absolute;
+  font-size: 24px;
+  font-weight: bold;
+  animation: lightningSurge 2.5s ease-in-out infinite;
+  opacity: 0;
+  user-select: none;
+}
+
+.bolt {
+  color: #f87171;
+  text-shadow: 0 0 12px #ef4444, 0 0 24px rgba(239, 68, 68, 0.8);
+}
+
+@keyframes lightningSurge {
+  0% { opacity: 0; transform: scale(0.6) translateY(5px); filter: brightness(1); }
+  10% { opacity: 1; filter: brightness(1.8); }
+  15% { opacity: 0.4; filter: brightness(1); }
+  20% { opacity: 1; filter: brightness(1.8); }
+  75% { opacity: 0.8; }
+  100% { opacity: 0; transform: scale(1.2) translateY(-15px); filter: brightness(1); }
+}
+
+.overclock-glow {
   position: absolute;
   inset: 0;
-  box-shadow: inset 0 0 25px rgba(239, 68, 68, 0.06);
-  animation: powerPulse 2s ease-in-out infinite;
+  background: radial-gradient(circle at top, rgba(239, 68, 68, 0.05) 0%, transparent 60%);
+  pointer-events: none;
   border-radius: inherit;
+  animation: alarmPulse 1.5s ease-in-out infinite alternate;
 }
 
-@keyframes powerPulse {
-  0%, 100% { box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.05); }
-  50% { box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.18); }
+@keyframes alarmPulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
 }
 
 /* --- High Roller Gambler & Cowboy VFX --- */
