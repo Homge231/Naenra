@@ -52,19 +52,19 @@
               </div>
 
               <!-- Animated Talking Mouth (Lip Sync to Speech Readout & Audio) -->
-              <div class="cyber-mouth mt-1 z-10 flex items-center justify-center">
+              <div class="cyber-mouth mt-1 z-10 flex items-center justify-center h-3.5">
                 <!-- When Speaking: Animated Real-Time Mouth Bars (Lip Sync) -->
-                <div v-if="isSpeaking" class="talking-mouth flex items-center gap-0.5 h-2">
-                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1"></span>
-                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2"></span>
-                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3"></span>
+                <div v-if="isSpeaking" class="talking-mouth flex items-center gap-0.5 h-3">
+                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs"></span>
+                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs"></span>
+                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs"></span>
                 </div>
                 <!-- When Listening: Pulsing O Mouth -->
-                <div v-else-if="isListening" class="listening-mouth w-2 h-2 rounded-full border-2 border-red-500 animate-ping"></div>
+                <div v-else-if="isListening" class="listening-mouth w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-900/50 animate-ping"></div>
                 <!-- When Interacting / Happy: Curved Smile -->
-                <div v-else-if="isInteracting" class="smile-mouth w-3.5 h-1.5 border-b-2 border-amber-400 rounded-b-full"></div>
-                <!-- Idle Smile Dot Line -->
-                <div v-else class="idle-mouth w-3 h-0.5 bg-amber-400/80 rounded-full group-hover:w-4 transition-all"></div>
+                <div v-else-if="isInteracting" class="smile-mouth w-4 h-2 border-b-2 border-amber-400 rounded-b-full shadow-xs"></div>
+                <!-- Idle Gold Straight Mouth Line (Matching user screenshot) -->
+                <div v-else class="idle-mouth w-3.5 h-[2px] bg-amber-400 rounded-full group-hover:w-4.5 transition-all shadow-xs"></div>
               </div>
 
               <!-- Cyber Aura Glow Ring -->
@@ -325,7 +325,7 @@ const username = computed(() =>
 // Dynamic Mascot Status Text in English
 const mascotStatusText = computed(() => {
   if (isListening.value) return 'Listening to your voice...'
-  if (isLoading.value) return 'Analyzing & generating response...'
+  if (isLoading.value) return 'Just a moment, finding your answer...'
   if (isSpeaking.value) return 'Speaking response aloud...'
   return 'Ready to guide & recommend Cores'
 })
@@ -336,6 +336,13 @@ const quickHints = [
   '⚡ Which Core is strongest right now?',
   '🔮 How do I use Oracle Core?',
   '🏆 How can I rank up ELO fast?',
+]
+
+// Quick spoken phrases when user sends a question
+const quickAckPhrases = [
+  'Just a moment, let me check that for you!',
+  'Got it! Give me a second to find your answer...',
+  'Hold on a moment, getting your response ready...'
 ]
 
 // Mascot Interactive Click Handler
@@ -434,10 +441,51 @@ function toggleVoiceOutput() {
   }
 }
 
-function speakText(text: string) {
+function getBestVoice(isVi: boolean): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
+  const voices = window.speechSynthesis.getVoices()
+  if (!voices || voices.length === 0) return null
+
+  const targetLang = isVi ? 'vi' : 'en'
+  const langVoices = voices.filter(v => v.lang.toLowerCase().includes(targetLang))
+  if (langVoices.length === 0) return voices[0] || null
+
+  // Priority ranking list for most human-like neural & natural voices across browsers/OS
+  const priorityNames = [
+    'jenny online (natural)',
+    'aria online (natural)',
+    'ana online (natural)',
+    'guy online (natural)',
+    'online (natural)',
+    'google us english',
+    'google uk english female',
+    'samantha (enhanced)',
+    'samantha',
+    'karen (enhanced)',
+    'karen',
+    'zira',
+    'aria',
+    'enhanced',
+    'natural',
+    'neural',
+    'premium'
+  ]
+
+  for (const nameKeyword of priorityNames) {
+    const found = langVoices.find(v => v.name.toLowerCase().includes(nameKeyword))
+    if (found) return found
+  }
+
+  return langVoices[0] || null
+}
+
+let speechQueue: SpeechSynthesisUtterance[] = []
+
+function speakText(text: string, options?: { rate?: number; pitch?: number }) {
   if (!isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
 
   window.speechSynthesis.cancel()
+  speechQueue = []
 
   // Clean markdown, symbols, emojis, and formatting before speaking
   const cleanText = text
@@ -450,35 +498,46 @@ function speakText(text: string) {
     .replace(/https?:\/\/\S+/g, '')
     .trim()
 
-  if (!cleanText) return
+  if (!cleanText) {
+    isSpeaking.value = false
+    return
+  }
 
-  currentUtterance = new SpeechSynthesisUtterance(cleanText)
   const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(cleanText)
-  const targetLang = isVi ? 'vi-VN' : 'en-US'
-  currentUtterance.lang = targetLang
-  currentUtterance.rate = 1.0
-  currentUtterance.pitch = 1.05
+  const voice = getBestVoice(isVi)
 
-  // Pick the best natural voice if available
-  const voices = window.speechSynthesis.getVoices()
-  const bestVoice = voices.find(v => v.lang.includes(isVi ? 'vi' : 'en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Microsoft') || v.name.includes('Samantha')))
-  if (bestVoice) {
-    currentUtterance.voice = bestVoice
-  }
+  // Split text into natural sentence chunks for realistic human intonation & pauses
+  const sentences = cleanText
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
 
-  currentUtterance.onstart = () => {
-    isSpeaking.value = true
-  }
+  if (sentences.length === 0) return
 
-  currentUtterance.onend = () => {
-    isSpeaking.value = false
-  }
+  isSpeaking.value = true
 
-  currentUtterance.onerror = () => {
-    isSpeaking.value = false
-  }
+  sentences.forEach((sentence, index) => {
+    const utterance = new SpeechSynthesisUtterance(sentence)
+    utterance.lang = isVi ? 'vi-VN' : 'en-US'
+    utterance.rate = options?.rate ?? 1.18
+    utterance.pitch = options?.pitch ?? 1.0
 
-  window.speechSynthesis.speak(currentUtterance)
+    if (voice) {
+      utterance.voice = voice
+    }
+
+    if (index === sentences.length - 1) {
+      utterance.onend = () => {
+        isSpeaking.value = false
+      }
+      utterance.onerror = () => {
+        isSpeaking.value = false
+      }
+    }
+
+    speechQueue.push(utterance)
+    window.speechSynthesis.speak(utterance)
+  })
 }
 
 // ── Click outside to close ──────────────────────────────────────────
@@ -493,6 +552,13 @@ onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
   initSpeechRecognition()
   startBlinkCycle()
+
+  // Ensure voices are loaded asynchronously if needed by Chrome/Safari
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      // Voices populated
+    }
+  }
 })
 
 onBeforeUnmount(() => {
@@ -555,6 +621,10 @@ async function sendMessage() {
 
   isLoading.value = true
 
+  // Immediately speak a quick, friendly acknowledgment phrase so the user gets instant voice feedback
+  const ack = quickAckPhrases[Math.floor(Math.random() * quickAckPhrases.length)]
+  speakText(ack, { rate: 1.22 })
+
   try {
     const history = messages.value
       .slice(0, -1)
@@ -583,7 +653,7 @@ async function sendMessage() {
     const replyText = data.reply || 'Sorry, I could not generate a response.'
     messages.value.push({ role: 'model', content: replyText })
 
-    // Auto voice readout
+    // Auto voice readout for generated answer
     speakText(replyText)
   } catch (err: any) {
     errorMsg.value = err.message || 'An error occurred. Please try again.'
@@ -665,30 +735,31 @@ function renderMarkdown(raw: string): string {
   width: 44px;
   height: 44px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  border: 2px solid rgba(249, 115, 22, 0.8);
-  box-shadow: 0 0 16px rgba(249, 115, 22, 0.35);
+  background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+  border: 2.5px solid #ea580c;
+  box-shadow: 0 0 14px rgba(234, 88, 12, 0.45);
   position: relative;
 }
 .cyber-mascot-box:hover {
   transform: scale(1.06);
   border-color: #ff7b00;
+  box-shadow: 0 0 20px rgba(255, 123, 0, 0.6);
 }
 
 /* Glowing Cyber Eyes */
 .cyber-eye {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #fb923c;
-  box-shadow: 0 0 10px #fb923c, 0 0 16px #f97316;
+  background: #f97316;
+  box-shadow: 0 0 8px #f97316, 0 0 14px #ea580c;
   transition: all 0.2s ease;
 }
 
 .eye-blink {
   height: 2px !important;
   border-radius: 2px !important;
-  box-shadow: 0 0 4px #fb923c !important;
+  box-shadow: 0 0 4px #f97316 !important;
 }
 
 .eye-wide {
@@ -705,7 +776,7 @@ function renderMarkdown(raw: string): string {
   border-top-right-radius: 10px !important;
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
-  background: #38bdf8 !important;
+  background: #fbbf24 !important;
 }
 
 .eye-think {
