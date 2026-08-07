@@ -228,12 +228,18 @@ STRICT RESPONSE RULES:
         })
         responseText = response.text || ''
       } catch (err2) {
-        const response2 = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: fullPrompt,
-          config: { temperature: 0.7 }
-        })
-        responseText = response2.text || ''
+        // Retry with same model after brief delay
+        await new Promise(r => setTimeout(r, 1000))
+        try {
+          const response2 = await ai.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: fullPrompt,
+            config: { temperature: 0.5 }
+          })
+          responseText = response2.text || ''
+        } catch (err3) {
+          throw err3
+        }
       }
 
       if (responseText.trim()) return responseText.trim()
