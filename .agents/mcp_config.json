@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "calm": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@eilodon/calm-mcp",
+        "serve"
+      ]
+    },
+    "jira": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-atlassian"
+      ],
+      "env": {
+        "JIRA_URL": "https://internprojectaxon.atlassian.net",
+        "JIRA_API_TOKEN": "YOUR_JIRA_API_TOKEN_HERE",
+        "JIRA_USERNAME": "baonhggcd220259@fpt.edu.vn"
+      }
+    }
+  }
+}

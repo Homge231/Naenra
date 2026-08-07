@@ -1,7 +1,10 @@
+import path from 'path'
+import dotenv from 'dotenv'
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
+
 import express from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
-import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
 import gameRoutes from './routes/gameRoutes'
@@ -12,8 +15,6 @@ import { Server } from 'colyseus'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { MatchRoom } from './rooms/MatchRoom'
 import { QueueRoom } from './rooms/QueueRoom'
-
-dotenv.config()
 
 // Initialize cron jobs
 initQuestionCron()

@@ -385,8 +385,18 @@ function initSpeechRecognition() {
   recognition.onerror = (event: any) => {
     console.warn('Speech recognition error:', event.error)
     isListening.value = false
-    if (event.error !== 'no-speech') {
-      errorMsg.value = 'Speech recognition error. Please try again!'
+    if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+      errorMsg.value = '🎙️ Microphone access denied. Please allow microphone permission in your browser settings and try again.'
+    } else if (event.error === 'network') {
+      errorMsg.value = '🌐 Network error. Speech recognition requires an internet connection. Please check your connection.'
+    } else if (event.error === 'no-speech') {
+      // Silently ignore — user just didn't say anything
+    } else if (event.error === 'service-not-allowed') {
+      errorMsg.value = '🔒 Speech recognition not allowed. Please use HTTPS or grant microphone permission.'
+    } else if (event.error === 'audio-capture') {
+      errorMsg.value = '🎤 No microphone detected. Please connect a microphone and try again.'
+    } else {
+      errorMsg.value = `Speech error: ${event.error}. Please try again.`
     }
   }
 
