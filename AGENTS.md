@@ -7,14 +7,50 @@ Naenra (ARENA.ENG) — competitive typing game, 60s timed vocabulary matches wit
 FE: Vue3+TS+Pinia+Tailwind (`client/`). BE: Node+Express+TS+Supabase (`server/`). Live: naenra.xyz / api.naenra.xyz.
 
 ## Done ✅ (Sprint 1–5, closed/dev completed)
-Auth (email/password+OTP, Google OAuth, reset), JWT middleware, profile/elo/rank, 60s match loop, letter-slot UI, score popups, batch question fetch, session lifecycle, anti-cheat, Core Strategy Pattern (BE `server/src/cores/`, FE `client/src/game/cores/`), Levenshtein penalty, 12 Support Core families (Combo, Oracle, Speedster, Aegis, Mission, Pandora, Phoenix, High Roller, Balanced, Power, etc.), Support Core selection UI (15s), 3-Round loop (Select→Type→Recap), dynamic backgrounds, AI question generator, single active session enforcement (`session_version`), `fetchWithAuth` race condition resolution, Colyseus v0.17+ alignment, vocabulary analytics, interactive tutorials, custom room multiplayer UI, Full Colyseus automated matchmaking queues and Race Mode (Round 4), US-77 Upgrade selection timeout & disconnect navigation bug fix (`room_terminated` event + `/lobby` redirect), US-88 (IN-352) Homepage Instant Play & Guest Restrictions (`/auth/guest`, Enter key shortcut, guest feature lock badges, account conversion CTA), Custom Match ELO Lock Bypass, and AI Off-topic & rules/ranking fallbacks.
+Auth (email/password+OTP, Google OAuth, reset), JWT middleware, profile/elo/rank, 60s match loop, letter-slot UI, score popups, batch question fetch, session lifecycle, anti-cheat, Core Strategy Pattern (BE `server/src/cores/`, FE `client/src/game/cores/`), Levenshtein penalty, 12 Support Core families (Combo, Oracle, Speedster, Aegis, Mission, Pandora, Phoenix, High Roller, Balanced, Power, etc.), Support Core selection UI (15s), 3-Round loop (Select→Type→Recap), dynamic backgrounds, AI question generator, single active session enforcement (`session_version`), `fetchWithAuth` race condition resolution, Colyseus v0.17+ alignment, vocabulary analytics, interactive tutorials, custom room multiplayer UI, Full Colyseus automated matchmaking queues and Race Mode (Round 4), US-77 Upgrade selection timeout & disconnect navigation bug fix (`room_terminated` event + `/lobby` redirect), US-88 (IN-352) Homepage Instant Play & Guest Restrictions (`/auth/guest`, Enter key shortcut, guest feature lock badges, account conversion CTA), Custom Match ELO Lock Bypass, AI Off-topic & rules/ranking fallbacks, and IN-366 (US-89) Support Core Audio, Visual, and Typing Interaction Polish.
+
+## Completed This Week ✅ (2026-08-07, outside Jira sprint)
+- **AI Assistant Online Fix**: Resolved `server/.env` `xSUPABASE_SERVICE_KEY` typo causing Supabase crash on startup. Fixed dotenv loading order in `server/src/index.ts` (moved `dotenv.config()` before all imports to prevent race condition with `supabase.ts`). Updated `GEMINI_API_KEY`. Removed `gemini-2.0-flash` quota-exhausted fallback; AI chat now uses `gemini-flash-latest` exclusively.
+- **AI System Prompt Update**: Injected explicit `40+ cores, 12 families` fact into system context to prevent AI undercounting cores.
+- **Speech Recognition UX**: Updated `AIChatWidget.vue` error handler to show specific error reasons (`not-allowed`, `network`, `service-not-allowed`, `audio-capture`) instead of a generic message.
+- **GitHub Push Protection**: Cleaned `.agents/mcp_config.json` — removed Jira API token from committed file.
 
 ## In progress 🔄
-- IN-366 (US-89) Support Core Audio, Visual, and Typing Interaction Polish (In Review).
 - Finalizing Jira sync & production regression verification.
 - Post-match ELO ranking updates integration.
+- Production server (`api.naenra.xyz`) deployment of AI fix (requires SSH + `git pull && npm run build` on VPS).
 
-## Not yet scheduled ❌
+## Planned Next Week \ud83d\udcc5 (Sprint 6 candidate, week of 2026-08-11)
+
+### Feature: Cross-Device Responsiveness & Simulated Virtual Cyber Keyboard
+> **Goal**: Make Naenra fully playable on mobile (iOS/Android) and tablet touchscreens without breaking any existing PC desktop behaviour.
+
+#### New Files to Create:
+| File | Purpose |
+|---|---|
+| `client/src/composables/useDeviceMode.ts` | 3-layer device detection (touch API + screen width + user preference). Exposes `showVirtualKeyboard`, `isMobileScreen`, `isTouchDevice` reactive refs. |
+| `client/src/components/game/VirtualKeyboard.vue` | Cyberpunk-styled QWERTY touch keyboard (rows: QWERTYUIOP / ASDFGHJKL / ZXCVBNM + ⌫ + SKIP⏩). Emits `keypress(key: string)`. Renders only when `showVirtualKeyboard === true`. |
+
+#### Files to Modify:
+| File | Change Summary |
+|---|---|
+| `client/src/views/GameplayView.vue` | Add `handleVirtualKey(key)` → creates synthetic `KeyboardEvent` → calls existing `handleKeydown()`. Add `useDeviceMode()`. Dynamic `slotSize` computed for mobile-safe letter slot scaling. On touch: set `inputRef` to `readOnly` to suppress native keyboard. Mount `<VirtualKeyboard>`. |
+| `client/src/views/GameMultiplayView.vue` | Same as GameplayView changes above. |
+| `client/src/views/GamePureSkillMultiView.vue` | Same as GameplayView changes above. |
+| `client/src/views/CoreSelectionView.vue` | Ensure LOCK CORE buttons have `min-h-[44px]` (iOS touch target). Add `px-4` safe horizontal padding for 375px screens. |
+| `client/src/views/CoreSelectionMultiView.vue` | Same CoreSelection touch target fixes. |
+| `client/vite.config.ts` | Add `build.rollupOptions.output.manualChunks` to split `phaser`, `@colyseus/sdk`, `@supabase/supabase-js` into isolated vendor chunks. Add `esbuild: { drop: ['console', 'debugger'] }` for production. |
+| `client/index.html` | Update `<meta name="viewport">` to `width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover`. Add `<link rel="preconnect">` for Supabase and API. |
+| `client/src/style.css` | Add `touch-action: manipulation` to button/input elements. Add `-webkit-tap-highlight-color: transparent`. Add safe-area inset CSS vars. |
+| `client/public/` | Convert `bg-cafe.png` (2.55MB), `bg-daily-life.png` (2.97MB), `bg-travel.png` (2.67MB) → WebP format (~110KB each). Update `THEME_MAP` in `GameplayView.vue`. |
+
+#### Technical Constraints to Respect:
+1. **Anti-cheat is safe**: `handleVirtualKey()` routes through the same `handleKeydown()`. Server-side `active_core_id` check in `submitAnswer()` is NOT touched.
+2. **`time_taken` unaffected**: Speedster scoring uses `Date.now() - questionStartTime.value` (wall clock) — identical for touch vs keyboard.
+3. **PC desktop: zero visual change**: All responsive classes use `lg:` prefix. Desktop slot sizes stay `w-14 h-20 text-4xl`.
+4. **No `if/else` per-core added**: No new per-core branching; `VirtualKeyboard` is UI-only, agnostic to core type.
+
+#### Not yet scheduled ❌
 Check Jira backlog before planning.
 
 ## Sprint Timeline (Jira project `IN`, verified 2026-07-20)

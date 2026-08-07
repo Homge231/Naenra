@@ -145,10 +145,22 @@ Timer 0 → POST /api/game/timeout → status='timeout', score locked
 | 3: Support Core | closed | 06-29→07-06 | 44 (35D/2WI/7TD) | 15s core select, server scoring, 6 tactical cores |
 | 4: Core Loop Completion | closed | 07-06→07-13 | 47 (32D/15TD) | 3-Round loop, dynamic backgrounds, session security, AI question gen |
 | 5: Single-Player Polish | completed (dev) | 07-13→07-20 | (Pending Jira Sync) | Analytics/tutorials/tooltips + WS/Colyseus groundwork for 1v1 |
+| 6: Cross-Device + AI | planned | 08-11→08-17 | TBD | Mobile/PC responsiveness, Virtual Keyboard, AI assistant production fix |
 
 Sprint 2.5 fixes: Aegis Shield 0-shield default, `getCoreIconPath` crash fix, `@error` icon fallback→default.svg, Oracle Tier-1 penalty-bypass fix, Phoenix bonus 200→100 (total 200 not 300), Session State Leak fix (clear `gameStore.sessionId` on goHome/submitCore).
 
 Sprint 5 fixes & groundwork: `session_version` enforcement, `fetchWithAuth` race condition resolved, Colyseus `@colyseus/sdk` v0.17+ alignment done. Multiplayer base (Custom Rooms, Game loop, Real-time event broadcasting/Toast UI) complete. US-77 (Fix Upgrade Selection Timeout & Disconnect Navigation Bug) implemented via server `room_terminated` event broadcasting, `/lobby` route aliasing, and FE state cleanup. US-88 (IN-352: Homepage Instant Play & Guest Feature Restrictions) implemented with io-game direct landing on HomeView, Enter key match launcher, anonymous guest token generator (`/auth/guest`), guest feature lock indicators, and match result account conversion CTA. US-79 (IN-356: AI Knowledge Base & Contextual System Prompt) implemented with server data naenra_knowledge_base.md and prompt injection inside generateChatResponse(). Custom Room ELO locking/bypass in gameController.timeout prevents ELO farming. Whitelisted rule/rank queries in AI chatbot. IN-366 (US-89: Support Core dynamic audio, Phaser backgrounds, and typing interactions) completed with playPhoenixRebirth, playKeystroke (power sawtooth wave), dynamic Phaser emitter overrides, typo shakes, and combo fire card borders.
+
+**Out-of-sprint fixes (2026-08-07)**: AI assistant production fix — resolved `server/.env` `xSUPABASE_SERVICE_KEY` typo; moved `dotenv.config()` to top of `server/src/index.ts` before all imports (prevents Supabase `supabaseKey is required` crash); updated `GEMINI_API_KEY`; removed `gemini-2.0-flash` quota-exhausted fallback from `aiService.ts`; updated AI system prompt to state `40+ cores across 12 families`; improved `AIChatWidget.vue` speech recognition error messages.
+
+**Sprint 6 Planned (2026-08-11→08-17)**: Cross-Device Responsiveness & Virtual Keyboard.
+- New: `useDeviceMode.ts` composable (3-layer touch/screen/preference detection).
+- New: `VirtualKeyboard.vue` (Cyberpunk QWERTY, emits `keypress(key)`; hidden on PC `≥1024px`).
+- Modify: `GameplayView.vue`, `GameMultiplayView.vue`, `GamePureSkillMultiView.vue` — add `handleVirtualKey(key)` synthetic KeyboardEvent bridge into existing `handleKeydown()`. Dynamic `slotSize` computed for mobile word overflow fix (12-slot × 40px = 576px > 393px iPhone).
+- Modify: `CoreSelectionView.vue` — min-h-[44px] iOS touch targets.
+- Modify: `vite.config.ts` — `manualChunks` vendor splitting + `esbuild.drop` console removal.
+- Modify: `index.html` — viewport `maximum-scale=1.0 user-scalable=no viewport-fit=cover`.
+- Asset: Convert 3 background PNGs (8.2MB total) → WebP (~350KB total).
 
 ⚠️ ELO-post-match and full Colyseus matchmaking rooms are **not confirmed scheduled to any sprint** — không đủ dữ liệu để xác minh; check Jira backlog before planning against them.
 
