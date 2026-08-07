@@ -55,16 +55,16 @@
               <div class="cyber-mouth mt-1 z-10 flex items-center justify-center">
                 <!-- When Speaking: Animated Real-Time Mouth Bars (Lip Sync) -->
                 <div v-if="isSpeaking" class="talking-mouth flex items-center gap-0.5 h-2">
-                  <span class="mouth-bar bar-1 bg-cyan-300 w-1 rounded-full animate-lip-1"></span>
-                  <span class="mouth-bar bar-2 bg-cyan-300 w-1 rounded-full animate-lip-2"></span>
-                  <span class="mouth-bar bar-3 bg-cyan-300 w-1 rounded-full animate-lip-3"></span>
+                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1"></span>
+                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2"></span>
+                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3"></span>
                 </div>
                 <!-- When Listening: Pulsing O Mouth -->
-                <div v-else-if="isListening" class="listening-mouth w-2 h-2 rounded-full border-2 border-red-400 animate-ping"></div>
+                <div v-else-if="isListening" class="listening-mouth w-2 h-2 rounded-full border-2 border-red-500 animate-ping"></div>
                 <!-- When Interacting / Happy: Curved Smile -->
-                <div v-else-if="isInteracting" class="smile-mouth w-3.5 h-1.5 border-b-2 border-cyan-300 rounded-b-full"></div>
+                <div v-else-if="isInteracting" class="smile-mouth w-3.5 h-1.5 border-b-2 border-amber-400 rounded-b-full"></div>
                 <!-- Idle Smile Dot Line -->
-                <div v-else class="idle-mouth w-3 h-0.5 bg-cyan-400/80 rounded-full group-hover:w-4 transition-all"></div>
+                <div v-else class="idle-mouth w-3 h-0.5 bg-amber-400/80 rounded-full group-hover:w-4 transition-all"></div>
               </div>
 
               <!-- Cyber Aura Glow Ring -->
@@ -112,16 +112,16 @@
         <div class="chat-body" ref="chatBodyRef">
           <!-- Welcome message with Mascot Intro -->
           <div v-if="messages.length === 0" class="chat-welcome">
-            <div class="chat-welcome-mascot-box mb-3">
+            <div class="chat-welcome-mascot-box mb-2">
               <span class="text-4xl animate-bounce-slow inline-block">🤖</span>
             </div>
-            <p class="text-sm text-gray-200">
-              Welcome <strong class="chat-username text-orange-400 font-extrabold">{{ username }}</strong>!<br/>
-              I am your **Naenra Cyber Assistant**. Type your question or click **Voice Input 🎙️** to speak to me hands-free!
+            <p class="text-xs text-gray-700 font-medium leading-relaxed">
+              Welcome <strong class="chat-username text-orange-600 font-extrabold">{{ username }}</strong> to **Naenra Cyber Assistant**!<br/>
+              Select a quick prompt below or click **Microphone 🎙️** to speak hands-free!
             </p>
             
             <!-- Quick Action Hints in English -->
-            <div class="chat-quick-hints mt-4">
+            <div class="chat-quick-hints mt-3">
               <button
                 v-for="hint in quickHints"
                 :key="hint"
@@ -140,14 +140,14 @@
             :class="['chat-bubble-wrap', msg.role === 'user' ? 'chat-bubble-wrap--user' : 'chat-bubble-wrap--ai']"
           >
             <div :class="['chat-bubble', msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--ai']">
-              <div class="flex items-center justify-between gap-2 mb-1 border-b border-white/10 pb-1" v-if="msg.role !== 'user'">
-                <span class="chat-bubble-label flex items-center gap-1 text-cyan-400 font-bold">
+              <div class="flex items-center justify-between gap-2 mb-1.5 border-b border-orange-100 pb-1" v-if="msg.role !== 'user'">
+                <span class="chat-bubble-label flex items-center gap-1 text-orange-600 font-bold">
                   <span>🤖</span> Naenra Cyber Guide
                 </span>
                 <button 
                   v-if="msg.content" 
                   @click="speakText(msg.content)" 
-                  class="text-[10px] font-bold text-cyan-300 hover:text-white transition-colors flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full cursor-pointer"
+                  class="text-[10px] font-bold text-orange-600 hover:text-white hover:bg-orange-500 transition-colors flex items-center gap-1 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full cursor-pointer"
                   title="Read aloud using Voice TTS"
                 >
                   🔊 Read
@@ -165,7 +165,7 @@
 
           <!-- Typing indicator -->
           <div v-if="isLoading" class="chat-typing">
-            <span class="text-xs text-cyan-400 font-bold mr-2">Cyber AI thinking...</span>
+            <span class="text-xs text-orange-600 font-bold mr-2">Cyber AI thinking...</span>
             <span></span><span></span><span></span>
           </div>
 
@@ -181,7 +181,7 @@
           <div class="voice-status-info">
             <span class="pulse-dot" :class="{ 'pulse-dot--active': isListening || isSpeaking }"></span>
             <span class="voice-status-text font-bold text-xs">
-              {{ isListening ? '🎙️ Listening to your voice...' : '🔊 Speaking response...' }}
+              {{ isListening ? '🎙️ Listening to your voice...' : '🔊 Speaking response aloud...' }}
             </span>
           </div>
           <div class="waveform-anim" :class="{ 'waveform-anim--active': isListening || isSpeaking }">
@@ -193,23 +193,23 @@
           </div>
         </div>
 
-        <!-- Input Footer & Prominent Voice Recording Button -->
+        <!-- Input Footer & Compact Voice Recording Button -->
         <div class="chat-footer">
 
           <div class="chat-input-wrap flex items-center gap-2">
-            <!-- 🎙️ PROMINENT VOICE RECORDING BUTTON -->
+            <!-- 🎙️ COMPACT MIC ICON BUTTON -->
             <button
               @click="toggleSpeechRecognition"
               type="button"
-              class="prominent-voice-btn shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border shadow-md"
-              :class="isListening 
-                ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white border-red-400 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.6)]' 
-                : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-400 hover:scale-105 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]'"
+              class="chat-mic-btn shrink-0"
+              :class="{ 'chat-mic-btn--listening': isListening }"
               id="ai-chat-mic-btn"
-              title="Click to speak using your microphone (Voice Input)"
+              :title="isListening ? 'Listening... Click to stop' : 'Voice Input (Microphone)'"
             >
-              <span class="text-base animate-bounce-slow">🎙️</span>
-              <span>{{ isListening ? 'Listening...' : 'Voice Input' }}</span>
+              <svg v-if="!isListening" class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+              <span v-else class="text-xs animate-ping">🎙️</span>
             </button>
 
             <!-- Text Input Field -->
@@ -218,7 +218,7 @@
               @keyup.enter="sendMessage"
               :disabled="isLoading"
               type="text"
-              placeholder="Ask a question or click Voice Input..."
+              placeholder="Type a question or click Microphone..."
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
@@ -243,9 +243,9 @@
             </button>
           </div>
 
-          <div class="flex justify-between items-center mt-2 px-1 text-[10px] text-gray-400 font-semibold">
-            <span>💡 Click <strong class="text-cyan-300">🎙️ Voice Input</strong> to speak hands-free</span>
-            <span class="text-cyan-400 font-bold">Gemini 3.5 Flash</span>
+          <div class="flex justify-between items-center mt-2 px-1 text-[10px] text-gray-500 font-semibold">
+            <span>💡 Click the <strong class="text-orange-600 font-extrabold">🎙️ Microphone</strong> icon to speak hands-free</span>
+            <span class="text-orange-500 font-extrabold">Gemini 3.5 Flash</span>
           </div>
         </div>
       </div>
@@ -332,10 +332,10 @@ const mascotStatusText = computed(() => {
 
 // Quick Action Hints in English
 const quickHints = [
-  '🎯 Which Core should I use?',
-  '⚡ Which Core is strongest?',
-  '🔮 How to use Oracle Core?',
-  '🏆 How to rank up fast?',
+  '🎯 Which Support Core fits me best?',
+  '⚡ Which Core is strongest right now?',
+  '🔮 How do I use Oracle Core?',
+  '🏆 How can I rank up ELO fast?',
 ]
 
 // Mascot Interactive Click Handler
@@ -386,17 +386,13 @@ function initSpeechRecognition() {
     console.warn('Speech recognition error:', event.error)
     isListening.value = false
     if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-      errorMsg.value = '🎙️ Microphone access denied. Please allow microphone permission in your browser settings and try again.'
+      errorMsg.value = '🎙️ Microphone access denied. Please grant microphone permission in your browser.'
     } else if (event.error === 'network') {
-      errorMsg.value = '🌐 Network error. Speech recognition requires an internet connection. Please check your connection.'
+      errorMsg.value = '🌐 Network error during speech recognition.'
     } else if (event.error === 'no-speech') {
-      // Silently ignore — user just didn't say anything
-    } else if (event.error === 'service-not-allowed') {
-      errorMsg.value = '🔒 Speech recognition not allowed. Please use HTTPS or grant microphone permission.'
-    } else if (event.error === 'audio-capture') {
-      errorMsg.value = '🎤 No microphone detected. Please connect a microphone and try again.'
+      // Silently ignore
     } else {
-      errorMsg.value = `Speech error: ${event.error}. Please try again.`
+      errorMsg.value = `Speech recognition error: ${event.error}`
     }
   }
 
@@ -631,12 +627,12 @@ function renderMarkdown(raw: string): string {
   height: 560px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 110px);
-  background: rgba(15, 23, 42, 0.96);
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(254, 215, 170, 0.85);
   border-radius: 24px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 20px 50px rgba(234, 88, 12, 0.15), 0 10px 25px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -645,7 +641,7 @@ function renderMarkdown(raw: string): string {
 /* ── Accent Bar ──────────────────────────────── */
 .chat-accent-bar {
   height: 4px;
-  background: linear-gradient(90deg, #f97316, #06b6d4, #a855f7);
+  background: linear-gradient(90deg, #ff7b00, #e63946, #f59e0b);
 }
 
 /* ── Header & Cyber Mascot Avatar ────────────── */
@@ -654,8 +650,8 @@ function renderMarkdown(raw: string): string {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(254, 215, 170, 0.6);
+  background: rgba(255, 245, 236, 0.75);
 }
 
 .chat-header-info {
@@ -669,14 +665,14 @@ function renderMarkdown(raw: string): string {
   width: 44px;
   height: 44px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #090d16, #1e293b);
-  border: 2px solid rgba(6, 182, 212, 0.6);
-  box-shadow: 0 0 16px rgba(6, 182, 212, 0.4);
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 2px solid rgba(249, 115, 22, 0.8);
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.35);
   position: relative;
 }
 .cyber-mascot-box:hover {
   transform: scale(1.06);
-  border-color: #22d3ee;
+  border-color: #ff7b00;
 }
 
 /* Glowing Cyber Eyes */
@@ -684,15 +680,15 @@ function renderMarkdown(raw: string): string {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #22d3ee;
-  box-shadow: 0 0 10px #22d3ee, 0 0 18px #06b6d4;
+  background: #fb923c;
+  box-shadow: 0 0 10px #fb923c, 0 0 16px #f97316;
   transition: all 0.2s ease;
 }
 
 .eye-blink {
   height: 2px !important;
   border-radius: 2px !important;
-  box-shadow: 0 0 4px #22d3ee !important;
+  box-shadow: 0 0 4px #fb923c !important;
 }
 
 .eye-wide {
@@ -765,67 +761,73 @@ function renderMarkdown(raw: string): string {
 }
 
 .chat-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: #f8fafc;
+  font-size: 15px;
+  font-weight: 900;
+  color: #1e293b;
   margin: 0;
   line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .chat-badge {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 900;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: rgba(6, 182, 212, 0.25);
-  color: #67e8f9;
-  border: 1px solid rgba(6, 182, 212, 0.4);
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #ffedd5;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
 }
 
 .chat-subtitle {
   font-size: 11px;
-  color: #94a3b8;
+  color: #64748b;
   margin: 2px 0 0 0;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .chat-icon-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  color: #64748b;
   cursor: pointer;
-  padding: 5px 8px;
-  border-radius: 8px;
+  padding: 6px 9px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
 }
 .chat-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #f8fafc;
+  background: #fff7ed;
+  color: #ea580c;
+  border-color: #fdba74;
 }
 .chat-icon-btn--active {
-  background: rgba(6, 182, 212, 0.2);
-  border-color: rgba(6, 182, 212, 0.4);
-  color: #67e8f9;
+  background: #ffedd5;
+  border-color: #f97316;
+  color: #ea580c;
 }
 
 .chat-close-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
   cursor: pointer;
   padding: 6px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
 }
 .chat-close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #fca5a5;
 }
 
 /* ── Body ────────────────────────────────────── */
@@ -835,41 +837,54 @@ function renderMarkdown(raw: string): string {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   scroll-behavior: smooth;
+  background: linear-gradient(180deg, rgba(255, 245, 236, 0.5) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
 .chat-welcome {
   text-align: center;
-  padding: 12px 8px;
-  color: #cbd5e1;
+  padding: 14px 10px;
+  color: #475569;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #fed7aa;
+  border-radius: 20px;
+  box-shadow: 0 4px 15px rgba(251, 146, 60, 0.06);
 }
 
 .chat-quick-hints {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   justify-content: center;
 }
 
 .chat-quick-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #67e8f9;
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  border-bottom: 3px solid #fdba74;
+  color: #ea580c;
   font-size: 11px;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 12px;
+  font-weight: 800;
+  padding: 7px 13px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(251, 146, 60, 0.08);
 }
 .chat-quick-btn:hover {
-  background: rgba(6, 182, 212, 0.25);
-  border-color: rgba(6, 182, 212, 0.5);
+  background: linear-gradient(135deg, #ff7b00, #e63946);
+  border-color: #ea580c;
+  border-bottom-color: #991b1b;
   color: #ffffff;
-  transform: scale(1.03);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(234, 88, 12, 0.25);
+}
+.chat-quick-btn:active {
+  transform: translateY(1px);
+  border-bottom-width: 1px;
 }
 
 /* ── Message Bubbles ─────────────────────────── */
@@ -886,42 +901,45 @@ function renderMarkdown(raw: string): string {
 
 .chat-bubble {
   max-width: 88%;
-  padding: 10px 14px;
-  border-radius: 14px;
+  padding: 11px 15px;
+  border-radius: 18px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   word-break: break-word;
 }
 
 .chat-bubble--user {
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  background: linear-gradient(135deg, #ff7b00 0%, #e63946 100%);
   color: #ffffff;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35);
+  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.25);
+  font-weight: 600;
 }
 
 .chat-bubble--ai {
-  background: rgba(30, 41, 59, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #e2e8f0;
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  color: #1e293b;
   border-bottom-left-radius: 4px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 .chat-bubble-label {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .chat-bubble-text {
   margin: 0;
 }
 .chat-bubble-text :deep(code) {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 2px 5px;
-  border-radius: 4px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 2px 6px;
+  border-radius: 6px;
   font-family: monospace;
   font-size: 12px;
-  color: #67e8f9;
+  color: #c2410c;
+  font-weight: 700;
 }
 
 /* ── Typing Indicator ────────────────────────── */
@@ -929,17 +947,19 @@ function renderMarkdown(raw: string): string {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 12px;
-  background: rgba(30, 41, 59, 0.8);
-  border-radius: 14px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #fed7aa;
   border-bottom-left-radius: 4px;
   width: fit-content;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 .chat-typing span:not(:first-child) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #67e8f9;
+  background: #f97316;
   animation: typing 1.2s infinite ease-in-out;
 }
 .chat-typing span:nth-child(3) { animation-delay: 0.2s; }
@@ -952,12 +972,13 @@ function renderMarkdown(raw: string): string {
 
 /* ── Error ───────────────────────────────────── */
 .chat-error {
-  background: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
   font-size: 12px;
-  padding: 8px 12px;
-  border-radius: 10px;
+  font-weight: 600;
+  padding: 9px 13px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -965,15 +986,16 @@ function renderMarkdown(raw: string): string {
 .chat-error-dismiss {
   background: none;
   border: none;
-  color: #fca5a5;
+  color: #ef4444;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: bold;
 }
 
 /* ── Live Wave Bar ────────────────────────────── */
 .voice-wave-bar {
-  background: rgba(15, 23, 42, 0.95);
-  border-top: 1px solid rgba(6, 182, 212, 0.3);
+  background: #fff7ed;
+  border-top: 1px solid #fed7aa;
   padding: 8px 16px;
   display: flex;
   align-items: center;
@@ -1000,7 +1022,7 @@ function renderMarkdown(raw: string): string {
 }
 
 .voice-status-text {
-  color: #cbd5e1;
+  color: #9a3412;
 }
 
 .waveform-anim {
@@ -1013,7 +1035,7 @@ function renderMarkdown(raw: string): string {
 .wave-bar {
   width: 3px;
   height: 4px;
-  background: #06b6d4;
+  background: #f97316;
   border-radius: 2px;
   transition: height 0.2s;
 }
@@ -1029,55 +1051,86 @@ function renderMarkdown(raw: string): string {
 .waveform-anim--active .wave-bar:nth-child(5) { animation-delay: 0.15s; }
 
 @keyframes wave {
-  0% { height: 4px; background: #06b6d4; }
-  100% { height: 16px; background: #ef4444; }
+  0% { height: 4px; background: #f97316; }
+  100% { height: 16px; background: #dc2626; }
 }
 
 /* ── Footer / Input ──────────────────────────── */
 .chat-footer {
   padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.98);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border-top: 1px solid #fed7aa;
 }
 
 .chat-input-wrap {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
   padding: 6px 8px;
+  transition: all 0.2s;
 }
 .chat-input-wrap:focus-within {
-  border-color: rgba(6, 182, 212, 0.6);
-  box-shadow: 0 0 14px rgba(6, 182, 212, 0.25);
+  border-color: #f97316;
+  background: #ffffff;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.2);
 }
 
 .chat-input {
   background: transparent;
   border: none;
-  color: #f8fafc;
+  color: #1e293b;
   font-size: 13px;
+  font-weight: 600;
   outline: none;
 }
 .chat-input::placeholder {
-  color: #64748b;
+  color: #94a3b8;
 }
 
-.chat-send-btn {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  border: none;
-  color: #ffffff;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+.chat-mic-btn {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #ea580c;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(251, 146, 60, 0.1);
+}
+.chat-mic-btn:hover {
+  background: #ffedd5;
+  color: #c2410c;
+  border-color: #f97316;
+  transform: scale(1.05);
+}
+.chat-mic-btn--listening {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  border-color: #fca5a5 !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.6) !important;
+}
+
+.chat-send-btn {
+  background: linear-gradient(135deg, #ff7b00, #e63946);
+  border: none;
+  color: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
 }
 .chat-send-btn:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.5);
+  box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4);
 }
 .chat-send-btn:disabled {
   opacity: 0.4;
@@ -1095,51 +1148,53 @@ function renderMarkdown(raw: string): string {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #22d3ee;
-  box-shadow: 0 0 10px #22d3ee, 0 0 15px #06b6d4;
+  background: #ffffff;
+  box-shadow: 0 0 8px #ffffff, 0 0 12px #fed7aa;
   animation: fab-eye-glow 2s infinite alternate;
 }
 
 @keyframes fab-eye-glow {
-  0% { transform: scale(1); box-shadow: 0 0 6px #22d3ee; }
-  100% { transform: scale(1.25); box-shadow: 0 0 14px #22d3ee; }
+  0% { transform: scale(1); box-shadow: 0 0 6px #ffffff; }
+  100% { transform: scale(1.25); box-shadow: 0 0 14px #ffffff; }
 }
 
 /* ── FAB Button ──────────────────────────────── */
 .chat-fab {
   position: relative;
-  width: 54px;
-  height: 54px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  border: 2px solid rgba(6, 182, 212, 0.6);
+  background: linear-gradient(135deg, #ff7b00 0%, #e63946 100%);
+  border: 3px solid #ffffff;
   color: #ffffff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 12px 35px rgba(234, 88, 12, 0.45);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .chat-fab:hover {
-  transform: scale(1.08);
+  transform: scale(1.1) rotate(3deg);
+  box-shadow: 0 16px 40px rgba(234, 88, 12, 0.6);
 }
 .chat-fab--open {
   background: linear-gradient(135deg, #1e293b, #0f172a);
+  border-color: #fdba74;
 }
 
 .chat-fab-glow {
   position: absolute;
-  inset: -3px;
+  inset: -4px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f97316, #06b6d4);
-  filter: blur(8px);
-  opacity: 0.5;
+  background: linear-gradient(135deg, #ff7b00, #e63946);
+  filter: blur(10px);
+  opacity: 0.6;
   z-index: -1;
   transition: opacity 0.25s;
 }
 .chat-fab:hover .chat-fab-glow {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 .chat-fab--open .chat-fab-glow {
   opacity: 0;
@@ -1149,11 +1204,11 @@ function renderMarkdown(raw: string): string {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #22c55e;
-  border: 2px solid #070c1c;
+  border: 2px solid #ffffff;
   animation: dot-pulse 2s ease-in-out infinite;
 }
 @keyframes dot-pulse {
@@ -1199,3 +1254,4 @@ function renderMarkdown(raw: string): string {
   transform: scale(0.7) rotate(15deg);
 }
 </style>
+
