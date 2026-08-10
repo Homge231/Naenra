@@ -334,7 +334,7 @@ const mascotStatusText = computed(() => {
 const quickHints = [
   '🎯 Which Support Core fits me best?',
   '⚡ Which Core is strongest right now?',
-  '🔮 How do I use Oracle Core?',
+  '🔮 How do I use Argus Eyes?',
   '🏆 How can I rank up ELO fast?',
 ]
 

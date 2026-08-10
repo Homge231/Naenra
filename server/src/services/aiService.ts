@@ -176,7 +176,7 @@ export async function generateChatResponse(
   username: string,
   prompt: string,
   history?: { role: 'user' | 'model'; message: string }[],
-  playerHistory?: { coreHistory?: any[]; unlockedCores?: string[]; elo?: number }
+  playerHistory?: { coreHistory?: any[]; unlockedCores?: string[]; elo?: number; activeCoreName?: string }
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
   if (apiKey) {
@@ -186,26 +186,37 @@ export async function generateChatResponse(
       }
 
       const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-      const historyString = playerHistory ? JSON.stringify(playerHistory, null, 2) : 'No recent selection history'
+      const totalCoresCount = 65
+      const unlockedList = playerHistory?.unlockedCores || []
+      const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
+      const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
 
       const systemContext = `You are Naenra Cyber Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
 Player username: "${username}".
 
-PLAYER CORE SELECTION & MATCH HISTORY:
-${historyString}
+PLAYER CORE UNLOCK PROGRESSION & HISTORY:
+- Total Support Cores in Game: ${totalCoresCount} (across 10 families)
+- Player Unlocked Cores Count: ${unlockedCount}
+- Player Locked Cores Count: ${lockedCount}
+- Unlocked Core IDs: ${JSON.stringify(unlockedList)}
+- Player ELO Rating: ${playerHistory?.elo || 1000}
+- Currently Selected Active Core: "${playerHistory?.activeCoreName || 'None'}"
+- Match Core Selection History: ${JSON.stringify(playerHistory?.coreHistory || [], null, 2)}
 
 CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
 ${knowledgeString}
 
 KEY FACTS (memorize these, never contradict them):
-- Naenra has 40+ Support Cores organized into 12 families: Combo, Speedster, Aegis, Oracle, Mission, Pandora, Phoenix, High Roller, Balanced, Power, and more.
-- Each family has Tier 1 (default), Tier 2, and Tier 3 upgrades unlocked via missions.
+- Naenra has 65 Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
+- Each family has Tier 1 (default), Tier 2, and Tier 3 upgrades.
 - Matches last 60 seconds per round, with 3 rounds (Single) or 4 rounds (Multiplayer with Race Mode).
 - Players select 1 Support Core during a 15-second prep phase before each round.
 
 STRICT RESPONSE RULES:
 1. MATCH USER LANGUAGE EXACTLY: If the user asks in Vietnamese, YOU MUST RESPOND IN VIETNAMESE! If in English, respond in English!
-2. CORE COUNT: When asked how many cores exist, always answer "40+ cores across 12 families" and list the family names from the knowledge base above.
+2. CORE COUNT & UNLOCK STATUS:
+   - Total cores in game: 65 cores across 10 families.
+   - When asked how many cores exist or how many upgrades the player has unlocked/locked, answer accurately using the numbers above: "${unlockedCount} unlocked, ${lockedCount} locked (out of 65 total cores)".
 3. CONTEXT & CORES KNOWLEDGE: Always answer using the specific values from the knowledge base (scoring, Levenshtein penalties, ELO thresholds, buffs, unlock conditions). Prevent all hallucinations.
 4. SHORT CHATBOX FORMAT: Keep responses under 120 words, using concise bullet points to fit in the small Chatbox UI.
 5. NO REPETITIVE INTROS: Answer directly without generic greetings.`
@@ -265,11 +276,22 @@ STRICT RESPONSE RULES:
   }
 
   // 0.2 Off-topic Handler
-  if (!['lõi', 'core', 'phoenix', 'aegis', 'shield', 'speedster', 'combo', 'oracle', 'mission', 'roller', 'power', 'balanced', 'pandora', 'game', 'play', 'luật', 'điểm', 'score', 'elo', 'rank', 'hạng', 'wpm', 'acc', 'rules', 'how to', 'tutorial', 'hướng dẫn', 'chơi', 'leaderboard', 'bảng xếp hạng', 'level', 'up'].some(w => q.includes(w))) {
+  if (!['lõi', 'core', 'phoenix', 'aegis', 'shield', 'speedster', 'combo', 'oracle', 'mission', 'roller', 'power', 'balanced', 'pandora', 'game', 'play', 'luật', 'điểm', 'score', 'elo', 'rank', 'hạng', 'wpm', 'acc', 'rules', 'how to', 'tutorial', 'hướng dẫn', 'chơi', 'leaderboard', 'bảng xếp hạng', 'level', 'up', 'unlock', 'locked', 'khóa', 'mở'].some(w => q.includes(w))) {
     if (isVietnamese) {
       return `Tôi chỉ có thể giải đáp các câu hỏi liên quan đến luật chơi, cơ chế tính điểm, ELO và các Lõi Hỗ trợ (Support Cores) của Naenra. Hãy thử hỏi tôi về một Core nhé!`
     } else {
       return `I can only answer questions related to Naenra game rules, scoring formulas, ELO ranks, and Support Cores. Try asking me about a specific Core!`
+    }
+  }
+
+  // 0.3 Unlocked / Locked Cores Query Handler
+  if (['unlock', 'mở khóa', 'locked', 'khóa', 'bao nhiêu lõi', 'how many cores', 'upgrade', 'nâng cấp'].some(w => q.includes(w))) {
+    const unlockedCount = playerHistory?.unlockedCores?.length || 10
+    const lockedCount = Math.max(0, 65 - unlockedCount)
+    if (isVietnamese) {
+      return `🔓 **Tiến Trình Mở Khóa Lõi Hỗ Trợ:**\n- **Đã mở khóa**: ${unlockedCount} / 65 Lõi\n- **Đang khóa**: ${lockedCount} Lõi\n- **Tổng cộng**: 65 Lõi (thuộc 10 Dòng Lõi). Bạn có thể hoàn thành các Nhiệm Vụ Trong Trận (Missions) để mở khóa thêm các Lõi Tier 2 & Tier 3!`
+    } else {
+      return `🔓 **Support Core Progression Status:**\n- **Unlocked Cores**: ${unlockedCount} / 65\n- **Locked Cores**: ${lockedCount}\n- **Total Cores**: 65 across 10 Families. Complete match missions to unlock Tier 2 & Tier 3 upgrades!`
     }
   }
 
@@ -317,13 +339,13 @@ STRICT RESPONSE RULES:
       if (mentionsSpeedster) {
         return `💨 **Cách Hoạt Động Của Speedster Core:**\nTính thời gian phản xạ từ lúc từ xuất hiện đến khi gõ xong. Nếu bạn hoàn thành dưới 2.5s, nhận ngay **+200 điểm thưởng tốc độ** cộng thẳng vào điểm từ!`
       }
-      if (mentionsOracle) {
-        return `🔮 **Cách Hoạt Động Của Oracle Core:**\nTự động mở từng chữ cái gợi ý trong ô từ khó. Càng ngập ngừng lâu, Oracle càng mở nhiều ô chữ giúp bạn gõ chuẩn xác 100%.`
+      if (mentionsOracle || q.includes('argus')) {
+        return `🔮 **Cách Hoạt Động Của Argus Eyes (Oracle) Core:**\nTự động mở từng chữ cái gợi ý trong ô từ khó. Càng ngập ngừng lâu, Argus Eyes càng mở nhiều ô chữ giúp bạn gõ chuẩn xác 100%.`
       }
       if (mentionsAegis) {
         return `🛡️ **Cách Hoạt Động Của Aegis Core:**\nCấp 3 lớp khiên phòng thủ. Mỗi khi gõ sai 1 từ, 1 lớp khiên sẽ tự động nổ để triệt tiêu hoàn toàn điểm phạt Levenshtein.`
       }
-      return `⚡ **Cách Hoạt Động Của Support Cores:**\n- **Power Core**: Nhân điểm từng từ lên 2.5x-3.0x.\n- **Combo Core**: Nhân điểm theo chuỗi đúng liên tiếp.\n- **Oracle Core**: Mở chữ cái gợi ý từ khó.\n- **Aegis Core**: Dùng khiên đỡ lỗi phạt!`
+      return `⚡ **Cách Hoạt Động Của Support Cores:**\n- **Power Core**: Nhân điểm từng từ lên 2.5x-3.0x.\n- **Combo Core**: Nhân điểm theo chuỗi đúng liên tiếp.\n- **Argus Eyes**: Mở chữ cái gợi ý từ khó.\n- **Aegis Core**: Dùng khiên đỡ lỗi phạt!`
     } else {
       return `⚡ **How These Cores Work:**\n- **Power Core**: Direct +150% to +300% score boost per correct word.\n- **Combo Core**: Multiplies score output based on consecutive correct streaks (5x, 10x, 15x streaks).\n- **Speedster Core**: Awards +200 bonus speed pts for answers under 2.5 seconds!`
     }
@@ -348,8 +370,8 @@ STRICT RESPONSE RULES:
 
   // 3. General Fallback with direct answer
   if (isVietnamese) {
-    return `⚡ **Tư vấn Support Core cho ${username}:**\n- **Power Core**: Tăng 250% điểm mỗi từ.\n- **Combo Core**: Nhân điểm theo chuỗi gõ đúng.\n- **Oracle Core**: Mở ô gợi ý cho từ khó.\nHỏi tôi "cách hoạt động của lõi..." để biết chi tiết nhé!`
+    return `⚡ **Tư vấn Support Core cho ${username}:**\n- **Power Core**: Tăng 250% điểm mỗi từ.\n- **Combo Core**: Nhân điểm theo chuỗi gõ đúng.\n- **Argus Eyes**: Mở ô gợi ý cho từ khó.\nHỏi tôi "cách hoạt động của lõi..." để biết chi tiết nhé!`
   } else {
-    return `⚡ **Support Core Guide for ${username}:**\n- **Power Core**: 250% score per word.\n- **Combo Core**: Streak multipliers.\n- **Oracle Core**: Letter hints for difficult vocabulary.`
+    return `⚡ **Support Core Guide for ${username}:**\n- **Power Core**: 250% score per word.\n- **Combo Core**: Streak multipliers.\n- **Argus Eyes**: Letter hints for difficult vocabulary.`
   }
 }

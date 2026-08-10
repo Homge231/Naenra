@@ -33,122 +33,137 @@ Base points are determined by target word length:
 
 ---
 
-## 3. Support Core Families (40+ Cores)
+## 3. Support Core Families (65 Total Cores across 10 Families)
 
 ### 3.1 Combo Core Family
 Multiplies score based on consecutive correct streaks.
-* **Perfect Combo / Combo Core** (Tier 1): Standard combo bonus (max +100). Unlock: Default.
-* **Radiant Combo** (Tier 2): Capped at +200 combo bonus. Unlock: Max Combo 5.
-* **Prismatic Combo** (Tier 3): Capped at +300 combo bonus. Unlock: Max Combo 15.
-* **Golden Combo** (Tier 3): Capped at +500 combo bonus; bonus per streak is +20 instead of +10. Unlock: 150 correct words.
-* **Combo Focus** (Tier 2): Bonus per streak is +10, but incorrect answers add an extra `-30` points penalty. Unlock: Max Combo 12.
-* **Combo Time** (Tier 2): Adds `+1s` to match timer for correct answers during combo (streak ≥ 1). Unlock: 5 matches played.
-* **Combo Multiplier** (Tier 2): Adds `min(streak * 0.1, 1.0)` to the active multiplier. Unlock: 40 correct words.
-* **Combo Shield** (Tier 2): Grants `+1 Aegis Shield` stack for every 3 combo streak. Unlock: Max Combo 8.
-* **Super Combo** (Tier 3): Multiplies active multiplier by `2.5x` when combo streak is 4+. Unlock: Max Combo 25.
+* **Perfect Combo / Combo Core** (Tier 1): Tracks consecutive correct answers. Each combo level adds bonus points, capped at +100.
+* **Radiant Combo** (Tier 2): Each combo level adds bonus points, capped at +200.
+* **Combo Burst** (Tier 2): Reaching a 5-streak releases a point burst of +300 points (1.2x multiplier).
+* **Combo Multiplier** (Tier 2): Score multiplier increases by +0.1x per combo stack, capped at +1.0x multiplier.
+* **Combo Focus** (Tier 2): Correct answers during combo give +10 points per combo level, but wrong answers subtract 30 points.
+* **Combo Time** (Tier 2): Correct answers during a combo streak add +1 second to the match timer.
+* **Combo Shield** (Tier 2): Earn +1 Aegis Shield stack for every 3 combo streak.
+* **Prismatic Combo** (Tier 3): Max cap +300 points per combo. Correct answers trigger explosive VFX.
+* **Golden Combo** (Tier 3): Double all combo streak bonus points. Capped at +500 points.
+* **Hyper Combo** (Tier 3): Maintaining a 10-streak doubles all streak bonus points (Max +600 PTS, 2.0x multiplier).
+* **Super Combo** (Tier 3): Correct answers while combo is 5+ receive a 2.5x score multiplier.
+* **Chain Lightning** (Tier 3): Maintaining a 5-streak automatically reveals the next target word with no score penalty.
+* **Combo Mastery** (Tier 3): Complete a round with zero wrong answers or skips to receive a massive +1500 points.
 
 ### 3.2 Speedster Core Family
-Time-based score adjustments. Replaces combo bonus and flat/multiplier buffs entirely.
-* **Speedster** (Tier 1): `speedBonus = max(0, floor((1 - timeTaken / 8000) * 140))`. Unlock: Default.
-* **Time Warp** (Tier 2): Adds `+2s` to the match timer on correct answers. Unlock: 30 fast words (<3s).
-* **Speed Shield** (Tier 2): Grants `+1 Aegis Shield` on correct. Incorrect consumes shield instead of points. Unlock: 4 matches played.
-* **Mach Speed** (Tier 2): Doubles points (`baseTotal * 2`) if answer speed is under 2s. Unlock: 60 correct words.
-* **Overdrive** (Tier 2): Doubles base points (`baseTotal * 2`) for all correct answers. Unlock: Max Combo 10 at high speed.
-* **Time Freeze** (Tier 3): Pauses the match timer for `1s` on correct answers. Unlock: 15 speedster matches.
-* **Warp Speed** (Tier 3): Triples speed bonus (`speedBonus * 3`). Unlock: Max Combo 20 fast words.
-* **Grand Prix** (Tier 3): Standard speedster core. Unlock: 20 matches completed.
-* **Speed Demon** (Tier 2): Adds `+3s` to the match timer if answer speed is under 1.5s. Unlock: 8 matches played.
-* **Sonic Boom** (Tier 3): Multiplies speed bonus by `4x` if answered under 1s. Correct gives `+5s * combo` timer (cap +30s); incorrect deducts `-5s`. Unlock: 200 correct fast words.
-* **Chronobreak** (Tier 3): Pauses the match timer for `3s` on every 3rd combo streak. Unlock: 100 correct fast words.
+Time-based score and timer manipulation.
+* **Speedster** (Tier 1): Answer faster to earn exponentially more points. Every second counts.
+* **Time Warp** (Tier 2): Answer faster for exponential points. Adds +2 seconds to the timer for every correct answer.
+* **Velocity Shield** (Tier 2): Answering in under 2.5s generates 1 protective shield stack (1.2x multiplier).
+* **Speed Shield** (Tier 2): Quick reflexes. Answering in under 3 seconds grants +1 Aegis Shield stack (max 3).
+* **Mach Speed** (Tier 2): Supersonic pace. Answering in under 2 seconds awards double points.
+* **Overdrive** (Tier 2): Timer counts down 20% faster, but all correct answers yield a 2.0x multiplier.
+* **Speed Demon** (Tier 2): Answer in under 1.5 seconds to add +3 seconds to the match timer.
+* **Hyperdrive** (Tier 3): Hyperspeed typing quadruples time-taken speed bonus points (2.5x multiplier).
+* **Time Freeze** (Tier 3): Answering correctly pauses the game timer for 1 second.
+* **Chronobreak** (Tier 3): Inherits Time Warp. Maintaining a 3-streak pauses the match timer for 3 seconds.
+* **Warp Speed** (Tier 3): Unleash hyperspace velocity. Time-based speed bonus points are tripled.
+* **Grand Prix** (Tier 3): Complete the match with an average time of less than 3s per question for +2000 points.
+* **Sonic Boom** (Tier 3): Speed bonus points are quadrupled if the question is solved in under 1 second.
 
-### 3.3 Oracle Core Family
-Reveals letters slots.
-* **Argus Eyes / Oracle Core** (Tier 1): Standard hint reveals (L1 = -10, L2 = -30, L3 = -60 pts). Unlock: Default.
-* **Clairvoyance** (Tier 2): Forgives all oracle hint penalties entirely (0 pts cost). Unlock: 25 words with hints.
-* **Future Sight** (Tier 2): Correct answer in under 4 seconds grants `+50` flat points. Unlock: 50 words with hints.
-* **Cosmic Wisdom** (Tier 3): Doubles active multiplier (`2.0x`) if no hints are used. Unlock: 150 correct words.
-* **Oracle Blessing** (Tier 2): Grants `1.5x` active multiplier if no hints are used. Unlock: 7 matches played.
-* **Predictive Strike** (Tier 3): Grants `+300` bonus points if all 3 hints are revealed. Unlock: 10 matches played.
+### 3.3 Oracle / Argus Eyes Core Family
+Reveals letter slots and hints.
+* **Argus Eyes** (Tier 1): Reveals hints for target words. Correct answers earn 50% fewer points.
+* **Clairvoyance** (Tier 2): Reveals hints for target words. You earn 100% of points (no penalty).
+* **Inner Eye** (Tier 2): Oracle hints are free and automatically reveal target word length.
+* **Third Eye** (Tier 2): Oracle hints are free. Automatically reveals the first letter of the target word.
+* **Mind Reader** (Tier 3): Oracle hints are free. Automatically reveals the first 2 letters of the target word.
+* **Prophecy** (Tier 3): Oracle prophecy reveals target word category and first letter (1.5x multiplier).
+* **Cosmic Wisdom** (Tier 3): Oracle hints are free. Correct answers with no hints used award a 2.0x points multiplier.
+* **Omniscience** (Tier 3): Oracle hints are free. Automatically reveals the first letter, and timer ticks 20% slower.
+* **Predictive Strike** (Tier 3): Oracle hints are free. Solving a word with all 3 hints revealed awards +300 points.
 
 ### 3.4 Aegis Core Family
-Defensive shield capabilities. Mistake consumes 1 shield instead of losing points. Correct answers stack shields (Max 3).
-* **Aegis Shield** (Tier 1): Standard shield absorption (Max 3). Unlock: Default.
-* **Reflective Aegis** (Tier 2): Grants `+50` points when a shield block is triggered. Unlock: 5 mistake blocks.
-* **Spiked Shield** (Tier 3): Grants `+200` points when a shield block is triggered. Unlock: 10 matches played.
-* **Bastion of Light** (Tier 3): Max shields capacity increased to `5`. Doubles active multiplier (`2.0x`) when at maximum shields. Unlock: 20 mistake blocks.
-* **Indomitable** (Tier 3): Increases active multiplier by `+15%` (`+0.15`) per active shield stack. Unlock: Max Combo 20.
-* **Aegis Nova** (Tier 3): Earning a shield stack at maximum capacity triggers an explosion of `+500` points. Unlock: 100 correct words.
-* **Guardian Angel** (Tier 3): Earning a shield stack at maximum capacity adds `+10s` to the match timer. Unlock: 15 matches played.
-* **Shield Burst** (Tier 2): Correct answers while maximum shields are active grant `+100` points. Unlock: 50 correct words.
-* **Shield Synergy** (Tier 2): Correct answers while maximum shields are active grant `+50` points. Unlock: Max Combo 10.
+Defensive shield capabilities. Mistakes consume 1 shield instead of losing points.
+* **Aegis Shield** (Tier 1): Safety net. Correct answers stack shields (Max 3). Mistakes consume 1 shield instead of losing points.
+* **Reflective Aegis** (Tier 2): Stacks shields (Max 3). Mistakes consume 1 shield and grant +50 points instead of losing points.
+* **Reflective Barrier** (Tier 2): Consuming a shield reflects mistake penalties and grants +100 bonus points (1.2x multiplier).
+* **Bastion of Light** (Tier 3): Stacks shields (Max 5). When at maximum shields, all points earned are doubled.
+* **Aegis Sanctuary** (Tier 3): Generates 1 free Aegis Shield every 3 correct answers (Max 5 shields, 1.5x multiplier).
 
 ### 3.5 Mission Core Family
-Streak targets and bounties.
-* **Mission Impossible / Mission Core** (Tier 1): Grants `+500` points bounty every 5 consecutive correct answers. Unlock: Default.
-* **Bounty Hunter / Exodia / Bounty Overlord** (Tier 2/3): Every 5 consecutive correct answers yields a flat bounty. Unlock: 35 target missions / 100 mission targets / 10 matches.
-* **Daily Quest / Apex Predator / Swift Mission / Mission Master** (Tier 2/3): Every 3 consecutive correct answers yields a bounty. Unlock: 5 matches / Max Combo 18 / Max Combo 10 / 20 matches.
-* **Time Mission** (Tier 2): Every 5 consecutive correct answers yields flat bounty and `+10s` match timer. Unlock: 50 mission objectives.
-* **Swift Mission** (Tier 2): Every 3 consecutive correct answers yields bounty, but streak resets to 0 if any answer takes >4s. Unlock: Max Combo 10.
-* **Mission Master** (Tier 3): Every 3 consecutive correct answers gives a bounty. Streak = 3 gives `+1000` points. Streak = 6 gives `+3000` points. Unlock: 20 matches.
-* **Shield Mission** (Tier 2): Every 3 consecutive correct answers grants a max capacity shield stack. Streak does not break on incorrect if protected by shield. Unlock: 3 mistake blocks.
+Streak targets and milestone bounties.
+* **Mission Impossible / Mission Core** (Tier 1): Answer 5 questions correctly in a row for a massive +500 point bonus.
+* **Contract Hunter** (Tier 2): Completing a 4-streak target mission awards +800 flat bonus points.
+* **Bounty Hunter** (Tier 2): Answer 5 questions correctly in a row for a massive +1000 point bonus.
+* **Mission Specialist** (Tier 3): Completing any three separate 4-streaks of correct answers awards +4000 points (+800 flat).
+* **Mission Legend** (Tier 3): Completing an 8-streak mission awards a massive +4000 flat bonus points.
+* **Bounty Overlord** (Tier 3): Completing a 5-streak of correct answers awards +3000 points (+1500 flat).
+* **Apex Predator** (Tier 3): Target acquired. Solving the longest word of the round awards +2000 points (+800 flat).
+* **Exodia** (Tier 3): Answer 10 questions correctly in a row for +5000 points and trigger a camera shake (+1500 flat).
 
 ### 3.6 Phoenix Core Family
-Accumulated Penalty Debt comeback. Low-risk, easy to use, so overall refund yields are lower.
-* **Phoenix** (Tier 1): Accumulates wrong penalties into a debt pool. Rebirth correct answer refunds `30%` of debt. Unlock: Default.
-* **Phoenix Flame** (Tier 2): Refunds `40%` of accumulated debt (`30% base + 10% bonus`) and grants `+15` flat points. Unlock: 3 matches played.
-* **Rebirth** (Tier 2): Refunds `30%` of debt, grants `+20` flat points, and grants `1 Aegis Shield` upon rebirth. Unlock: 30 momentum recoveries.
-* **Ashes to Ashes** (Tier 2): Refunds `30%` of debt and adds `+15%` (`+0.15`) multiplier per accumulated miss (cap 1.6x). Unlock: 6 matches played.
-* **Immortal Phoenix** (Tier 3): Refunds `50%` of accumulated debt (`30% base + 20% bonus`) and grants `+40` flat points. Unlock: Max Combo 12.
-* **Eternal Rebirth** (Tier 3): Refunds `40%` of debt, grants `+40` flat points, and grants `2 Aegis Shields` upon rebirth. Unlock: 80 correct rebirth words.
-* **Supernova Ashes** (Tier 3): Refunds `40%` of debt, grants `+30` flat points, and adds `+30%` (`+0.3`) multiplier per accumulated miss (cap 2.2x). Unlock: Max Combo 18.
+Penalty debt accumulation and comeback rebirths.
+* **Phoenix** (Tier 1): Accumulates all lost penalty points from skipped/wrong answers into a debt pool. Answering next question correctly refunds 100% of accumulated debt + base points.
+* **Ashes to Ashes** (Tier 2): Refunds 100% of accumulated penalty debt + gains +0.4x score multiplier per miss (Max 2.6x).
+* **Solar Ember** (Tier 2): Consumes 1 mistake penalty and converts it into +100 flat bonus points on next correct answer.
+* **Feather Shield** (Tier 2): Recovering from a mistake grants 1 protective Aegis Shield stack.
+* **Eternal Rebirth** (Tier 3): Refunds 100% of accumulated penalty debt + 25% extra debt bonus + 150 flat rebirth points + grants 2 protective Aegis Shields upon rebirth.
+* **Supernova Ashes** (Tier 3): Refunds 100% of accumulated penalty debt + 25% extra debt bonus + gains +0.8x score multiplier per miss (Max 4.2x) + 100 flat rebirth points.
+* **Immortal Phoenix** (Tier 3): Refunds 100% of accumulated penalty debt + 50% extra debt bonus + 150 flat rebirth points on next correct answer.
+* **Blazing Resurrection** (Tier 3): Refunds 100% of mistake debt + grants 2.0x score multiplier on the next 3 consecutive correct answers (+150 flat).
+* **Phoenix Overlord** (Tier 3): Restores full score momentum on mistake recovery and extends match timer by +3 seconds (+200 flat, 1.5x multiplier).
 
 ### 3.7 High Roller Core Family
-Gamble scoring multipliers on correct answers. High risk, high variance, so payouts are buffed to incentivize risk.
-* **High Roller** (Tier 1): 50% chance for `2.2x` score, 50% chance for `0.5x` score. Unlock: Default.
-* **Jackpot** (Tier 2): 30% chance for `3.5x` score, 70% chance for `0.5x` score. Unlock: 3 matches played.
-* **Safe Bet** (Tier 2): 80% chance for `1.5x` score, 20% chance for `0.5x` score. Unlock: 30 gamble words.
-* **Double or Nothing** (Tier 2): 50% chance for `2.4x` score, 50% chance for `0x` score (0 points). Unlock: 6 matches played.
-* **All In** (Tier 3): 10% chance for `12.0x` score, 90% chance for `0.1x` score. Unlock: Max Combo 10 while gambling.
-* **House Advantage** (Tier 3): 70% chance for `2.2x` score, 30% chance for `0.5x` score. Unlock: 80 gamble words.
-* **Russian Roulette** (Tier 3): 16.6% (1/6) chance for `15.0x` score, 83.3% chance for `0x` score. Unlock: Max Combo 15.
+Gamble scoring multipliers and high-stakes payouts.
+* **High Roller** (Tier 1): Every correct answer has a 50% chance to grant 2x points, and a 50% chance to grant 0.5x points.
+* **Safe Bet** (Tier 2): 80% chance to grant 1.5x points, and a 20% chance to grant 0.5x points.
+* **Double or Nothing** (Tier 2): 50% chance to grant 2x points. 50% chance to grant 0 points.
+* **Jackpot** (Tier 2): 30% chance to grant 3x points, and a 70% chance to grant 0.5x points.
+* **High Stakes** (Tier 2): 60% chance to grant 2.5x points, 40% chance to deduct 20 points on wrong answer (2.0x multiplier).
+* **Lucky Seven** (Tier 2): Every 7th correct answer triggers a guaranteed 3.0x score multiplier (+100 flat, 1.5x multiplier).
+* **House Advantage** (Tier 3): 70% chance to grant 2x points, and a 30% chance to grant 0.5x points.
+* **All In** (Tier 3): 10% chance to grant 10x points, and a 90% chance to grant 0.1x points.
+* **Russian Roulette** (Tier 3): 16.6% chance to grant 12x points. 83.4% chance to grant 0 points.
+* **Royal Flush** (Tier 3): Maintaining a 5-streak in gamble mode triggers a massive +2000 flat jackpot!
+* **Casino Empire** (Tier 3): 80% chance for 2.0x multiplier and immunizes gamble losses on streak (+300 flat, 2.0x multiplier).
 
 ### 3.8 Power Core Family
-Pure raw score output. Heavier incorrect penalties.
-* **Power Strike / Power Core** (Tier 1): Standard scoring, standard `1.0x` penalty. Unlock: Default.
-* **Overclock / Hypercharge / Power Surge / Brute Force / Overload / Overcharge** (Tier 2): Standard scoring, `2.0x` incorrect penalty.
-  * *Brute Force*: Incorrect penalty is fixed at `-50` points. Unlock: 60 correct words.
-  * *Overload*: Incorrect answer locks player input for `2s` (`2000ms`). Unlock: 8 matches played.
-* **Supernova / Gigawatt / Desperado / Absolute Power / Supermassive / Cataclysm** (Tier 3): Standard scoring, `3.0x` incorrect penalty.
-  * *Absolute Power*: Incorrect penalty is fixed at `-100` points. Unlock: 200 correct words.
-  * *Supermassive*: Incorrect penalty is fixed at `-200` points. Unlock: Max Combo 25.
-  * *Desperado*: Incorrect answer deducts `-999s` from the match timer (Instantly ends the match). Unlock: 12 matches played.
+Pure raw score multipliers with heavier risk penalties.
+* **Power Strike / Power Core** (Tier 1): 1.5x multiplier on every score calculation.
+* **Overclock** (Tier 2): 2.0x multiplier on every score calculation.
+* **Overcharge** (Tier 2): Pushes score multiplier to 2.2x on sub-3-second answers.
+* **Power Surge** (Tier 2): Surging energy. 2.0x multiplier, and wrong answers deduct double points.
+* **Brute Force** (Tier 2): Raw power. 2.0x multiplier, but wrong answers subtract 50 points.
+* **Overload** (Tier 2): 2.0x multiplier, but mistakes lock typing board input for 2 seconds.
+* **Hypercharge** (Tier 2): Unleash raw power. 2.0x multiplier, but the match timer runs 15% faster.
+* **Cataclysm** (Tier 3): Cataclysmic power granting 3.5x multiplier on correct answers.
+* **Supernova** (Tier 3): Star-shattering power. 2.5x multiplier on correct answers.
+* **Gigawatt** (Tier 3): Insane power. 2.5x multiplier, but match duration is reduced by 15 seconds.
+* **Supermassive** (Tier 3): Grants a massive 2.5x multiplier, but mistakes deduct 200 points.
+* **Desperado** (Tier 3): All-or-nothing. 2.5x multiplier, but a single wrong answer ends the match.
+* **Absolute Power** (Tier 3): Grants a 2.5x multiplier, but mistakes subtract 100 points.
 
 ### 3.9 Balanced Core Family
-Stable score scaling and mistake forgiveness.
-* **Balance / Balanced Core** (Tier 1): Steady equilibrium scaling. Unlock: Default.
-* **Zenith** (Tier 3): Correct answer gives a fixed `+300` points. Incorrect penalty is a fixed `-30` points. Unlock: 10 matches played.
-* **Equilibrium** (Tier 2): Correct answer gives `70%` of normal score. Incorrect penalty is `30%` of normal penalty. Unlock: 40 correct words.
-* **Steady Pace** (Tier 2): Correct answer grants `+1s` to the match timer. Unlock: 6 matches played.
-* **Yin Yang** (Tier 2): Incorrect penalty is fixed at `-5` points. Unlock: Max Combo 7.
-* **Cosmic Balance** (Tier 3): Incorrect penalty is fixed at `-10` points. Unlock: 15 matches played.
-* **Harmony Wave** (Tier 2): The first 2 incorrect answers in a match have `0` penalty and do not break combo. Unlock: 80 correct words.
-* **Nirvana** (Tier 3): Incorrect answers do not break the combo streak. Unlock: 150 correct words.
-* **Universal Harmony / Perfect Harmony** (Tier 3): Complete immunity to incorrect penalties (`0` penalty points). Unlock: Max Combo 20.
+Equilibrium scoring, mistake forgiveness, and steady pace.
+* **Balance / Balanced Core** (Tier 1): 1.0x multiplier. Basic balanced core (+50 flat).
+* **Harmony** (Tier 2): 1.0x multiplier. Harmony in play (+50 flat).
+* **Zen Momentum** (Tier 2): Steady pace increases score multiplier by +0.1x per correct answer (Max 1.8x, 1.4x multiplier).
+* **Yin Yang** (Tier 2): Harmony in play. Mistakes deduct only 5 points.
+* **Steady Pace** (Tier 2): Correct answers add +1 second to the timer.
+* **Harmony Wave** (Tier 2): Mistakes do not subtract points for the next 2 errors.
+* **Equilibrium** (Tier 2): Both correct and incorrect answers score closer to average.
+* **Serenity** (Tier 3): Complete immunity to mistake penalties + awards +100 flat points per answer (1.5x multiplier).
+* **Zenith** (Tier 3): Reaching a peak. Standard scoring.
+* **Nirvana** (Tier 3): Wrong answers do not break your combo streaks.
+* **Cosmic Balance** (Tier 3): Wrong answers deduct a flat 10 points.
+* **Universal Harmony** (Tier 3): Wrong answers cost only 10 points.
+* **Perfect Harmony** (Tier 3): Mistakes are completely forgiven (0 points lost, +50 flat).
 
 ### 3.10 Pandora Core Family
-Chaotic shape-shifter meta-core. Modifies the result of the shifted core.
-* **Pandora's Box** (Tier 1): Fallback. Unlock: Default.
-* **Trickster's Glass** (Tier 2): Skipped answers (empty submission) yield `0` penalty. Unlock: 3 matches played.
-* **Chaos Prism** (Tier 2): Correct answers add `+80` flat points. Unlock: 30 words under chaos.
-* **Warp Reality** (Tier 2): Correct answers are multiplied by `1.75x`. Unlock: 6 matches played.
-* **Pandora's Curse** (Tier 2): Correct answers score `2.5x` points. Incorrect answers penalty is doubled (`-2x`). Unlock: Max Combo 8.
-* **Pandora's Mirror** (Tier 2): Typing errors (excluding skips) are converted to positive points. Unlock: 70 correct words under chaos.
-* **Chaos Theory** (Tier 3): Correct answers add a random `+100` to `+500` points. Unlock: Max Combo 15.
-* **Butterfly Effect** (Tier 3): Correct answers are multiplied by `1 + (streak * 0.15)`. Unlock: 10 matches played.
-* **Cosmic Entropy** (Tier 3): Correct answers are multiplied by a random `1.0x` to `5.0x` multiplier. Unlock: 15 matches played.
-* **Reality Collapse** (Tier 3): Correct answers are multiplied by `2.5x` (50% chance) or `0.5x` (50% chance). Unlock: Max Combo 20.
-* **Pandora's Wrath** (Tier 3): Correct answers grant `+600` points. Incorrect answers grant `0` points (forgiving penalty). Unlock: 120 words.
-* **Wild Card / Pandora Overdrive** (Tier 2/3): Core shape-shifting. Unlock: 40 words / Max Combo 15.
+Chaotic shape-shifting core.
+* **Pandora's Box** (Tier 1): Shape-shifts every 25 seconds into Main (Tier 1) cores.
+* **Trickster's Glass** (Tier 2): Shape-shifts every 20 seconds. Skipping a question (submitting empty) no longer deducts any points.
+* **Wild Card** (Tier 2): Shape-shifts every 15s. 50% chance to grant +200 flat points per answer.
+* **Pandora Overdrive** (Tier 3): Shape-shifts every 10s. Every correct answer triggers a random multiplier between 1.5x and 3.5x (2.5x multiplier).
+* **Chaos Theory** (Tier 3): Shape-shifts every 15 seconds. Every correct answer grants a random bonus between +100 and +500 points.
+* **Pandora's Wrath** (Tier 3): Shape-shifts every 15 seconds into Main (Tier 1) cores. Correct answers give +500 flat points, wrong answers give 0 (+200 flat).
 
 ---
 
