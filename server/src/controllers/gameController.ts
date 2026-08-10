@@ -355,10 +355,17 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
       }
     }
 
-    // Ensure guest player exists in players table to satisfy Foreign Key constraints
-    if (playerId.startsWith('guest_')) {
+    // Ensure player exists in players table to satisfy Foreign Key constraints
+    const { data: existingPlayer } = await supabase
+      .from('players')
+      .select('id, username, avatar_url')
+      .eq('id', playerId)
+      .maybeSingle()
+
+    if (!existingPlayer) {
       await supabase.from('players').upsert({
         id: playerId,
+        email: req.user?.email || `${playerId}@guest.naenra.xyz`,
         username: req.user?.username || 'Guest',
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(req.user?.username || 'Guest')}`,
         elo: 1000,
@@ -366,11 +373,7 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
       })
     }
 
-    const { data: player } = await supabase
-      .from('players')
-      .select('username, avatar_url')
-      .eq('id', playerId)
-      .single()
+    const player = existingPlayer
 
     const finalAvatarUrl = player?.avatar_url?.trim()
       || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player?.username || 'Player'}`

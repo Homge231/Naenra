@@ -1162,8 +1162,8 @@ async function skipQuestion() {
       aegisShieldCount.value--
       spawnPointPopup(0, 'shield_blocked')
     } else {
-      score.value = Math.max(0, score.value - 10)
-      spawnPointPopup(10, 'wrong')
+      score.value = Math.max(0, score.value - 50)
+      spawnPointPopup(50, 'wrong')
     }
     currentCombo.value = 0
     if (isMissionCore.value) missionProgress.value = 0
