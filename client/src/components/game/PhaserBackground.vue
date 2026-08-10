@@ -77,14 +77,13 @@ const initPhaser = async () => {
         config.speedY = { min: -40, max: 40 }
         config.frequency = 90
         config.scale = { min: 0.2, max: 0.6 }
-      } else if (name.includes('roller') || name.includes('jackpot') || name === 'safe bet' || name.includes('nothing') || name === 'all in' || name === 'russian roulette' || name === 'house advantage' || name.includes('gambler') || name.includes('poker')) {
-        // High Roller (Jazz, Cowboy & Gambler Saloon Theme): Warm golden amber neon sparkles floating upward like saloon jazz smoke & gold chip glints
-        config.tint = [0xffb700, 0xff8800, 0xffd700]
-        config.speedX = { min: -25, max: 25 }
-        config.speedY = { min: -55, max: -15 }
-        config.frequency = 55
-        config.scale = { min: 0.15, max: 0.55 }
-        config.blendMode = 'ADD'
+      } else if (name.includes('roller') || name === 'jackpot' || name === 'safe bet' || name.includes('nothing') || name === 'all in' || name === 'russian roulette' || name === 'house advantage') {
+        // High Roller: Golden sparkles falling downwards
+        config.tint = 0xfcbf24
+        config.speedX = { min: -15, max: 15 }
+        config.speedY = { min: 40, max: 150 }
+        config.frequency = 80
+        config.scale = { min: 0.15, max: 0.5 }
       } else {
         // Default gold-tinted dust motes
         config.tint = 0xffeeba
