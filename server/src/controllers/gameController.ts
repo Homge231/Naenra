@@ -285,20 +285,36 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
             upgradeNames.some(name => name.toLowerCase() === c.name.toLowerCase())
           )
           
-          // Hybrid Upgrade Pool: Tier 2 and Tier 3 upgrade cores from OTHER families
           const prevFamily = getCoreFamily(prevCore.name)
-          const hybridOtherPool = allCores.filter(c => {
-            const fam = getCoreFamily(c.name)
-            return c.id !== prevCore.id && 
-                   (c.tier === 2 || c.tier === 3) && 
-                   fam && fam.toLowerCase() !== prevFamily?.toLowerCase()
-          })
+          
+          if (targetTier === 2) {
+            // Round 2: Offer 1 same-family Tier 2 upgrade + 1 Tier 2 Hybrid Upgrade Core from another family
+            const hybridTier2Pool = allCores.filter(c => {
+              const fam = getCoreFamily(c.name)
+              return c.id !== prevCore.id && 
+                     (c.tier === 2 || c.tier === 1) && 
+                     fam && fam.toLowerCase() !== prevFamily?.toLowerCase()
+            })
 
-          const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
-          const shuffledOther = [...hybridOtherPool].sort(() => 0.5 - Math.random())
-          const primaryHybridCore = shuffledOther[0] || (sameFamilyPool[1] || tier1Cores[1])
+            const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
+            const shuffledOther = [...hybridTier2Pool].sort(() => 0.5 - Math.random())
+            const primaryHybridCore = shuffledOther[0] || (sameFamilyPool[1] || tier1Cores[1])
 
-          offeredCores = [primarySameFamily, primaryHybridCore].filter(Boolean)
+            offeredCores = [primarySameFamily, primaryHybridCore].filter(Boolean)
+          } else {
+            // Round 3: High Chance/Guaranteed High-Impact Tier 3 Super Hybrid Core option
+            const superTier3Pool = allCores.filter(c => {
+              const fam = getCoreFamily(c.name)
+              return (c.tier === 3 || c.tier === 2) && 
+                     fam && fam.toLowerCase() !== prevFamily?.toLowerCase()
+            })
+
+            const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
+            const shuffledSuper = [...superTier3Pool].sort(() => 0.5 - Math.random())
+            const primarySuperHybridCore = shuffledSuper[0] || (sameFamilyPool[1] || tier1Cores[1])
+
+            offeredCores = [primarySameFamily, primarySuperHybridCore].filter(Boolean)
+          }
         }
       }
 
