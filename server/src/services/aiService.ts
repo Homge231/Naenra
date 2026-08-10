@@ -74,7 +74,7 @@ RULES:
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-flash-latest',
+      model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -82,6 +82,7 @@ RULES:
         temperature: 0.7,
       }
     })
+    // Use gemini-2.5-flash (stable) as primary model for question generation
 
     if (!response.text) {
       throw new Error("AI returned empty response")
@@ -136,7 +137,7 @@ CORE GUIDELINES:
       }
 
       const response = await ai.models.generateContent({
-        model: 'gemini-flash-latest',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           temperature: 0.7,
@@ -207,10 +208,13 @@ CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
 ${knowledgeString}
 
 KEY FACTS (memorize these, never contradict them):
-- Naenra has 65 Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
-- Each family has Tier 1 (default), Tier 2, and Tier 3 upgrades.
+- Naenra has 65+ Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
+- Each family has Tier 1 (default), Tier 2 upgrade cores, and Tier 3 upgrade cores.
 - Matches last 60 seconds per round, with 3 rounds (Single) or 4 rounds (Multiplayer with Race Mode).
 - Players select 1 Support Core during a 15-second prep phase before each round.
+- HYBRID CORE SYSTEM (US-84): In Round 2, players are offered 1 same-family Tier 2 upgrade AND 1 cross-family Hybrid Core from a different family. In Round 3, they are offered 1 same-family Tier 3 upgrade AND 1 new 3rd-family Super Hybrid Core. Choosing cross-family cores activates Hybrid Matrix which stacks effects from both cores simultaneously.
+- PANDORA EXCEPTION: Pandora's Box family CANNOT hybridize with other families. It evolves strictly within its own Pandora variants (Trickster's Glass, Chaos Prism, Wild Card → Chaos Theory, Pandora's Wrath, Pandora Overdrive etc.).
+- Hybrid Matrix: If player has Power (flat_buff) + Effect (shield/hint/mission) cores, BOTH are stacked. If same classification, new core REPLACES old one (Replacement Matrix).
 
 STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
 1. MATCH USER LANGUAGE EXACTLY: If the user asks in Vietnamese, YOU MUST RESPOND IN VIETNAMESE! If in English, respond in English!
@@ -232,7 +236,7 @@ STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
       let responseText = ''
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-flash-latest',
+          model: 'gemini-2.5-flash',
           contents: fullPrompt,
           config: { temperature: 0.7 }
         })
@@ -242,7 +246,7 @@ STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
         await new Promise(r => setTimeout(r, 1000))
         try {
           const response2 = await ai.models.generateContent({
-            model: 'gemini-flash-latest',
+            model: 'gemini-2.5-flash',
             contents: fullPrompt,
             config: { temperature: 0.5 }
           })
@@ -372,5 +376,91 @@ STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
     return `⚡ **Tư vấn Support Core cho ${username}:**\n- **Power Core**: Tăng 250% điểm mỗi từ.\n- **Combo Core**: Nhân điểm theo chuỗi gõ đúng.\n- **Argus Eyes**: Mở ô gợi ý cho từ khó.\nHỏi tôi "cách hoạt động của lõi..." để biết chi tiết nhé!`
   } else {
     return `⚡ **Support Core Guide for ${username}:**\n- **Power Core**: 250% score per word.\n- **Combo Core**: Streak multipliers.\n- **Argus Eyes**: Letter hints for difficult vocabulary.`
+  }
+}
+
+/**
+ * SSE Streaming version of generateChatResponse.
+ * Yields text chunks in real-time using Gemini 2.5 Flash streaming API.
+ * Used by /api/ai/chat/stream SSE endpoint.
+ */
+export async function generateChatResponseStream(
+  username: string,
+  prompt: string,
+  res: import('express').Response,
+  history?: { role: 'user' | 'model'; message: string }[],
+  playerHistory?: { coreHistory?: any[]; unlockedCores?: string[]; elo?: number; activeCoreName?: string }
+): Promise<void> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+  if (!apiKey) {
+    res.write(`data: ${JSON.stringify({ chunk: 'API key not configured.' })}\n\n`)
+    res.write('data: [DONE]\n\n')
+    res.end()
+    return
+  }
+
+  // Set up SSE headers
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no')
+  res.flushHeaders()
+
+  try {
+    if (!ai) ai = new GoogleGenAI({ apiKey })
+
+    const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
+    const totalCoresCount = 65
+    const unlockedList = playerHistory?.unlockedCores || []
+    const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
+    const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
+
+    const systemContext = `You are Naenra Cyber Assistant, the official expert AI guide for Naenra (naenra.xyz).
+Player username: "${username}".
+
+PLAYER STATE:
+- ELO: ${playerHistory?.elo || 1000}
+- Active Core: "${playerHistory?.activeCoreName || 'None'}"
+- Unlocked: ${unlockedCount}/65 Cores
+
+NAENRA KNOWLEDGE:
+${knowledgeString}
+
+KEY FACTS:
+- 65+ Cores across 10 families: Combo, Speedster, Aegis, Oracle, Mission, Pandora, Phoenix, High Roller, Power, Balanced.
+- HYBRID CORE SYSTEM: Round 2 offers 1 same-family Tier 2 upgrade + 1 cross-family Hybrid Core. Round 3 offers a 3rd-family Super Hybrid Core. Hybrid Matrix stacks effects from both cores.
+- PANDORA EXCEPTION: Pandora family cannot hybridize — evolves only within Pandora variants.
+
+RULES:
+1. Match user language exactly (Vietnamese → Vietnamese, English → English).
+2. No filler words or greetings. Direct answer first.
+3. Max 50 words. Ultra-compact for in-game reading.`
+
+    let fullPrompt = systemContext
+    if (history && history.length > 0) {
+      fullPrompt += `\n\nCONVERSATION:\n` + history.map(h => `${h.role === 'user' ? username : 'Assistant'}: ${h.message}`).join('\n')
+    }
+    fullPrompt += `\n\n${username}: ${prompt}\nCyber Assistant:`
+
+    const streamResult = await ai.models.generateContentStream({
+      model: 'gemini-2.5-flash',
+      contents: fullPrompt,
+      config: { temperature: 0.7 }
+    })
+
+    for await (const chunk of streamResult) {
+      const text = chunk.text
+      if (text) {
+        res.write(`data: ${JSON.stringify({ chunk: text })}\n\n`)
+      }
+    }
+
+    res.write('data: [DONE]\n\n')
+    res.end()
+  } catch (error: any) {
+    console.error('generateChatResponseStream error:', error)
+    res.write(`data: ${JSON.stringify({ chunk: 'AI service error. Please try again.' })}\n\n`)
+    res.write('data: [DONE]\n\n')
+    res.end()
   }
 }

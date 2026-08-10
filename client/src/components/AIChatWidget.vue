@@ -638,23 +638,57 @@ async function sendMessage() {
       activeCoreName: gameStore.activeCoreName
     }
 
-    const res = await fetchWithAuth('/api/ai/chat', {
+    // ── SSE Streaming: AI types response token by token ──────────────
+    const token = localStorage.getItem('naenra_token') || ''
+    const apiBase = import.meta.env.VITE_API_URL || ''
+    const res = await fetch(`${apiBase}/api/ai/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ prompt: text, history, playerHistory }),
     })
 
-    if (!res.ok) {
+    if (!res.ok || !res.body) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.message || 'Failed to connect to AI Assistant')
     }
 
-    const data = await res.json()
-    const replyText = data.reply || 'Sorry, I could not generate a response.'
-    messages.value.push({ role: 'model', content: replyText })
+    // Push placeholder message, updated chunk-by-chunk as AI streams
+    messages.value.push({ role: 'model', content: '' })
+    const msgIdx = messages.value.length - 1
 
-    // Auto voice readout for generated answer
-    speakText(replyText)
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let fullText = ''
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const payload = line.slice(6).trim()
+        if (payload === '[DONE]') break
+        try {
+          const parsed = JSON.parse(payload)
+          if (parsed.chunk) {
+            fullText += parsed.chunk
+            messages.value[msgIdx] = { role: 'model', content: fullText }
+            scrollToBottom()
+          }
+        } catch { /* skip malformed chunk */ }
+      }
+    }
+
+    // Auto voice readout once full response is assembled
+    if (fullText) speakText(fullText)
   } catch (err: any) {
     errorMsg.value = err.message || 'An error occurred. Please try again.'
   } finally {
