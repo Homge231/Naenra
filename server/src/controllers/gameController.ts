@@ -22,9 +22,7 @@ const sessionTimers = new Map<string, number>()
 
 const TYPO_ACCURACY_THRESHOLD = 0.8   // >= 80% similarity counts as a "typo"
 const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misses
-const WRONG_PENALTY_PER_CHAR = 10     // -10 pts per wrong/missing character for standard misses
-const MIN_WRONG_PENALTY = 10          // floor — wrong/skipped answer costs 10 points
-const MAX_WRONG_PENALTY = 10          // ceiling — capped at exactly 10 points max deduction
+const DEFAULT_WRONG_PENALTY = 50      // Default penalty for wrong answers or skips (-50 pts)
 
 const DEFAULT_LOCKED_CORES = new Set([
   // Tier 3 and late Tier 2 end-game locked cores (33 cores locked by default)
@@ -127,13 +125,9 @@ function getWrongAnswerPenalty(
     return { penalty, penaltyType: 'typo', accuracy, distance }
   }
 
-  // Proportional to the number of wrong characters; a full skip is treated as
-  // the worst case (distance == target length) and is naturally capped below.
+  // Default penalty for wrong answer or skip is 50 points
   const effectiveDistance = isSkip ? target.length : distance
-  const penalty = Math.min(
-    MAX_WRONG_PENALTY,
-    Math.max(MIN_WRONG_PENALTY, effectiveDistance * WRONG_PENALTY_PER_CHAR)
-  )
+  const penalty = DEFAULT_WRONG_PENALTY
   return { penalty, penaltyType: 'wrong', accuracy, distance: effectiveDistance }
 }
 
