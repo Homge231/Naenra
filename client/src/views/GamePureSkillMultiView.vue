@@ -300,7 +300,7 @@
                      <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2" :class="{ 'opacity-30 blur-[1px]': isRaceLocked }">
                         <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p1-'+i"
                              class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner">
-                           {{ typedLetters[i - 1] || '' }}
+                           {{ typedLetters[i - 1] ? '*' : '' }}
                         </div>
                      </div>
                  </div>
@@ -314,7 +314,7 @@
                      <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2 opacity-80">
                         <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p2-'+i"
                              class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-orange/10 border-b-4 border-orange/50 text-orange shadow-inner">
-                           {{ opponentTypingText[i - 1] || '' }}
+                           {{ opponentTypingText[i - 1] ? '*' : '' }}
                         </div>
                      </div>
                  </div>
