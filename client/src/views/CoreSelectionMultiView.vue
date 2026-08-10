@@ -55,8 +55,6 @@
           <path class="opacity-75" fill="currentColor"
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c..."></path>
         </svg>
-      </div>
-
       <div v-else-if="errorMsg" class="text-hexred font-bold py-8">
         {{ errorMsg }}
       </div>
@@ -64,7 +62,7 @@
       <div v-else id="tutorial-core-cards" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full px-4 md:px-0 items-stretch"
         :class="{ 'pointer-events-none': loading }">
 
-        <div v-for="(core, index) in randomCores" :key="index" class="flex flex-col items-center gap-6 w-full h-full relative">
+        <div v-for="(core, index) in randomCores" :key="index" class="flex flex-col items-center gap-6 w-full h-full relative perspective-1000">
 
           <!-- Core detailed stats Tooltip -->
           <transition name="fade">
@@ -72,27 +70,40 @@
           </transition>
 
           <div 
-            class="tech-border group flex-1 w-full relative backdrop-blur-xl rounded-2xl p-8 md:p-12 cursor-pointer transition-all duration-500 flex flex-col items-center text-center overflow-hidden"
+            class="tech-border group flex-1 w-full relative backdrop-blur-xl rounded-2xl p-8 md:p-12 cursor-pointer transition-transform duration-150 ease-out flex flex-col items-center text-center overflow-hidden card-3d-tilt"
             :class="[
               selectedCore?.id === core.id
-                ? 'bg-white/10 border-2 border-lightBlue shadow-[0_0_40px_rgba(59,130,246,0.5)] -translate-y-4 scale-105'
-                : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-lightBlue/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-2',
-              rerollingIndex === index ? 'reroll-anim pointer-events-none' : '',
+                ? 'bg-white/15 border-2 border-lightBlue shadow-[0_0_45px_rgba(59,130,246,0.6)] ring-2 ring-lightBlue/40'
+                : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-lightBlue/50 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_0_35px_rgba(59,130,246,0.35)]',
+              getCardState(index).isFlipping || rerollingIndex === index ? 'card-flip-anim pointer-events-none' : '',
               loading && selectedCore?.id !== core.id ? 'opacity-40 grayscale' : ''
             ]"
-            @mouseenter="showTooltip(index)"
-            @mouseleave="hideTooltip"
+            :style="{
+              transform: `perspective(1000px) rotateX(${getCardState(index).rotateX}deg) rotateY(${getCardState(index).rotateY}deg) scale3d(${getCardState(index).scale}, ${getCardState(index).scale}, ${getCardState(index).scale})`
+            }"
+            @mousemove="handleMouseMove(index, $event)"
+            @mouseenter="handleMouseEnter(index); showTooltip(index)"
+            @mouseleave="handleMouseLeave(index); hideTooltip()"
             @touchstart="handleTouchStart(index, $event)"
             @touchend="handleTouchEnd(core, $event)"
-            @click="submitCore(core)"
+            @click="triggerCardSelect(); submitCore(core)"
           >
+            <!-- 🌟 Holographic Card Glare Overlay -->
+            <div
+              class="card-glare absolute inset-0 pointer-events-none transition-opacity duration-300 z-10"
+              :style="{
+                background: `radial-gradient(circle at ${getCardState(index).glareX}% ${getCardState(index).glareY}%, rgba(255,255,255,0.4) 0%, rgba(59,130,246,0.2) 30%, transparent 65%)`,
+                opacity: getCardState(index).glareOpacity
+              }"
+            ></div>
+
             <div
               class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
             </div>
 
             <!-- 🛡️/⚔️/🔮 Main / Power / Effect mini badge (top-left of card) -->
             <span
-              class="absolute top-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest select-none"
+              class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest select-none z-20 shadow-md"
               :class="core.classification === 'main'
                 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
                 : core.classification === 'power'
@@ -102,25 +113,26 @@
               {{ core.classification === 'main' ? '🛡️' : (core.classification === 'power' ? '⚔️' : '🔮') }}
               {{ core.classification === 'main' ? 'Anchor' : (core.classification === 'power' ? 'Power' : 'Effect') }}
             </span>
+
             <div
-              class="relative w-24 h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
-              :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)] from-blue/30 to-lightBlue/20' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:from-blue/20 group-hover:to-lightBlue/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
+              class="relative w-24 h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] z-20"
+              :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_25px_rgba(59,130,246,0.7)] from-blue/30 to-lightBlue/20' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:from-blue/20 group-hover:to-lightBlue/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
               <img :src="core.icon" :alt="core.name"
                 @error="event => (event.currentTarget as HTMLImageElement).src = '/icons/cores/default.svg'"
                 class="w-16 h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300" />
             </div>
-            <h3 class="text-3xl font-black mb-4 tracking-wide transition-colors duration-500"
+            <h3 class="text-3xl font-black mb-4 tracking-wide transition-colors duration-500 z-20"
               :class="selectedCore?.id === core.id ? 'text-lightBlue' : 'text-white group-hover:text-lightBlue'">
               {{ core.name }}
             </h3>
-            <p class="text-base text-gray-300/80 leading-relaxed max-w-[250px] mb-6">{{ core.description }}</p>
+            <p class="text-base text-gray-300/80 leading-relaxed max-w-[250px] mb-6 z-20">{{ core.description }}</p>
 
           </div>
 
-          <button @click="handleCardReroll(index)"
+          <button @click="triggerCardFlip(index); handleCardReroll(index)"
             :id="index === 0 ? 'tutorial-reroll' : undefined"
             :disabled="rerolledSlots[index] || rerollingIndex !== null || loading"
-            class="group relative px-6 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 shadow-lg`	 disabled:cursor-not-allowed"
+            class="group relative px-6 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 shadow-lg disabled:cursor-not-allowed z-20"
             :class="rerolledSlots[index]
               ? 'bg-black/60 border border-gray-700 opacity-40 blur-[1px] grayscale'
               : 'bg-black/40 backdrop-blur-md border border-white/20 hover:border-lightBlue hover:bg-white/10 cursor-pointer'">
@@ -185,6 +197,7 @@ import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useTutorial } from '../composables/useTutorial'
+import { useCardTilt } from '../composables/useCardTilt'
 import { initAudio } from '../composables/game/useAudioEngine'
 import { audioService } from '../services/audioService'
 import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
@@ -192,7 +205,9 @@ import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionTo
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
+const matchStore = useMatchStore()
 const tutorial = useTutorial()
+const { getCardState, handleMouseMove, handleMouseEnter, handleMouseLeave, triggerCardFlip, triggerCardSelect } = useCardTilt()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const navigatingToGame = ref(false)
 
@@ -594,6 +609,38 @@ onBeforeRouteLeave((_to, _from, next) => {
 .tech-border {
   position: relative;
 }
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.card-3d-tilt {
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: transform 0.15s ease-out;
+}
+
+.card-glare {
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.card-flip-anim {
+  animation: cardFlip 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+@keyframes cardFlip {
+  0% {
+    transform: perspective(1000px) rotateY(0deg) scale(1);
+  }
+  50% {
+    transform: perspective(1000px) rotateY(90deg) scale(0.85);
+  }
+  100% {
+    transform: perspective(1000px) rotateY(0deg) scale(1);
+  }
+}
+
 
 .tech-border::after {
   content: '';
