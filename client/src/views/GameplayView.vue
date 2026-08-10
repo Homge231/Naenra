@@ -146,6 +146,14 @@
 
       <!-- Active Core History Badges in Center -->
       <div v-if="gameStore.coreHistory.length > 0" class="hidden md:flex flex-row items-center gap-2">
+        <!-- Fusion Active HUD Badge -->
+        <div v-if="activeSynergyInfo" class="px-3 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange/30 border border-amber-400/50 rounded-lg flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse">
+          <span class="text-xs">{{ activeSynergyInfo.icon }}</span>
+          <span class="text-[10px] font-black tracking-widest text-amber-300 uppercase">
+            FUSION: {{ activeSynergyInfo.name }}
+          </span>
+        </div>
+
         <div v-for="(core, index) in gameStore.coreHistory" :key="`${core.id}-${index}`"
           class="relative flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300 cursor-pointer hover:bg-black/40"
           :class="[
@@ -566,6 +574,7 @@ const showCelebrationModal = ref(false)
 const unlockedCoresCelebrationList = ref<UnlockedCoreDetail[]>([])
 const missionToastUpdates = ref<any[]>([])
 import { getCoreFamily } from '../game/cores/families'
+import { detectSynergy } from '../game/cores/synergies'
 import { useMatchStore } from '../stores/matchStore'
 
 const missionsStore = useMissionsStore()
@@ -906,6 +915,11 @@ const isOracleFree = computed(() => {
     const family = getCoreFamily(c.name)
     return family === 'oracle' && c.name.toLowerCase() !== 'argus eyes'
   })
+})
+
+const activeSynergyInfo = computed(() => {
+  const historyNames = gameStore.coreHistory.map(c => c.name)
+  return detectSynergy(historyNames)
 })
 const timerSpeedMultiplier = computed(() => {
   let mult = 1.0
