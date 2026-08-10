@@ -23,8 +23,8 @@ const sessionTimers = new Map<string, number>()
 const TYPO_ACCURACY_THRESHOLD = 0.8   // >= 80% similarity counts as a "typo"
 const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misses
 const WRONG_PENALTY_PER_CHAR = 10     // -10 pts per wrong/missing character for standard misses
-const MIN_WRONG_PENALTY = 10          // floor — even a 1-character miss costs at least this much
-const MAX_WRONG_PENALTY = 50          // ceiling — caps penalty for a full skip / completely unrelated guess
+const MIN_WRONG_PENALTY = 10          // floor — wrong/skipped answer costs 10 points
+const MAX_WRONG_PENALTY = 10          // ceiling — capped at exactly 10 points max deduction
 
 const DEFAULT_LOCKED_CORES = new Set([
   // Tier 3 and late Tier 2 end-game locked cores (33 cores locked by default)
@@ -359,6 +359,17 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
         res.status(400).json({ error: 'Initial core must be a Tier 1 core.' })
         return
       }
+    }
+
+    // Ensure guest player exists in players table to satisfy Foreign Key constraints
+    if (playerId.startsWith('guest_')) {
+      await supabase.from('players').upsert({
+        id: playerId,
+        username: req.user?.username || 'Guest',
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(req.user?.username || 'Guest')}`,
+        elo: 1000,
+        session_version: 0
+      })
     }
 
     const { data: player } = await supabase

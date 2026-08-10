@@ -21,6 +21,15 @@ export async function loginAsGuest(req: Request, res: Response): Promise<void> {
       isGuest: true
     }
 
+    // Register Guest in players table so foreign key references in game_sessions work seamlessly
+    await supabase.from('players').upsert({
+      id: guestId,
+      username,
+      avatar_url: avatarUrl,
+      elo: 1000,
+      session_version: 0
+    })
+
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
 
     res.status(200).json({
