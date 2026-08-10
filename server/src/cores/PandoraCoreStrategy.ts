@@ -46,63 +46,74 @@ export class PandoraCoreStrategy extends BaseCore {
   applyModifiers(result: ScoringResult, isCorrect: boolean, ctx: ScoringContext, answer: string): ScoringResult {
     const newResult = { ...result, breakdown: { ...result.breakdown } }
 
+    // Base Pandora's Box Buff (US-84 Pandora Hybrid Exception)
+    if (this.coreName === "pandora's box" && isCorrect) {
+      const chaosBonus = Math.floor(Math.random() * 201) + 150 // +150 to +350 pts
+      newResult.pointsDelta += chaosBonus
+      newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + chaosBonus
+    }
+
     if (this.coreName === "trickster's glass") {
-      if (!isCorrect && answer === '') {
+      if (!isCorrect) {
+        // Trickster's Glass: 100% immunity on wrong answers and skips
         newResult.pointsDelta = 0
         newResult.breakdown.penalty = 0
         newResult.breakdown.oracle_penalty = 0
+        newResult.forgiveMistake = true
+      } else {
+        newResult.pointsDelta = Math.floor(newResult.pointsDelta * 1.5)
       }
     }
 
     if (this.coreName === 'chaos theory' && isCorrect) {
-      const chaosPts = Math.floor(Math.random() * 401) + 100 // 100 to 500
+      const chaosPts = Math.floor(Math.random() * 601) + 200 // +200 to +800 pts
       newResult.pointsDelta += chaosPts
       newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + chaosPts
     }
 
     if (this.coreName === 'butterfly effect' && isCorrect) {
-      const bonusMult = 1 + (ctx.combo * 0.15)
+      const bonusMult = 1.2 + (ctx.combo * 0.20)
       newResult.pointsDelta = Math.floor(newResult.pointsDelta * bonusMult)
       newResult.breakdown.multiplier_buff = (newResult.breakdown.multiplier_buff || 1) * bonusMult
     }
 
     if (this.coreName === 'cosmic entropy' && isCorrect) {
-      const randMult = 1.0 + Math.random() * 4.0 // 1.0x to 5.0x
+      const randMult = 1.5 + Math.random() * 4.5 // 1.5x to 6.0x
       newResult.pointsDelta = Math.floor(newResult.pointsDelta * randMult)
       newResult.breakdown.multiplier_buff = (newResult.breakdown.multiplier_buff || 1) * randMult
     }
 
     if (this.coreName === 'reality collapse' && isCorrect) {
-      const isDoubled = Math.random() > 0.5
-      const factor = isDoubled ? 2.5 : 0.5
+      const isDoubled = Math.random() > 0.4
+      const factor = isDoubled ? 3.0 : 1.0
       newResult.pointsDelta = Math.floor(newResult.pointsDelta * factor)
       newResult.breakdown.multiplier_buff = (newResult.breakdown.multiplier_buff || 1) * factor
     }
 
     if (this.coreName === "pandora's curse") {
-      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 2.5)
-      else newResult.pointsDelta = -Math.abs(newResult.pointsDelta) * 2
+      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 3.0)
+      else newResult.pointsDelta = 0
     }
 
     if (this.coreName === "pandora's mirror") {
-      if (!isCorrect && ctx.penaltyType === 'typo' && newResult.pointsDelta < 0) {
-        // Reflects close typos as positive points.
+      if (!isCorrect && newResult.pointsDelta < 0) {
+        // Reflects all typos/wrong answers as positive points
         newResult.pointsDelta = Math.abs(newResult.pointsDelta)
       }
     }
 
     if (this.coreName === 'chaos prism') {
-      if (isCorrect) newResult.pointsDelta += 80
+      if (isCorrect) newResult.pointsDelta += 200
     }
 
     if (this.coreName === 'warp reality') {
-      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 1.75)
+      if (isCorrect) newResult.pointsDelta = Math.floor(newResult.pointsDelta * 2.0)
     }
 
     if (this.coreName === "pandora's wrath") {
       if (isCorrect) {
-        newResult.pointsDelta += 600
-        newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + 600
+        newResult.pointsDelta += 800
+        newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + 800
       } else {
         newResult.pointsDelta = 0
         newResult.breakdown.penalty = 0
