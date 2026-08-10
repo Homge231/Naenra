@@ -268,35 +268,53 @@ export const getLeaderboard = async (req: AuthRequest, res: Response): Promise<a
     const currentUserId = req.user?.id
     if (!currentUserId) return res.status(401).json({ error: 'Unauthorized' })
 
-    // Fetch top 50 players
-    const { data: topPlayers, error: topError } = await supabase
+    // Fetch top 50 non-guest players
+    const { data: topPlayersRaw, error: topError } = await supabase
       .from('players')
-      .select('id, username, avatar_url, elo')
+      .select('id, username, avatar_url, elo, email')
+      .not('username', 'ilike', 'Guest %')
+      .not('username', 'ilike', 'Guest#%')
+      .not('email', 'ilike', '%@guest.naenra.xyz')
       .order('elo', { ascending: false })
       .limit(50)
 
     if (topError) throw topError
 
+    // Secondary safety check to guarantee no guest user is included
+    const topPlayers = (topPlayersRaw || []).filter(p => {
+      const uname = (p.username || '').toLowerCase()
+      const email = (p.email || '').toLowerCase()
+      const isGuestUser = uname.startsWith('guest #') || uname.startsWith('guest_') || email.endsWith('@guest.naenra.xyz')
+      return !isGuestUser
+    })
+
     // Fetch current user's profile to get their elo
     const { data: currentUser, error: userError } = await supabase
       .from('players')
-      .select('id, username, avatar_url, elo')
+      .select('id, username, avatar_url, elo, email')
       .eq('id', currentUserId)
       .single()
 
     if (userError) throw userError
 
-    // Calculate current user's rank
-    // Count how many players have an elo STRICTLY GREATER than the current user's elo
-    const { count, error: countError } = await supabase
-      .from('players')
-      .select('*', { count: 'exact', head: true })
-      .gt('elo', currentUser.elo)
+    const isCurrentGuest = req.user?.isGuest || 
+                           (currentUser.username || '').toLowerCase().startsWith('guest #') || 
+                           (currentUser.email || '').toLowerCase().endsWith('@guest.naenra.xyz')
 
-    if (countError) throw countError
+    let userRank: number | string = '-'
+    if (!isCurrentGuest) {
+      // Calculate current user's rank among non-guest players
+      const { count, error: countError } = await supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .not('username', 'ilike', 'Guest %')
+        .not('username', 'ilike', 'Guest#%')
+        .not('email', 'ilike', '%@guest.naenra.xyz')
+        .gt('elo', currentUser.elo)
 
-    // The rank is the number of people with higher elo + 1
-    const userRank = (count || 0) + 1
+      if (countError) throw countError
+      userRank = (count || 0) + 1
+    }
 
     return res.status(200).json({
       topPlayers,

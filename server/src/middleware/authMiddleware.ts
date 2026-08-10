@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     email: string
     username: string
     sessionVersion: number
+    isGuest?: boolean
   }
 }
 
