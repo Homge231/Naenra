@@ -254,7 +254,6 @@
 
           <div class="flex justify-between items-center mt-2 px-1 text-[10px] text-gray-500 font-semibold">
             <span>⚠️ AI có thể mắc sai lầm. Hãy kiểm chứng thông tin quan trọng.</span>
-            <span class="text-orange-500 font-extrabold">Gemini 2.5 Flash</span>
           </div>
         </div>
       </div>
@@ -651,8 +650,8 @@ async function sendMessage() {
     }
 
     // ── SSE Streaming: AI types response token by token ──────────────
-    const token = localStorage.getItem('naenra_token') || ''
-    const apiBase = import.meta.env.VITE_API_URL || ''
+    const token = localStorage.getItem('arena_token') || ''
+    const apiBase = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
     const res = await fetch(`${apiBase}/api/ai/chat/stream`, {
       method: 'POST',
       headers: {
