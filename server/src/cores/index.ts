@@ -34,6 +34,10 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'immortal phoenix': new PhoenixCoreStrategy('immortal phoenix', 0.20, 0, 0, 0, 40),
   'eternal rebirth': new PhoenixCoreStrategy('eternal rebirth', 0.10, 2, 0, 0, 40),
   'supernova ashes': new PhoenixCoreStrategy('supernova ashes', 0.10, 0, 0.30, 2.2, 30),
+  'solar ember': new PhoenixCoreStrategy('solar ember', 0.10, 0, 0, 0, 15),             // T2 — NEW
+  'feather shield': new PhoenixCoreStrategy('feather shield', 0.05, 1, 0, 0, 10),       // T2 — NEW
+  'blazing resurrection': new PhoenixCoreStrategy('blazing resurrection', 0.15, 2, 0.10, 1.8, 30), // T3 — NEW
+  'phoenix overlord': new PhoenixCoreStrategy('phoenix overlord', 0.25, 3, 0.20, 2.0, 50),         // T3 — NEW
 
   // High Roller Branch - Buffed to reward high risk
   'high roller': new HighRollerStrategy('high roller', 0.5, 2.2, 0.5),
@@ -43,6 +47,10 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'all in': new HighRollerStrategy('all in', 0.1, 12.0, 0.1),
   'house advantage': new HighRollerStrategy('house advantage', 0.7, 2.2, 0.5),
   'russian roulette': new HighRollerStrategy('russian roulette', 1/6, 15.0, 0),
+  'lucky seven': new HighRollerStrategy('lucky seven', 0.6, 2.0, 0.5),         // T2 — NEW
+  'high stakes': new HighRollerStrategy('high stakes', 0.55, 2.5, 0.4),        // T2 — NEW
+  'royal flush': new HighRollerStrategy('royal flush', 0.4, 6.0, 0.3),         // T3 — NEW
+  'casino empire': new HighRollerStrategy('casino empire', 0.35, 8.0, 0.2),    // T3 — NEW
   // Balanced Branch
   'balance': new BalancedCoreStrategy('balance'),
   'balanced core': new BalancedCoreStrategy('balanced core'),
@@ -56,6 +64,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'cosmic balance': new BalancedCoreStrategy('cosmic balance'),
   'harmony wave': new BalancedCoreStrategy('harmony wave'),
   'universal harmony': new BalancedCoreStrategy('universal harmony'),
+  'zen momentum': new BalancedCoreStrategy('zen momentum'),   // T2 — NEW
+  'serenity': new BalancedCoreStrategy('serenity'),           // T3 — NEW
 
   // Combo Branch
   'perfect combo': new ComboCoreStrategy('perfect combo', 100),
@@ -70,6 +80,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'combo mastery': new ComboCoreStrategy('combo mastery', 100),
   'combo focus': new ComboCoreStrategy('combo focus', 100),
   'super combo': new ComboCoreStrategy('super combo', 250),
+  'combo burst': new ComboCoreStrategy('combo burst', 150),       // T2 — NEW
+  'hyper combo': new ComboCoreStrategy('hyper combo', 400),        // T3 — NEW
 
   // Oracle Branch
   'argus eyes': new OracleCoreStrategy('argus eyes', false),
@@ -84,6 +96,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'cosmic wisdom': new OracleCoreStrategy('cosmic wisdom', true),
   'oracle blessing': new OracleCoreStrategy('oracle blessing', true),
   'divine eye': new OracleCoreStrategy('divine eye', true),
+  'inner eye': new OracleCoreStrategy('inner eye', true),   // T2 — NEW
+  'prophecy': new OracleCoreStrategy('prophecy', true),     // T3 — NEW
 
   // Speedster Branch
   'speedster':  new SpeedsterCoreStrategy('speedster'),
@@ -98,6 +112,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   // BUG FIX #1: Speed Demon was incorrectly using ComboCoreStrategy → now SpeedsterCoreStrategy
   'speed demon': new SpeedsterCoreStrategy('speed demon'),
   'sonic boom': new SpeedsterCoreStrategy('sonic boom'),
+  'velocity shield': new SpeedsterCoreStrategy('velocity shield'), // T2 — NEW
+  'hyperdrive': new SpeedsterCoreStrategy('hyperdrive'),           // T3 — NEW
 
   // Mission Branch
   'mission impossible': new MissionCoreStrategy('mission impossible', 5),
@@ -113,6 +129,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'mission specialist': new MissionCoreStrategy('mission specialist', 4),
   'swift mission': new MissionCoreStrategy('swift mission', 3),
   'mission master': new MissionCoreStrategy('mission master', 3),
+  'contract hunter': new MissionCoreStrategy('contract hunter', 4),  // T2 — NEW
+  'mission legend': new MissionCoreStrategy('mission legend', 3),     // T3 — NEW
 
   // Aegis Branch
   'aegis shield': new AegisCoreStrategy('aegis shield', 3, false, false),
@@ -126,6 +144,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'aegis nova': new AegisCoreStrategy('aegis nova', 3, false, false),
   'shield burst': new AegisCoreStrategy('shield burst', 3, false, false),
   'guardian angel': new AegisCoreStrategy('guardian angel', 3, false, false),
+  'reflective barrier': new AegisCoreStrategy('reflective barrier', 4, true, false),  // T2 — NEW
+  'aegis sanctuary': new AegisCoreStrategy('aegis sanctuary', 6, true, true),          // T3 — NEW (super tank)
 
   // Power Branch
   // penaltyMultiplier: T1=1.0×, T2=2.0×, T3=3.0× — consistent risk/reward escalation
@@ -137,12 +157,14 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'power surge': new PowerCoreStrategy('power surge', 2.0),
   'brute force': new PowerCoreStrategy('brute force', 2.0),
   'overload': new PowerCoreStrategy('overload', 2.0),
+  'overcharge': new PowerCoreStrategy('overcharge', 2.0),   // T2 — NEW
   // T3 Power: all have 3.0× penalty
   'supernova': new PowerCoreStrategy('supernova', 3.0),
   'gigawatt': new PowerCoreStrategy('gigawatt', 3.0),
   'desperado': new PowerCoreStrategy('desperado', 3.0),
   'absolute power': new PowerCoreStrategy('absolute power', 3.0),
   'supermassive': new PowerCoreStrategy('supermassive', 3.0),
+  'cataclysm': new PowerCoreStrategy('cataclysm', 3.0),     // T3 — NEW
 
   // Pandora Branch
   "pandora's box": new PandoraCoreStrategy(),
@@ -156,6 +178,8 @@ const CORE_REGISTRY: Record<string, BaseCore> = {
   'cosmic entropy': new PandoraCoreStrategy('cosmic entropy'),
   "pandora's mirror": new PandoraCoreStrategy("pandora's mirror"),
   'reality collapse': new PandoraCoreStrategy('reality collapse'),
+  'wild card': new PandoraCoreStrategy('wild card'),             // T2 — NEW
+  'pandora overdrive': new PandoraCoreStrategy('pandora overdrive'), // T3 — NEW
   
   // Fallback
   'no core':    new NoCoreStrategy(),

@@ -121,6 +121,33 @@ export class PandoraCoreStrategy extends BaseCore {
       }
     }
 
+    // Wild Card (T2): Random bonus +100~+500, negates penalty 50% of the time
+    if (this.coreName === 'wild card') {
+      if (isCorrect) {
+        const wildBonus = Math.floor(Math.random() * 401) + 100 // +100 to +500
+        newResult.pointsDelta += wildBonus
+        newResult.breakdown.flat_buff = (newResult.breakdown.flat_buff || 0) + wildBonus
+      } else if (Math.random() > 0.5) {
+        newResult.pointsDelta = 0
+        newResult.breakdown.penalty = 0
+      }
+    }
+
+    // Pandora Overdrive (T3): Extreme chaos — correct: x1.5~x4.0 random, wrong: always forgiven
+    if (this.coreName === 'pandora overdrive') {
+      if (isCorrect) {
+        const overdriveMult = 1.5 + Math.random() * 2.5 // 1.5x to 4.0x
+        newResult.pointsDelta = Math.floor(newResult.pointsDelta * overdriveMult)
+        newResult.breakdown.multiplier_buff = (newResult.breakdown.multiplier_buff || 1) * overdriveMult
+      } else {
+        // Pandora Overdrive forgives ALL wrong answers
+        newResult.pointsDelta = 0
+        newResult.breakdown.penalty = 0
+        newResult.breakdown.oracle_penalty = 0
+        newResult.forgiveMistake = true
+      }
+    }
+
     return newResult
   }
 }
