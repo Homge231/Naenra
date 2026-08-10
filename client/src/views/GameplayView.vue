@@ -1528,6 +1528,9 @@ async function checkAnswer() {
       console.error('Failed to sync answer:', err)
     } finally {
       if (!isCorrectLocal && mySeq === submitAnswerSeq) {
+        if (!currentQuestion.value.correct_word) {
+          currentQuestion.value.correct_word = '(Incorrect)'
+        }
         const feedbackDelay = lockInputMs > 0 ? lockInputMs : FEEDBACK_MS
         
         if (lockInputMs > 0) {

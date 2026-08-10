@@ -222,15 +222,22 @@ export const useAuthStore = defineStore('auth', () => {
         const base64Url = token.split('.')[1]
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
         const payload = JSON.parse(atob(base64))
-        user.value = { id: payload.id, email: payload.email, isGuest: !!payload.isGuest }
-        if (payload.isGuest) {
-          isGuest.value = true
-          profile.value = {
-            id: payload.id,
-            username: payload.username,
-            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(payload.username)}`,
-            elo: 1000,
-            isGuest: true
+        
+        if (payload.isGuest && (typeof payload.id === 'string' && payload.id.startsWith('guest_'))) {
+          // Stale non-UUID guest token detected — auto-reissue a fresh UUID guest session
+          localStorage.removeItem('arena_token')
+          await loginAsGuest()
+        } else {
+          user.value = { id: payload.id, email: payload.email, isGuest: !!payload.isGuest }
+          if (payload.isGuest) {
+            isGuest.value = true
+            profile.value = {
+              id: payload.id,
+              username: payload.username,
+              avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(payload.username)}`,
+              elo: 1000,
+              isGuest: true
+            }
           }
         }
       } catch {}

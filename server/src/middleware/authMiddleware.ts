@@ -40,6 +40,32 @@ export async function authMiddleware(
     const decoded = verifyToken(token)
 
     if (decoded.isGuest) {
+      if (typeof decoded.id === 'string' && decoded.id.startsWith('guest_')) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Stale guest token format. Please re-authenticate.'
+        })
+        return
+      }
+
+      // Ensure guest player exists in DB
+      const { data: playerExists } = await supabase
+        .from('players')
+        .select('id')
+        .eq('id', decoded.id)
+        .maybeSingle()
+
+      if (!playerExists) {
+        await supabase.from('players').upsert({
+          id: decoded.id,
+          email: decoded.email || `${decoded.id}@guest.naenra.xyz`,
+          username: decoded.username || 'Guest',
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(decoded.username || 'Guest')}`,
+          elo: 1000,
+          session_version: 0
+        })
+      }
+
       req.user = decoded
       next()
       return
