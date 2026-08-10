@@ -428,31 +428,57 @@ export function playPhoenixRebirth() {
 
 // ── 8. Tactical Card Selection SFX (Card Slide, Flip & Lock) ────────────
 
-/** Soft paper slide sound */
+/** Smooth, lightweight organic paper slide sound on card hover */
 export function playCardHover() {
   if (!audioCtx || !masterGainNode) return;
 
+  const now = audioCtx.currentTime;
+  const duration = 0.06; // 60ms ultra-smooth paper stroke
+
   const noise = getNoiseBuffer();
-  if (!noise) return;
+  if (noise) {
+    const source = audioCtx.createBufferSource();
+    source.buffer = noise;
 
-  const source = audioCtx.createBufferSource();
-  source.buffer = noise;
+    // Dual-stage bandpass filter mimicking lightweight paper surface friction
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2200, now);
+    filter.frequency.exponentialRampToValueAtTime(3600, now + 0.025);
+    filter.frequency.exponentialRampToValueAtTime(1500, now + duration);
+    filter.Q.value = 1.2;
 
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'highpass';
-  filter.frequency.setValueAtTime(3000, audioCtx.currentTime);
-  filter.frequency.exponentialRampToValueAtTime(5500, audioCtx.currentTime + 0.05);
+    const gain = audioCtx.createGain();
+    // Smooth linear attack and delicate exponential decay for organic paper feel
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.022, now + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0005, now + duration);
 
-  const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGainNode);
 
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(masterGainNode);
+    source.start(now);
+    source.stop(now + duration);
+  }
 
-  source.start();
-  source.stop(audioCtx.currentTime + 0.05);
+  // Soft subtle paper card movement resonance
+  const bodyOsc = audioCtx.createOscillator();
+  const bodyGain = audioCtx.createGain();
+
+  bodyOsc.type = 'sine';
+  bodyOsc.frequency.setValueAtTime(250, now);
+  bodyOsc.frequency.exponentialRampToValueAtTime(140, now + 0.045);
+
+  bodyGain.gain.setValueAtTime(0.001, now);
+  bodyGain.gain.linearRampToValueAtTime(0.01, now + 0.012);
+  bodyGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.045);
+
+  bodyOsc.connect(bodyGain);
+  bodyGain.connect(masterGainNode);
+
+  bodyOsc.start(now);
+  bodyOsc.stop(now + 0.045);
 }
 
 /** Crisp light paper card flip sound */
