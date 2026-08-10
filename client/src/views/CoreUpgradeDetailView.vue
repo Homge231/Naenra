@@ -101,14 +101,18 @@
             
             <!-- Upgrade Card -->
             <div 
-              v-for="upgrade in upgrades" 
+              v-for="(upgrade, index) in upgrades" 
               :key="upgrade.id"
-              @mouseenter="showTooltip($event, upgrade)"
+              @mouseenter="handleMouseEnter(); showTooltip($event, upgrade)"
               @mouseleave="hideTooltip"
               @touchstart="showTooltip($event, upgrade)"
               @touchend="hideTooltip"
-              class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-help relative overflow-hidden"
-              :class="{ 'opacity-60 grayscale-[40%]': upgrade.isLocked }"
+              @click="triggerCardFlip(index)"
+              class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative overflow-hidden"
+              :class="[
+                upgrade.isLocked ? 'opacity-60 grayscale-[40%]' : '',
+                isFlipping(index) ? 'card-flip-anim' : ''
+              ]"
             >
               <!-- Tier Badge -->
               <div :class="[
@@ -194,6 +198,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
+import { useCardTilt } from '../composables/useCardTilt'
+
+const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useAuthStore } from '../stores/authStore'
 import { useMissionsStore } from '../stores/missionsStore'
@@ -650,6 +657,16 @@ const floatingLetters = alphabet.map((char, index) => ({
   animation-timing-function: linear;
   animation-iteration-count: infinite;
   animation-fill-mode: both;
+}
+
+.card-flip-anim {
+  animation: cardFlip 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+@keyframes cardFlip {
+  0% { transform: perspective(1000px) rotateY(0deg) scale(1); }
+  50% { transform: perspective(1000px) rotateY(90deg) scale(0.85); }
+  100% { transform: perspective(1000px) rotateY(0deg) scale(1); }
 }
 
 @keyframes drift {
