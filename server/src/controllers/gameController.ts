@@ -286,34 +286,49 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
           )
           
           const prevFamily = getCoreFamily(prevCore.name)
-          
-          if (targetTier === 2) {
-            // Round 2: Offer 1 same-family Tier 2 upgrade + 1 Tier 2 Hybrid Upgrade Core from another family
-            const hybridTier2Pool = allCores.filter(c => {
+          const isPandoraFamily = prevFamily?.toLowerCase() === 'pandora'
+
+          if (isPandoraFamily) {
+            // Pandora Exception: Pandora CANNOT use Hybrid Cores from other families.
+            // Offer strictly Pandora's own evolution variants!
+            const pandoraUpgrades = allCores.filter(c => {
               const fam = getCoreFamily(c.name)
-              return c.id !== prevCore.id && 
-                     (c.tier === 2 || c.tier === 1) && 
-                     fam && fam.toLowerCase() !== prevFamily?.toLowerCase()
+              return fam?.toLowerCase() === 'pandora' && c.id !== prevCore.id
             })
-
-            const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
-            const shuffledOther = [...hybridTier2Pool].sort(() => 0.5 - Math.random())
-            const primaryHybridCore = shuffledOther[0] || (sameFamilyPool[1] || tier1Cores[1])
-
-            offeredCores = [primarySameFamily, primaryHybridCore].filter(Boolean)
+            const shuffledPandora = [...pandoraUpgrades].sort(() => 0.5 - Math.random())
+            offeredCores = shuffledPandora.slice(0, 2)
           } else {
-            // Round 3: Offer 1 same-family Tier 3 upgrade + 1 NEW 3rd Family Super Hybrid Core
-            const superTier3Pool = allCores.filter(c => {
-              const fam = getCoreFamily(c.name)
-              return (c.tier === 3 || c.tier === 2) && 
-                     fam && fam.toLowerCase() !== prevFamily?.toLowerCase()
-            })
+            // All other 9 families: Offer 1 same-family upgrade + 1 Hybrid Core choice
+            if (targetTier === 2) {
+              // Round 2: Offer 1 same-family Tier 2 upgrade + 1 Tier 2 Hybrid Upgrade Core from another family
+              const hybridTier2Pool = allCores.filter(c => {
+                const fam = getCoreFamily(c.name)
+                return c.id !== prevCore.id && 
+                       (c.tier === 2 || c.tier === 1) && 
+                       fam && fam.toLowerCase() !== prevFamily?.toLowerCase() &&
+                       fam.toLowerCase() !== 'pandora'
+              })
 
-            const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
-            const shuffledSuper = [...superTier3Pool].sort(() => 0.5 - Math.random())
-            const primarySuperHybridCore = shuffledSuper[0] || (sameFamilyPool[1] || tier1Cores[1])
+              const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
+              const shuffledOther = [...hybridTier2Pool].sort(() => 0.5 - Math.random())
+              const primaryHybridCore = shuffledOther[0] || (sameFamilyPool[1] || tier1Cores[1])
 
-            offeredCores = [primarySameFamily, primarySuperHybridCore].filter(Boolean)
+              offeredCores = [primarySameFamily, primaryHybridCore].filter(Boolean)
+            } else {
+              // Round 3: Offer 1 same-family Tier 3 upgrade + 1 NEW 3rd Family Super Hybrid Core
+              const superTier3Pool = allCores.filter(c => {
+                const fam = getCoreFamily(c.name)
+                return (c.tier === 3 || c.tier === 2) && 
+                       fam && fam.toLowerCase() !== prevFamily?.toLowerCase() &&
+                       fam.toLowerCase() !== 'pandora'
+              })
+
+              const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
+              const shuffledSuper = [...superTier3Pool].sort(() => 0.5 - Math.random())
+              const primarySuperHybridCore = shuffledSuper[0] || (sameFamilyPool[1] || tier1Cores[1])
+
+              offeredCores = [primarySameFamily, primarySuperHybridCore].filter(Boolean)
+            }
           }
         }
       }
