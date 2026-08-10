@@ -81,11 +81,23 @@
                    class="w-full h-full object-cover" />
             </div>
 
-            <!-- Username & Elo -->
+            <!-- Username & Rank Tier Badge -->
             <div class="ml-4 flex-1 flex flex-col justify-center min-w-0">
-              <h3 class="font-black text-gray-900 tracking-wide text-sm md:text-base truncate">
-                {{ player.username }}
-              </h3>
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-black text-gray-900 tracking-wide text-sm md:text-base truncate">
+                  {{ player.username }}
+                </h3>
+                <span 
+                  class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border tracking-wider flex-shrink-0 shadow-2xs"
+                  :style="{
+                    color: getTierForElo(player.elo).color === '#ffd700' ? '#d97706' : getTierForElo(player.elo).color,
+                    borderColor: `${getTierForElo(player.elo).color}60`,
+                    backgroundColor: `${getTierForElo(player.elo).color}20`
+                  }"
+                >
+                  {{ getTierForElo(player.elo).name }}
+                </span>
+              </div>
             </div>
 
             <div class="px-4 text-right flex-shrink-0">
@@ -124,7 +136,15 @@
             <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-400 shadow-sm flex-shrink-0 bg-gray-100">
               <img :src="currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`" class="w-full h-full object-cover" />
             </div>
-            <span class="font-black text-gray-900 text-base truncate">{{ currentUser.username }}</span>
+            <div class="flex flex-col min-w-0">
+              <span class="font-black text-gray-900 text-base truncate">{{ currentUser.username }}</span>
+              <span 
+                class="text-[9px] font-black uppercase tracking-widest"
+                :style="{ color: getTierForElo(currentUser.elo).color === '#ffd700' ? '#d97706' : getTierForElo(currentUser.elo).color }"
+              >
+                {{ getTierForElo(currentUser.elo).name }} Tier
+              </span>
+            </div>
           </div>
         </div>
 
@@ -147,6 +167,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
 import { fetchWithAuth } from '../services/api'
+import { getTierForElo } from '../utils/ranks'
 
 const router = useRouter()
 
