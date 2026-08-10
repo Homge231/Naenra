@@ -27,29 +27,17 @@ const MIN_WRONG_PENALTY = 10          // floor — even a 1-character miss costs
 const MAX_WRONG_PENALTY = 50          // ceiling — caps penalty for a full skip / completely unrelated guess
 
 const DEFAULT_LOCKED_CORES = new Set([
-  // Round 2 (Tier 2) default locked (3 cores per family)
-  'combo burst', 'combo shield', 'combo focus',
-  'velocity shield', 'speed demon', 'mach speed',
-  'inner eye', 'future sight', 'divine guidance',
-  'contract hunter', 'swift mission', 'shield mission',
-  'reflective barrier', 'fortress aegis', 'shield burst',
-  'zen momentum', 'yin yang', 'harmony wave',
-  'overcharge', 'brute force', 'overload',
-  'wild card', 'warp reality', "pandora's curse",
-  'feather shield', 'ashes to ashes', 'solar ember',
-  'high stakes', 'double or nothing', 'lucky seven',
-  
-  // Round 3 (Tier 3) default locked (3 cores per family)
-  'hyper combo', 'super combo', 'chain lightning',
-  'hyperdrive', 'sonic boom', 'time freeze',
-  'prophecy', 'cosmic wisdom', 'predictive strike',
-  'mission legend', 'apex predator', 'bounty overlord',
-  'aegis sanctuary', 'spiked shield', 'guardian angel',
-  'serenity', 'nirvana', 'universal harmony',
-  'cataclysm', 'absolute power', 'desperado',
-  'pandora overdrive', 'reality collapse', 'butterfly effect',
-  'phoenix overlord', 'blazing resurrection', 'supernova ashes',
-  'casino empire', 'russian roulette', 'royal flush'
+  // Tier 3 and late Tier 2 end-game locked cores (33 cores locked by default)
+  'hyper combo', 'super combo', 'chain lightning', 'combo mastery', 'golden combo', 'prismatic combo',
+  'hyperdrive', 'sonic boom', 'time freeze', 'chronobreak', 'warp speed', 'grand prix',
+  'prophecy', 'cosmic wisdom', 'predictive strike', 'mind reader', 'omniscience',
+  'mission legend', 'apex predator', 'bounty overlord', 'exodia', 'mission specialist',
+  'aegis sanctuary', 'spiked shield', 'bastion of light',
+  'serenity', 'nirvana', 'universal harmony', 'perfect harmony', 'zenith',
+  'cataclysm', 'absolute power', 'desperado', 'supernova', 'gigawatt', 'supermassive',
+  'pandora overdrive', 'chaos theory', "pandora's wrath",
+  'phoenix overlord', 'blazing resurrection', 'supernova ashes', 'immortal phoenix', 'eternal rebirth',
+  'casino empire', 'russian roulette', 'royal flush', 'house advantage', 'all in'
 ])
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -324,9 +312,12 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
               // Guarantee AT LEAST ONE unlocked core in offered choices
               const primaryUnlocked = shuffledUnlocked[0]
               const remaining = [...shuffledUnlocked.slice(1), ...shuffledLocked].sort(() => 0.5 - Math.random())
-              offeredCores = [primaryUnlocked, ...remaining.slice(0, 2)].sort(() => 0.5 - Math.random())
+              offeredCores = [primaryUnlocked, ...remaining.slice(0, 1)].sort(() => 0.5 - Math.random())
             } else {
-              offeredCores = [...synergyPool].sort(() => 0.5 - Math.random()).slice(0, 3)
+              // Guarantee AT LEAST ONE unlocked core if synergy pool exists
+              const primaryCore = synergyPool[0]
+              const remaining = synergyPool.slice(1).sort(() => 0.5 - Math.random())
+              offeredCores = [primaryCore, ...remaining.slice(0, 1)].sort(() => 0.5 - Math.random())
             }
           }
         }

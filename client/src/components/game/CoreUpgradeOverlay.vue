@@ -315,9 +315,15 @@ async function fetchUpgradeCores() {
       }
     })
 
-    const unlockedCores = mappedCores.filter((c: any) => !c.isLocked)
-    if (unlockedCores.length > 0 && mappedCores.slice(0, 2).every((c: any) => c.isLocked)) {
-      // Guarantee at least one unlocked card is displayed
+    let unlockedCores = mappedCores.filter((c: any) => !c.isLocked)
+    if (unlockedCores.length === 0 && mappedCores.length > 0) {
+      // Force unlock at least the first core option so 2 locked upgrades NEVER appear
+      mappedCores[0].isLocked = false
+      mappedCores[0].missionText = ''
+      unlockedCores = [mappedCores[0]]
+    }
+
+    if (unlockedCores.length > 0) {
       const firstUnlocked = unlockedCores[0]
       const remainingCores = mappedCores.filter((c: any) => c.id !== firstUnlocked.id)
       upgradeCores.value = [firstUnlocked, remainingCores[0]].filter(Boolean).sort(() => 0.5 - Math.random())
