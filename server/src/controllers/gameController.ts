@@ -274,64 +274,29 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
       // Round 1: Return all Tier 1 cores so the client can select and reroll
       offeredCores = tier1Cores
     } else {
-      // Round 2 or 3
+      // Round 2 or 3: Offer upgrade choices strictly from the SAME Core Family as the previous core
       const prevCore = allCores.find(c => c.id === previous_core_id)
       if (prevCore) {
         const targetTier = (prevCore.tier === 1) ? 2 : (prevCore.tier === 2 ? 3 : 2)
         const upgradeNames = getUpgradesForCore(prevCore.name, targetTier)
         
-        if (upgradeNames.length > 0) {
-          const sameFamilyPool = allCores.filter(c => 
-            upgradeNames.some(name => name.toLowerCase() === c.name.toLowerCase())
-          )
-          
+        let sameFamilyPool = allCores.filter(c => 
+          upgradeNames.some(name => name.toLowerCase() === c.name.toLowerCase())
+        )
+        
+        // Fallback: If not enough target-tier cores found, grab any upgrades from the same family
+        if (sameFamilyPool.length < 2) {
           const prevFamily = getCoreFamily(prevCore.name)
-          const isPandoraFamily = prevFamily?.toLowerCase() === 'pandora'
-
-          if (isPandoraFamily) {
-            // Pandora Exception: Pandora CANNOT use Hybrid Cores from other families.
-            // Offer strictly Pandora's own evolution variants!
-            const pandoraUpgrades = allCores.filter(c => {
-              const fam = getCoreFamily(c.name)
-              return fam?.toLowerCase() === 'pandora' && c.id !== prevCore.id
-            })
-            const shuffledPandora = [...pandoraUpgrades].sort(() => 0.5 - Math.random())
-            offeredCores = shuffledPandora.slice(0, 2)
-          } else {
-            // All other 9 families: Offer 1 same-family upgrade + 1 Hybrid Core choice
-            if (targetTier === 2) {
-              // Round 2: Offer 1 same-family Tier 2 upgrade + 1 Tier 2 Hybrid Upgrade Core from another family
-              const hybridTier2Pool = allCores.filter(c => {
-                const fam = getCoreFamily(c.name)
-                return c.id !== prevCore.id && 
-                       (c.tier === 2 || c.tier === 1) && 
-                       fam && fam.toLowerCase() !== prevFamily?.toLowerCase() &&
-                       fam.toLowerCase() !== 'pandora'
-              })
-
-              const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
-              const shuffledOther = [...hybridTier2Pool].sort(() => 0.5 - Math.random())
-              const primaryHybridCore = shuffledOther[0] || (sameFamilyPool[1] || tier1Cores[1])
-
-              offeredCores = [primarySameFamily, primaryHybridCore].filter(Boolean)
-            } else {
-              // Round 3: Offer 1 same-family Tier 3 upgrade + 1 NEW 3rd Family Super Hybrid Core
-              const superTier3Pool = allCores.filter(c => {
-                const fam = getCoreFamily(c.name)
-                return (c.tier === 3 || c.tier === 2) && 
-                       fam && fam.toLowerCase() !== prevFamily?.toLowerCase() &&
-                       fam.toLowerCase() !== 'pandora'
-              })
-
-              const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
-              const shuffledSuper = [...superTier3Pool].sort(() => 0.5 - Math.random())
-              const primarySuperHybridCore = shuffledSuper[0] || (sameFamilyPool[1] || tier1Cores[1])
-
-              offeredCores = [primarySameFamily, primarySuperHybridCore].filter(Boolean)
-            }
-          }
+          sameFamilyPool = allCores.filter(c => {
+            const fam = getCoreFamily(c.name)
+            return fam?.toLowerCase() === prevFamily?.toLowerCase() && c.id !== prevCore.id
+          })
         }
+
+        const shuffledSameFamily = [...sameFamilyPool].sort(() => 0.5 - Math.random())
+        offeredCores = shuffledSameFamily.slice(0, 2)
       }
+    }
 
       // Fallback if no synergy upgrades found
       if (offeredCores.length === 0) {
@@ -349,7 +314,6 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
           offeredCores = [shuffledPool[0], shuffledPool[1]]
         }
       }
-    }
 
     let signature: string | undefined
     if (previous_core_id) {
