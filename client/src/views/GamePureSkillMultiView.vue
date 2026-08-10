@@ -989,35 +989,48 @@ const {
 const THEME_MAP: Record<string, string> = {
   'daily-life': '/bg-daily-life.png',
   'cafe': '/bg-cafe.png',
-  'travel': '/bg-travel.png'
+  'travel': '/bg-travel.png',
+  'high-roller': '/bg-high-roller.png'
 }
 
-const currentBgImage = ref<string>(THEME_MAP[matchStore.topics?.[matchStore.currentRound - 1] || 'daily-life'] || THEME_MAP['daily-life'])
+function resolveCurrentBg(round: number, activeCoreName?: string | null): string {
+  const name = (activeCoreName || gameStore.activeCoreName || '').toLowerCase()
+  const isHighRoller = ['roller', 'jackpot', 'all in', 'roulette', 'gambler', 'poker', 'house advantage'].some(k => name.includes(k)) ||
+    gameStore.coreHistory.some(c => ['roller', 'jackpot', 'all in', 'roulette', 'gambler', 'poker', 'house advantage'].some(k => (c.name || '').toLowerCase().includes(k)))
+
+  if (isHighRoller) {
+    return THEME_MAP['high-roller']
+  }
+
+  const topicKey = matchStore.topics?.[round - 1] || 'daily-life'
+  return THEME_MAP[topicKey] || THEME_MAP['daily-life']
+}
+
+const currentBgImage = ref<string>(resolveCurrentBg(matchStore.currentRound, activeCoreNameDynamic.value))
 const isBgFading = ref(false)
 const activeBgTimeouts = new Set<ReturnType<typeof setTimeout>>()
 
-watch(() => matchStore.currentRound, (newRound, oldRound) => {
-  const newTopic = matchStore.topics?.[newRound - 1]
-  const newBg = THEME_MAP[newTopic] || THEME_MAP['daily-life']
+watch(() => [matchStore.currentRound, activeCoreNameDynamic.value], ([newRound, newCoreName], [oldRound]) => {
+  const newBg = resolveCurrentBg(Number(newRound) || 1, newCoreName as string)
 
-  if (oldRound === undefined) {
-    currentBgImage.value = newBg
-  }
-
-  else if (newRound && newRound !== oldRound) {
-    isBgFading.value = true
-
-    const t1 = setTimeout(() => {
+  if (oldRound === undefined || currentBgImage.value !== newBg) {
+    if (oldRound === undefined) {
       currentBgImage.value = newBg
-      activeBgTimeouts.delete(t1)
+    } else {
+      isBgFading.value = true
 
-      const t2 = setTimeout(() => {
-        isBgFading.value = false
-        activeBgTimeouts.delete(t2)
-      }, 100)
-      activeBgTimeouts.add(t2)
-    }, 500)
-    activeBgTimeouts.add(t1)
+      const t1 = setTimeout(() => {
+        currentBgImage.value = newBg
+        activeBgTimeouts.delete(t1)
+
+        const t2 = setTimeout(() => {
+          isBgFading.value = false
+          activeBgTimeouts.delete(t2)
+        }, 100)
+        activeBgTimeouts.add(t2)
+      }, 500)
+      activeBgTimeouts.add(t1)
+    }
   }
 }, { immediate: true })
 
