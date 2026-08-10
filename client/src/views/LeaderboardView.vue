@@ -49,19 +49,19 @@
           <div v-for="(player, index) in topPlayers" :key="player.id"
             class="relative flex items-center bg-white p-3 rounded-2xl shadow-sm border transition-all hover:-translate-y-0.5 hover:shadow-md group overflow-hidden"
             :class="[
-              index === 0 ? 'border-yellow-400 ring-2 ring-yellow-200 bg-gradient-to-r from-yellow-100 to-white' : '',
+              index === 0 ? 'border-yellow-400 ring-2 ring-yellow-300/50 bg-gradient-to-r from-yellow-50 via-amber-50 to-white' : '',
               index === 1 ? 'border-slate-300 ring-2 ring-slate-200 bg-gradient-to-r from-slate-100 to-white' : '',
-              index === 2 ? 'border-amber-500 ring-2 ring-amber-200 bg-gradient-to-r from-amber-100 to-white' : '',
-              index > 2 ? 'border-gray-100 hover:border-orange/30' : ''
+              index === 2 ? 'border-amber-500 ring-2 ring-amber-200 bg-gradient-to-r from-amber-50 to-white' : '',
+              index > 2 ? 'border-gray-200 hover:border-orange-300' : ''
             ]">
             
             <!-- Rank Number -->
             <div class="w-12 flex-shrink-0 flex items-center justify-center font-black text-xl italic"
               :class="[
                 index === 0 ? 'text-yellow-500 drop-shadow-sm text-3xl' : '',
-                index === 1 ? 'text-gray-400 drop-shadow-sm text-2xl' : '',
+                index === 1 ? 'text-slate-500 drop-shadow-sm text-2xl' : '',
                 index === 2 ? 'text-amber-700 drop-shadow-sm text-2xl' : '',
-                index > 2 ? 'text-gray-300' : ''
+                index > 2 ? 'text-gray-600 font-black text-lg' : ''
               ]">
               <span v-if="index === 0">👑</span>
               <span v-else-if="index === 1">🥈</span>
@@ -75,7 +75,7 @@
                 index === 0 ? 'border-yellow-400' : '',
                 index === 1 ? 'border-gray-400' : '',
                 index === 2 ? 'border-amber-600' : '',
-                index > 2 ? 'border-transparent' : ''
+                index > 2 ? 'border-gray-200' : ''
               ]">
               <img :src="player.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.username}`" 
                    class="w-full h-full object-cover" />
@@ -83,16 +83,16 @@
 
             <!-- Username & Elo -->
             <div class="ml-4 flex-1 flex flex-col justify-center min-w-0">
-              <h3 class="font-black text-gray-800 tracking-wide text-sm md:text-base truncate">
+              <h3 class="font-black text-gray-900 tracking-wide text-sm md:text-base truncate">
                 {{ player.username }}
               </h3>
             </div>
 
             <div class="px-4 text-right flex-shrink-0">
-              <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mb-0.5">Rating</p>
-              <div class="font-black text-lg md:text-xl text-orange-500 drop-shadow-sm flex items-center gap-1 justify-end">
+              <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">Rating</p>
+              <div class="font-black text-lg md:text-xl text-orange-600 drop-shadow-sm flex items-center gap-1 justify-end">
                 <span>{{ player.elo }}</span>
-                <span class="text-xs text-orange-400">⭐</span>
+                <span class="text-xs text-orange-500">⭐</span>
               </div>
             </div>
             
@@ -105,33 +105,33 @@
     </main>
 
     <!-- Sticky Bottom Row: Current User -->
-    <div class="absolute bottom-0 left-0 w-full z-30 p-4 bg-white/80 backdrop-blur-xl border-t border-orange-100 shadow-[0_-10px_30px_rgba(251,146,60,0.1)] flex justify-center">
-      <div v-if="currentUser" class="w-full max-w-2xl flex items-center bg-gradient-to-r from-orange-500 to-red-500 p-1 pl-4 pr-1 rounded-2xl shadow-lg relative overflow-hidden group">
+    <div class="fixed bottom-0 left-0 w-full z-30 p-4 bg-gray-900/90 backdrop-blur-xl border-t border-orange-500/30 shadow-[0_-10px_30px_rgba(0,0,0,0.3)] flex justify-center">
+      <div v-if="currentUser" class="w-full max-w-2xl flex items-center bg-gradient-to-r from-gray-800 to-gray-900 p-2 pl-5 pr-2 rounded-2xl border border-orange-500/40 shadow-xl relative overflow-hidden group">
         
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] animate-shimmer pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/10 to-transparent w-full h-full -translate-x-[150%] animate-shimmer pointer-events-none"></div>
 
         <div class="flex-1 flex items-center min-w-0">
           <div class="flex flex-col text-white">
-            <span class="text-[10px] font-bold tracking-[0.2em] text-white/80 uppercase">Your Rank</span>
+            <span class="text-[10px] font-bold tracking-[0.2em] text-orange-400 uppercase">Your Rank</span>
             <div class="font-black text-2xl flex items-baseline gap-1">
-              <span class="text-white drop-shadow-sm">#{{ currentUser.rank }}</span>
+              <span class="text-white drop-shadow-md">#{{ currentUser.rank }}</span>
             </div>
           </div>
           
-          <div class="mx-4 h-8 w-px bg-white/30"></div>
+          <div class="mx-4 h-8 w-px bg-white/20"></div>
           
           <div class="flex items-center gap-3 truncate">
-            <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+            <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-400 shadow-sm flex-shrink-0 bg-gray-700">
               <img :src="currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`" class="w-full h-full object-cover bg-white" />
             </div>
             <span class="font-black text-white text-base truncate">{{ currentUser.username }}</span>
           </div>
         </div>
 
-        <div class="bg-white px-5 py-3 rounded-xl flex flex-col items-end flex-shrink-0 ml-4 shadow-inner">
+        <div class="bg-gray-800/90 border border-orange-500/30 px-5 py-2.5 rounded-xl flex flex-col items-end flex-shrink-0 ml-4 shadow-inner">
           <span class="text-[9px] font-bold tracking-widest text-gray-400 uppercase mb-0.5">Rating</span>
-          <div class="font-black text-orange-500 flex items-center gap-1">
-            <span>{{ currentUser.elo }}</span>
+          <div class="font-black text-orange-400 flex items-center gap-1">
+            <span class="text-lg">{{ currentUser.elo }}</span>
             <span class="text-sm">⭐</span>
           </div>
         </div>
