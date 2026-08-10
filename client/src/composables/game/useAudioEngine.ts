@@ -428,7 +428,7 @@ export function playPhoenixRebirth() {
 
 // ── 8. Tactical Card Selection SFX (Card Slide, Flip & Lock) ────────────
 
-/** Soft paper/card slide sound when hovering over a Core Card */
+/** Soft paper slide sound */
 export function playCardHover() {
   if (!audioCtx || !masterGainNode) return;
 
@@ -440,104 +440,92 @@ export function playCardHover() {
 
   const filter = audioCtx.createBiquadFilter();
   filter.type = 'highpass';
-  filter.frequency.setValueAtTime(2200, audioCtx.currentTime);
-  filter.frequency.exponentialRampToValueAtTime(4500, audioCtx.currentTime + 0.08);
+  filter.frequency.setValueAtTime(3000, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(5500, audioCtx.currentTime + 0.05);
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
-
-  // Soft subtle high tone for cyber deck crispness
-  const osc = audioCtx.createOscillator();
-  const oscGain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(1400, audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(2200, audioCtx.currentTime + 0.05);
-  oscGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-  oscGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+  gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
 
   source.connect(filter);
   filter.connect(gain);
   gain.connect(masterGainNode);
 
-  osc.connect(oscGain);
-  oscGain.connect(masterGainNode);
-
   source.start();
-  source.stop(audioCtx.currentTime + 0.08);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.05);
+  source.stop(audioCtx.currentTime + 0.05);
 }
 
-/** Crisp card flip/snap sound when card appears or rerolls */
+/** Crisp light paper card flip sound */
 export function playCardFlip() {
   if (!audioCtx || !masterGainNode) return;
 
-  const osc = audioCtx.createOscillator();
+  const noise = getNoiseBuffer();
+  if (!noise) return;
+
+  const source = audioCtx.createBufferSource();
+  source.buffer = noise;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(2500, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.07);
+
   const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.07);
 
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.09);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(masterGainNode);
 
-  gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
+  source.start();
+  source.stop(audioCtx.currentTime + 0.07);
+}
 
+/** Lightweight organic paper card snap/flip sound on click */
+export function playCardSelect() {
+  if (!audioCtx || !masterGainNode) return;
+
+  // Layer 1: Crisp paper friction sweep (high-frequency noise burst)
   const noise = getNoiseBuffer();
   if (noise) {
     const noiseSource = audioCtx.createBufferSource();
     noiseSource.buffer = noise;
+
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(3000, audioCtx.currentTime);
+    filter.frequency.setValueAtTime(3200, audioCtx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.08);
+    filter.Q.value = 1.8;
+
     const noiseGain = audioCtx.createGain();
-    noiseGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.07);
+    noiseGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
 
     noiseSource.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(masterGainNode);
+
     noiseSource.start();
-    noiseSource.stop(audioCtx.currentTime + 0.07);
+    noiseSource.stop(audioCtx.currentTime + 0.08);
   }
 
-  osc.connect(gain);
-  gain.connect(masterGainNode);
+  // Layer 2: Soft lightweight paper card pop (low volume sine thwack)
+  const osc = audioCtx.createOscillator();
+  const oscGain = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(380, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.06);
+
+  oscGain.gain.setValueAtTime(0.09, audioCtx.currentTime);
+  oscGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+
+  osc.connect(oscGain);
+  oscGain.connect(masterGainNode);
 
   osc.start();
-  osc.stop(audioCtx.currentTime + 0.09);
+  osc.stop(audioCtx.currentTime + 0.06);
 }
 
-/** Solid card snap/lock sound when clicking and locking a Core */
-export function playCardSelect() {
-  if (!audioCtx || !masterGainNode) return;
-
-  // Layer 1: Heavy punchy bass snap
-  const osc1 = audioCtx.createOscillator();
-  const gain1 = audioCtx.createGain();
-  osc1.type = 'sawtooth';
-  osc1.frequency.setValueAtTime(550, audioCtx.currentTime);
-  osc1.frequency.exponentialRampToValueAtTime(60, audioCtx.currentTime + 0.18);
-  gain1.gain.setValueAtTime(0.4, audioCtx.currentTime);
-  gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
-
-  // Layer 2: Cyber lock resonance shimmer
-  const osc2 = audioCtx.createOscillator();
-  const gain2 = audioCtx.createGain();
-  osc2.type = 'sine';
-  osc2.frequency.setValueAtTime(1200, audioCtx.currentTime);
-  osc2.frequency.exponentialRampToValueAtTime(2400, audioCtx.currentTime + 0.15);
-  gain2.gain.setValueAtTime(0.2, audioCtx.currentTime);
-  gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
-
-  osc1.connect(gain1);
-  gain1.connect(masterGainNode);
-  osc2.connect(gain2);
-  gain2.connect(masterGainNode);
-
-  osc1.start();
-  osc1.stop(audioCtx.currentTime + 0.18);
-  osc2.start();
-  osc2.stop(audioCtx.currentTime + 0.15);
-}
 
