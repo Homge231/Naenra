@@ -281,45 +281,24 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
         const upgradeNames = getUpgradesForCore(prevCore.name, targetTier)
         
         if (upgradeNames.length > 0) {
-          const synergyPool = allCores.filter(c => 
+          const sameFamilyPool = allCores.filter(c => 
             upgradeNames.some(name => name.toLowerCase() === c.name.toLowerCase())
           )
           
-          if (synergyPool.length > 0) {
-            // Check user's unlocked cores to prioritize offering at least one unlocked core
-            let userUnlockedSet = new Set<string>()
-            if (req.user?.id) {
-              const { data: userUnlockedProgress } = await supabase
-                .from('user_core_progress')
-                .select('core_id')
-                .eq('user_id', req.user.id)
-                .eq('is_unlocked', true)
+          // Hybrid Upgrade Pool: Tier 2 and Tier 3 upgrade cores from OTHER families
+          const prevFamily = getCoreFamily(prevCore.name)
+          const hybridOtherPool = allCores.filter(c => {
+            const fam = getCoreFamily(c.name)
+            return c.id !== prevCore.id && 
+                   (c.tier === 2 || c.tier === 3) && 
+                   fam && fam.toLowerCase() !== prevFamily?.toLowerCase()
+          })
 
-              userUnlockedSet = new Set((userUnlockedProgress || []).map((p: any) => String(p.core_id)))
-            }
+          const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
+          const shuffledOther = [...hybridOtherPool].sort(() => 0.5 - Math.random())
+          const primaryHybridCore = shuffledOther[0] || (sameFamilyPool[1] || tier1Cores[1])
 
-            const unlockedCores = synergyPool.filter(c => 
-              c.tier === 1 || 
-              !DEFAULT_LOCKED_CORES.has(c.name.toLowerCase()) || 
-              userUnlockedSet.has(String(c.id))
-            )
-            const lockedCores = synergyPool.filter(c => !unlockedCores.some(u => u.id === c.id))
-
-            const shuffledUnlocked = [...unlockedCores].sort(() => 0.5 - Math.random())
-            const shuffledLocked = [...lockedCores].sort(() => 0.5 - Math.random())
-
-            if (shuffledUnlocked.length > 0) {
-              // Guarantee AT LEAST ONE unlocked core in offered choices
-              const primaryUnlocked = shuffledUnlocked[0]
-              const remaining = [...shuffledUnlocked.slice(1), ...shuffledLocked].sort(() => 0.5 - Math.random())
-              offeredCores = [primaryUnlocked, ...remaining.slice(0, 1)].sort(() => 0.5 - Math.random())
-            } else {
-              // Guarantee AT LEAST ONE unlocked core if synergy pool exists
-              const primaryCore = synergyPool[0]
-              const remaining = synergyPool.slice(1).sort(() => 0.5 - Math.random())
-              offeredCores = [primaryCore, ...remaining.slice(0, 1)].sort(() => 0.5 - Math.random())
-            }
-          }
+          offeredCores = [primarySameFamily, primaryHybridCore].filter(Boolean)
         }
       }
 
@@ -1225,15 +1204,7 @@ export async function updateSessionCore(req: AuthRequest, res: Response): Promis
       return
     }
 
-    // 4. Validate transition tier and family consistency (Anti-cheat)
-    const currentFamily = getCoreFamily(currentCore.name)
-    const newFamily = getCoreFamily(newCore.name)
-
-    if (newCore.tier !== currentCore.tier + 1 || currentFamily !== newFamily) {
-      res.status(403).json({ error: 'Core transition verification failed (Anti-cheat triggered).' })
-      return
-    }
-
+    // 4. Signature verification above already guarantees this core was legitimately offered to the player by getCores
     const { error } = await supabase
       .from('game_sessions')
       .update({ active_core_id: new_core_id })
