@@ -7,6 +7,7 @@ import { runScoring, getCoreStrategy } from '../cores/index'
 import { getUpgradesForCore, getCoreFamily } from '../cores/families'
 import { getTierForElo } from '../utils/ranks'
 import { evaluatePostMatchMissions } from '../services/missionEvaluatorService'
+import { detectSynergy } from '../cores/synergies'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -825,6 +826,38 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
         const missionBonus = missionResult.breakdown.flat_buff
         pointsDelta += missionBonus
         breakdown.flat_buff += missionBonus
+      }
+    }
+
+    // ── US-84: Fusion Overdrive & Core Synergy Engine ────────────────────────
+    const activeSynergy = detectSynergy(historyCoreNames, core.name)
+    if (activeSynergy) {
+      if (activeSynergy.buffType === 'shield_velocity' && isCorrect && serverTimeTaken > 0 && serverTimeTaken <= 2000) {
+        // Shield Velocity: sub-2.0s answer grants +1 shield
+        breakdown.final_shield_count = Math.min(3, (breakdown.final_shield_count || ctx.currentShields || 0) + 1)
+        breakdown.fusion_proc = 'Shield Velocity (+1 Shield)'
+      } else if (activeSynergy.buffType === 'bounty_oracle' && isCorrect && oracleRevealLevel > 0 && serverTimeTaken <= 1500) {
+        // Bounty Oracle: answer within 1.5s of Oracle hint grants +300% score bonus
+        pointsDelta = Math.floor(pointsDelta * 4.0)
+        breakdown.multiplier_buff *= 4.0
+        breakdown.fusion_proc = 'Bounty Oracle (+300% Score Multiplier)'
+      } else if (activeSynergy.buffType === 'chaos_rebirth' && !isCorrect && secondaryCore) {
+        // Chaos Rebirth: shapeshifting forgives mistake
+        forgiveMistake = true
+        pointsDelta = 0
+        breakdown.fusion_proc = 'Chaos Rebirth (Mistake Forgiven)'
+      } else if (activeSynergy.buffType === 'overdrive_pulse' && isCorrect && serverCombo >= 5) {
+        // Overdrive Pulse: 5-combo grants +50% score boost to flat buff
+        const bonusFlat = Math.floor(activeFlatBuff * 0.5)
+        pointsDelta += bonusFlat
+        breakdown.flat_buff += bonusFlat
+        breakdown.fusion_proc = 'Overdrive Pulse (+50% Flat Buff)'
+      }
+      breakdown.active_synergy = {
+        id: activeSynergy.id,
+        name: activeSynergy.name,
+        icon: activeSynergy.icon,
+        description: activeSynergy.description
       }
     }
 

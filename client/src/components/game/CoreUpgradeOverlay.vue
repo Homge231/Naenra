@@ -107,6 +107,15 @@
               </div>
             </div>
 
+            <!-- Fusion Synergy Badge -->
+            <div v-if="!core.isLocked && getCoreSynergyInfo(core.name)" 
+                 class="mb-2 px-3 py-1 bg-amber-500/20 border border-amber-400/50 rounded-full flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.4)] animate-pulse">
+              <span class="text-xs">{{ getCoreSynergyInfo(core.name)?.icon }}</span>
+              <span class="text-[10px] font-black tracking-widest text-amber-300 uppercase">
+                FUSION: {{ getCoreSynergyInfo(core.name)?.name }}
+              </span>
+            </div>
+
             <h3 class="text-3xl font-black mb-1 tracking-wide transition-colors duration-500"
               :class="core.isLocked ? 'text-gray-400' : (selectedCore?.id === core.id ? 'text-lightBlue' : 'text-white group-hover:text-lightBlue')">
               {{ core.name }}
@@ -162,6 +171,7 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useGameStore } from '../../stores/gameStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { getCoreIconPath } from '../../game/cores/icons'
+import { detectSynergy } from '../../game/cores/synergies'
 import CoreTooltip from './CoreTooltip.vue'
 import CoachMark from '../tutorial/CoachMark.vue'
 import { useTutorial } from '../../composables/useTutorial'
@@ -221,6 +231,11 @@ function handleTouchEnd(core: any, e: TouchEvent) {
 }
 
 // Icon mapping is now centralized in game/cores/icons.ts
+
+function getCoreSynergyInfo(candidateCoreName: string) {
+  const historyNames = gameStore.coreHistory.map(c => c.name)
+  return detectSynergy(historyNames, candidateCoreName)
+}
 
 // ── State ───────────────────────────────────────────────────────────────────
 
