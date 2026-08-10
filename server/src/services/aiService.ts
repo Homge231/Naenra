@@ -73,16 +73,29 @@ RULES:
       ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: questionSchema,
-        temperature: 0.7,
-      }
-    })
-    // Use gemini-2.5-flash (stable) as primary model for question generation
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: questionSchema,
+          temperature: 0.7,
+        }
+      })
+    } catch (e) {
+      console.warn("Primary model gemini-3.5-flash failed, trying gemini-3.1-flash-lite fallback:", e)
+      response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: questionSchema,
+          temperature: 0.7,
+        }
+      })
+    }
 
     if (!response.text) {
       throw new Error("AI returned empty response")
@@ -136,13 +149,20 @@ CORE GUIDELINES:
         prompt += `\n\nProvide an initial comprehensive analysis and personalized 3-step learning plan for ${username}:`
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          temperature: 0.7,
-        }
-      })
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.5-flash',
+          contents: prompt,
+          config: { temperature: 0.7 }
+        })
+      } catch (e) {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-lite',
+          contents: prompt,
+          config: { temperature: 0.7 }
+        })
+      }
 
       if (response.text) {
         return response.text
@@ -236,17 +256,15 @@ STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
       let responseText = ''
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           contents: fullPrompt,
           config: { temperature: 0.7 }
         })
         responseText = response.text || ''
       } catch (err2) {
-        // Retry with same model after brief delay
-        await new Promise(r => setTimeout(r, 1000))
         try {
           const response2 = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.1-flash-lite',
             contents: fullPrompt,
             config: { temperature: 0.5 }
           })
@@ -442,11 +460,21 @@ RULES:
     }
     fullPrompt += `\n\n${username}: ${prompt}\nCyber Assistant:`
 
-    const streamResult = await ai.models.generateContentStream({
-      model: 'gemini-2.5-flash',
-      contents: fullPrompt,
-      config: { temperature: 0.7 }
-    })
+    let streamResult;
+    try {
+      streamResult = await ai.models.generateContentStream({
+        model: 'gemini-3.5-flash',
+        contents: fullPrompt,
+        config: { temperature: 0.7 }
+      })
+    } catch (primaryErr) {
+      console.warn('gemini-3.5-flash stream failed, falling back to gemini-3.1-flash-lite:', primaryErr)
+      streamResult = await ai.models.generateContentStream({
+        model: 'gemini-3.1-flash-lite',
+        contents: fullPrompt,
+        config: { temperature: 0.7 }
+      })
+    }
 
     for await (const chunk of streamResult) {
       const text = chunk.text
