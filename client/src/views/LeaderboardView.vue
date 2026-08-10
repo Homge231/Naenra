@@ -105,33 +105,34 @@
     </main>
 
     <!-- Sticky Bottom Row: Current User -->
-    <div class="fixed bottom-0 left-0 w-full z-30 p-4 bg-gray-900/90 backdrop-blur-xl border-t border-orange-500/30 shadow-[0_-10px_30px_rgba(0,0,0,0.3)] flex justify-center">
-      <div v-if="currentUser" class="w-full max-w-2xl flex items-center bg-gradient-to-r from-gray-800 to-gray-900 p-2 pl-5 pr-2 rounded-2xl border border-orange-500/40 shadow-xl relative overflow-hidden group">
+    <div class="fixed bottom-0 left-0 w-full z-30 p-4 bg-white/80 backdrop-blur-xl border-t border-orange-100 shadow-[0_-10px_30px_rgba(251,146,60,0.1)] flex justify-center">
+      <div v-if="currentUser" class="w-full max-w-2xl flex items-center bg-gradient-to-r from-orange-500 to-red-500 p-1.5 pl-5 pr-1.5 rounded-2xl shadow-lg relative overflow-hidden group">
         
-        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/10 to-transparent w-full h-full -translate-x-[150%] animate-shimmer pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] animate-shimmer pointer-events-none"></div>
 
         <div class="flex-1 flex items-center min-w-0">
           <div class="flex flex-col text-white">
-            <span class="text-[10px] font-bold tracking-[0.2em] text-orange-400 uppercase">Your Rank</span>
+            <span class="text-[10px] font-bold tracking-[0.2em] text-white/90 uppercase drop-shadow-sm">Your Rank</span>
             <div class="font-black text-2xl flex items-baseline gap-1">
               <span class="text-white drop-shadow-md">#{{ currentUser.rank }}</span>
             </div>
           </div>
           
-          <div class="mx-4 h-8 w-px bg-white/20"></div>
+          <div class="mx-4 h-8 w-px bg-white/30"></div>
           
           <div class="flex items-center gap-3 truncate">
-            <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-400 shadow-sm flex-shrink-0 bg-gray-700">
-              <img :src="currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`" class="w-full h-full object-cover bg-white" />
+            <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0 bg-white">
+              <img :src="currentUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.username}`" class="w-full h-full object-cover" />
             </div>
-            <span class="font-black text-white text-base truncate">{{ currentUser.username }}</span>
+            <span class="font-black text-white text-base truncate drop-shadow-sm">{{ currentUser.username }}</span>
           </div>
         </div>
 
-        <div class="bg-gray-800/90 border border-orange-500/30 px-5 py-2.5 rounded-xl flex flex-col items-end flex-shrink-0 ml-4 shadow-inner">
-          <span class="text-[9px] font-bold tracking-widest text-gray-400 uppercase mb-0.5">Rating</span>
-          <div class="font-black text-orange-400 flex items-center gap-1">
-            <span class="text-lg">{{ currentUser.elo }}</span>
+        <!-- High-Contrast Rating Badge -->
+        <div class="bg-white px-5 py-2.5 rounded-xl flex flex-col items-end flex-shrink-0 ml-4 shadow-md border border-orange-100">
+          <span class="text-[9px] font-extrabold tracking-widest text-gray-500 uppercase mb-0.5">Rating</span>
+          <div class="font-black text-xl text-orange-600 flex items-center gap-1">
+            <span class="text-orange-600 font-black tracking-wide">{{ currentUser.elo }}</span>
             <span class="text-sm">⭐</span>
           </div>
         </div>
