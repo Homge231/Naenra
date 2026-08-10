@@ -165,11 +165,6 @@
               ></div>
               <p v-else class="chat-bubble-text">{{ msg.content }}</p>
             </div>
-            <!-- Streaming typing dots shown while placeholder is still empty -->
-            <div v-else class="chat-typing">
-              <span class="text-xs text-orange-600 font-bold mr-2">Cyber AI thinking...</span>
-              <span></span><span></span><span></span>
-            </div>
           </div>
 
           <!-- Typing indicator -->

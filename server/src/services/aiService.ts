@@ -460,7 +460,7 @@ RULES:
     }
     fullPrompt += `\n\n${username}: ${prompt}\nCyber Assistant:`
 
-    let streamResult;
+    let streamResult: any = null
     try {
       streamResult = await ai.models.generateContentStream({
         model: 'gemini-3.5-flash',
@@ -469,17 +469,42 @@ RULES:
       })
     } catch (primaryErr) {
       console.warn('gemini-3.5-flash stream failed, falling back to gemini-3.1-flash-lite:', primaryErr)
-      streamResult = await ai.models.generateContentStream({
-        model: 'gemini-3.1-flash-lite',
-        contents: fullPrompt,
-        config: { temperature: 0.7 }
-      })
+      try {
+        streamResult = await ai.models.generateContentStream({
+          model: 'gemini-3.1-flash-lite',
+          contents: fullPrompt,
+          config: { temperature: 0.7 }
+        })
+      } catch (backupErr) {
+        console.warn('Both Gemini streams failed, using intelligent rule-based coach fallback stream:', backupErr)
+      }
     }
 
-    for await (const chunk of streamResult) {
-      const text = chunk.text
-      if (text) {
-        res.write(`data: ${JSON.stringify({ chunk: text })}\n\n`)
+    let emittedChars = 0
+    if (streamResult) {
+      try {
+        for await (const chunk of streamResult) {
+          const text = chunk.text
+          if (text) {
+            emittedChars += text.length
+            res.write(`data: ${JSON.stringify({ chunk: text })}\n\n`)
+          }
+        }
+      } catch (streamErr) {
+        console.warn('Error reading Gemini stream chunks, falling back to rule-based engine:', streamErr)
+      }
+    }
+
+    // If API stream didn't yield any text, use generateChatResponse (with Smart Fallback Engine)
+    if (emittedChars === 0) {
+      console.log('Gemini stream emitted 0 chars, fetching full response from generateChatResponse...')
+      const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
+      // Stream fallback response word-by-word with tiny delay for smooth typing animation
+      const words = fallbackReply.split(' ')
+      for (let i = 0; i < words.length; i += 2) {
+        const chunk = words.slice(i, i + 2).join(' ') + (i + 2 < words.length ? ' ' : '')
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`)
+        await new Promise(r => setTimeout(r, 25))
       }
     }
 
@@ -487,8 +512,15 @@ RULES:
     res.end()
   } catch (error: any) {
     console.error('generateChatResponseStream error:', error)
-    res.write(`data: ${JSON.stringify({ chunk: 'AI service error. Please try again.' })}\n\n`)
-    res.write('data: [DONE]\n\n')
-    res.end()
+    try {
+      const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
+      res.write(`data: ${JSON.stringify({ chunk: fallbackReply })}\n\n`)
+      res.write('data: [DONE]\n\n')
+      res.end()
+    } catch (finalErr) {
+      res.write(`data: ${JSON.stringify({ chunk: 'I am your Naenra AI Assistant. Ask me anything about Support Cores, game rules, or ELO ranks!' })}\n\n`)
+      res.write('data: [DONE]\n\n')
+      res.end()
+    }
   }
 }
