@@ -253,7 +253,7 @@
           </div>
 
           <div class="flex justify-between items-center mt-2 px-1 text-[10px] text-gray-500 font-semibold">
-            <span>⚠️ AI có thể mắc sai lầm. Hãy kiểm chứng thông tin quan trọng.</span>
+            <span>⚠️ AI can make mistakes. Please verify important information.</span>
           </div>
         </div>
       </div>
@@ -704,7 +704,7 @@ async function sendMessage() {
     } else {
       // Stream ended with no content — remove empty placeholder and show error
       messages.value.splice(msgIdx, 1)
-      errorMsg.value = 'AI không có phản hồi. Vui lòng thử lại.'
+      errorMsg.value = 'No response from AI. Please try again.'
     }
   } catch (err: any) {
     // Remove empty placeholder bubble if stream failed before any content arrived
