@@ -129,10 +129,10 @@
         </div>
 
         <!-- High-Contrast Rating Badge -->
-        <div class="bg-gradient-to-r from-orange-500 to-red-500 px-5 py-2.5 rounded-xl flex flex-col items-end flex-shrink-0 ml-4 shadow-md text-white">
-          <span class="text-[9px] font-extrabold tracking-widest text-white/90 uppercase mb-0.5">Rating</span>
-          <div class="font-black text-xl text-white flex items-center gap-1">
-            <span class="text-white font-black tracking-wide drop-shadow-sm">{{ currentUser.elo }}</span>
+        <div class="bg-orange-50/80 border border-orange-200/80 px-4 py-2 rounded-xl flex flex-col items-end flex-shrink-0 ml-4 shadow-sm">
+          <span class="text-[9px] font-black tracking-widest text-gray-500 uppercase mb-0.5">Rating</span>
+          <div class="font-black text-xl text-orange-600 flex items-center gap-1">
+            <span class="text-orange-600 font-black tracking-wide">{{ currentUser.elo }}</span>
             <span class="text-sm">⭐</span>
           </div>
         </div>
