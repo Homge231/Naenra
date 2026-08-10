@@ -302,7 +302,7 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
 
             offeredCores = [primarySameFamily, primaryHybridCore].filter(Boolean)
           } else {
-            // Round 3: High Chance/Guaranteed High-Impact Tier 3 Super Hybrid Core option
+            // Round 3: Offer 1 same-family Tier 3 upgrade + 1 NEW 3rd Family Super Hybrid Core
             const superTier3Pool = allCores.filter(c => {
               const fam = getCoreFamily(c.name)
               return (c.tier === 3 || c.tier === 2) && 
