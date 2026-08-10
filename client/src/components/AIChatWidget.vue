@@ -139,7 +139,11 @@
             :key="idx"
             :class="['chat-bubble-wrap', msg.role === 'user' ? 'chat-bubble-wrap--user' : 'chat-bubble-wrap--ai']"
           >
-            <div :class="['chat-bubble', msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--ai']">
+            <!-- AI bubble: only render once content starts arriving (hides empty streaming placeholder) -->
+            <div
+              v-if="msg.role === 'user' || msg.content.length > 0"
+              :class="['chat-bubble', msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--ai']"
+            >
               <div class="flex items-center justify-between gap-2 mb-1.5 border-b border-orange-100 pb-1" v-if="msg.role !== 'user'">
                 <span class="chat-bubble-label flex items-center gap-1 text-orange-600 font-bold">
                   <span>🤖</span> Naenra Cyber Guide
@@ -160,6 +164,11 @@
                 v-html="renderMarkdown(msg.content)"
               ></div>
               <p v-else class="chat-bubble-text">{{ msg.content }}</p>
+            </div>
+            <!-- Streaming typing dots shown while placeholder is still empty -->
+            <div v-else class="chat-typing">
+              <span class="text-xs text-orange-600 font-bold mr-2">Cyber AI thinking...</span>
+              <span></span><span></span><span></span>
             </div>
           </div>
 
@@ -244,8 +253,8 @@
           </div>
 
           <div class="flex justify-between items-center mt-2 px-1 text-[10px] text-gray-500 font-semibold">
-            <span>💡 Click the <strong class="text-orange-600 font-extrabold">🎙️ Microphone</strong> icon to speak hands-free</span>
-            <span class="text-orange-500 font-extrabold">Gemini 3.5 Flash</span>
+            <span>⚠️ AI có thể mắc sai lầm. Hãy kiểm chứng thông tin quan trọng.</span>
+            <span class="text-orange-500 font-extrabold">Gemini 2.5 Flash</span>
           </div>
         </div>
       </div>
@@ -625,6 +634,9 @@ async function sendMessage() {
   const ack = quickAckPhrases[Math.floor(Math.random() * quickAckPhrases.length)]
   speakText(ack, { rate: 1.22 })
 
+  // Hoisted so catch block can clean up empty placeholder on failure
+  let msgIdx = -1
+
   try {
     const history = messages.value
       .slice(0, -1)
@@ -657,7 +669,7 @@ async function sendMessage() {
 
     // Push placeholder message, updated chunk-by-chunk as AI streams
     messages.value.push({ role: 'model', content: '' })
-    const msgIdx = messages.value.length - 1
+    msgIdx = messages.value.length - 1
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -688,8 +700,18 @@ async function sendMessage() {
     }
 
     // Auto voice readout once full response is assembled
-    if (fullText) speakText(fullText)
+    if (fullText) {
+      speakText(fullText)
+    } else {
+      // Stream ended with no content — remove empty placeholder and show error
+      messages.value.splice(msgIdx, 1)
+      errorMsg.value = 'AI không có phản hồi. Vui lòng thử lại.'
+    }
   } catch (err: any) {
+    // Remove empty placeholder bubble if stream failed before any content arrived
+    if (msgIdx >= 0 && messages.value[msgIdx]?.content === '') {
+      messages.value.splice(msgIdx, 1)
+    }
     errorMsg.value = err.message || 'An error occurred. Please try again.'
   } finally {
     isLoading.value = false
