@@ -10,3 +10,4 @@ server/.env
 .github
 .qodo
 .calm/
+.agents/mcp_config.json
