@@ -90,7 +90,7 @@ export interface ScoringResult {
     oracle_penalty: number
     penalty: number
     /** Any extra fields a specific core wants to surface */
-    [key: string]: any
+    [key: string]: number
   }
 }
 

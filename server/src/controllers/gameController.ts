@@ -7,7 +7,6 @@ import { runScoring, getCoreStrategy } from '../cores/index'
 import { getUpgradesForCore, getCoreFamily } from '../cores/families'
 import { getTierForElo } from '../utils/ranks'
 import { evaluatePostMatchMissions } from '../services/missionEvaluatorService'
-import { detectSynergy } from '../cores/synergies'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -282,31 +281,45 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
         const upgradeNames = getUpgradesForCore(prevCore.name, targetTier)
         
         if (upgradeNames.length > 0) {
-          const sameFamilyPool = allCores.filter(c => 
+          const synergyPool = allCores.filter(c => 
             upgradeNames.some(name => name.toLowerCase() === c.name.toLowerCase())
           )
+          
+          if (synergyPool.length > 0) {
+            // Check user's unlocked cores to prioritize offering at least one unlocked core
+            let userUnlockedSet = new Set<string>()
+            if (req.user?.id) {
+              const { data: userUnlockedProgress } = await supabase
+                .from('user_core_progress')
+                .select('core_id')
+                .eq('user_id', req.user.id)
+                .eq('is_unlocked', true)
 
-          // Find complementary cross-family core for Fusion Synergy
-          const prevFamily = getCoreFamily(prevCore.name)
-          let synergyFamilyName = ''
-          if (prevFamily === 'speedster') synergyFamilyName = 'aegis'
-          else if (prevFamily === 'aegis') synergyFamilyName = 'speedster'
-          else if (prevFamily === 'oracle') synergyFamilyName = 'high_roller'
-          else if (prevFamily === 'high_roller') synergyFamilyName = 'oracle'
-          else if (prevFamily === 'phoenix') synergyFamilyName = 'pandora'
-          else if (prevFamily === 'pandora') synergyFamilyName = 'phoenix'
-          else if (prevFamily === 'combo') synergyFamilyName = 'power'
-          else if (prevFamily === 'power') synergyFamilyName = 'combo'
+              userUnlockedSet = new Set((userUnlockedProgress || []).map((p: any) => String(p.core_id)))
+            }
 
-          const fusionCrossPool = allCores.filter(c => {
-            const fam = getCoreFamily(c.name)
-            return fam && fam.toLowerCase() === synergyFamilyName && (c.tier === 1 || c.tier === 2)
-          })
+            const unlockedCores = synergyPool.filter(c => 
+              c.tier === 1 || 
+              !DEFAULT_LOCKED_CORES.has(c.name.toLowerCase()) || 
+              userUnlockedSet.has(String(c.id))
+            )
+            const lockedCores = synergyPool.filter(c => !unlockedCores.some(u => u.id === c.id))
 
-          const primarySameFamily = sameFamilyPool[0] || tier1Cores[0]
-          const primaryFusionCore = fusionCrossPool.length > 0 ? fusionCrossPool[0] : (sameFamilyPool[1] || tier1Cores[1])
+            const shuffledUnlocked = [...unlockedCores].sort(() => 0.5 - Math.random())
+            const shuffledLocked = [...lockedCores].sort(() => 0.5 - Math.random())
 
-          offeredCores = [primarySameFamily, primaryFusionCore].filter(Boolean)
+            if (shuffledUnlocked.length > 0) {
+              // Guarantee AT LEAST ONE unlocked core in offered choices
+              const primaryUnlocked = shuffledUnlocked[0]
+              const remaining = [...shuffledUnlocked.slice(1), ...shuffledLocked].sort(() => 0.5 - Math.random())
+              offeredCores = [primaryUnlocked, ...remaining.slice(0, 1)].sort(() => 0.5 - Math.random())
+            } else {
+              // Guarantee AT LEAST ONE unlocked core if synergy pool exists
+              const primaryCore = synergyPool[0]
+              const remaining = synergyPool.slice(1).sort(() => 0.5 - Math.random())
+              offeredCores = [primaryCore, ...remaining.slice(0, 1)].sort(() => 0.5 - Math.random())
+            }
+          }
         }
       }
 
@@ -815,38 +828,6 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // ── US-84: Fusion Overdrive & Core Synergy Engine ────────────────────────
-    const activeSynergy = detectSynergy(historyCoreNames, core.name)
-    if (activeSynergy) {
-      if (activeSynergy.buffType === 'shield_velocity' && isCorrect && serverTimeTaken > 0 && serverTimeTaken <= 2000) {
-        // Shield Velocity: sub-2.0s answer grants +1 shield
-        breakdown.final_shield_count = Math.min(3, (breakdown.final_shield_count || ctx.currentShields || 0) + 1)
-        breakdown.fusion_proc = 'Shield Velocity (+1 Shield)'
-      } else if (activeSynergy.buffType === 'bounty_oracle' && isCorrect && oracleRevealLevel > 0 && serverTimeTaken <= 1500) {
-        // Bounty Oracle: answer within 1.5s of Oracle hint grants +300% score bonus
-        pointsDelta = Math.floor(pointsDelta * 4.0)
-        breakdown.multiplier_buff *= 4.0
-        breakdown.fusion_proc = 'Bounty Oracle (+300% Score Multiplier)'
-      } else if (activeSynergy.buffType === 'chaos_rebirth' && !isCorrect && secondaryCore) {
-        // Chaos Rebirth: shapeshifting forgives mistake
-        forgiveMistake = true
-        pointsDelta = 0
-        breakdown.fusion_proc = 'Chaos Rebirth (Mistake Forgiven)'
-      } else if (activeSynergy.buffType === 'overdrive_pulse' && isCorrect && serverCombo >= 5) {
-        // Overdrive Pulse: 5-combo grants +50% score boost to flat buff
-        const bonusFlat = Math.floor(activeFlatBuff * 0.5)
-        pointsDelta += bonusFlat
-        breakdown.flat_buff += bonusFlat
-        breakdown.fusion_proc = 'Overdrive Pulse (+50% Flat Buff)'
-      }
-      breakdown.active_synergy = {
-        id: activeSynergy.id,
-        name: activeSynergy.name,
-        icon: activeSynergy.icon,
-        description: activeSynergy.description
-      }
-    }
-
     // Pandora Base Passive Effects are now handled inside PandoraCoreStrategy.ts
 
     // ── 9. Record the answer (unique per session+question) ────────────────────
@@ -1244,7 +1225,15 @@ export async function updateSessionCore(req: AuthRequest, res: Response): Promis
       return
     }
 
-    // 4. Signature verification above already guarantees this core was legitimately offered to the player
+    // 4. Validate transition tier and family consistency (Anti-cheat)
+    const currentFamily = getCoreFamily(currentCore.name)
+    const newFamily = getCoreFamily(newCore.name)
+
+    if (newCore.tier !== currentCore.tier + 1 || currentFamily !== newFamily) {
+      res.status(403).json({ error: 'Core transition verification failed (Anti-cheat triggered).' })
+      return
+    }
+
     const { error } = await supabase
       .from('game_sessions')
       .update({ active_core_id: new_core_id })

@@ -209,11 +209,6 @@ ${knowledgeString}
 KEY FACTS (memorize these, never contradict them):
 - Naenra has 65 Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
 - Each family has Tier 1 (default), Tier 2, and Tier 3 upgrades.
-- CORE FUSION OVERDRIVE (US-84): Combining complementary core families unlocks passive synergies:
-  * Speedster + Aegis = Shield Velocity (Sub-2.0s answers generate +1 Aegis Shield).
-  * Oracle + High Roller = Bounty Oracle (Answers within 1.5s of Oracle reveal grant +300% score bonus).
-  * Phoenix + Pandora = Chaos Rebirth (Shapeshifting automatically forgives 1 wrong answer).
-  * Combo + Power = Overdrive Pulse (5-combo streak grants +50% boost to Power Core flat buff).
 - Matches last 60 seconds per round, with 3 rounds (Single) or 4 rounds (Multiplayer with Race Mode).
 - Players select 1 Support Core during a 15-second prep phase before each round.
 
