@@ -447,18 +447,16 @@ export const useAuthStore = defineStore('auth', () => {
       tokenIsGuest = !!JSON.parse(atob(base64)).isGuest
     } catch {}
 
-    if (tokenIsGuest) {
-      isGuest.value = true
-      return
-    }
-
     try {
       // fetchWithAuth handles 401 (including SessionInvalidated) globally
       const res = await fetchWithAuth('/api/user/profile')
       if (!res.ok) return
       const data = await res.json()
-      profile.value = data
-      isGuest.value = false
+      profile.value = {
+        ...data,
+        isGuest: tokenIsGuest
+      }
+      isGuest.value = tokenIsGuest
     } catch (err) {
       console.error('fetchProfile error:', err)
     }
