@@ -87,10 +87,8 @@ export function useGeminiLive() {
       ws = new WebSocket(wsUrl)
 
       ws.onopen = () => {
-        isLiveConnected.value = true
-        isConnecting.value = false
-        isRecording.value = true
-        startMicRecording()
+        isConnecting.value = true
+        // Mic recording will start when server responds with setupComplete
       }
 
       ws.onmessage = (event) => {
@@ -183,8 +181,14 @@ export function useGeminiLive() {
         return
       }
 
-      // Setup complete — Gemini is ready
-      if (msg.setupComplete) return
+      // Setup complete — Gemini 3.1 Live is ready, activate mic and recording
+      if (msg.setupComplete) {
+        isLiveConnected.value = true
+        isConnecting.value = false
+        isRecording.value = true
+        startMicRecording()
+        return
+      }
 
       // Check for incoming audio parts
       const parts = msg.serverContent?.modelTurn?.parts || []

@@ -20,6 +20,9 @@ export function setupAiLiveGateway(): WebSocketServer {
 
     const geminiWs = new WebSocket(geminiUri)
 
+    let isSetupComplete = false
+    const pendingClientMessages: (Buffer | string)[] = []
+
     geminiWs.on('open', () => {
       // 1. Send Setup Message to Gemini 3.1 Flash Live
       const setupMsg = {
@@ -58,17 +61,35 @@ Key Game Facts:
       geminiWs.send(JSON.stringify(setupMsg))
     })
 
-    // 2. Relay messages from Client -> Gemini Live
+    // 2. Relay messages from Client -> Gemini Live (Buffered until setup completes)
     clientWs.on('message', (message: Buffer | string) => {
-      if (geminiWs.readyState === WebSocket.OPEN) {
+      if (isSetupComplete && geminiWs.readyState === WebSocket.OPEN) {
         geminiWs.send(message.toString())
+      } else {
+        pendingClientMessages.push(message)
       }
     })
 
     // 3. Relay responses from Gemini Live -> Client
     geminiWs.on('message', (data: Buffer | string) => {
+      try {
+        const dataStr = data.toString()
+        if (dataStr.includes('setupComplete')) {
+          isSetupComplete = true
+          // Flush buffered messages once setup completes
+          while (pendingClientMessages.length > 0) {
+            const pending = pendingClientMessages.shift()
+            if (pending && geminiWs.readyState === WebSocket.OPEN) {
+              geminiWs.send(pending.toString())
+            }
+          }
+        }
+      } catch {
+        // Ignore non-JSON parsing errors
+      }
+
       if (clientWs.readyState === WebSocket.OPEN) {
-        clientWs.send(data.toString())
+        clientWs.send(data)
       }
     })
 
