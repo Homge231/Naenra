@@ -54,13 +54,13 @@
               <!-- Animated Talking Mouth (Lip Sync to Speech Readout & Audio) -->
               <div class="cyber-mouth mt-1 z-10 flex items-center justify-center h-3.5">
                 <!-- When Speaking: Animated Real-Time Mouth Bars (Lip Sync) -->
-                <div v-if="isSpeaking" class="talking-mouth flex items-center gap-0.5 h-3">
-                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs"></span>
-                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs"></span>
-                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs"></span>
+                <div v-if="isSpeaking || isLiveSpeaking" class="talking-mouth flex items-center gap-0.5 h-3">
+                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
+                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(6, audioAmplitude * 16)}px` } : {}"></span>
+                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
                 </div>
-                <!-- When Listening: Pulsing O Mouth -->
-                <div v-else-if="isListening" class="listening-mouth w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-900/50 animate-ping"></div>
+                <!-- When Listening / Live Active: Pulsing O Mouth -->
+                <div v-else-if="isListening || isLiveConnected" class="listening-mouth w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-900/50 animate-ping"></div>
                 <!-- When Interacting / Happy: Curved Smile -->
                 <div v-else-if="isInteracting" class="smile-mouth w-4 h-2 border-b-2 border-amber-400 rounded-b-full shadow-xs"></div>
                 <!-- Idle Gold Straight Mouth Line (Matching user screenshot) -->
@@ -68,13 +68,15 @@
               </div>
 
               <!-- Cyber Aura Glow Ring -->
-              <div class="cyber-mascot-aura"></div>
+              <div class="cyber-mascot-aura" :class="{ 'mascot-live-aura': isLiveConnected }"></div>
             </div>
 
             <div>
               <h3 class="chat-title flex items-center gap-1.5">
                 Naenra Assistant
-                <span class="chat-badge">CYBER AI</span>
+                <span class="chat-badge" :class="isLiveConnected ? 'bg-red-600 text-white animate-pulse' : ''">
+                  {{ isLiveConnected ? '3.1 LIVE' : 'CYBER AI' }}
+                </span>
               </h3>
               <p class="chat-subtitle">
                 {{ mascotStatusText }}
@@ -83,6 +85,17 @@
           </div>
 
           <div class="flex items-center gap-1.5">
+            <!-- 🔴 Gemini 3.1 Flash Live Voice Coach Toggle Button -->
+            <button
+              @click="toggleLiveSession"
+              class="px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all flex items-center gap-1 cursor-pointer select-none border"
+              :class="isLiveConnected ? 'bg-red-600 border-red-400 text-white animate-pulse shadow-md shadow-red-500/50' : 'bg-gray-900 border-orange-500/40 text-orange-400 hover:bg-gray-800 hover:border-orange-400'"
+              :title="isLiveConnected ? 'Disconnect Gemini 3.1 Live Voice' : 'Start Gemini 3.1 Flash Live Real-Time Voice Coach'"
+            >
+              <span class="w-2 h-2 rounded-full" :class="isLiveConnected ? 'bg-white animate-ping' : 'bg-red-500'"></span>
+              <span>{{ isLiveConnecting ? 'CONNECTING...' : isLiveConnected ? '🔴 LIVE' : '🎙️ LIVE AI' }}</span>
+            </button>
+
             <!-- Voice Output TTS Toggle Button -->
             <button
               @click="toggleVoiceOutput"
@@ -292,6 +305,7 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
 import { fetchWithAuth } from '../services/api'
+import { useGeminiLive } from '../composables/useGeminiLive'
 
 interface ChatMessage {
   role: 'user' | 'model'
@@ -300,6 +314,25 @@ interface ChatMessage {
 
 const authStore = useAuthStore()
 const gameStore = useGameStore()
+const geminiLive = useGeminiLive()
+
+const {
+  isLiveConnected,
+  isConnecting: isLiveConnecting,
+  isSpeaking: isLiveSpeaking,
+  audioAmplitude,
+  errorMsg: liveErrorMsg,
+  startLiveSession,
+  stopLiveSession
+} = geminiLive
+
+function toggleLiveSession() {
+  if (isLiveConnected.value || isLiveConnecting.value) {
+    stopLiveSession()
+  } else {
+    startLiveSession()
+  }
+}
 
 const isChatOpen = ref(false)
 const inputText = ref('')
@@ -327,6 +360,9 @@ const username = computed(() =>
 
 // Dynamic Mascot Status Text in English
 const mascotStatusText = computed(() => {
+  if (isLiveConnecting.value) return 'Connecting to Gemini 3.1 Live...'
+  if (isLiveSpeaking.value) return 'Gemini 3.1 Live speaking...'
+  if (isLiveConnected.value) return '🔴 Gemini 3.1 Live Active (Listening)'
   if (isListening.value) return 'Listening to your voice...'
   if (isLoading.value) return 'Just a moment, finding your answer...'
   if (isSpeaking.value) return 'Speaking response aloud...'

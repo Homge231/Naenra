@@ -15,6 +15,7 @@ import { Server } from 'colyseus'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { MatchRoom } from './rooms/MatchRoom'
 import { QueueRoom } from './rooms/QueueRoom'
+import { setupAiLiveGateway } from './services/aiLiveGateway'
 
 // Initialize cron jobs
 initQuestionCron()
@@ -34,6 +35,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ limit: '10mb', extended: true }))
 
 const httpServer = createServer(app)
+setupAiLiveGateway(httpServer)
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
