@@ -11,16 +11,16 @@ export interface BotProfile {
 }
 
 const BOT_NAMES = [
-  "ShadowTypist", "QuickFingers", "Faker99", "CyberPawn", "VortexType",
-  "EchoKnight", "AeroKey", "QuantumTyper", "ZenithSprint", "HyperVelocity",
-  "StormWriter", "ViperFingers", "NeonRunner", "PhantomKey", "AlphaBlade",
-  "NovaPulse", "ChronoType", "MirageShift", "StarlightTypist", "VelocityZero",
-  "ApexGlyph", "SonicKey", "GlitchMaster", "PrismaticType", "AegisRunner",
-  "OracleMind", "PandoraBoxer", "HighRollerPro", "PowerSurge", "ZenEquilibrium",
-  "LaserFingers", "Overclocked", "TurboScript", "LuminaKey", "ObsidianTyper",
-  "SpectralShift", "NexusRider", "CipherBreak", "MatrixTypist", "VanguardKey",
-  "TitanFingers", "RiftWalker", "AetherType", "SolarFlare", "LunarEclipse",
-  "CosmicDash", "PulseRider", "StarlightSeeker", "InfinityTyper", "VenomKey"
+  "Faker77", "Gumayusi06", "Chovy99", "Keria02", "Zeus04",
+  "ShowMaker97", "Deft06", "Caps99", "TenZ01", "Shroud99",
+  "S1mple21", "ZywOo99", "Rekkles97", "BeryL01", "Ruler98",
+  "Viper00", "Scout98", "Doinb96", "Rookie97", "Boaster95",
+  "Aspas03", "Derke03", "Chronicle02", "Yay98", "ShahZaM94",
+  "Tarzan99", "Kiin99", "Peanut98", "Canyon01", "Oner02",
+  "Bdd99", "Uzi97", "Xiaohu98", "Ming98", "JackeyLove00",
+  "TheShy99", "Ning98", "Tian99", "Knight00", "36901",
+  "Meiko98", "Scump95", "Formal91", "NiKo97", "ScreaM94",
+  "Device95", "Coldzera94", "Rain94", "Karrigan90", "KennyS95"
 ]
 
 const CORE_NAMES = [
