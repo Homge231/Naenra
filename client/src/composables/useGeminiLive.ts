@@ -15,10 +15,29 @@ export function useGeminiLive() {
   let nextPlayTime = 0
 
   function getWsUrl(): string {
-    const envUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
-    const wsProto = envUrl.startsWith('https') ? 'wss' : 'ws'
-    const host = envUrl.replace(/^https?:\/\//, '')
-    return `${wsProto}://${host}/api/ai/live`
+    if (import.meta.env.VITE_SERVER_URL) {
+      const envUrl = import.meta.env.VITE_SERVER_URL
+      const wsProto = envUrl.startsWith('https') ? 'wss' : 'ws'
+      const host = envUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+      return `${wsProto}://${host}/api/ai/live`
+    }
+    const loc = window.location
+    const wsProto = loc.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = loc.port === '5173' ? `${loc.hostname}:3000` : loc.host
+    return `${wsProto}//${host}/api/ai/live`
+  }
+
+  // Linear interpolation downsampler to 16kHz
+  function downsampleTo16k(input: Float32Array, sampleRate: number): Float32Array {
+    if (sampleRate === 16000) return input
+    const ratio = sampleRate / 16000
+    const newLength = Math.floor(input.length / ratio)
+    const result = new Float32Array(newLength)
+    for (let i = 0; i < newLength; i++) {
+      const originIndex = Math.floor(i * ratio)
+      result[i] = input[originIndex]
+    }
+    return result
   }
 
   // Convert Float32Array to 16-bit PCM ArrayBuffer
@@ -49,20 +68,19 @@ export function useGeminiLive() {
     errorMsg.value = null
 
     try {
-      // 1. Initialize Audio Context
+      // 1. Initialize Audio Context with standard browser sample rate
       const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      audioCtx = new AudioCtxClass({ sampleRate: 16000 })
+      audioCtx = new AudioCtxClass()
       if (audioCtx.state === 'suspended') {
         await audioCtx.resume()
       }
 
-      // 2. Request Microphone Access
+      // 2. Request Microphone Access without rigid sampleRate hardware constraints
       micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
-          channelCount: 1,
           echoCancellation: true,
-          noiseSuppression: true
+          noiseSuppression: true,
+          autoGainControl: true
         }
       })
 
@@ -88,7 +106,7 @@ export function useGeminiLive() {
 
       ws.onerror = (err) => {
         console.error('[Gemini Live Error]:', err)
-        errorMsg.value = 'Failed to connect to AI Live service.'
+        errorMsg.value = 'Failed to connect to Gemini 3.1 Live service.'
         stopLiveSession()
       }
 
@@ -103,18 +121,20 @@ export function useGeminiLive() {
     }
   }
 
-  // Start Mic Recording & Stream PCM Chunks using MediaRecorder (no deprecation)
+  // Start Mic Recording & Stream PCM Chunks with proper 16kHz downsampling
   function startMicRecording() {
     if (!micStream || !audioCtx) return
 
-    // Use ScriptProcessorNode as fallback (deprecated but widely supported)
-    // Silence the deprecation by using the smallest possible buffer (256)
     const source = audioCtx.createMediaStreamSource(micStream)
-    scriptNode = audioCtx.createScriptProcessor(512, 1, 1)
+    scriptNode = audioCtx.createScriptProcessor(2048, 1, 1)
+
+    // Silent gain node to prevent microphone feedback echo
+    const silenceGain = audioCtx.createGain()
+    silenceGain.gain.value = 0
 
     let chunkBuffer: Float32Array[] = []
     let chunkSamples = 0
-    const TARGET_SAMPLES = audioCtx.sampleRate * 0.1 // ~100ms chunks
+    const TARGET_SAMPLES = audioCtx.sampleRate * 0.15 // ~150ms chunks
 
     scriptNode.onaudioprocess = (e) => {
       if (!isLiveConnected.value || !ws || ws.readyState !== WebSocket.OPEN) return
@@ -122,7 +142,6 @@ export function useGeminiLive() {
       chunkBuffer.push(new Float32Array(inputData))
       chunkSamples += inputData.length
 
-      // Send every ~100ms worth of audio
       if (chunkSamples >= TARGET_SAMPLES) {
         const merged = new Float32Array(chunkSamples)
         let offset = 0
@@ -133,7 +152,9 @@ export function useGeminiLive() {
         chunkBuffer = []
         chunkSamples = 0
 
-        const pcmBuffer = floatTo16BitPCM(merged)
+        // Downsample from browser audioCtx.sampleRate to 16000Hz for Gemini Live
+        const downsampled = downsampleTo16k(merged, audioCtx!.sampleRate)
+        const pcmBuffer = floatTo16BitPCM(downsampled)
         const base64Audio = arrayBufferToBase64(pcmBuffer)
 
         const mediaChunk = {
@@ -146,7 +167,8 @@ export function useGeminiLive() {
     }
 
     source.connect(scriptNode)
-    scriptNode.connect(audioCtx.destination)
+    scriptNode.connect(silenceGain)
+    silenceGain.connect(audioCtx.destination)
   }
 
   // Process Messages Received from Gemini 3.1 Flash Live

@@ -188,44 +188,67 @@
           </div>
         </div>
 
-        <!-- Footer: Gemini 3.1 Flash Live Voice Panel -->
+        <!-- Footer: Text Input + Gemini 3.1 Live Mic -->
         <div class="chat-footer">
-          <!-- Live Session Panel -->
-          <div class="flex flex-col items-center gap-2">
-            <!-- Big Central Mic Toggle Button -->
+          <div class="chat-input-wrap flex items-center gap-2">
+
+            <!-- 🎙️ GEMINI 3.1 LIVE MIC BUTTON (replaces old STT mic) -->
             <button
               @click="toggleLiveSession"
+              type="button"
               id="ai-chat-mic-btn"
-              class="relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 shadow-lg cursor-pointer select-none"
-              :class="isLiveConnected
-                ? 'bg-red-600 shadow-red-500/60 animate-pulse scale-110'
-                : isLiveConnecting
-                  ? 'bg-orange-500 shadow-orange-400/60'
-                  : 'bg-gradient-to-br from-orange-500 to-amber-600 hover:scale-105 shadow-orange-500/40'"
-              :title="isLiveConnected ? 'Click to disconnect Live Voice' : 'Click to start Gemini 3.1 Flash Live Voice'"
+              class="chat-mic-btn shrink-0 relative"
+              :class="{
+                'chat-mic-btn--listening': isLiveConnected,
+                'opacity-60 animate-pulse': isLiveConnecting
+              }"
+              :title="isLiveConnected ? 'Gemini 3.1 Live — Click to stop' : isLiveConnecting ? 'Connecting...' : 'Start Gemini 3.1 Flash Live Voice'"
             >
-              <!-- Pulse ring when live -->
-              <span v-if="isLiveConnected" class="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-40"></span>
-              <span v-if="isLiveConnecting" class="text-white text-xl">⏳</span>
-              <svg v-else class="w-7 h-7 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span v-if="isLiveConnecting" class="text-sm">⏳</span>
+              <span v-else-if="isLiveConnected" class="text-sm text-red-400 animate-pulse">🔴</span>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
+              <!-- Red dot indicator when live -->
+              <span v-if="isLiveConnected" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
             </button>
 
-            <!-- Status label -->
-            <p class="text-[11px] font-bold text-center leading-tight" :class="isLiveConnected ? 'text-red-500' : 'text-gray-500'">
-              {{ isLiveConnecting ? 'Connecting to Gemini 3.1 Live...' : isLiveConnected ? '🔴 LIVE — Tap mic to stop' : 'Tap to start Gemini 3.1 Flash Live' }}
-            </p>
+            <!-- Text Input Field -->
+            <input
+              v-model="inputText"
+              @keyup.enter="sendMessage"
+              :disabled="isLoading"
+              type="text"
+              :placeholder="isLiveConnected ? 'Live active — speak or type...' : 'Type a question or tap mic for Live AI...'"
+              class="chat-input flex-1"
+              id="ai-chat-input"
+              autocomplete="off"
+              maxlength="300"
+            />
 
-            <!-- Live error message -->
-            <div v-if="liveErrorMsg" class="chat-error w-full">
-              <span>⚠️ {{ liveErrorMsg }}</span>
-              <button @click="liveErrorMsg = null" class="chat-error-dismiss">✕</button>
-            </div>
+            <!-- Send Button -->
+            <button
+              @click="sendMessage"
+              :disabled="isLoading || !inputText.trim()"
+              class="chat-send-btn shrink-0"
+              id="ai-chat-send-btn"
+              aria-label="Send"
+            >
+              <svg v-if="!isLoading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+              <svg v-else class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+                <path d="M4 12a8 8 0 018-8" stroke-linecap="round"/>
+              </svg>
+            </button>
           </div>
 
-          <div class="flex justify-center mt-2 px-1 text-[10px] text-gray-400 font-semibold">
-            <span>⚠️ Powered by Gemini 3.1 Flash Live &mdash; Real-time voice AI</span>
+          <!-- Live status + error row -->
+          <div class="flex justify-between items-center mt-1.5 px-1">
+            <span v-if="liveErrorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ liveErrorMsg }}</span>
+            <span v-else-if="isLiveConnected" class="text-[10px] text-red-400 font-bold animate-pulse">🔴 Gemini 3.1 Live active — speak now</span>
+            <span v-else class="text-[10px] text-gray-500 font-semibold">⚠️ AI can make mistakes. Please verify.</span>
           </div>
         </div>
       </div>
@@ -356,7 +379,7 @@ function handleMascotClick() {
   }, 1800)
 }
 
-// Automatic Blinking Animation Cycle
+// ── Automatic Blinking Animation Cycle ──────────────────────────────
 function startBlinkCycle() {
   blinkInterval = setInterval(() => {
     isBlinking.value = true
@@ -366,74 +389,6 @@ function startBlinkCycle() {
   }, 4000)
 }
 
-// ── Web Speech API Recognition (Voice Input) ───────────────────────
-function initSpeechRecognition() {
-  if (typeof window === 'undefined') return
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  if (!SpeechRecognition) return
-
-  recognition = new SpeechRecognition()
-  recognition.continuous = false
-  recognition.interimResults = true
-  recognition.lang = 'en-US'
-
-  recognition.onstart = () => {
-    isListening.value = true
-    errorMsg.value = ''
-  }
-
-  recognition.onresult = (event: any) => {
-    let transcript = ''
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript
-    }
-    if (transcript.trim()) {
-      inputText.value = transcript
-    }
-  }
-
-  recognition.onerror = (event: any) => {
-    console.warn('Speech recognition error:', event.error)
-    isListening.value = false
-    if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-      errorMsg.value = '🎙️ Microphone access denied. Please grant microphone permission in your browser.'
-    } else if (event.error === 'network') {
-      errorMsg.value = '🌐 Network error during speech recognition.'
-    } else if (event.error === 'no-speech') {
-      // Silently ignore
-    } else {
-      errorMsg.value = `Speech recognition error: ${event.error}`
-    }
-  }
-
-  recognition.onend = () => {
-    isListening.value = false
-    if (inputText.value.trim()) {
-      sendMessage()
-    }
-  }
-}
-
-function toggleSpeechRecognition() {
-  if (!recognition) {
-    initSpeechRecognition()
-  }
-  if (!recognition) {
-    errorMsg.value = 'Browser does not support speech recognition (Web Speech API).'
-    return
-  }
-
-  if (isListening.value) {
-    recognition.stop()
-    isListening.value = false
-  } else {
-    try {
-      recognition.start()
-    } catch (e) {
-      console.warn('Recognition already started:', e)
-    }
-  }
-}
 
 // ── Web Speech Synthesis (Text-to-Speech Output) ─────────────────────
 function toggleVoiceOutput() {
@@ -553,7 +508,6 @@ function handleClickOutside(e: MouseEvent) {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
-  initSpeechRecognition()
   startBlinkCycle()
 
   // Ensure voices are loaded asynchronously if needed by Chrome/Safari
@@ -567,9 +521,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   if (blinkInterval) clearInterval(blinkInterval)
-  if (recognition) {
-    try { recognition.stop() } catch (e) {}
-  }
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel()
   }
