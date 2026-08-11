@@ -50,7 +50,9 @@ Keep responses concise, natural, and helpful.
 Answer in Vietnamese or English depending on what the user speaks.
 Key Game Facts:
 - Naenra is a 60s timed vocabulary typing game with 3-Round loop.
-- Has 10 Tier 1 Main Cores: Perfect Combo, Aegis Shield, Pandora's Box, Power Strike, Mission Impossible, Argus Eyes (Oracle), Speedster, Balance, Phoenix, High Roller.
+- Has 65 Support Cores across 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
+- Players select 1 Support Core during the 15-second prep phase before each round.
+- NO HYBRID STACKING: Super Hybrids or cross-family core stacking do not exist. Players equip 1 Support Core for each round.
 - ELO Rank tiers: Bronze (0-100), Silver (101-200), Gold (201-300), Platinum (301-400), Diamond (401-600), Master (601-800), Grandmaster (801+).`
               }
             ]
