@@ -347,9 +347,16 @@ onAiTranscript((text: string) => {
   scrollToBottom()
 })
 
+// Helper to reject non-Latin speech recognition hallucinations (Devanagari, Arabic, Cyrillic, etc.)
+function isValidTranscript(text: string): boolean {
+  if (!text) return false
+  const invalidScriptRegex = /[\u0900-\u097F\u0600-\u06FF\u0400-\u04FF\u0E00-\u0E7F\u0590-\u05FF]/
+  return !invalidScriptRegex.test(text)
+}
+
 // Real-time transcript from Gemini Live Server User Input (if sent by server)
 onUserTranscript((text: string) => {
-  if (!text) return
+  if (!isValidTranscript(text)) return
   if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
     messages.value.push({ role: 'user', content: text })
     currentUserLiveMsgIdx.value = messages.value.length - 1
@@ -393,7 +400,7 @@ function startLiveSpeechRec() {
       }
 
       const spokenText = (final || interim).trim()
-      if (!spokenText) return
+      if (!isValidTranscript(spokenText)) return
 
       if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
         messages.value.push({ role: 'user', content: spokenText })
