@@ -85,33 +85,6 @@
           </div>
 
           <div class="flex items-center gap-1.5">
-            <!-- 🔴 Gemini 3.1 Flash Live Voice Coach Toggle Button (icon-style) -->
-            <button
-              @click="toggleLiveSession"
-              class="chat-icon-btn relative"
-              :class="isLiveConnected ? 'chat-icon-btn--active text-red-400' : ''"
-              :title="isLiveConnected ? 'Disconnect Gemini 3.1 Live Voice' : 'Start Gemini 3.1 Flash Live Real-Time Voice Coach'"
-            >
-              <span v-if="isLiveConnecting" class="text-sm animate-spin">⏳</span>
-              <span v-else-if="isLiveConnected" class="text-sm animate-pulse">🔴</span>
-              <span v-else class="text-sm">🎙️</span>
-              <!-- LIVE tooltip label -->
-              <span class="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-bold whitespace-nowrap" :class="isLiveConnected ? 'text-red-400' : 'text-gray-400'">
-                {{ isLiveConnected ? 'LIVE' : 'LIVE AI' }}
-              </span>
-            </button>
-
-            <!-- Voice Output TTS Toggle Button -->
-            <button
-              @click="toggleVoiceOutput"
-              class="chat-icon-btn"
-              :class="{ 'chat-icon-btn--active': isVoiceOutputEnabled }"
-              :title="isVoiceOutputEnabled ? 'Mute Voice Readout (TTS)' : 'Enable Voice Readout (TTS)'"
-            >
-              <span v-if="isVoiceOutputEnabled" class="text-sm">🔊</span>
-              <span v-else class="text-sm opacity-50">🔇</span>
-            </button>
-
             <!-- Close Button -->
             <button
               @click="closeChat"
@@ -215,58 +188,44 @@
           </div>
         </div>
 
-        <!-- Input Footer & Compact Voice Recording Button -->
+        <!-- Footer: Gemini 3.1 Flash Live Voice Panel -->
         <div class="chat-footer">
-
-          <div class="chat-input-wrap flex items-center gap-2">
-            <!-- 🎙️ COMPACT MIC ICON BUTTON -->
+          <!-- Live Session Panel -->
+          <div class="flex flex-col items-center gap-2">
+            <!-- Big Central Mic Toggle Button -->
             <button
-              @click="toggleSpeechRecognition"
-              type="button"
-              class="chat-mic-btn shrink-0"
-              :class="{ 'chat-mic-btn--listening': isListening }"
+              @click="toggleLiveSession"
               id="ai-chat-mic-btn"
-              :title="isListening ? 'Listening... Click to stop' : 'Voice Input (Microphone)'"
+              class="relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 shadow-lg cursor-pointer select-none"
+              :class="isLiveConnected
+                ? 'bg-red-600 shadow-red-500/60 animate-pulse scale-110'
+                : isLiveConnecting
+                  ? 'bg-orange-500 shadow-orange-400/60'
+                  : 'bg-gradient-to-br from-orange-500 to-amber-600 hover:scale-105 shadow-orange-500/40'"
+              :title="isLiveConnected ? 'Click to disconnect Live Voice' : 'Click to start Gemini 3.1 Flash Live Voice'"
             >
-              <svg v-if="!isListening" class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <!-- Pulse ring when live -->
+              <span v-if="isLiveConnected" class="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-40"></span>
+              <span v-if="isLiveConnecting" class="text-white text-xl">⏳</span>
+              <svg v-else class="w-7 h-7 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
-              <span v-else class="text-xs animate-ping">🎙️</span>
             </button>
 
-            <!-- Text Input Field -->
-            <input
-              v-model="inputText"
-              @keyup.enter="sendMessage"
-              :disabled="isLoading"
-              type="text"
-              placeholder="Type a question or click Microphone..."
-              class="chat-input flex-1"
-              id="ai-chat-input"
-              autocomplete="off"
-              maxlength="300"
-            />
+            <!-- Status label -->
+            <p class="text-[11px] font-bold text-center leading-tight" :class="isLiveConnected ? 'text-red-500' : 'text-gray-500'">
+              {{ isLiveConnecting ? 'Connecting to Gemini 3.1 Live...' : isLiveConnected ? '🔴 LIVE — Tap mic to stop' : 'Tap to start Gemini 3.1 Flash Live' }}
+            </p>
 
-            <!-- Send Button -->
-            <button
-              @click="sendMessage"
-              :disabled="isLoading || !inputText.trim()"
-              class="chat-send-btn shrink-0"
-              id="ai-chat-send-btn"
-              aria-label="Send"
-            >
-              <svg v-if="!isLoading" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-              </svg>
-              <svg v-else class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
-                <path d="M4 12a8 8 0 018-8" stroke-linecap="round"/>
-              </svg>
-            </button>
+            <!-- Live error message -->
+            <div v-if="liveErrorMsg" class="chat-error w-full">
+              <span>⚠️ {{ liveErrorMsg }}</span>
+              <button @click="liveErrorMsg = null" class="chat-error-dismiss">✕</button>
+            </div>
           </div>
 
-          <div class="flex justify-between items-center mt-2 px-1 text-[10px] text-gray-500 font-semibold">
-            <span>⚠️ AI can make mistakes. Please verify important information.</span>
+          <div class="flex justify-center mt-2 px-1 text-[10px] text-gray-400 font-semibold">
+            <span>⚠️ Powered by Gemini 3.1 Flash Live &mdash; Real-time voice AI</span>
           </div>
         </div>
       </div>
