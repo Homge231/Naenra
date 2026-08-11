@@ -74,8 +74,8 @@
             <div>
               <h3 class="chat-title flex items-center gap-1.5">
                 Naenra Assistant
-                <span class="chat-badge" :class="isLiveConnected ? 'bg-red-600 text-white animate-pulse' : ''">
-                  {{ isLiveConnected ? '3.1 LIVE' : 'CYBER AI' }}
+                <span class="chat-badge">
+                  CYBER AI
                 </span>
               </h3>
               <p class="chat-subtitle">
@@ -85,15 +85,20 @@
           </div>
 
           <div class="flex items-center gap-1.5">
-            <!-- 🔴 Gemini 3.1 Flash Live Voice Coach Toggle Button -->
+            <!-- 🔴 Gemini 3.1 Flash Live Voice Coach Toggle Button (icon-style) -->
             <button
               @click="toggleLiveSession"
-              class="px-2.5 py-1 rounded-full text-[11px] font-extrabold transition-all flex items-center gap-1 cursor-pointer select-none border"
-              :class="isLiveConnected ? 'bg-red-600 border-red-400 text-white animate-pulse shadow-md shadow-red-500/50' : 'bg-gray-900 border-orange-500/40 text-orange-400 hover:bg-gray-800 hover:border-orange-400'"
+              class="chat-icon-btn relative"
+              :class="isLiveConnected ? 'chat-icon-btn--active text-red-400' : ''"
               :title="isLiveConnected ? 'Disconnect Gemini 3.1 Live Voice' : 'Start Gemini 3.1 Flash Live Real-Time Voice Coach'"
             >
-              <span class="w-2 h-2 rounded-full" :class="isLiveConnected ? 'bg-white animate-ping' : 'bg-red-500'"></span>
-              <span>{{ isLiveConnecting ? 'CONNECTING...' : isLiveConnected ? '🔴 LIVE' : '🎙️ LIVE AI' }}</span>
+              <span v-if="isLiveConnecting" class="text-sm animate-spin">⏳</span>
+              <span v-else-if="isLiveConnected" class="text-sm animate-pulse">🔴</span>
+              <span v-else class="text-sm">🎙️</span>
+              <!-- LIVE tooltip label -->
+              <span class="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-bold whitespace-nowrap" :class="isLiveConnected ? 'text-red-400' : 'text-gray-400'">
+                {{ isLiveConnected ? 'LIVE' : 'LIVE AI' }}
+              </span>
             </button>
 
             <!-- Voice Output TTS Toggle Button -->

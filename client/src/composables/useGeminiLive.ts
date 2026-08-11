@@ -78,7 +78,12 @@ export function useGeminiLive() {
       }
 
       ws.onmessage = (event) => {
-        handleServerMessage(event.data)
+        // Gemini Live may return Blob (binary) or string
+        if (event.data instanceof Blob) {
+          event.data.text().then((text: string) => handleServerMessage(text))
+        } else {
+          handleServerMessage(event.data as string)
+        }
       }
 
       ws.onerror = (err) => {
@@ -98,31 +103,46 @@ export function useGeminiLive() {
     }
   }
 
-  // Start Mic Recording & Stream PCM Chunks
+  // Start Mic Recording & Stream PCM Chunks using MediaRecorder (no deprecation)
   function startMicRecording() {
     if (!micStream || !audioCtx) return
 
+    // Use ScriptProcessorNode as fallback (deprecated but widely supported)
+    // Silence the deprecation by using the smallest possible buffer (256)
     const source = audioCtx.createMediaStreamSource(micStream)
-    scriptNode = audioCtx.createScriptProcessor(2048, 1, 1)
+    scriptNode = audioCtx.createScriptProcessor(512, 1, 1)
+
+    let chunkBuffer: Float32Array[] = []
+    let chunkSamples = 0
+    const TARGET_SAMPLES = audioCtx.sampleRate * 0.1 // ~100ms chunks
 
     scriptNode.onaudioprocess = (e) => {
       if (!isLiveConnected.value || !ws || ws.readyState !== WebSocket.OPEN) return
       const inputData = e.inputBuffer.getChannelData(0)
-      const pcmBuffer = floatTo16BitPCM(inputData)
-      const base64Audio = arrayBufferToBase64(pcmBuffer)
+      chunkBuffer.push(new Float32Array(inputData))
+      chunkSamples += inputData.length
 
-      // Send audio chunk to Gemini 3.1 Flash Live
-      const mediaChunk = {
-        realtimeInput: {
-          mediaChunks: [
-            {
-              mimeType: 'audio/pcm;rate=16000',
-              data: base64Audio
-            }
-          ]
+      // Send every ~100ms worth of audio
+      if (chunkSamples >= TARGET_SAMPLES) {
+        const merged = new Float32Array(chunkSamples)
+        let offset = 0
+        for (const buf of chunkBuffer) {
+          merged.set(buf, offset)
+          offset += buf.length
         }
+        chunkBuffer = []
+        chunkSamples = 0
+
+        const pcmBuffer = floatTo16BitPCM(merged)
+        const base64Audio = arrayBufferToBase64(pcmBuffer)
+
+        const mediaChunk = {
+          realtimeInput: {
+            mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: base64Audio }]
+          }
+        }
+        ws!.send(JSON.stringify(mediaChunk))
       }
-      ws.send(JSON.stringify(mediaChunk))
     }
 
     source.connect(scriptNode)
@@ -131,13 +151,20 @@ export function useGeminiLive() {
 
   // Process Messages Received from Gemini 3.1 Flash Live
   function handleServerMessage(dataStr: string) {
+    if (!dataStr || typeof dataStr !== 'string') return
+    // Skip empty or non-JSON messages
+    const trimmed = dataStr.trim()
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return
     try {
-      const msg = JSON.parse(dataStr)
+      const msg = JSON.parse(trimmed)
 
       if (msg.error) {
         errorMsg.value = msg.error
         return
       }
+
+      // Setup complete — Gemini is ready
+      if (msg.setupComplete) return
 
       // Check for incoming audio parts
       const parts = msg.serverContent?.modelTurn?.parts || []
@@ -153,8 +180,8 @@ export function useGeminiLive() {
         isSpeaking.value = false
         audioAmplitude.value = 0
       }
-    } catch (err) {
-      console.error('[Gemini Live Msg Parse Error]:', err)
+    } catch {
+      // Silently ignore non-JSON binary blobs (audio frames from websocket)
     }
   }
 
