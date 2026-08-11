@@ -467,25 +467,24 @@ function getBestVoice(isVi: boolean): SpeechSynthesisVoice | null {
   const langVoices = voices.filter(v => v.lang.toLowerCase().includes(targetLang))
   if (langVoices.length === 0) return voices[0] || null
 
-  // Priority ranking list for most human-like neural & natural voices across browsers/OS
+  // Priority ranking list for most human-like male neural & natural voices matching Puck
   const priorityNames = [
+    'guy online (natural)',
+    'google us english',
+    'google uk english male',
+    'natural (male)',
+    'neural (male)',
+    'alex',
+    'daniel',
+    'fred',
     'jenny online (natural)',
     'aria online (natural)',
-    'ana online (natural)',
-    'guy online (natural)',
     'online (natural)',
-    'google us english',
-    'google uk english female',
     'samantha (enhanced)',
     'samantha',
-    'karen (enhanced)',
-    'karen',
-    'zira',
-    'aria',
     'enhanced',
     'natural',
-    'neural',
-    'premium'
+    'neural'
   ]
 
   for (const nameKeyword of priorityNames) {
@@ -536,8 +535,8 @@ function speakText(text: string, options?: { rate?: number; pitch?: number }) {
   sentences.forEach((sentence, index) => {
     const utterance = new SpeechSynthesisUtterance(sentence)
     utterance.lang = isVi ? 'vi-VN' : 'en-US'
-    utterance.rate = options?.rate ?? 1.18
-    utterance.pitch = options?.pitch ?? 1.0
+    utterance.rate = options?.rate ?? 1.10
+    utterance.pitch = options?.pitch ?? 0.95
 
     if (voice) {
       utterance.voice = voice
