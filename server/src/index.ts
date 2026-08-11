@@ -38,10 +38,11 @@ const httpServer = createServer(app)
 const aiLiveWss = setupAiLiveGateway()
 
 const colyseusTransport = new WebSocketTransport({
-  noServer: true
+  server: httpServer
 })
 
-// Unified HTTP Upgrade Router (prevents double handleUpgrade calls)
+// Remove default Colyseus upgrade listener and use single unified router
+httpServer.removeAllListeners('upgrade')
 httpServer.on('upgrade', (request, socket, head) => {
   const url = request.url || ''
   if (url.startsWith('/api/ai/live')) {
