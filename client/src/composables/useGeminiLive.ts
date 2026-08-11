@@ -15,16 +15,14 @@ export function useGeminiLive() {
   let nextPlayTime = 0
 
   function getWsUrl(): string {
-    if (import.meta.env.VITE_SERVER_URL) {
-      const envUrl = import.meta.env.VITE_SERVER_URL
-      const wsProto = envUrl.startsWith('https') ? 'wss' : 'ws'
-      const host = envUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
-      return `${wsProto}://${host}/api/ai/live`
+    let envUrl = import.meta.env.VITE_SERVER_URL
+    if (!envUrl && typeof window !== 'undefined') {
+      envUrl = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
     }
-    const loc = window.location
-    const wsProto = loc.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = loc.port === '5173' ? `${loc.hostname}:3000` : loc.host
-    return `${wsProto}//${host}/api/ai/live`
+    envUrl = envUrl || 'http://localhost:3000'
+    const wsProto = envUrl.startsWith('https') ? 'wss' : 'ws'
+    const host = envUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    return `${wsProto}://${host}/api/ai/live`
   }
 
   // Linear interpolation downsampler to 16kHz

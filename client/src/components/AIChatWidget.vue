@@ -604,7 +604,11 @@ async function sendMessage() {
 
     // ── SSE Streaming: AI types response token by token ──────────────
     const token = localStorage.getItem('arena_token') || ''
-    const apiBase = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+    let apiBase = import.meta.env.VITE_SERVER_URL
+    if (!apiBase && typeof window !== 'undefined') {
+      apiBase = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
+    }
+    apiBase = apiBase || 'http://localhost:3000'
     const res = await fetch(`${apiBase}/api/ai/chat/stream`, {
       method: 'POST',
       headers: {
