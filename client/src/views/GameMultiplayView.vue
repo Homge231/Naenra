@@ -2150,12 +2150,12 @@ async function playAgain() {
   router.push('/core')
 }
 
-function goHome() {
+async function goHome() {
   const errorStore = useErrorStore()
   waitingForOpponent.value = false
   stopMatchTimer()
   stopTimeoutInterval()
-  abandonCurrentSession()
+  await abandonCurrentSession()
   gameStore.sessionId = null
   matchStore.resetMatch(4)
 
@@ -2168,6 +2168,7 @@ function goHome() {
   }
 
   leaveMatchRoom()
+  await authStore.fetchProfile()
   router.push('/home')
 }
 
@@ -2195,7 +2196,7 @@ async function abandonCurrentSession() {
   try {
     await fetchWithAuth(`/api/game/abandon`, {
       method: 'POST',
-      body: JSON.stringify({ session_id: sessionId.value })
+      body: JSON.stringify({ session_id: sessionId.value, is_multiplayer: isMultiplayer.value })
     })
   } catch (err) {
     console.error('Failed to abandon session:', err)

@@ -217,6 +217,7 @@ import { useCardTilt } from '../composables/useCardTilt'
 import { initAudio } from '../composables/game/useAudioEngine'
 import { audioService } from '../services/audioService'
 import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
+import { fetchWithAuth } from '../services/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -229,7 +230,17 @@ const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const navigatingToGame = ref(false)
 const confirmQuit = ref(false)
 
-function forfeitMatch() {
+async function forfeitMatch() {
+  if (gameStore.sessionId) {
+    try {
+      await fetchWithAuth(`/api/game/abandon`, {
+        method: 'POST',
+        body: JSON.stringify({ session_id: gameStore.sessionId, is_multiplayer: true })
+      })
+    } catch (e) {
+      console.error('Failed to report abandon session:', e)
+    }
+  }
   errorStore.addError({
     type: 'warning',
     message: '⚡ Match Forfeited! You left the 1v1 online match and lost -16 ELO points.',
@@ -238,6 +249,7 @@ function forfeitMatch() {
   leaveMatchRoom()
   gameStore.sessionId = null
   matchStore.resetMatch(4)
+  await authStore.fetchProfile()
   router.push('/home')
 }
 
