@@ -4,17 +4,8 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-export function setupAiLiveGateway(server: HttpServer): WebSocketServer {
+export function setupAiLiveGateway(): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true })
-
-  server.on('upgrade', (request, socket, head) => {
-    const url = request.url || ''
-    if (url.startsWith('/api/ai/live')) {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request)
-      })
-    }
-  })
 
   wss.on('connection', (clientWs: WebSocket) => {
     const apiKey = process.env.GEMINI_API_KEY

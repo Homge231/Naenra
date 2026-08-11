@@ -35,7 +35,25 @@ app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ limit: '10mb', extended: true }))
 
 const httpServer = createServer(app)
-setupAiLiveGateway(httpServer)
+const aiLiveWss = setupAiLiveGateway()
+
+const colyseusTransport = new WebSocketTransport({
+  noServer: true
+})
+
+// Unified HTTP Upgrade Router (prevents double handleUpgrade calls)
+httpServer.on('upgrade', (request, socket, head) => {
+  const url = request.url || ''
+  if (url.startsWith('/api/ai/live')) {
+    aiLiveWss.handleUpgrade(request, socket, head, (ws) => {
+      aiLiveWss.emit('connection', ws, request)
+    })
+  } else {
+    ;(colyseusTransport as any).wss.handleUpgrade(request, socket, head, (ws: any) => {
+      ;(colyseusTransport as any).wss.emit('connection', ws, request)
+    })
+  }
+})
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -61,9 +79,7 @@ app.use('/api/ai', aiRoutes)
 
 // Initialize Colyseus Game Server
 const gameServer = new Server({
-  transport: new WebSocketTransport({
-    server: httpServer
-  })
+  transport: colyseusTransport
 })
 
 gameServer.define('match_room', MatchRoom)
