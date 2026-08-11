@@ -260,6 +260,23 @@ export function useGeminiLive() {
     }
   }
 
+  // Send text message directly into active Gemini 3.1 Live session
+  function sendTextMessage(text: string) {
+    if (!isLiveConnected.value || !ws || ws.readyState !== WebSocket.OPEN) return
+    const clientMsg = {
+      clientContent: {
+        turns: [
+          {
+            role: 'user',
+            parts: [{ text }]
+          }
+        ],
+        turnComplete: true
+      }
+    }
+    ws.send(JSON.stringify(clientMsg))
+  }
+
   // Stop Live Session
   function stopLiveSession() {
     isLiveConnected.value = false
@@ -301,6 +318,7 @@ export function useGeminiLive() {
     audioAmplitude,
     errorMsg,
     startLiveSession,
-    stopLiveSession
+    stopLiveSession,
+    sendTextMessage
   }
 }

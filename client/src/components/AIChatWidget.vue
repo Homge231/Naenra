@@ -310,7 +310,8 @@ const {
   audioAmplitude,
   errorMsg: liveErrorMsg,
   startLiveSession,
-  stopLiveSession
+  stopLiveSession,
+  sendTextMessage
 } = geminiLive
 
 function toggleLiveSession() {
@@ -572,6 +573,12 @@ async function sendMessage() {
 
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
+
+  // Route text prompt directly into active Gemini 3.1 Live session
+  if (isLiveConnected.value) {
+    sendTextMessage(text)
+    return
+  }
 
   isLoading.value = true
 
