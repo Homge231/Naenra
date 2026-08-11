@@ -4,9 +4,9 @@
     <PhaserBackground :image-url="currentBgImage" />
     <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
 
-    <button @click="$router.push('/home')"
-      class="absolute top-8 left-8 text-white/50 hover:text-white transition-colors z-20 font-bold tracking-widest uppercase">
-      &larr; Back
+    <button @click="confirmQuit = true"
+      class="absolute top-8 left-8 text-white/50 hover:text-white transition-colors z-20 font-bold tracking-widest uppercase flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10">
+      &larr; Quit Match
     </button>
 
     <div class="absolute top-8 right-8 z-20 flex items-center gap-2"
@@ -170,6 +170,33 @@
         <p class="text-xl font-black uppercase tracking-widest text-lightBlue animate-pulse">Waiting for opponent to select core...</p>
       </div>
     </transition>
+
+    <!-- Confirm Forfeit 1v1 Modal -->
+    <transition name="overlay">
+      <div v-if="confirmQuit"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-darkNavy/90 backdrop-blur-md">
+        <div
+          class="relative border border-white/10 bg-darkNavy/95 p-10 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
+          <div class="w-16 h-16 bg-hexred/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-8 h-8 text-hexred" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <p class="text-2xl text-white font-black uppercase mb-2">FORFEIT 1V1 MATCH?</p>
+          <p class="text-gray-300 text-sm mb-6 leading-relaxed">
+            <span class="text-hexred font-bold block mb-1">⚠️ Warning: ELO Loss Penalty</span>
+            Quitting during Support Core selection will forfeit the 1v1 battle and deduct <span class="text-hexred font-bold">-16 ELO points</span>. Are you sure you want to forfeit?
+          </p>
+          <div class="flex gap-3">
+            <button @click="confirmQuit = false"
+              class="flex-1 px-4 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-xs tracking-widest uppercase transition-colors rounded-lg">Resume Selection</button>
+            <button @click="forfeitMatch"
+              class="flex-1 px-4 py-3.5 bg-hexred hover:bg-red-600 text-white font-black text-xs tracking-widest uppercase transition-colors rounded-lg shadow-lg shadow-hexred/30">Forfeit (-16 ELO)</button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -180,6 +207,7 @@ import { onBeforeRouteLeave } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
 import { useMatchStore } from '../stores/matchStore'
+import { useErrorStore } from '../stores/errorStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
@@ -194,10 +222,24 @@ const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
 const matchStore = useMatchStore()
+const errorStore = useErrorStore()
 const tutorial = useTutorial()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const navigatingToGame = ref(false)
+const confirmQuit = ref(false)
+
+function forfeitMatch() {
+  errorStore.addError({
+    type: 'warning',
+    message: '⚡ Match Forfeited! You left the 1v1 online match and lost -16 ELO points.',
+    duration: 6000
+  })
+  leaveMatchRoom()
+  gameStore.sessionId = null
+  matchStore.resetMatch(4)
+  router.push('/home')
+}
 
 // ── Hover & Touch-Hold Tooltip Logic ─────────────────────────────────────────
 const activeTooltipIndex = ref<number | null>(null)
