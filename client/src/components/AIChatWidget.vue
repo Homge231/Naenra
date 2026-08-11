@@ -684,7 +684,7 @@ function renderMarkdown(raw: string): string {
 .ai-chat-root {
   position: fixed;
   bottom: 24px;
-  right: 24px;
+  right: 88px;
   z-index: 9999;
   font-family: inherit;
 }
@@ -693,11 +693,11 @@ function renderMarkdown(raw: string): string {
 .chat-window {
   position: absolute;
   bottom: 72px;
-  right: 0;
+  right: -64px;
   width: 410px;
   height: 560px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 110px);
+  max-height: calc(100vh - 120px);
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -707,6 +707,12 @@ function renderMarkdown(raw: string): string {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .chat-window {
+    right: -72px;
+  }
 }
 
 /* ── Accent Bar ──────────────────────────────── */
