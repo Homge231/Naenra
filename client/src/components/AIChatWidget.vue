@@ -333,6 +333,12 @@ let liveSpeechRec: any = null
 // Real-time transcript from Gemini Live AI Output
 onAiTranscript((text: string) => {
   if (!text) return
+
+  // Ensure a user query bubble precedes the AI response if no user bubble exists for this turn
+  if (messages.value.length === 0 || (currentAiLiveMsgIdx.value === -1 && messages.value[messages.value.length - 1]?.role !== 'user')) {
+    messages.value.push({ role: 'user', content: '🎙️ Live Voice Question' })
+  }
+
   if (currentAiLiveMsgIdx.value === -1 || currentAiLiveMsgIdx.value >= messages.value.length || messages.value[currentAiLiveMsgIdx.value]?.role !== 'model') {
     messages.value.push({ role: 'model', content: text })
     currentAiLiveMsgIdx.value = messages.value.length - 1
@@ -347,17 +353,14 @@ onAiTranscript((text: string) => {
   scrollToBottom()
 })
 
-// Helper to reject non-Latin speech recognition hallucinations (Devanagari, Arabic, Cyrillic, etc.)
-function isValidTranscript(text: string): boolean {
-  if (!text) return false
-  const invalidScriptRegex = /[\u0900-\u097F\u0600-\u06FF\u0400-\u04FF\u0E00-\u0E7F\u0590-\u05FF]/
-  return !invalidScriptRegex.test(text)
-}
-
 // Real-time transcript from Gemini Live Server User Input (if sent by server)
 onUserTranscript((text: string) => {
-  if (!isValidTranscript(text)) return
-  if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
+  if (!text) return
+  // If a temporary Voice Question bubble was pushed, update it with server transcript
+  if (messages.value.length > 0 && messages.value[messages.value.length - 1]?.content === '🎙️ Live Voice Question') {
+    messages.value[messages.value.length - 1].content = text
+    currentUserLiveMsgIdx.value = messages.value.length - 1
+  } else if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
     messages.value.push({ role: 'user', content: text })
     currentUserLiveMsgIdx.value = messages.value.length - 1
   } else {
@@ -372,80 +375,10 @@ onTurnComplete(() => {
   currentUserLiveMsgIdx.value = -1
 })
 
-// Real-time transcript from Client Web Speech API for instant user speech-to-text
-function startLiveSpeechRec() {
-  if (typeof window === 'undefined') return
-  const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  if (!SpeechRec) return
-
-  stopLiveSpeechRec()
-
-  try {
-    liveSpeechRec = new SpeechRec()
-    liveSpeechRec.continuous = true
-    liveSpeechRec.interimResults = true
-    liveSpeechRec.lang = 'en-US'
-
-    liveSpeechRec.onresult = (event: any) => {
-      if (!isLiveConnected.value) return
-      let interim = ''
-      let final = ''
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          final += event.results[i][0].transcript
-        } else {
-          interim += event.results[i][0].transcript
-        }
-      }
-
-      const spokenText = (final || interim).trim()
-      if (!isValidTranscript(spokenText)) return
-
-      if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
-        messages.value.push({ role: 'user', content: spokenText })
-        currentUserLiveMsgIdx.value = messages.value.length - 1
-      } else {
-        messages.value[currentUserLiveMsgIdx.value].content = spokenText
-      }
-
-      if (final) {
-        currentUserLiveMsgIdx.value = -1
-        currentAiLiveMsgIdx.value = -1
-      }
-      scrollToBottom()
-    }
-
-    liveSpeechRec.onerror = (e: any) => {
-      console.log('[Live SpeechRec Error]:', e.error)
-    }
-
-    liveSpeechRec.onend = () => {
-      if (isLiveConnected.value && liveSpeechRec) {
-        try { liveSpeechRec.start() } catch {}
-      }
-    }
-
-    liveSpeechRec.start()
-  } catch (err) {
-    console.warn('[Live SpeechRec Init Failed]:', err)
-  }
-}
-
-function stopLiveSpeechRec() {
-  if (liveSpeechRec) {
-    try { liveSpeechRec.stop() } catch {}
-    liveSpeechRec = null
-  }
-  currentUserLiveMsgIdx.value = -1
-  currentAiLiveMsgIdx.value = -1
-}
-
 watch(isLiveConnected, (connected) => {
-  if (connected) {
-    startLiveSpeechRec()
-  } else {
-    stopLiveSpeechRec()
+  if (!connected) {
+    currentAiLiveMsgIdx.value = -1
+    currentUserLiveMsgIdx.value = -1
   }
 })
 const inputText = ref('')
@@ -646,7 +579,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
-  stopLiveSpeechRec()
   if (blinkInterval) clearInterval(blinkInterval)
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel()
