@@ -1051,8 +1051,22 @@ function useOracleHint() {
   oracleRevealLevel.value++
   oracleTotalPenalty.value += cost
 
-  // Score bar will update when submit-answer responds (server is source of truth).
-  // Oracle cost is shown on the hint button label — no separate popup needed.
+  const activeName = (gameStore.activeCoreName || '').toLowerCase()
+  const hasFirstLetterRevealed = activeName === 'third eye' || activeName === 'omniscience' || activeName === 'divine eye' || activeName === 'mind reader'
+
+  if (hasFirstLetterRevealed && typedLetters.value.length >= 1) {
+    const hint2 = currentQuestion.value.oracle_hints?.[1] || currentQuestion.value.oracle_hints?.[2] || ''
+    const letters = hint2.split(' ')
+    const secondLetter = letters[1]?.toLowerCase()
+    if (secondLetter && secondLetter !== '·' && secondLetter !== '_') {
+      if (typedLetters.value.length === 1) {
+        typedLetters.value = [typedLetters.value[0], secondLetter]
+      }
+    }
+    if (oracleRevealLevel.value < 2) {
+      oracleRevealLevel.value = 2
+    }
+  }
 
   // Re-focus the hidden input so the player can continue typing without clicking the screen
   inputRef.value?.focus()
