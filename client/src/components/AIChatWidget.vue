@@ -288,7 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
 import { fetchWithAuth } from '../services/api'
@@ -311,7 +311,10 @@ const {
   errorMsg: liveErrorMsg,
   startLiveSession,
   stopLiveSession,
-  sendTextMessage
+  sendTextMessage,
+  onAiTranscript,
+  onUserTranscript,
+  onTurnComplete
 } = geminiLive
 
 function toggleLiveSession() {
@@ -323,6 +326,121 @@ function toggleLiveSession() {
 }
 
 const isChatOpen = ref(false)
+const currentAiLiveMsgIdx = ref(-1)
+const currentUserLiveMsgIdx = ref(-1)
+let liveSpeechRec: any = null
+
+// Real-time transcript from Gemini Live AI Output
+onAiTranscript((text: string) => {
+  if (!text) return
+  if (currentAiLiveMsgIdx.value === -1 || currentAiLiveMsgIdx.value >= messages.value.length || messages.value[currentAiLiveMsgIdx.value]?.role !== 'model') {
+    messages.value.push({ role: 'model', content: text })
+    currentAiLiveMsgIdx.value = messages.value.length - 1
+  } else {
+    const current = messages.value[currentAiLiveMsgIdx.value].content
+    if (text.startsWith(current)) {
+      messages.value[currentAiLiveMsgIdx.value].content = text
+    } else if (!current.endsWith(text)) {
+      messages.value[currentAiLiveMsgIdx.value].content += (current && !current.endsWith(' ') && !text.startsWith(' ') ? ' ' : '') + text
+    }
+  }
+  scrollToBottom()
+})
+
+// Real-time transcript from Gemini Live Server User Input (if sent by server)
+onUserTranscript((text: string) => {
+  if (!text) return
+  if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
+    messages.value.push({ role: 'user', content: text })
+    currentUserLiveMsgIdx.value = messages.value.length - 1
+  } else {
+    messages.value[currentUserLiveMsgIdx.value].content = text
+  }
+  scrollToBottom()
+})
+
+// Signal from Gemini Live when a turn completes (resets indices so next turn starts a new bubble)
+onTurnComplete(() => {
+  currentAiLiveMsgIdx.value = -1
+  currentUserLiveMsgIdx.value = -1
+})
+
+// Real-time transcript from Client Web Speech API for instant user speech-to-text
+function startLiveSpeechRec() {
+  if (typeof window === 'undefined') return
+  const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  if (!SpeechRec) return
+
+  stopLiveSpeechRec()
+
+  try {
+    liveSpeechRec = new SpeechRec()
+    liveSpeechRec.continuous = true
+    liveSpeechRec.interimResults = true
+    liveSpeechRec.lang = 'en-US'
+
+    liveSpeechRec.onresult = (event: any) => {
+      if (!isLiveConnected.value) return
+      let interim = ''
+      let final = ''
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          final += event.results[i][0].transcript
+        } else {
+          interim += event.results[i][0].transcript
+        }
+      }
+
+      const spokenText = (final || interim).trim()
+      if (!spokenText) return
+
+      if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
+        messages.value.push({ role: 'user', content: spokenText })
+        currentUserLiveMsgIdx.value = messages.value.length - 1
+      } else {
+        messages.value[currentUserLiveMsgIdx.value].content = spokenText
+      }
+
+      if (final) {
+        currentUserLiveMsgIdx.value = -1
+        currentAiLiveMsgIdx.value = -1
+      }
+      scrollToBottom()
+    }
+
+    liveSpeechRec.onerror = (e: any) => {
+      console.log('[Live SpeechRec Error]:', e.error)
+    }
+
+    liveSpeechRec.onend = () => {
+      if (isLiveConnected.value && liveSpeechRec) {
+        try { liveSpeechRec.start() } catch {}
+      }
+    }
+
+    liveSpeechRec.start()
+  } catch (err) {
+    console.warn('[Live SpeechRec Init Failed]:', err)
+  }
+}
+
+function stopLiveSpeechRec() {
+  if (liveSpeechRec) {
+    try { liveSpeechRec.stop() } catch {}
+    liveSpeechRec = null
+  }
+  currentUserLiveMsgIdx.value = -1
+  currentAiLiveMsgIdx.value = -1
+}
+
+watch(isLiveConnected, (connected) => {
+  if (connected) {
+    startLiveSpeechRec()
+  } else {
+    stopLiveSpeechRec()
+  }
+})
 const inputText = ref('')
 const messages = ref<ChatMessage[]>([])
 const isLoading = ref(false)
@@ -521,6 +639,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
+  stopLiveSpeechRec()
   if (blinkInterval) clearInterval(blinkInterval)
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel()
@@ -570,6 +689,9 @@ async function sendMessage() {
 
   inputText.value = ''
   errorMsg.value = ''
+
+  currentUserLiveMsgIdx.value = -1
+  currentAiLiveMsgIdx.value = -1
 
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()

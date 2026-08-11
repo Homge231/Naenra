@@ -155,7 +155,10 @@ export function useGeminiLive() {
 
         const mediaChunk = {
           realtimeInput: {
-            mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: base64Audio }]
+            audio: {
+              mimeType: 'audio/pcm;rate=16000',
+              data: base64Audio
+            }
           }
         }
         ws!.send(JSON.stringify(mediaChunk))
@@ -165,6 +168,20 @@ export function useGeminiLive() {
     source.connect(scriptNode)
     scriptNode.connect(silenceGain)
     silenceGain.connect(audioCtx.destination)
+  }
+
+  const aiTranscriptListeners: ((text: string) => void)[] = []
+  const userTranscriptListeners: ((text: string) => void)[] = []
+  const turnCompleteListeners: (() => void)[] = []
+
+  function onAiTranscript(cb: (text: string) => void) {
+    aiTranscriptListeners.push(cb)
+  }
+  function onUserTranscript(cb: (text: string) => void) {
+    userTranscriptListeners.push(cb)
+  }
+  function onTurnComplete(cb: () => void) {
+    turnCompleteListeners.push(cb)
   }
 
   // Process Messages Received from Gemini 3.1 Flash Live
@@ -190,12 +207,32 @@ export function useGeminiLive() {
         return
       }
 
-      // Check for incoming audio parts
+      // Check for output transcription (AI text response)
+      if (msg.serverContent?.outputTranscription?.text) {
+        const text = msg.serverContent.outputTranscription.text
+        aiTranscriptListeners.forEach(cb => cb(text))
+      }
+
+      // Check for input transcription (User speech-to-text from server if available)
+      if (msg.serverContent?.inputTranscription?.text) {
+        const text = msg.serverContent.inputTranscription.text
+        userTranscriptListeners.forEach(cb => cb(text))
+      }
+
+      // Check for incoming audio and text parts
       const parts = msg.serverContent?.modelTurn?.parts || []
       for (const part of parts) {
         if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/pcm')) {
           playAudioChunk(part.inlineData.data)
         }
+        if (part.text) {
+          aiTranscriptListeners.forEach(cb => cb(part.text))
+        }
+      }
+
+      // Check for turn complete / generation complete signal from server
+      if (msg.serverContent?.turnComplete || msg.serverContent?.generationComplete || msg.serverContent?.interrupted) {
+        turnCompleteListeners.forEach(cb => cb())
       }
 
       // Check for audio interruption (Barge-in)
@@ -321,6 +358,9 @@ export function useGeminiLive() {
     errorMsg,
     startLiveSession,
     stopLiveSession,
-    sendTextMessage
+    sendTextMessage,
+    onAiTranscript,
+    onUserTranscript,
+    onTurnComplete
   }
 }

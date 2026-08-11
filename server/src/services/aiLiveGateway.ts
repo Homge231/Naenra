@@ -103,8 +103,15 @@ Key Game Facts:
     })
 
     geminiWs.on('close', (code, reason) => {
+      const reasonStr = reason ? reason.toString() : ''
+      console.log(`[GeminiLiveProxy Close]: Code ${code}, Reason: ${reasonStr}`)
       if (clientWs.readyState === WebSocket.OPEN) {
-        clientWs.close(code, reason.toString())
+        if (code !== 1000 && reasonStr) {
+          try {
+            clientWs.send(JSON.stringify({ error: `Gemini Live error (${code}): ${reasonStr}` }))
+          } catch { /* ignore */ }
+        }
+        clientWs.close(code, reasonStr)
       }
     })
 
