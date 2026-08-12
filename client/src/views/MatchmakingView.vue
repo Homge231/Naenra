@@ -89,7 +89,7 @@
             <div>
               <h3 class="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest mb-0.5 md:mb-1">Ranked Matchmaking Rules</h3>
               <p class="text-[11px] md:text-xs text-gray-500 font-bold leading-relaxed">
-                System is matching you with an opponent based on ELO rating (±100 variance). If no human opponent is found within 30s, an AI Bot of similar rank will match automatically.
+                System is matching you with an opponent based on ELO rating (±100 variance). 
               </p>
             </div>
           </div>
