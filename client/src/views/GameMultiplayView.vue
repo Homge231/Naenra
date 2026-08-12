@@ -485,7 +485,7 @@
     <!-- Mission Tracker UI: only visible when active core is the Mission Core AND not Race Round -->
     <transition name="fade-scale">
       <div v-if="isMissionCore && matchStore.currentRound !== 4" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
-        <MissionCoreIndicator :mission-progress="missionProgress" :show-celebration="showMissionCelebration" />
+        <MissionCoreIndicator :mission-progress="missionProgress" :max-mission-stars="maxMissionStars" :show-celebration="showMissionCelebration" />
       </div>
     </transition>
 
@@ -1057,6 +1057,14 @@ watch(() => matchStore.currentRound, (newRound, oldRound) => {
 const currentCombo = ref(0)
 const isBurningComboActive = computed(() => isComboCore.value && currentCombo.value >= 3)
 const missionProgress = ref(0)
+const maxMissionStars = computed(() => {
+  const name = String(gameStore.activeCoreName || '').toLowerCase()
+  if (name.includes('exodia')) return 10
+  if (name.includes('mission legend')) return 8
+  if (name.includes('contract hunter') || name.includes('mission specialist')) return 4
+  if (name.includes('apex predator') || name.includes('swift mission') || name.includes('daily quest') || name.includes('shield mission') || name.includes('mission master')) return 3
+  return 5
+})
 const isAegisMode = computed(() =>
   checkAegisCore(activeCoreModule.value?.name || '') ||
   effectiveCores.value.some(c => checkAegisCore(c.name)) ||
