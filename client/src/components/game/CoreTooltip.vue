@@ -22,18 +22,21 @@ const props = withDefaults(
     position?: 'top' | 'bottom'
     isMobile?: boolean
     showClose?: boolean
+    showEvolutionBtn?: boolean
   }>(),
   {
     isLocked: false,
     missionText: '',
     position: 'top',
     isMobile: false,
-    showClose: false
+    showClose: false,
+    showEvolutionBtn: false
   }
 )
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'viewEvolution'): void
 }>()
 
 const missionsStore = useMissionsStore()
@@ -354,6 +357,15 @@ const stats = computed(() => {
           {{ stats.mechanic }}
         </div>
       </div>
+
+      <button 
+        v-if="showEvolutionBtn"
+        @click.stop="emit('viewEvolution')"
+        class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 hover:brightness-110 text-white font-black text-[11px] uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1 pointer-events-auto"
+      >
+        <span>View Evolution Paths</span>
+        <span class="text-sm">➔</span>
+      </button>
     </template>
 
     <!-- Pointer arrow (only on desktop non-mobile) -->

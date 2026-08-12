@@ -92,7 +92,7 @@
             <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 pb-12">
 
                 <div v-for="core in filteredCores" :key="core.id" 
-                    @click="router.push(`/library/core/${getCoreSlug(core)}`)"
+                    @click="handleCardClick($event, core)"
                     @mouseenter="showTooltip($event, core)"
                     @mouseleave="hideTooltip"
                     class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative"
@@ -159,7 +159,9 @@
                             :core="hoveredCore" 
                             :isLocked="hoveredCore.isLocked" 
                             :isMobile="true"
+                            :showEvolutionBtn="true"
                             @close="hideTooltip"
+                            @viewEvolution="goToEvolution(hoveredCore)"
                         />
                     </div>
                 </div>
@@ -213,6 +215,23 @@ function showTooltip(event: MouseEvent, core: any) {
 function hideTooltip() {
     isTooltipVisible.value = false
     hoveredCore.value = null
+}
+
+const handleCardClick = (event: MouseEvent | TouchEvent, core: any) => {
+    if (isMobileScreen.value || isTouchDevice.value) {
+        if (hoveredCore.value?.name === core.name && isTooltipVisible.value) {
+            hideTooltip()
+        } else {
+            showTooltip(event, core)
+        }
+    } else {
+        goToEvolution(core)
+    }
+}
+
+const goToEvolution = (core: any) => {
+    hideTooltip()
+    router.push(`/library/core/${getCoreSlug(core)}`)
 }
 
 const activeTab = ref('All')
