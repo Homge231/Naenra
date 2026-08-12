@@ -1129,7 +1129,7 @@ export async function abandonSession(req: AuthRequest, res: Response): Promise<v
     const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id } = req.body
+    const { session_id, is_multiplayer } = req.body
     if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
 
     const { data: session, error: fetchErr } = await supabase
@@ -1150,6 +1150,33 @@ export async function abandonSession(req: AuthRequest, res: Response): Promise<v
       .eq('status', 'active')
 
     if (updateErr) throw updateErr
+
+    // If forfeiting a 1v1 online multiplayer session, deduct -16 ELO penalty & increment losses
+    if (is_multiplayer) {
+      const { data: player } = await supabase
+        .from('players')
+        .select('elo, losses, total_matches')
+        .eq('id', playerId)
+        .single()
+
+      if (player) {
+        const currentElo = player.elo ?? 1000
+        const newElo = Math.max(0, currentElo - 16)
+        const newLosses = (player.losses ?? 0) + 1
+        const newTotalMatches = (player.total_matches ?? 0) + 1
+
+        await supabase
+          .from('players')
+          .update({
+            elo: newElo,
+            losses: newLosses,
+            total_matches: newTotalMatches
+          })
+          .eq('id', playerId)
+
+        console.log(`[abandonSession] Forfeit ELO penalty applied for player ${playerId}: ${currentElo} -> ${newElo} (-16 ELO)`)
+      }
+    }
 
     res.status(200).json({ message: 'Session abandoned' })
   } catch (err) {

@@ -300,7 +300,7 @@ async function fetchUpgradeCores() {
     const mappedCores = (data.cores ?? []).map((c: any) => {
       const isBaseCore = c.tier === 1 || c.core_type === 'main'
       const isUnlockedInMissions = missionsStore.isCoreUnlocked(c.name) || missionsStore.isCoreUnlocked(c.id)
-      const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !unlockedIds.has(c.name) && !isUnlockedInMissions
+      const isLocked = !isBaseCore && !isUnlockedInMissions
       return {
         id: c.id,
         name: c.name,
@@ -315,21 +315,8 @@ async function fetchUpgradeCores() {
       }
     })
 
-    let unlockedCores = mappedCores.filter((c: any) => !c.isLocked)
-    if (unlockedCores.length === 0 && mappedCores.length > 0) {
-      // Force unlock at least the first core option so 2 locked upgrades NEVER appear
-      mappedCores[0].isLocked = false
-      mappedCores[0].missionText = ''
-      unlockedCores = [mappedCores[0]]
-    }
-
-    if (unlockedCores.length > 0) {
-      const firstUnlocked = unlockedCores[0]
-      const remainingCores = mappedCores.filter((c: any) => c.id !== firstUnlocked.id)
-      upgradeCores.value = [firstUnlocked, remainingCores[0]].filter(Boolean).sort(() => 0.5 - Math.random())
-    } else {
-      upgradeCores.value = mappedCores.slice(0, 2)
-    }
+    // Set upgrade options preserving true isLocked status for each core
+    upgradeCores.value = mappedCores.slice(0, 2)
   } catch (err) {
     console.error('Failed to fetch upgrade cores', err)
   } finally {

@@ -228,13 +228,11 @@ CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
 ${knowledgeString}
 
 KEY FACTS (memorize these, never contradict them):
-- Naenra has 65+ Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
-- Each family has Tier 1 (default), Tier 2 upgrade cores, and Tier 3 upgrade cores.
-- Matches last 60 seconds per round, with 3 rounds (Single) or 4 rounds (Multiplayer with Race Mode).
-- Players select 1 Support Core during a 15-second prep phase before each round.
-- HYBRID CORE SYSTEM (US-84): In Round 2, players are offered 1 same-family Tier 2 upgrade AND 1 cross-family Hybrid Core from a different family. In Round 3, they are offered 1 same-family Tier 3 upgrade AND 1 new 3rd-family Super Hybrid Core. Choosing cross-family cores activates Hybrid Matrix which stacks effects from both cores simultaneously.
-- PANDORA EXCEPTION: Pandora's Box family CANNOT hybridize with other families. It evolves strictly within its own Pandora variants (Trickster's Glass, Chaos Prism, Wild Card → Chaos Theory, Pandora's Wrath, Pandora Overdrive etc.).
-- Hybrid Matrix: If player has Power (flat_buff) + Effect (shield/hint/mission) cores, BOTH are stacked. If same classification, new core REPLACES old one (Replacement Matrix).
+- Naenra has 65 Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
+- Each family consists of Tier 1 (default), Tier 2, and Tier 3 cores.
+- Matches consist of 3 rounds (Single-player) or 4 rounds (Multiplayer with Race Mode), each lasting 60 seconds.
+- Players select 1 Support Core during a 15-second prep phase before each round. The active core provides tactical buffs/effects for that round.
+- NO HYBRID STACKING: Super Hybrids or cross-family stacking mechanics DO NOT exist. Players select and equip 1 Support Core for each round.
 
 STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
 1. MATCH USER LANGUAGE EXACTLY: If the user asks in Vietnamese, YOU MUST RESPOND IN VIETNAMESE! If in English, respond in English!

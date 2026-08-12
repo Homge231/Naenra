@@ -139,6 +139,13 @@
                 <p class="text-[10px] font-semibold text-gray-400 leading-snug flex-1 md:hidden line-clamp-2">
                   {{ upgrade.description || upgrade.desc }}
                 </p>
+                
+                <div class="mt-6 text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity" :class="upgrade.isLocked ? 'text-red-500' : 'text-lightBlue'">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  {{ upgrade.isLocked ? '🔒 Mission Lock Details' : 'Hover for details' }}
+                </div>
               </div>
             </div>
 
@@ -164,7 +171,11 @@
       class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
       :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
     >
-      <CoreTooltip :core="hoveredCore" />
+      <CoreTooltip 
+        :core="hoveredCore" 
+        :isLocked="hoveredCore.isLocked" 
+        :missionText="hoveredCore.missionText || (hoveredCore.isLocked ? `Complete gameplay missions to unlock ${hoveredCore.name}.` : '')" 
+      />
     </div>
 
     <!-- Floating Scroll To Top Button -->
@@ -177,11 +188,13 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
+import { useMissionsStore } from '../stores/missionsStore'
 import CoreTooltip from '../components/game/CoreTooltip.vue' 
 import ScrollToTopButton from '../components/ScrollToTopButton.vue' 
 
 const route = useRoute()
 const router = useRouter()
+const missionsStore = useMissionsStore()
 const coreId = route.params.id
 
 const loading = ref(true)
@@ -362,7 +375,17 @@ onMounted(async () => {
              }
           })
 
-          upgrades.value = matchedUpgrades
+          // Map isLocked status using missionsStore
+          upgrades.value = matchedUpgrades.map((u: any) => {
+            const isBaseCore = u.tier === 1 || u.classification === 'main'
+            const isUnlockedInMissions = missionsStore.isCoreUnlocked(u.name) || missionsStore.isCoreUnlocked(u.id)
+            const isLocked = !isBaseCore && !isUnlockedInMissions
+            return {
+              ...u,
+              isLocked,
+              missionText: isLocked ? `Complete gameplay missions to unlock ${u.name}.` : ''
+            }
+          })
         }
       }
     }

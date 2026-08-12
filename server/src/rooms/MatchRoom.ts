@@ -578,6 +578,38 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
     if (isMatchActive) {
       console.log(`[MatchRoom] Client ${client.sessionId} left during active match. Forfeiting.`);
+      if (client.userData?.userId && !this.isCustomRoom) {
+        const userId = client.userData.userId;
+        (async () => {
+          try {
+            const { data: player } = await supabase
+              .from('players')
+              .select('elo, losses, total_matches')
+              .eq('id', userId)
+              .single();
+
+            if (player) {
+              const currentElo = player.elo ?? 1000;
+              const newElo = Math.max(0, currentElo - 16);
+              const newLosses = (player.losses ?? 0) + 1;
+              const newTotalMatches = (player.total_matches ?? 0) + 1;
+
+              await supabase
+                .from('players')
+                .update({
+                  elo: newElo,
+                  losses: newLosses,
+                  total_matches: newTotalMatches
+                })
+                .eq('id', userId);
+
+              console.log(`[MatchRoom] Deducted ELO penalty for user ${userId}: ${currentElo} -> ${newElo} (-16 ELO)`);
+            }
+          } catch (e) {
+            console.error('[MatchRoom] Error updating forfeit ELO penalty:', e);
+          }
+        })();
+      }
       this.broadcast("room_terminated", { reason: "player_left", disconnectedSessionId: client.sessionId }, { except: client });
       this.broadcast("opponent_forfeit", { disconnectedSessionId: client.sessionId }, { except: client });
     }

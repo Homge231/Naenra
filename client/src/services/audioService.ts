@@ -27,25 +27,16 @@ const FAMILY_BGM_MAP: Record<string, string> = {
 };
 
 class AudioService {
-  private correctAudio: HTMLAudioElement;
-  private skipAudio: HTMLAudioElement;
-  private hoverAudio: HTMLAudioElement;
-  private clickAudio: HTMLAudioElement;
-  private rerollAudio: HTMLAudioElement;
-  private coreAudioCache: Record<string, HTMLAudioElement> = {};
+  private correctAudio: HTMLAudioElement | null = null;
+  private skipAudio: HTMLAudioElement | null = null;
+  private audioCache: Record<string, HTMLAudioElement> = {};
   
   // BGM State
   private bgmAudio: HTMLAudioElement | null = null;
   private currentBgmPath: string = '';
 
   constructor() {
-    this.correctAudio = new Audio('/audio/correct.mp3');
-    this.skipAudio = new Audio('/audio/wrong.mp3');
-    
-    // UI Interactions
-    this.hoverAudio = new Audio('/audio/ui/hover.wav');
-    this.clickAudio = new Audio('/audio/ui/click.wav');
-    this.rerollAudio = new Audio('/audio/ui/reroll.wav');
+    // Lazy load audio assets on demand
   }
 
   private getVolume(): number {
@@ -59,50 +50,65 @@ class AudioService {
     return 0.5; // Default 50%
   }
 
-  private playSound(audio: HTMLAudioElement) {
+  private getOrCreateAudio(path: string): HTMLAudioElement {
+    if (!this.audioCache[path]) {
+      const audio = new Audio(path);
+      this.audioCache[path] = audio;
+    }
+    return this.audioCache[path];
+  }
+
+  private playSound(path: string) {
     const vol = this.getVolume();
-    if (vol <= 0) return;
-    audio.volume = vol;
-    audio.currentTime = 0;
-    audio.play().catch(e => console.warn('Audio play failed:', e));
+    if (vol <= 0 || !path) return;
+    try {
+      const audio = this.getOrCreateAudio(path);
+      audio.volume = vol;
+      audio.currentTime = 0;
+      audio.play().catch(() => {
+        // Silently ignore missing files or browser autoplay blocks
+      });
+    } catch {
+      // Ignore audio load issues
+    }
   }
 
   playCorrect() {
-    this.playSound(this.correctAudio);
+    this.playSound('/audio/correct.mp3');
   }
 
   playSkip() {
-    this.playSound(this.skipAudio);
+    this.playSound('/audio/wrong.mp3');
   }
 
   playError() {
-    this.playSound(this.skipAudio);
+    this.playSound('/audio/wrong.mp3');
   }
 
   playHover() {
-    this.playSound(this.hoverAudio);
+    // Only play if UI sound file exists in public assets
+    // this.playSound('/audio/ui/hover.wav');
   }
 
   playClick() {
-    this.playSound(this.clickAudio);
+    // Only play if UI sound file exists in public assets
+    // this.playSound('/audio/ui/click.wav');
   }
 
   playReroll() {
-    this.playSound(this.rerollAudio);
+    // Only play if UI sound file exists in public assets
+    // this.playSound('/audio/ui/reroll.wav');
   }
 
   playCoreActivation(coreName: string) {
     if (!coreName) return;
     const family = getCoreFamily(coreName);
-    const cacheKey = family || 'default';
+    if (!family) return;
     
-    let audio = this.coreAudioCache[cacheKey];
-    if (!audio) {
-      const path = family ? FAMILY_SFX_MAP[family] : null;
-      audio = new Audio(path || '/audio/cores/default_activate.wav');
-      this.coreAudioCache[cacheKey] = audio;
+    const path = FAMILY_SFX_MAP[family];
+    if (path) {
+      this.playSound(path);
     }
-    this.playSound(audio);
   }
 
   // ── Background Music (BGM) ────────────────────────────────────────────────

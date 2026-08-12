@@ -3,178 +3,146 @@
 > Authoritative technical reference. Read before editing. Update after significant changes.
 
 ## Stack
-**Client** (`client/`): Vue 3 + TS, Vite 8, Phaser 4, Pinia 3, Vue Router 5, Tailwind 3, Supabase JS 2
-**Server** (`server/`): Node.js, Express 5, TS, Colyseus 0.17, Supabase JS 2 (service key), bcrypt, jsonwebtoken, nodemailer, dotenv
+- **Client** (`client/`): Vue 3 + TS, Vite 8, Phaser 3/4, Pinia 3, Vue Router 5, Tailwind CSS 3, Supabase JS 2, Web Speech API
+- **Server** (`server/`): Node.js, Express 5, TS, Colyseus 0.17+, Supabase JS 2 (Service Role), `@google/genai` (Gemini SDK), bcrypt, jsonwebtoken, nodemailer, dotenv
 
 ## Architecture
 ```
 client/src/
-  views/          # GameplayView, CoreSelectionView, CoreSelectionMultiView, CustomRoomView, GameMultiplayView, AnalyticsDashboardView, HomeView, ProfileView, LoginView, VerifyOTPView, ForgotPasswordView, ResetPasswordView
+  views/          # GameplayView, CoreSelectionView, CoreSelectionMultiView, CustomRoomView, GameMultiplayView, GamePureSkillMultiView, CoreLibraryView, CoreDetailView, CoreUpgradeDetailView, HomeView, ProfileView, LoginView, VerifyOTPView, ForgotPasswordView, ResetPasswordView, LeaderboardView, MissionsDashboardView, MatchmakingView, MatchFoundView
   stores/         # authStore, gameStore, matchStore, settingsStore, errorStore
-  composables/    # useTutorial.ts, useErrorBoundary.ts, game/ (useAudioEngine, useMatchTimer, useQuestionQueue, useScoreAnimation)
-  components/     # Avatar, ErrorNotification, game/PhaserBackground
+  composables/    # useTutorial.ts, useErrorBoundary.ts, useDeviceMode.ts, useGeminiLive.ts, game/ (useAudioEngine, useMatchTimer, useQuestionQueue, useScoreAnimation)
+  components/     # AIChatWidget, AiCoachWidget, Avatar, ErrorNotification, GlobalSettingsOverlay, MissionToastOverlay, CoreUnlockCelebrationModal, VirtualKeyboard, game/ (PhaserBackground, AegisShieldIndicator, ComboCoreIndicator, CoreCard, CoreTooltip, CoreUpgradeOverlay, CoreVfxOverlay, FeedbackOverlay, MatchResultOverlay, MissionCoreIndicator, OpponentWidget, OracleCoreIndicator, PandoraOverlay, RoomSettingsOverlay, SpeedsterOverlay)
   game/cores/     # FE core registry (Strategy Pattern): BaseCore.ts, registry.ts, families.ts, icons.ts
-  router/         # auth guards
+  router/         # Auth guards, guest access routing
 
 server/src/
-  controllers/    # gameController.ts, userController.ts, feedbackController.ts
-  middleware/     # authMiddleware (JWT + session_version check)
-  rooms/          # Colyseus rooms: MatchRoom.ts
-  services/       # aiService.ts (Gemini question generator)
-  utils/          # jwt.ts, otp.ts, mailer.ts
-  cores/          # BE scoring strategy system: BaseCore.ts, families.ts, index.ts (12 core families)
+  controllers/    # gameController.ts, userController.ts, feedbackController.ts, guestController.ts
+  middleware/     # authMiddleware (JWT + session_version single active session check)
+  rooms/          # Colyseus rooms: MatchRoom.ts, QueueRoom.ts
+  services/       # aiService.ts (Gemini question generator, coach, cyber assistant chat & stream), botGeneratorService.ts, missionEvaluatorService.ts, aiLiveGateway.ts
+  utils/          # jwt.ts, otp.ts, mailer.ts, ranks.ts
+  data/           # naenra_knowledge.json, naenra_knowledge_base.md
+  cores/          # BE scoring strategy system: BaseCore.ts, families.ts, index.ts (65 Cores across 10 Families)
 ```
 
 ## Core System — Strategy Pattern (MOST IMPORTANT)
-Each Support Core = self-contained class (BE) / config (FE). No `if/else` chains in `gameController.ts` / `GameplayView.vue`.
+Each Support Core = self-contained strategy class (BE) / UI module config (FE). No `if/else` chains in `gameController.ts` / `GameplayView.vue`.
 
 **Add a new core:**
-- BE: new `server/src/cores/YourCoreStrategy.ts` extending `BaseCore`, implement `calculateCorrect(ctx)`; register 1 line in `cores/index.ts`.
-- FE: get UUID from Supabase `cores` row → 1 entry in `client/src/game/cores/registry.ts`.
-`gameController.ts` / `GameplayView.vue` never touched.
+- **BE**: Create `server/src/cores/YourCoreStrategy.ts` extending `BaseCore`, implement `calculateCorrect(ctx)` & `calculateWrong(ctx)`; register 1 line entry in `CORE_REGISTRY` inside `server/src/cores/index.ts`.
+- **FE**: Get UUID from Supabase `cores` table → add 1 entry in `client/src/game/cores/registry.ts`.
+- `gameController.ts` / `GameplayView.vue` are NEVER modified for specific core logic.
 
-**ScoringContext** (`server/src/cores/BaseCore.ts`): `timeTaken`, `totalTime` (=60000ms), `combo`, `wrongPenalty` (pre-calc Levenshtein), `oracleRevealLevel` (0-3), `flatBuff`, `multiplierBuff`.
+**ScoringContext** (`server/src/cores/BaseCore.ts`):
+`timeTaken`, `totalTime` (=60000ms), `combo`, `wrongPenalty` (pre-calculated Levenshtein penalty), `oracleRevealLevel` (0–3), `flatBuff`, `multiplierBuff`.
 
-**BE registry** (`server/src/cores/index.ts`), lookup by `core.name` (case-insensitive/trimmed), unknown → `NoCoreStrategy` + warn:
-| key | class | formula |
-|---|---|---|
-| `no core` | NoCoreStrategy | `floor((100+flat_buff)×multiplier_buff)` |
-| `combo core` | ComboCoreStrategy | `floor((100+comboBonus+flat_buff)×multiplier_buff)` |
-| `oracle core` | OracleCoreStrategy | No Core minus oracle penalty |
-| `speedster` | SpeedsterCoreStrategy | `100+floor((1−timeTaken/60000)×200)` |
+**BE Registry Families** (`server/src/cores/index.ts`):
+65 Cores total across 10 families:
+1. **Combo Core**: Multiplies score on consecutive correct streaks.
+2. **Speedster Core**: Awards up to +200 bonus points for quick answers under 2.5s.
+3. **Oracle Core (Argus Eyes)**: Auto-reveals letter slots for difficult words.
+4. **Aegis Shield**: Grants protective shields that absorb Levenshtein typo penalties.
+5. **Mission Core**: Grants massive bonus points upon reaching target word thresholds.
+6. **Pandora Core**: Introduces high-risk, high-reward wild card mechanics.
+7. **Phoenix Core**: Rebirth mechanic converting accumulated wrong-answer debt into score boosts.
+8. **High Roller Core**: Explosive multipliers (up to 12.0x / 15.0x) balanced by failure penalties.
+9. **Power Core**: Direct score amplification per correct answer (+150% to +300%).
+10. **Balanced Core**: Stable, consistent score buffs with zero negative penalties.
 
-> Jira Sprint 3 scopes 6 tactical cores (Combo/Speed/Oracle/Aegis-Shield/Mission/Pandora). Above table = only what's confirmed shipped at last check — verify `cores/index.ts` directly.
+> **Lookup**: Case-insensitive trimmed core name lookup in `server/src/cores/index.ts`. Unknown core → `NoCoreStrategy` with warning fallback.
 
-**CoreModule iface** (`client/src/game/cores/BaseCore.ts`): `id`, `name` (matches DB), `timerColor`, `timerClass`, `timerIconClass`, `popupType: 'correct'|'speedster'`, `showWindOverlay?`.
+## Scoring Engine & Anti-Cheat
+`runScoring(isCorrect, core.name, ctx)` in `gameController.ts` replaces monolith scoring. Returns `{ pointsDelta, breakdown }`.
 
-**FE registry** (`client/src/game/cores/registry.ts`):
-| UUID | Core | Effects |
-|---|---|---|
-| `...0001` | No Core | none |
-| `...0005` | Combo Core | none |
-| `...0006` | Oracle Core | own template block |
-| `...0007` | Speedster | cyan timer glow, wind overlay, "+N FAST!" popup |
+**Wrong-answer penalty (Levenshtein accuracy across all cores):**
+- Similarity $\ge 80\%$ (non-empty submission) $\rightarrow$ Typo penalty: $-2 \text{ pts per letter}$.
+- Similarity $< 80\%$ or empty/skip $\rightarrow$ Wrong penalty: $-10 \text{ pts per letter}$ (capped at 50 pts).
 
-Không đủ dữ liệu để xác minh UUIDs for Aegis/Mission/Pandora — check `registry.ts` + Supabase `cores` table.
+**Speedster Formula:**
+- `speedBonus = floor((1 - timeTaken / 60000) * 200)`
+- `pointsDelta = 100 + speedBonus`
 
-GameplayView usage: `activeCoreModule = computed(() => getCoreModule(gameStore.activeCoreId))` drives timer classes, wind overlay `v-if`, popup type.
+**Server-Side Anti-Cheat:**
+- Client sends `active_core_id` and `time_taken` in POST `/api/game/submit-answer`.
+- Server verifies `active_core_id` matches the DB `game_sessions.active_core_id` locked at session creation (mismatch $\rightarrow$ 403 Forbidden).
+- Server validates `time_taken` against server-side in-memory `sessionTimers`.
 
-## Scoring Engine
-`runScoring(isCorrect, core.name, ctx)` in `gameController.ts` replaces old `calculateScore()` monolith → `{ pointsDelta, breakdown }`.
-
-**Wrong-answer penalty** (Levenshtein accuracy, all cores): accuracy ≥80% → `max(1, distance×2)` no cap; <80%/skip → `clamp(distance×10, 10, 50)`.
-
-**Speedster (US-17.1):** `speedBonus = floor((1−timeTaken/60000)×200)`; `pointsDelta = 100+speedBonus` (ignores buffs). 1s→~297, 30s→~200, 59s→~103.
-
-## time_taken tracking
-`questionStartTime` reset in `loadQuestion()`. `checkAnswer()`/`skipQuestion()` compute `Date.now()-questionStartTime`, sent in every submit-answer POST.
-
-## Visual Effects — Speedster (US-17.2/17.3)
-`.speedster-timer-glow` (cyan pulse 0.8s), `.speedster-timer-icon` (pulse+drop-shadow), `.speedster-wind-container`+`.wind-streak.ws1-6` (6 streaks, 0.65-0.95s staggered), `.speedster-slots-glow`, `.speedster-fast-text` popup (shimmer, 1.8s burst).
-
-## Auth Flow
+## Auth & Session Lifecycle
 ```
-Register → POST /auth/register → validate, dup check → pendingRegistrations(TTL 10m) → OTP email → 200
-Verify OTP → POST /auth/verify-otp → supabase admin.createUser → upsert players → JWT → 201
-Login → POST /auth/login → check not Google-only → signInWithPassword → JWT → 200
-Google OAuth → signInWithOAuth → onAuthStateChange → POST /auth/token → upsert players → arena_token
-Reset → resetPasswordForEmail → /reset-password → updateUser
+Register    → POST /auth/register → validate, dup check → pendingRegistrations (10m TTL) → Send OTP email
+Verify OTP  → POST /auth/verify-otp → Supabase admin.createUser → upsert player → Issue 7-day JWT
+Login       → POST /auth/login → check not Google-only → signInWithPassword → Issue 7-day JWT
+Guest Auth  → POST /auth/guest → generate anonymous player token → limited access
+Google OAuth→ signInWithOAuth → onAuthStateChange → POST /auth/token → upsert player → Issue arena_token
+Session Security → JWT payload contains session_version; server checks players.session_version DB column.
+               New login increments DB session_version, invalidating previous sessions via Realtime Broadcast.
 ```
-Token: `localStorage.arena_token` (7-day JWT).
-
-> Sprint 5 in progress: single-session enforcement via `session_version` col + RPC + JWT check, invalidated on new login via Supabase Realtime Broadcast (REST). `fetchWithAuth` race condition (stale 401 clears fresh valid token) under investigation — verify current state before assuming resolved.
 
 ## Game Flow (Single Player)
 ```
-CoreSelectionView → pick core → gameStore.activeCoreId
-GameplayView.onMounted → POST /api/game/session{active_core_id} → session_id,theme,active_core
-  → GET /api/game/questions (batch 20) → loadQuestion() → questionStartTime=now() → 60s countdown
-Each answer → timeTaken=now()-questionStartTime → POST /api/game/submit-answer{session_id,question_id,answer,current_combo,active_core_id,oracle_reveal_level,time_taken}
-  → BE anti-cheat (core mismatch→403) → runScoring() → score updated from BE response → popup
-Timer 0 → POST /api/game/timeout → status='timeout', score locked
+CoreSelectionView → Choose 1 Support Core → gameStore.activeCoreId
+GameplayView.onMounted → POST /api/game/session { active_core_id } → session_id, theme, active_core
+  → GET /api/game/questions (batch 20) → loadQuestion() → questionStartTime = Date.now() → 60s countdown
+Each answer → timeTaken = Date.now() - questionStartTime → POST /api/game/submit-answer
+  → BE Anti-Cheat check → runScoring() → BE updates score → FE popup & UI feedback
+Timer hits 0 → POST /api/game/timeout → status = 'timeout', session score locked
 ```
 
-## Game Flow (Multiplayer)
-**1. Matchmaking:** `MatchmakingView.vue` connects to Colyseus `QueueRoom`. The server matches based on ELO diff vs Wait Time (threshold expands over 5s). Connections with the exact same `userId` are bypassed to prevent self-matching.
-**2. Match Start:** `QueueRoom` broadcasts `match_found` → Clients join `MatchRoom` via `joinById`. `MatchRoom.onAuth` validates JWT and **auto-abandons** any previous stuck sessions in the DB to prevent join failures.
-**3. Match Loop (4 Rounds):**
-- **Rounds 1-3 (Core Mode):** `CoreSelectionMultiView` (15s to pick core) → 60s countdown typing phase. When timer hits 0 → client sends `start_recap_countdown` → Server transitions to Recap phase → Clients send `ready_next_round` → Server advances round.
-- **Round 4 (Race/Solo Mode):** No core selection. Max 5 questions, 12s server-enforced timeout per question. Players type flexible answers and press Enter. The server manages the score and broadcasts `race_correct` or `race_wrong` (deducts points).
-```
+## Game Flow (Multiplayer 1v1 Colyseus)
+1. **Matchmaking**: `MatchmakingView.vue` connects to `QueueRoom`. Server pairs players based on ELO difference vs wait time (expands over 5s). Self-matching is bypassed.
+2. **Match Join**: `QueueRoom` broadcasts `match_found` $\rightarrow$ Clients join `MatchRoom`. `MatchRoom.onAuth` validates JWT and auto-abandons any stuck sessions.
+3. **4-Round Loop**:
+   - **Rounds 1–3 (Core Mode)**: 15s core selection (`CoreSelectionMultiView`) $\rightarrow$ 60s typing phase $\rightarrow$ Recap screen $\rightarrow$ Next round.
+   - **Round 4 (Race Mode)**: Coreless fast-paced round. 5 questions total, 12s server-enforced timeout per question. First to complete wins max points. Real-time broadcasting via `MatchRoom`.
 
-## DB Schema
-`cores`: id(uuid), name(text, BE-matched case-insensitive), description, flat_buff(int,def 0), multiplier_buff(float,def 1.0). Speedster row not yet seeded — copy UUID to registry.ts once inserted.
-`game_sessions`: active_core_id(FK, locked at creation, validated per submit), score(int), status(active|timeout|abandoned).
-`game_session_answers`: points_delta(int, +earn/-penalty).
-`players`: elo(int, def 1000, updated post-match since Sprint 3), hashed_password(empty for Google users).
+## AI Services Architecture (`server/src/services/aiService.ts`)
+- **Primary Model**: `gemini-3.5-flash`
+- **Fallback Model**: `gemini-3.1-flash-lite` (used on primary rate limit or quota error)
+- **Functions**:
+  1. `generateQuestions(topic, level, count)`: Generates structured JSON fill-in-the-blank questions with `____` placeholders, lowercase `target_word` (a-z letters only), and capitalized hints.
+  2. `generateCoachAnalysis(username, analyticsData)`: Generates personalized performance advice based on topic accuracy and weakest words.
+  3. `generateChatResponse(username, prompt, history, playerHistory)`: Answers game queries using `naenra_knowledge_base.md` context (65 cores across 10 families, game rules, ELO ranks).
+  4. `generateChatResponseStream(...)`: Real-time SSE streaming (`/api/ai/chat/stream`) with chunked text delivery.
+- **Smart Fallback Engine**: If Gemini API is unconfigured or rate-limited, an offline multi-lingual NLP engine handles queries with regex-based Vietnamese/English detection and structured response templates.
+
+## Cross-Device & Responsive Touch Keyboard
+- **Composable**: `client/src/composables/useDeviceMode.ts` (3-layer touch API + screen width + user preference detection).
+- **Component**: `client/src/components/VirtualKeyboard.vue` (Cyberpunk QWERTY touch keyboard emitting `keypress`).
+- **Bridge**: `handleVirtualKey(key)` creates synthetic `KeyboardEvent` and routes through existing `handleKeydown()` in gameplay views. On mobile/tablet touch devices, text input elements are set to `readOnly` to prevent native OS keyboard overlay.
+- **Scaling**: Dynamic `slotSize` scaling ensures long words (up to 12 letters) render cleanly without overflow on 375px mobile viewports.
+
+## DB Schema Summary
+- `cores`: `id` (UUID), `name` (text, matches BE registry case-insensitively), `description`, `flat_buff` (int), `multiplier_buff` (float), `core_type`, `classification`, `tier`.
+- `players`: `id` (UUID), `username`, `email`, `elo` (int, default 1000, K=32 update), `session_version` (int), `unlocked_cores` (jsonb array).
+- `game_sessions`: `id` (UUID), `player_id`, `active_core_id`, `score`, `status` (`active` | `timeout` | `abandoned`).
+- `game_session_answers`: `session_id`, `question_id`, `user_answer`, `is_correct`, `points_delta`, `time_taken`.
 
 ## API Endpoints
-| Method | Path | Auth | Desc |
+| Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | /auth/register | ✗ | validate, OTP, pending reg |
-| POST | /auth/verify-otp | ✗ | create user+player |
-| POST | /auth/resend-otp | ✗ | resend OTP |
-| POST | /auth/login | ✗ | email/password |
-| POST | /auth/token | ✗ | exchange Supabase token (Google) |
-| GET | /auth/check-email | ✗ | provider detection |
-| GET | /api/user/profile | JWT | full profile+rank |
-| PATCH | /api/user/profile | JWT | update username/avatar |
-| GET | /api/game/questions | JWT | batch 20 |
-| GET | /api/game/cores | JWT | list cores |
-| POST | /api/game/session | JWT | create session |
-| POST | /api/game/submit-answer | JWT | score via registry |
-| POST | /api/game/timeout | JWT | lock session |
-| POST | /api/game/abandon | JWT | abandon |
-| GET | /health | ✗ | status |
+| POST | `/auth/register` | None | Register user & send OTP |
+| POST | `/auth/verify-otp` | None | Verify OTP & create Supabase player |
+| POST | `/auth/login` | None | Login with email/password |
+| POST | `/auth/guest` | None | Create anonymous guest session |
+| POST | `/auth/token` | None | OAuth token exchange |
+| GET | `/api/user/profile` | JWT | Fetch full user profile & ELO rank |
+| PATCH | `/api/user/profile` | JWT | Update username / avatar |
+| GET | `/api/game/questions` | JWT | Batch fetch 20 questions |
+| GET | `/api/game/cores` | JWT | List unlocked & total cores |
+| POST | `/api/game/session` | JWT | Initialize single-player session |
+| POST | `/api/game/submit-answer` | JWT | Process typing submission & scoring |
+| POST | `/api/game/timeout` | JWT | End & lock session on timer expiry |
+| GET | `/api/ai/chat/stream` | JWT | SSE stream for Cyber Assistant chat |
+| GET | `/health` | None | Server status check |
 
-## Tailwind Palette
-`hexred:#E63946 orange:#FF7B00 lightOrange:#FFA62B blue:#3B82F6 lightBlue:#60A5FA darkNavy:#0F172A success:#22C55E`
-
-## Env Vars
-`client/.env`: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SERVER_URL, VITE_SITE_URL
-`server/.env`: SUPABASE_URL, SUPABASE_SERVICE_KEY, JWT_SECRET, RESEND_API_KEY, MAIL_FROM
-
-## Sprint Status
-> Source: Jira project `IN` (Intern_Project—AXONACTIVE), cloudId `169b52ba-e4c2-43ae-b78f-6f300cb11e96`. Verified 2026-07-20.
-
-| Sprint | State | Dates | Issues | Goal |
-|---|---|---|---|---|
-| 1 | closed | 06-15→06-21 | 14/14 Done | Auth (Email+Google) + protected Lobby |
-| 2 | closed | 06-22→06-29 | 18 (17D/1TD) | Playable core loop |
-| 2.5 Bug Fixes | closed (untracked in Jira) | — | — | See below |
-| 3: Support Core | closed | 06-29→07-06 | 44 (35D/2WI/7TD) | 15s core select, server scoring, 6 tactical cores |
-| 4: Core Loop Completion | closed | 07-06→07-13 | 47 (32D/15TD) | 3-Round loop, dynamic backgrounds, session security, AI question gen |
-| 5: Single-Player Polish | completed (dev) | 07-13→07-20 | (Pending Jira Sync) | Analytics/tutorials/tooltips + WS/Colyseus groundwork for 1v1 |
-| 6: Cross-Device + AI | planned | 08-11→08-17 | TBD | Mobile/PC responsiveness, Virtual Keyboard, AI assistant production fix |
-
-Sprint 2.5 fixes: Aegis Shield 0-shield default, `getCoreIconPath` crash fix, `@error` icon fallback→default.svg, Oracle Tier-1 penalty-bypass fix, Phoenix bonus 200→100 (total 200 not 300), Session State Leak fix (clear `gameStore.sessionId` on goHome/submitCore).
-
-Sprint 5 fixes & groundwork: `session_version` enforcement, `fetchWithAuth` race condition resolved, Colyseus `@colyseus/sdk` v0.17+ alignment done. Multiplayer base (Custom Rooms, Game loop, Real-time event broadcasting/Toast UI) complete. US-77 (Fix Upgrade Selection Timeout & Disconnect Navigation Bug) implemented via server `room_terminated` event broadcasting, `/lobby` route aliasing, and FE state cleanup. US-88 (IN-352: Homepage Instant Play & Guest Feature Restrictions) implemented with io-game direct landing on HomeView, Enter key match launcher, anonymous guest token generator (`/auth/guest`), guest feature lock indicators, and match result account conversion CTA. US-79 (IN-356: AI Knowledge Base & Contextual System Prompt) implemented with server data naenra_knowledge_base.md and prompt injection inside generateChatResponse(). Custom Room ELO locking/bypass in gameController.timeout prevents ELO farming. Whitelisted rule/rank queries in AI chatbot. IN-366 (US-89: Support Core dynamic audio, Phaser backgrounds, and typing interactions) completed with playPhoenixRebirth, playKeystroke (power sawtooth wave), dynamic Phaser emitter overrides, typo shakes, and combo fire card borders.
-
-**Out-of-sprint fixes (2026-08-07)**: AI assistant production fix — resolved `server/.env` `xSUPABASE_SERVICE_KEY` typo; moved `dotenv.config()` to top of `server/src/index.ts` before all imports (prevents Supabase `supabaseKey is required` crash); updated `GEMINI_API_KEY`; removed `gemini-2.0-flash` quota-exhausted fallback from `aiService.ts`; updated AI system prompt to state `40+ cores across 12 families`; improved `AIChatWidget.vue` speech recognition error messages.
-
-**Sprint 6 Planned (2026-08-11→08-17)**: Cross-Device Responsiveness & Virtual Keyboard.
-- New: `useDeviceMode.ts` composable (3-layer touch/screen/preference detection).
-- New: `VirtualKeyboard.vue` (Cyberpunk QWERTY, emits `keypress(key)`; hidden on PC `≥1024px`).
-- Modify: `GameplayView.vue`, `GameMultiplayView.vue`, `GamePureSkillMultiView.vue` — add `handleVirtualKey(key)` synthetic KeyboardEvent bridge into existing `handleKeydown()`. Dynamic `slotSize` computed for mobile word overflow fix (12-slot × 40px = 576px > 393px iPhone).
-- Modify: `CoreSelectionView.vue` — min-h-[44px] iOS touch targets.
-- Modify: `vite.config.ts` — `manualChunks` vendor splitting + `esbuild.drop` console removal.
-- Modify: `index.html` — viewport `maximum-scale=1.0 user-scalable=no viewport-fit=cover`.
-- Asset: Convert 3 background PNGs (8.2MB total) → WebP (~350KB total).
-
-⚠️ ELO-post-match and full Colyseus matchmaking rooms are **not confirmed scheduled to any sprint** — không đủ dữ liệu để xác minh; check Jira backlog before planning against them.
-
-## CORS Origins
-naenra.xyz, www.naenra.xyz, axonproject.onrender.com, localhost:5173
-
-## Deployment (Render)
-Server: root `server/`, build `npm install && npm run build`, start `npm start`, → api.naenra.xyz
-Client: root `client/`, build `npm install && npm run build`, publish `dist` → naenra.xyz
+## Environment Variables
+- `client/.env`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_SERVER_URL`, `VITE_SITE_URL`
+- `server/.env`: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `JWT_SECRET`, `GEMINI_API_KEY`, `RESEND_API_KEY`, `MAIL_FROM`
 
 ## Agent Rules
-- Read files before editing; make changes, don't just describe them.
-- New core → update this file's registry tables.
-- Speedster UUID `...0007`, final in `registry.ts`.
-- No `if/else` per-core in `gameController.ts` — use strategy registry.
-- No hardcoded core UUIDs in `GameplayView.vue` — use `activeCoreModule`.
-- Cross-check sprint/status claims against Jira `IN` before stating as fact.
+1. Read files before editing; execute actual file modifications.
+2. New core added $\rightarrow$ update `server/src/cores/index.ts` and `client/src/game/cores/registry.ts`.
+3. No `if/else` per-core logic in `gameController.ts` or `GameplayView.vue` — use strategy registry.
+4. Server is the single source of truth for scores and anti-cheat validation.
+5. Desktop UI (`≥1024px`) must remain completely untouched when adding mobile responsive adjustments (`lg:` prefixing).

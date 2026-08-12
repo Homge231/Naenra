@@ -54,13 +54,13 @@
               <!-- Animated Talking Mouth (Lip Sync to Speech Readout & Audio) -->
               <div class="cyber-mouth mt-1 z-10 flex items-center justify-center h-3.5">
                 <!-- When Speaking: Animated Real-Time Mouth Bars (Lip Sync) -->
-                <div v-if="isSpeaking" class="talking-mouth flex items-center gap-0.5 h-3">
-                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs"></span>
-                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs"></span>
-                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs"></span>
+                <div v-if="isSpeaking || isLiveSpeaking" class="talking-mouth flex items-center gap-0.5 h-3">
+                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
+                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(6, audioAmplitude * 16)}px` } : {}"></span>
+                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
                 </div>
-                <!-- When Listening: Pulsing O Mouth -->
-                <div v-else-if="isListening" class="listening-mouth w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-900/50 animate-ping"></div>
+                <!-- When Listening / Live Active: Pulsing O Mouth -->
+                <div v-else-if="isListening || isLiveConnected" class="listening-mouth w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-900/50 animate-ping"></div>
                 <!-- When Interacting / Happy: Curved Smile -->
                 <div v-else-if="isInteracting" class="smile-mouth w-4 h-2 border-b-2 border-amber-400 rounded-b-full shadow-xs"></div>
                 <!-- Idle Gold Straight Mouth Line (Matching user screenshot) -->
@@ -68,13 +68,15 @@
               </div>
 
               <!-- Cyber Aura Glow Ring -->
-              <div class="cyber-mascot-aura"></div>
+              <div class="cyber-mascot-aura" :class="{ 'mascot-live-aura': isLiveConnected }"></div>
             </div>
 
             <div>
               <h3 class="chat-title flex items-center gap-1.5">
                 Naenra Assistant
-                <span class="chat-badge">CYBER AI</span>
+                <span class="chat-badge">
+                  CYBER AI
+                </span>
               </h3>
               <p class="chat-subtitle">
                 {{ mascotStatusText }}
@@ -83,17 +85,6 @@
           </div>
 
           <div class="flex items-center gap-1.5">
-            <!-- Voice Output TTS Toggle Button -->
-            <button
-              @click="toggleVoiceOutput"
-              class="chat-icon-btn"
-              :class="{ 'chat-icon-btn--active': isVoiceOutputEnabled }"
-              :title="isVoiceOutputEnabled ? 'Mute Voice Readout (TTS)' : 'Enable Voice Readout (TTS)'"
-            >
-              <span v-if="isVoiceOutputEnabled" class="text-sm">🔊</span>
-              <span v-else class="text-sm opacity-50">🔇</span>
-            </button>
-
             <!-- Close Button -->
             <button
               @click="closeChat"
@@ -197,23 +188,29 @@
           </div>
         </div>
 
-        <!-- Input Footer & Compact Voice Recording Button -->
+        <!-- Footer: Text Input + Gemini 3.1 Live Mic -->
         <div class="chat-footer">
-
           <div class="chat-input-wrap flex items-center gap-2">
-            <!-- 🎙️ COMPACT MIC ICON BUTTON -->
+
+            <!-- 🎙️ GEMINI 3.1 LIVE MIC BUTTON (replaces old STT mic) -->
             <button
-              @click="toggleSpeechRecognition"
+              @click="toggleLiveSession"
               type="button"
-              class="chat-mic-btn shrink-0"
-              :class="{ 'chat-mic-btn--listening': isListening }"
               id="ai-chat-mic-btn"
-              :title="isListening ? 'Listening... Click to stop' : 'Voice Input (Microphone)'"
+              class="chat-mic-btn shrink-0 relative"
+              :class="{
+                'chat-mic-btn--listening': isLiveConnected,
+                'opacity-60 animate-pulse': isLiveConnecting
+              }"
+              :title="isLiveConnected ? 'Gemini 3.1 Live — Click to stop' : isLiveConnecting ? 'Connecting...' : 'Start Gemini 3.1 Flash Live Voice'"
             >
-              <svg v-if="!isListening" class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span v-if="isLiveConnecting" class="text-sm">⏳</span>
+              <span v-else-if="isLiveConnected" class="text-sm text-red-400 animate-pulse">🔴</span>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
-              <span v-else class="text-xs animate-ping">🎙️</span>
+              <!-- Red dot indicator when live -->
+              <span v-if="isLiveConnected" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
             </button>
 
             <!-- Text Input Field -->
@@ -222,7 +219,7 @@
               @keyup.enter="sendMessage"
               :disabled="isLoading"
               type="text"
-              placeholder="Type a question or click Microphone..."
+              :placeholder="isLiveConnected ? 'Live active — speak or type...' : 'Type a question or tap mic for Live AI...'"
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
@@ -247,8 +244,11 @@
             </button>
           </div>
 
-          <div class="flex justify-between items-center mt-2 px-1 text-[10px] text-gray-500 font-semibold">
-            <span>⚠️ AI can make mistakes. Please verify important information.</span>
+          <!-- Live status + error row -->
+          <div class="flex justify-between items-center mt-1.5 px-1">
+            <span v-if="liveErrorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ liveErrorMsg }}</span>
+            <span v-else-if="isLiveConnected" class="text-[10px] text-red-400 font-bold animate-pulse">🔴 Gemini 3.1 Live active — speak now</span>
+            <span v-else class="text-[10px] text-gray-500 font-semibold">⚠️ AI can make mistakes. Please verify.</span>
           </div>
         </div>
       </div>
@@ -288,10 +288,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
 import { fetchWithAuth } from '../services/api'
+import { useGeminiLive } from '../composables/useGeminiLive'
 
 interface ChatMessage {
   role: 'user' | 'model'
@@ -300,8 +301,86 @@ interface ChatMessage {
 
 const authStore = useAuthStore()
 const gameStore = useGameStore()
+const geminiLive = useGeminiLive()
+
+const {
+  isLiveConnected,
+  isConnecting: isLiveConnecting,
+  isSpeaking: isLiveSpeaking,
+  audioAmplitude,
+  errorMsg: liveErrorMsg,
+  startLiveSession,
+  stopLiveSession,
+  sendTextMessage,
+  onAiTranscript,
+  onUserTranscript,
+  onTurnComplete
+} = geminiLive
+
+function toggleLiveSession() {
+  if (isLiveConnected.value || isLiveConnecting.value) {
+    stopLiveSession()
+  } else {
+    startLiveSession()
+  }
+}
 
 const isChatOpen = ref(false)
+const currentAiLiveMsgIdx = ref(-1)
+const currentUserLiveMsgIdx = ref(-1)
+let liveSpeechRec: any = null
+
+// Real-time transcript from Gemini Live AI Output
+onAiTranscript((text: string) => {
+  if (!text) return
+
+  // Ensure a user query bubble precedes the AI response if no user bubble exists for this turn
+  if (messages.value.length === 0 || (currentAiLiveMsgIdx.value === -1 && messages.value[messages.value.length - 1]?.role !== 'user')) {
+    messages.value.push({ role: 'user', content: '🎙️ Live Voice Question' })
+  }
+
+  if (currentAiLiveMsgIdx.value === -1 || currentAiLiveMsgIdx.value >= messages.value.length || messages.value[currentAiLiveMsgIdx.value]?.role !== 'model') {
+    messages.value.push({ role: 'model', content: text })
+    currentAiLiveMsgIdx.value = messages.value.length - 1
+  } else {
+    const current = messages.value[currentAiLiveMsgIdx.value].content
+    if (text.startsWith(current)) {
+      messages.value[currentAiLiveMsgIdx.value].content = text
+    } else if (!current.endsWith(text)) {
+      messages.value[currentAiLiveMsgIdx.value].content += (current && !current.endsWith(' ') && !text.startsWith(' ') ? ' ' : '') + text
+    }
+  }
+  scrollToBottom()
+})
+
+// Real-time transcript from Gemini Live Server User Input (if sent by server)
+onUserTranscript((text: string) => {
+  if (!text) return
+  // If a temporary Voice Question bubble was pushed, update it with server transcript
+  if (messages.value.length > 0 && messages.value[messages.value.length - 1]?.content === '🎙️ Live Voice Question') {
+    messages.value[messages.value.length - 1].content = text
+    currentUserLiveMsgIdx.value = messages.value.length - 1
+  } else if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
+    messages.value.push({ role: 'user', content: text })
+    currentUserLiveMsgIdx.value = messages.value.length - 1
+  } else {
+    messages.value[currentUserLiveMsgIdx.value].content = text
+  }
+  scrollToBottom()
+})
+
+// Signal from Gemini Live when a turn completes (resets indices so next turn starts a new bubble)
+onTurnComplete(() => {
+  currentAiLiveMsgIdx.value = -1
+  currentUserLiveMsgIdx.value = -1
+})
+
+watch(isLiveConnected, (connected) => {
+  if (!connected) {
+    currentAiLiveMsgIdx.value = -1
+    currentUserLiveMsgIdx.value = -1
+  }
+})
 const inputText = ref('')
 const messages = ref<ChatMessage[]>([])
 const isLoading = ref(false)
@@ -327,6 +406,9 @@ const username = computed(() =>
 
 // Dynamic Mascot Status Text in English
 const mascotStatusText = computed(() => {
+  if (isLiveConnecting.value) return 'Connecting to Gemini 3.1 Live...'
+  if (isLiveSpeaking.value) return 'Gemini 3.1 Live speaking...'
+  if (isLiveConnected.value) return '🔴 Gemini 3.1 Live Active (Listening)'
   if (isListening.value) return 'Listening to your voice...'
   if (isLoading.value) return 'Just a moment, finding your answer...'
   if (isSpeaking.value) return 'Speaking response aloud...'
@@ -356,7 +438,7 @@ function handleMascotClick() {
   }, 1800)
 }
 
-// Automatic Blinking Animation Cycle
+// ── Automatic Blinking Animation Cycle ──────────────────────────────
 function startBlinkCycle() {
   blinkInterval = setInterval(() => {
     isBlinking.value = true
@@ -366,74 +448,6 @@ function startBlinkCycle() {
   }, 4000)
 }
 
-// ── Web Speech API Recognition (Voice Input) ───────────────────────
-function initSpeechRecognition() {
-  if (typeof window === 'undefined') return
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  if (!SpeechRecognition) return
-
-  recognition = new SpeechRecognition()
-  recognition.continuous = false
-  recognition.interimResults = true
-  recognition.lang = 'en-US'
-
-  recognition.onstart = () => {
-    isListening.value = true
-    errorMsg.value = ''
-  }
-
-  recognition.onresult = (event: any) => {
-    let transcript = ''
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      transcript += event.results[i][0].transcript
-    }
-    if (transcript.trim()) {
-      inputText.value = transcript
-    }
-  }
-
-  recognition.onerror = (event: any) => {
-    console.warn('Speech recognition error:', event.error)
-    isListening.value = false
-    if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-      errorMsg.value = '🎙️ Microphone access denied. Please grant microphone permission in your browser.'
-    } else if (event.error === 'network') {
-      errorMsg.value = '🌐 Network error during speech recognition.'
-    } else if (event.error === 'no-speech') {
-      // Silently ignore
-    } else {
-      errorMsg.value = `Speech recognition error: ${event.error}`
-    }
-  }
-
-  recognition.onend = () => {
-    isListening.value = false
-    if (inputText.value.trim()) {
-      sendMessage()
-    }
-  }
-}
-
-function toggleSpeechRecognition() {
-  if (!recognition) {
-    initSpeechRecognition()
-  }
-  if (!recognition) {
-    errorMsg.value = 'Browser does not support speech recognition (Web Speech API).'
-    return
-  }
-
-  if (isListening.value) {
-    recognition.stop()
-    isListening.value = false
-  } else {
-    try {
-      recognition.start()
-    } catch (e) {
-      console.warn('Recognition already started:', e)
-    }
-  }
-}
 
 // ── Web Speech Synthesis (Text-to-Speech Output) ─────────────────────
 function toggleVoiceOutput() {
@@ -453,25 +467,24 @@ function getBestVoice(isVi: boolean): SpeechSynthesisVoice | null {
   const langVoices = voices.filter(v => v.lang.toLowerCase().includes(targetLang))
   if (langVoices.length === 0) return voices[0] || null
 
-  // Priority ranking list for most human-like neural & natural voices across browsers/OS
+  // Priority ranking list for most human-like male neural & natural voices matching Puck
   const priorityNames = [
+    'guy online (natural)',
+    'google us english',
+    'google uk english male',
+    'natural (male)',
+    'neural (male)',
+    'alex',
+    'daniel',
+    'fred',
     'jenny online (natural)',
     'aria online (natural)',
-    'ana online (natural)',
-    'guy online (natural)',
     'online (natural)',
-    'google us english',
-    'google uk english female',
     'samantha (enhanced)',
     'samantha',
-    'karen (enhanced)',
-    'karen',
-    'zira',
-    'aria',
     'enhanced',
     'natural',
-    'neural',
-    'premium'
+    'neural'
   ]
 
   for (const nameKeyword of priorityNames) {
@@ -522,8 +535,8 @@ function speakText(text: string, options?: { rate?: number; pitch?: number }) {
   sentences.forEach((sentence, index) => {
     const utterance = new SpeechSynthesisUtterance(sentence)
     utterance.lang = isVi ? 'vi-VN' : 'en-US'
-    utterance.rate = options?.rate ?? 1.18
-    utterance.pitch = options?.pitch ?? 1.0
+    utterance.rate = options?.rate ?? 1.10
+    utterance.pitch = options?.pitch ?? 0.95
 
     if (voice) {
       utterance.voice = voice
@@ -553,7 +566,6 @@ function handleClickOutside(e: MouseEvent) {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
-  initSpeechRecognition()
   startBlinkCycle()
 
   // Ensure voices are loaded asynchronously if needed by Chrome/Safari
@@ -567,9 +579,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   if (blinkInterval) clearInterval(blinkInterval)
-  if (recognition) {
-    try { recognition.stop() } catch (e) {}
-  }
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel()
   }
@@ -619,8 +628,17 @@ async function sendMessage() {
   inputText.value = ''
   errorMsg.value = ''
 
+  currentUserLiveMsgIdx.value = -1
+  currentAiLiveMsgIdx.value = -1
+
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
+
+  // Route text prompt directly into active Gemini 3.1 Live session
+  if (isLiveConnected.value) {
+    sendTextMessage(text)
+    return
+  }
 
   isLoading.value = true
 
@@ -646,7 +664,11 @@ async function sendMessage() {
 
     // ── SSE Streaming: AI types response token by token ──────────────
     const token = localStorage.getItem('arena_token') || ''
-    const apiBase = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+    let apiBase = import.meta.env.VITE_SERVER_URL
+    if (!apiBase && typeof window !== 'undefined') {
+      apiBase = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
+    }
+    apiBase = apiBase || 'http://localhost:3000'
     const res = await fetch(`${apiBase}/api/ai/chat/stream`, {
       method: 'POST',
       headers: {
@@ -733,7 +755,7 @@ function renderMarkdown(raw: string): string {
 .ai-chat-root {
   position: fixed;
   bottom: 24px;
-  right: 24px;
+  right: 88px;
   z-index: 9999;
   font-family: inherit;
 }
@@ -742,11 +764,11 @@ function renderMarkdown(raw: string): string {
 .chat-window {
   position: absolute;
   bottom: 72px;
-  right: 0;
+  right: -64px;
   width: 410px;
   height: 560px;
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 110px);
+  max-height: calc(100vh - 120px);
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -756,6 +778,12 @@ function renderMarkdown(raw: string): string {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .chat-window {
+    right: -72px;
+  }
 }
 
 /* ── Accent Bar ──────────────────────────────── */

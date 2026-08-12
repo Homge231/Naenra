@@ -113,6 +113,29 @@ export abstract class BaseCore {
    */
   calculateWrong(ctx: ScoringContext): ScoringResult {
     const oraclePenalty = this._oraclePenalty(ctx)
+
+    // Universal Aegis Shield Easter Egg Synergy:
+    // If the player accumulated Aegis Shields from Round 1 or Round 2 (e.g. Aegis, Combo Shield, Speed Shield, Feather Shield),
+    // consuming a shield absorbs the point loss, forgives the mistake, and preserves streak progress (e.g. Exodia 10-streak)!
+    const currentShields = ctx.currentShields || 0
+    if (currentShields > 0) {
+      return {
+        pointsDelta: -oraclePenalty,
+        forgiveMistake: true,
+        shieldDelta: -1,
+        breakdown: {
+          base: 0,
+          combo_bonus: 0,
+          flat_buff: 0,
+          multiplier_buff: 1,
+          oracle_penalty: oraclePenalty,
+          penalty: 0,
+          shield_blocked: 1,
+          final_shield_count: currentShields - 1
+        }
+      }
+    }
+
     return {
       pointsDelta: -(ctx.wrongPenalty + oraclePenalty),
       breakdown: {
@@ -135,11 +158,11 @@ export abstract class BaseCore {
   protected _oraclePenalty(ctx: ScoringContext): number {
     if (ctx.oracleRevealLevel <= 0) return 0
 
-    // If an upgraded Oracle core is present in history, hints are free
+    // Easter Egg Synergy: If an upgraded Argus Eyes core is present in match history, hints remain 100% FREE in future rounds!
     if (ctx.historyCoreNames) {
       const upgradedOracleNames = [
-        'clairvoyance', 'third eye', 'future sight', 'divine guidance', 'oracle blessing',
-        'omniscience', 'mind reader', 'predictive strike', 'cosmic wisdom', 'divine eye'
+        'clairvoyance', 'third eye', 'future sight', 'divine guidance', 'oracle blessing', 'inner eye',
+        'omniscience', 'mind reader', 'predictive strike', 'cosmic wisdom', 'divine eye', 'prophecy'
       ]
       const hasUpgradedOracle = ctx.historyCoreNames.some(name =>
         upgradedOracleNames.includes(name.toLowerCase())

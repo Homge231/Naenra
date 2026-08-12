@@ -108,13 +108,13 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 350,
       icon: '⚡'
     },
-    // Oracle Family
+    // Argus Eyes Family
     {
       id: 'mission_inner_eye',
       title: 'Third Eye Seer',
-      description: 'Complete 3 rounds with Oracle Core hints to unlock Inner Eye.',
+      description: 'Complete 3 rounds with Argus Eyes Core hints to unlock Inner Eye.',
       category: 'Utility',
-      coreFamily: 'oracle',
+      coreFamily: 'argus eyes',
       unlockCoreName: 'Inner Eye',
       targetCount: 3,
       currentProgress: 0,
@@ -126,9 +126,9 @@ export const useMissionsStore = defineStore('missions', () => {
     {
       id: 'mission_prophecy',
       title: 'Prophetic Vision',
-      description: 'Complete 5 rounds using Oracle Core without any errors to unlock Prophecy.',
+      description: 'Complete 5 rounds using Argus Eyes Core without any errors to unlock Prophecy.',
       category: 'Utility',
-      coreFamily: 'oracle',
+      coreFamily: 'argus eyes',
       unlockCoreName: 'Prophecy',
       targetCount: 5,
       currentProgress: 0,
@@ -392,15 +392,42 @@ export const useMissionsStore = defineStore('missions', () => {
 
   const masteryLevel = computed(() => Math.floor(totalXpEarned.value / 250) + 1)
 
+  const lockedCoreNames = new Set([
+    'Combo Burst', 'Hyper Combo',
+    'Velocity Shield', 'Hyperdrive',
+    'Inner Eye', 'Prophecy',
+    'Contract Hunter', 'Mission Legend',
+    'Reflective Barrier', 'Aegis Sanctuary',
+    'Zen Momentum', 'Serenity',
+    'Overcharge', 'Cataclysm',
+    'Wild Card', 'Pandora Overdrive',
+    'Feather Shield', 'Phoenix Overlord',
+    'High Stakes', 'Casino Empire'
+  ])
+
   function isCoreUnlocked(coreNameOrId: string): boolean {
-    if (!coreNameOrId) return false
+    if (!coreNameOrId) return true
     const nameLower = String(coreNameOrId).trim().toLowerCase()
 
-    // 1. Check if explicitly in unlockedCoreNames
-    const inUnlockedNames = unlockedCoreNames.value.some(unlockedName => unlockedName.trim().toLowerCase() === nameLower)
+    // 1. If core is NOT in the 1/3 locked list, it is UNLOCKED BY DEFAULT (2/3 cores free)
+    const isLockedByDefault = Array.from(lockedCoreNames).some(
+      lockedName => lockedName.toLowerCase() === nameLower
+    )
+    if (!isLockedByDefault) return true
+
+    // 2. Check if explicitly unlocked in unlockedCoreNames (claimed via Mission Tracker)
+    const inUnlockedNames = unlockedCoreNames.value.some(
+      unlockedName => unlockedName.trim().toLowerCase() === nameLower
+    )
     if (inUnlockedNames) return true
 
-    // 2. Check if any completed mission unlocks this core (by name or ID)
+    // 3. Check if claimed in authStore profile
+    const authStore = useAuthStore()
+    if (authStore.profile?.unlocked_core_ids?.some(id => id.trim().toLowerCase() === nameLower)) {
+      return true
+    }
+
+    // 4. Check if corresponding mission is completed
     const completedMission = missions.value.find(m =>
       m.isCompleted && (
         m.unlockCoreName.trim().toLowerCase() === nameLower ||

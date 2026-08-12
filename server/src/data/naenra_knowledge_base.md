@@ -67,7 +67,7 @@ Time-based score and timer manipulation.
 * **Grand Prix** (Tier 3): Complete the match with an average time of less than 3s per question for +2000 points.
 * **Sonic Boom** (Tier 3): Speed bonus points are quadrupled if the question is solved in under 1 second.
 
-### 3.3 Oracle / Argus Eyes Core Family
+### 3.3 Argus Eyes Core Family
 Reveals letter slots and hints.
 * **Argus Eyes** (Tier 1): Reveals hints for target words. Correct answers earn 50% fewer points.
 * **Clairvoyance** (Tier 2): Reveals hints for target words. You earn 100% of points (no penalty).
@@ -137,7 +137,7 @@ Pure raw score multipliers with heavier risk penalties.
 * **Supernova** (Tier 3): Star-shattering power. 2.5x multiplier on correct answers.
 * **Gigawatt** (Tier 3): Insane power. 2.5x multiplier, but match duration is reduced by 15 seconds.
 * **Supermassive** (Tier 3): Grants a massive 2.5x multiplier, but mistakes deduct 200 points.
-* **Desperado** (Tier 3): All-or-nothing. 2.5x multiplier, but a single wrong answer ends the match.
+* **Desperado** (Tier 3): High-stakes power surge. 2.5x multiplier on correct answers, but wrong answers deduct 150 points.
 * **Absolute Power** (Tier 3): Grants a 2.5x multiplier, but mistakes subtract 100 points.
 
 ### 3.9 Balanced Core Family

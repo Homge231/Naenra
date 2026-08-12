@@ -5,7 +5,7 @@ import { BaseCore, ScoringContext, ScoringResult, getBasePoints } from './BaseCo
  *
  * Mechanic:
  * - Accumulates all lost penalty points from skipped/wrong answers into a debt pool.
- * - When the next answer is answered CORRECTLY, Phoenix recovers 100% of the accumulated
+ * - When the next answer is answered CORRECTLY, Phoenix recovers 50% of the accumulated
  *   penalty debt + awards base correct points (+ upgrade specific bonuses/shields).
  */
 export class PhoenixCoreStrategy extends BaseCore {
@@ -71,11 +71,12 @@ export class PhoenixCoreStrategy extends BaseCore {
       }
     }
 
-    // Recover 30% accumulated debt (Nerfed from 50% since it is easy/low-risk) + bonus rate on debt + extra flat rebirth bonus
-    const baseRefundRate = 0.3
+    // Recover 50% accumulated debt + bonus rate on debt (capped at max 250 pts refund per rebirth)
+    const baseRefundRate = 0.5
     const debtRefund = debt > 0 ? Math.floor(debt * baseRefundRate) : 0
     const debtBonus = debt > 0 ? Math.floor(debt * this.debtBonusRate) : 0
-    const totalDebtRefund = debtRefund + debtBonus
+    const uncappedRefund = debtRefund + debtBonus
+    const totalDebtRefund = Math.min(250, uncappedRefund) // Capped at 250 PTS max per rebirth for balance
     const rebirthFlat = missCount > 0 ? this.extraFlatBonus : 0
 
     let finalScore = Math.floor((basePts + ctx.flatBuff + rebirthFlat + totalDebtRefund) * dynamicMult) - oraclePenalty

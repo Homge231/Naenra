@@ -43,7 +43,7 @@ export class PowerCoreStrategy extends BaseCore {
     } else if (this.coreName === 'overload') {
       lockInputMs = 2000
     } else if (this.coreName === 'desperado') {
-      timerDelta = -999000 // Instantly ends the match
+      penalty = 150
     }
 
     return {
