@@ -1,30 +1,30 @@
 <template>
-  <div class="h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col">
+  <div class="min-h-screen lg:h-screen w-full bg-[#fff8f5] text-gray-800 overflow-y-auto lg:overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col pb-8 lg:pb-0">
     
     <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
       <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
       <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
       <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
       
-      <div class="absolute top-[15%] left-[10%] text-6xl font-black text-gray-300 uppercase animate-float-slow opacity-50">S</div>
-      <div class="absolute top-[60%] left-[80%] text-8xl font-black text-gray-300 uppercase animate-float-delayed opacity-30">P</div>
-      <div class="absolute top-[80%] left-[20%] text-5xl font-black text-gray-300 uppercase animate-pulse-slow opacity-40">E</div>
-      <div class="absolute top-[25%] left-[75%] text-7xl font-black text-gray-300 uppercase animate-float-slow opacity-50" style="animation-delay: 2s;">D</div>
+      <div class="absolute top-[15%] left-[5%] text-4xl md:text-6xl font-black text-gray-300 uppercase animate-float-slow opacity-50">S</div>
+      <div class="absolute top-[60%] left-[75%] text-6xl md:text-8xl font-black text-gray-300 uppercase animate-float-delayed opacity-30">P</div>
+      <div class="absolute top-[80%] left-[15%] text-3xl md:text-5xl font-black text-gray-300 uppercase animate-pulse-slow opacity-40">E</div>
+      <div class="absolute top-[25%] left-[70%] text-5xl md:text-7xl font-black text-gray-300 uppercase animate-float-slow opacity-50" style="animation-delay: 2s;">D</div>
     </div>
 
-    <header class="relative z-20 w-full p-6 md:px-12 flex justify-between items-start">
+    <header class="relative z-20 w-full p-3 md:p-6 lg:px-12 flex justify-between items-start">
       
-      <div class="flex items-center gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50" @click="cancelMatchmaking">
-        <div class="w-12 h-12 flex items-center justify-center">
+      <div class="flex items-center gap-2 md:gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl shadow-sm border border-white/50" @click="cancelMatchmaking">
+        <div class="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
           <svg class="w-full h-full text-orange fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
         </div>
         <div class="leading-none">
-          <h1 class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
+          <h1 class="text-xl md:text-3xl font-black mb-0.5 md:mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
             NAENRA
           </h1>
-          <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">MATCHMAKING ARENA</p>
+          <p class="text-[8px] md:text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">MATCHMAKING ARENA</p>
         </div>
       </div>
 
@@ -34,12 +34,12 @@
       </div>
     </header>
 
-    <main class="relative z-20 flex-1 flex flex-col lg:flex-row items-center justify-center w-full px-6 md:px-12 gap-12 lg:gap-24">
+    <main class="relative z-20 flex-1 flex flex-col lg:flex-row items-center justify-center w-full px-4 md:px-12 gap-4 md:gap-8 lg:gap-24 my-auto">
       
       <div class="flex-1 flex justify-center items-center relative w-full max-w-lg">
         <div class="absolute inset-0 bg-white/40 backdrop-blur-3xl rounded-full scale-125 shadow-[0_0_100px_rgba(251,146,60,0.15)] pointer-events-none"></div>
 
-        <div class="relative w-72 h-72 md:w-96 md:h-96 flex items-center justify-center">
+        <div class="relative w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 flex items-center justify-center">
           <div class="absolute inset-0 rounded-full border-2 border-orange-400/40 radar-pulse-1 pointer-events-none"></div>
           <div class="absolute inset-0 rounded-full border-2 border-orange-500/20 radar-pulse-2 pointer-events-none"></div>
           <div class="absolute inset-0 rounded-full border-2 border-red-500/10 radar-pulse-3 pointer-events-none"></div>
@@ -50,10 +50,10 @@
 
           <div class="absolute w-full h-px bg-gray-300/60"></div>
           <div class="absolute h-full w-px bg-gray-300/60"></div>
-          <div class="absolute w-56 h-56 rounded-full border-2 border-dashed border-gray-400/50"></div>
+          <div class="absolute w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 rounded-full border-2 border-dashed border-gray-400/50"></div>
 
-          <div class="relative z-10 w-36 h-36 md:w-44 md:h-44 rounded-full p-[6px] bg-gradient-to-tr from-orange-500 via-red-500 to-yellow-400 shadow-[0_0_50px_rgba(251,146,60,0.5)]">
-            <div class="w-full h-full rounded-full overflow-hidden bg-white border-4 border-white relative group">
+          <div class="relative z-10 w-24 h-24 sm:w-32 sm:h-32 md:w-44 md:h-44 rounded-full p-[4px] md:p-[6px] bg-gradient-to-tr from-orange-500 via-red-500 to-yellow-400 shadow-[0_0_50px_rgba(251,146,60,0.5)]">
+            <div class="w-full h-full rounded-full overflow-hidden bg-white border-2 md:border-4 border-white relative group">
               <img
                 :src="avatarUrl"
                 :alt="username"
@@ -63,8 +63,8 @@
               <div class="absolute inset-0 bg-black/20 hidden group-hover:block transition-all"></div>
             </div>
             
-            <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white border-2 border-gray-100 px-4 py-1.5 rounded-full shadow-lg whitespace-nowrap min-w-max flex items-center justify-center">
-              <p class="text-xs font-black text-orange-600 tracking-widest flex items-center gap-1">
+            <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white border-2 border-gray-100 px-3 md:px-4 py-0.5 md:py-1.5 rounded-full shadow-lg whitespace-nowrap min-w-max flex items-center justify-center">
+              <p class="text-[10px] md:text-xs font-black text-orange-600 tracking-widest flex items-center gap-1">
                 ⭐ ELO: {{ elo }}
               </p>
             </div>
@@ -74,33 +74,33 @@
 
       <div class="flex-1 flex flex-col items-center lg:items-start w-full max-w-lg">
         
-        <div class="flex items-center gap-4 mb-4">
-          <div class="relative flex items-center justify-center w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100">
-            <svg class="w-6 h-6 text-orange-500 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div class="flex items-center gap-3 md:gap-4 mb-2 md:mb-4">
+          <div class="relative flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-white rounded-xl shadow-sm border border-gray-100">
+            <svg class="w-4 h-4 md:w-6 md:h-6 text-orange-500 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           </div>
-          <div>
-            <h2 class="text-3xl md:text-4xl font-black text-gray-900 uppercase tracking-tight">Searching</h2>
-            <p class="text-sm font-bold text-orange-500 uppercase tracking-[0.2em] animate-pulse">Finding Opponent...</p>
+          <div class="text-center lg:text-left">
+            <h2 class="text-2xl md:text-4xl font-black text-gray-900 uppercase tracking-tight">Searching</h2>
+            <p class="text-xs md:text-sm font-bold text-orange-500 uppercase tracking-[0.2em] animate-pulse">Finding Opponent...</p>
           </div>
         </div>
 
-        <div class="w-full h-px bg-gradient-to-r from-gray-200 to-transparent my-6 hidden lg:block"></div>
+        <div class="w-full h-px bg-gradient-to-r from-gray-200 to-transparent my-4 hidden lg:block"></div>
 
-        <div class="flex flex-col items-center lg:items-start mb-10">
-          <p class="text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-2">Elapsed Time</p>
-          <div class="text-[5rem] md:text-[7rem] leading-none font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-gray-800 to-gray-400 drop-shadow-sm">
+        <div class="flex flex-col items-center lg:items-start mb-4 md:mb-10">
+          <p class="text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-1 md:mb-2">Elapsed Time</p>
+          <div class="text-4xl sm:text-6xl md:text-[7rem] leading-none font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-gray-800 to-gray-400 drop-shadow-sm">
             {{ formattedElapsedTime }}
           </div>
         </div>
 
-        <div class="w-full bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-white shadow-sm mb-10 text-center lg:text-left">
-          <div class="flex items-start gap-4">
-            <div class="mt-1 p-2 bg-blue-50 rounded-lg text-blue-500">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div class="w-full bg-white/70 backdrop-blur-md p-3.5 sm:p-6 rounded-2xl md:rounded-3xl border border-white shadow-sm mb-4 md:mb-10 text-center lg:text-left">
+          <div class="flex items-start gap-3 md:gap-4">
+            <div class="mt-0.5 p-1.5 md:p-2 bg-blue-50 rounded-lg text-blue-500 shrink-0">
+              <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <div>
-              <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-1">Ranked Matchmaking Rules</h3>
-              <p class="text-xs text-gray-500 font-bold leading-relaxed">
+              <h3 class="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest mb-0.5 md:mb-1">Ranked Matchmaking Rules</h3>
+              <p class="text-[11px] md:text-xs text-gray-500 font-bold leading-relaxed">
                 System is matching you with an opponent based on ELO rating (±100 variance). If no human opponent is found within 30s, an AI Bot of similar rank will match automatically.
               </p>
             </div>
@@ -110,9 +110,9 @@
         <button
           @click="cancelMatchmaking"
           @mouseenter="audioService.playHover()"
-          class="group relative w-full lg:w-auto h-16 px-10 bg-white border-2 border-gray-200 hover:bg-red-50 hover:border-red-200 rounded-2xl text-gray-500 hover:text-red-600 font-black text-sm tracking-[0.2em] uppercase transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-3"
+          class="group relative w-full lg:w-auto h-12 md:h-16 px-6 md:px-10 bg-white border-2 border-gray-200 hover:bg-red-50 hover:border-red-200 rounded-xl md:rounded-2xl text-gray-500 hover:text-red-600 font-black text-xs md:text-sm tracking-[0.2em] uppercase transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2 md:gap-3"
         >
-          <svg class="w-5 h-5 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 md:w-5 md:h-5 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
           <span>CANCEL MATCHMAKING</span>
