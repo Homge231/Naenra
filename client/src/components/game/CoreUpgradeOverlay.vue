@@ -300,7 +300,7 @@ async function fetchUpgradeCores() {
     const mappedCores = (data.cores ?? []).map((c: any) => {
       const isBaseCore = c.tier === 1 || c.core_type === 'main'
       const isUnlockedInMissions = missionsStore.isCoreUnlocked(c.name) || missionsStore.isCoreUnlocked(c.id)
-      const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !unlockedIds.has(c.name) && !isUnlockedInMissions
+      const isLocked = false // All cores unlocked for match evolution
       return {
         id: c.id,
         name: c.name,

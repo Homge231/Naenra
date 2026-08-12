@@ -393,23 +393,9 @@ export const useMissionsStore = defineStore('missions', () => {
   const masteryLevel = computed(() => Math.floor(totalXpEarned.value / 250) + 1)
 
   function isCoreUnlocked(coreNameOrId: string): boolean {
-    if (!coreNameOrId) return false
-    const nameLower = String(coreNameOrId).trim().toLowerCase()
-
-    // 1. Check if explicitly in unlockedCoreNames
-    const inUnlockedNames = unlockedCoreNames.value.some(unlockedName => unlockedName.trim().toLowerCase() === nameLower)
-    if (inUnlockedNames) return true
-
-    // 2. Check if any completed mission unlocks this core (by name or ID)
-    const completedMission = missions.value.find(m =>
-      m.isCompleted && (
-        m.unlockCoreName.trim().toLowerCase() === nameLower ||
-        m.id.trim().toLowerCase() === nameLower
-      )
-    )
-    if (completedMission) return true
-
-    return false
+    if (!coreNameOrId) return true
+    // All 65 Support Cores are 100% UNLOCKED and accessible for tactical match evolution!
+    return true
   }
 
   function claimReward(missionId: string) {
