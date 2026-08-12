@@ -64,8 +64,8 @@
                     Study the skills and formulate your strategy before entering the typing arena. Below are all active base cores.
                 </p>
 
-                <!-- Visual Information Banner -->
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange/10 border border-orange/20 text-orange mb-4 md:mb-6 shadow-sm">
+                <!-- Visual Information Banner (Mobile Only) -->
+                <div v-if="isMobileScreen" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange/10 border border-orange/20 text-orange mb-4 md:mb-6 shadow-sm">
                     <span class="text-xs">💡</span>
                     <span class="text-[10px] md:text-xs font-black uppercase tracking-wider">
                         Tap card to view Evolutions • <strong class="text-hexred underline decoration-dotted">Press & Hold</strong> for Quick Core Info
@@ -146,8 +146,8 @@
                         </p>
                     </div>
 
-                    <!-- Hold for info indicator footer -->
-                    <div class="mt-3 pt-2 border-t border-gray-100/80 flex items-center justify-between text-[9px] md:text-[10px] font-bold text-gray-400">
+                    <!-- Hold for info indicator footer (Mobile only) -->
+                    <div v-if="isMobileScreen" class="mt-3 pt-2 border-t border-gray-100/80 flex items-center justify-between text-[9px] md:text-[10px] font-bold text-gray-400">
                         <span class="flex items-center gap-1 group-hover:text-orange transition-colors">
                             <svg class="w-3 h-3 text-orange animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
