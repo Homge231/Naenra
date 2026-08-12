@@ -584,8 +584,8 @@
             </svg>
           </div>
           <p class="text-xl text-white font-black uppercase mb-2">Abandon Match?</p>
-          <p class="text-gray-400 text-sm mb-8 leading-relaxed">Your current progress and score of <span
-              class="text-orange font-bold">{{ score }} pts</span> will be completely lost.</p>
+          <p class="text-gray-400 text-sm mb-8 leading-relaxed">Leaving this match counts as a forfeit. You will lose <span
+              class="text-hexred font-bold">-16 ELO</span> rating points and your current match score.</p>
           <div class="flex gap-3">
             <button @click="confirmQuit = false; refocusInput()"
               class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-xs tracking-widest uppercase transition-colors rounded-lg">Resume</button>
