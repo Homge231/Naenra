@@ -9,7 +9,7 @@ import dotenv from 'dotenv'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
 import { kickUserClients } from '../utils/activeClients'
-import { loginAsGuest, convertGuest } from '../controllers/guestController'
+import { loginAsGuest, convertGuest, cleanupGuests } from '../controllers/guestController'
 dotenv.config()
 
 const ENCRYPTION_KEY = crypto.createHash('sha256').update(process.env.SUPABASE_SERVICE_KEY || 'default-secret').digest()
@@ -85,6 +85,9 @@ router.post('/guest', loginAsGuest)
 
 // POST /auth/convert-guest
 router.post('/convert-guest', convertGuest)
+
+// POST /auth/cleanup-guests
+router.post('/cleanup-guests', cleanupGuests)
 
 // POST /auth/register
 router.post('/register', async (req: Request, res: Response) => {

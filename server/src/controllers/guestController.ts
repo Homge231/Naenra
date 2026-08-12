@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { supabase } from '../config/supabase'
 import { generateToken } from '../utils/jwt'
+import { cleanupOldGuestAccounts } from '../utils/cleanupGuests.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'arena-eng-super-secret-jwt-key-2024'
 
@@ -129,6 +130,17 @@ export async function convertGuest(req: Request, res: Response): Promise<void> {
     })
   } catch (error: any) {
     console.error('convertGuest error:', error)
+    res.status(500).json({ error: 'InternalServerError', message: error.message })
+  }
+}
+
+export async function cleanupGuests(req: Request, res: Response): Promise<void> {
+  try {
+    const days = req.body.days ? parseInt(req.body.days) : 3
+    const result = await cleanupOldGuestAccounts(days)
+    res.status(200).json({ message: `Successfully cleaned up ${result.deletedCount} old guest accounts older than ${days} days.`, deletedCount: result.deletedCount })
+  } catch (error: any) {
+    console.error('cleanupGuests error:', error)
     res.status(500).json({ error: 'InternalServerError', message: error.message })
   }
 }

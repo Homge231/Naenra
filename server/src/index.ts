@@ -11,6 +11,7 @@ import gameRoutes from './routes/gameRoutes'
 import aiRoutes from './routes/aiRoutes'
 import rateLimit from 'express-rate-limit'
 import { initQuestionCron } from './cron/questionCron'
+import { initGuestCleanupCron } from './cron/guestCleanupCron.js'
 import { Server } from 'colyseus'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { MatchRoom } from './rooms/MatchRoom'
@@ -19,6 +20,7 @@ import { setupAiLiveGateway } from './services/aiLiveGateway'
 
 // Initialize cron jobs
 initQuestionCron()
+initGuestCleanupCron()
 
 const app = express()
 app.set('trust proxy', 1)
