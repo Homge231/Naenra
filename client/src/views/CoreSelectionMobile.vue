@@ -88,17 +88,12 @@
               class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
             </div>
 
-            <!-- 🛡️/⚔️/🔮 Main / Power / Effect mini badge (top-left of card) -->
+            <!-- ⚔️/🔮 Power / Effect mini badge (top-left of card) -->
             <span
               class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest select-none z-20 shadow-md"
-              :class="core.classification === 'main'
-                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                : core.classification === 'power'
-                  ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
-                  : 'text-violet-400 bg-violet-500/10 border-violet-500/30'"
+              :class="getCoreCategory(core).style"
             >
-              {{ core.classification === 'main' ? '🛡️' : (core.classification === 'power' ? '⚔️' : '🔮') }}
-              {{ core.classification === 'main' ? 'Anchor' : (core.classification === 'power' ? 'Power' : 'Effect') }}
+              {{ getCoreCategory(core).icon }} {{ getCoreCategory(core).label }}
             </span>
 
             <div
@@ -171,11 +166,28 @@ import { useMatchStore } from '../stores/matchStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
+import { isPowerCore } from '../game/cores/families'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useTutorial } from '../composables/useTutorial'
 import { useCardTilt } from '../composables/useCardTilt'
 import { initAudio } from '../composables/game/useAudioEngine'
 import { audioService } from '../services/audioService'
+
+const getCoreCategory = (core: any): { label: string; icon: string; style: string } => {
+  const isPower = core?.classification === 'power' || isPowerCore(core?.name || '')
+  if (isPower) {
+    return {
+      label: 'Power',
+      icon: '⚔️',
+      style: 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+    }
+  }
+  return {
+    label: 'Effect',
+    icon: '🔮',
+    style: 'text-violet-400 bg-violet-500/10 border-violet-500/30'
+  }
+}
 
 const router = useRouter()
 const authStore = useAuthStore()
