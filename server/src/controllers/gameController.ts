@@ -479,16 +479,45 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       return
     }
 
-    const sessionCoreId = session.active_core_id || null
+    let sessionCoreId = session.active_core_id || null
     const submittedCoreId = active_core_id || null
     const sessionCoreName = (session.cores as any)?.name?.toLowerCase() || ''
 
     const isPandora = getCoreFamily(sessionCoreName) === 'pandora'
 
-    // ── 3. Anti-cheat: validate submitted core matches session core ──
+    // ── 3. Anti-cheat: validate submitted core matches session core (allows same-family upgrades & auto-bind) ──
     if (sessionCoreId !== submittedCoreId) {
-      res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
-      return
+      if (!sessionCoreId && submittedCoreId) {
+        // Session created without core — bind to submitted core
+        await supabase
+          .from('game_sessions')
+          .update({ active_core_id: submittedCoreId })
+          .eq('id', session_id)
+        sessionCoreId = submittedCoreId
+      } else if (sessionCoreId && submittedCoreId) {
+        // Check if submitted core belongs to the same family (e.g. Round 2/3 upgrade)
+        const { data: subCore } = await supabase
+          .from('cores')
+          .select('name')
+          .eq('id', submittedCoreId)
+          .single()
+
+        const submittedCoreName = subCore?.name?.toLowerCase() || ''
+        const sessionFamily = getCoreFamily(sessionCoreName)
+        const submittedFamily = getCoreFamily(submittedCoreName)
+
+        if (sessionFamily && submittedFamily && sessionFamily === submittedFamily) {
+          // Legitimate upgrade within same core family — update DB session!
+          await supabase
+            .from('game_sessions')
+            .update({ active_core_id: submittedCoreId })
+            .eq('id', session_id)
+          sessionCoreId = submittedCoreId
+        } else {
+          res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
+          return
+        }
+      }
     }
 
     // ── 4. Fetch core buffs ───────────────────────────────────────────────────
