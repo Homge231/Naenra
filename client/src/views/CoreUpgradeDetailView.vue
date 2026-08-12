@@ -479,91 +479,113 @@ onMounted(async () => {
       allCoresList = Array.isArray(rawData) ? rawData : Object.values(rawData)
     }
 
+    const targetParam = String(coreId).toLowerCase().replace(/[^a-z0-9]/g, '')
+
     if (allCoresList.length > 0) {
       // Find Base Core by UUID, clean slug, or clean name
-      const targetParam = String(coreId).toLowerCase().replace(/[^a-z0-9]/g, '')
       baseCore.value = allCoresList.find((c: any) => 
         String(c.id) === String(coreId) || 
         String(c._id) === String(coreId) ||
         cleanName(c.name) === targetParam
       )
+    }
 
-      if (baseCore.value) {
-        const baseCleaned = cleanName(baseCore.value.name)
-        let targetFamily: any = null
-
-        for (const key in CORE_FAMILIES) {
-          const family = CORE_FAMILIES[key]
-          const isPartOfFamily = 
-            family.tier1.some((n: string) => cleanName(n) === baseCleaned) ||
-            family.tier2.some((n: string) => cleanName(n) === baseCleaned) ||
-            family.tier3.some((n: string) => cleanName(n) === baseCleaned)
-            
-          if (isPartOfFamily) {
-            targetFamily = family
-            break
+    // Fallback: If not found in API list, construct base core directly from CORE_FAMILIES
+    if (!baseCore.value) {
+      for (const key in CORE_FAMILIES) {
+        const family = CORE_FAMILIES[key]
+        const tier1Name = family.tier1[0]
+        if (cleanName(tier1Name) === targetParam || key === targetParam || cleanName(key) === targetParam) {
+          const mapData = CORE_DETAILS_MAP[tier1Name.toLowerCase()] || {}
+          baseCore.value = {
+            id: 'mock-' + tier1Name,
+            name: tier1Name,
+            description: mapData.description || 'Base tactical core.',
+            tier: 1,
+            computedTier: 1,
+            core_type: 'main'
           }
+          break
         }
+      }
+    }
 
-        if (targetFamily) {
-          const matchedUpgrades: any[] = []
+    if (baseCore.value) {
+      const baseCleaned = cleanName(baseCore.value.name)
+      let targetFamily: any = null
 
-          // Process Tier 2 Upgrades
-          targetFamily.tier2.forEach((expectedName: string) => {
-             const cName = cleanName(expectedName)
-             const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
-             const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
-             
-             if (foundInDB) {
-                 matchedUpgrades.push({ 
-                   ...foundInDB, 
+      for (const key in CORE_FAMILIES) {
+        const family = CORE_FAMILIES[key]
+        const isPartOfFamily = 
+          cleanName(key) === baseCleaned ||
+          family.tier1.some((n: string) => cleanName(n) === baseCleaned) ||
+          family.tier2.some((n: string) => cleanName(n) === baseCleaned) ||
+          family.tier3.some((n: string) => cleanName(n) === baseCleaned)
+          
+        if (isPartOfFamily) {
+          targetFamily = family
+          break
+        }
+      }
+
+      if (targetFamily) {
+        const matchedUpgrades: any[] = []
+
+        // Process Tier 2 Upgrades
+        targetFamily.tier2.forEach((expectedName: string) => {
+           const cName = cleanName(expectedName)
+           const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
+           const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
+           
+           if (foundInDB) {
+               matchedUpgrades.push({ 
+                 ...foundInDB, 
+                 computedTier: 2,
+                 description: getCoreDescription(foundInDB),
+                 multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
+                 flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
+               })
+           } else {
+               matchedUpgrades.push({
+                   id: 'mock-' + expectedName,
+                   name: expectedName,
+                   description: mapData.description || 'Evolution effect providing enhanced tactical mechanics.',
                    computedTier: 2,
-                   description: getCoreDescription(foundInDB),
-                   multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
-                   flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
-                 })
-             } else {
-                 matchedUpgrades.push({
-                     id: 'mock-' + expectedName,
-                     name: expectedName,
-                     description: mapData.description || 'Evolution effect providing enhanced tactical mechanics.',
-                     computedTier: 2,
-                     multiplier_buff: mapData.multiplier_buff || 1.0,
-                     flat_buff: mapData.flat_buff || 0,
-                     classification: mapData.classification || 'upgrade'
-                 })
-             }
-          })
+                   multiplier_buff: mapData.multiplier_buff || 1.0,
+                   flat_buff: mapData.flat_buff || 0,
+                   classification: mapData.classification || 'upgrade'
+               })
+           }
+        })
 
-          // Process Tier 3 Upgrades
-          targetFamily.tier3.forEach((expectedName: string) => {
-             const cName = cleanName(expectedName)
-             const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
-             const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
-             
-             if (foundInDB) {
-                 matchedUpgrades.push({ 
-                   ...foundInDB, 
+        // Process Tier 3 Upgrades
+        targetFamily.tier3.forEach((expectedName: string) => {
+           const cName = cleanName(expectedName)
+           const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
+           const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
+           
+           if (foundInDB) {
+               matchedUpgrades.push({ 
+                 ...foundInDB, 
+                 computedTier: 3,
+                 description: getCoreDescription(foundInDB),
+                 multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
+                 flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
+               })
+           } else {
+               matchedUpgrades.push({
+                   id: 'mock-' + expectedName,
+                   name: expectedName,
+                   description: mapData.description || 'Ultimate core evolution yielding maximum tactical performance.',
                    computedTier: 3,
-                   description: getCoreDescription(foundInDB),
-                   multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
-                   flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
-                 })
-             } else {
-                 matchedUpgrades.push({
-                     id: 'mock-' + expectedName,
-                     name: expectedName,
-                     description: mapData.description || 'Ultimate core evolution yielding maximum tactical performance.',
-                     computedTier: 3,
-                     multiplier_buff: mapData.multiplier_buff || 1.0,
-                     flat_buff: mapData.flat_buff || 0,
-                     classification: mapData.classification || 'upgrade'
-                 })
-             }
-          })
+                   multiplier_buff: mapData.multiplier_buff || 1.0,
+                   flat_buff: mapData.flat_buff || 0,
+                   classification: mapData.classification || 'upgrade'
+               })
+           }
+        })
 
-          rawUpgrades.value = matchedUpgrades
-        }
+        rawUpgrades.value = matchedUpgrades
       }
     }
   } catch (err) {

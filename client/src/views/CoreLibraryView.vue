@@ -218,15 +218,9 @@ function hideTooltip() {
 }
 
 const handleCardClick = (event: MouseEvent | TouchEvent, core: any) => {
-    if (isMobileScreen.value || isTouchDevice.value) {
-        if (hoveredCore.value?.name === core.name && isTooltipVisible.value) {
-            hideTooltip()
-        } else {
-            showTooltip(event, core)
-        }
-    } else {
-        goToEvolution(core)
-    }
+    hideTooltip()
+    const slug = getCoreSlug(core)
+    router.push(`/library/core/${slug}`)
 }
 
 const goToEvolution = (core: any) => {
