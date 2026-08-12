@@ -71,11 +71,12 @@ export class PhoenixCoreStrategy extends BaseCore {
       }
     }
 
-    // Recover 50% accumulated debt + bonus rate on debt + extra flat rebirth bonus
+    // Recover 50% accumulated debt + bonus rate on debt (capped at max 250 pts refund per rebirth)
     const baseRefundRate = 0.5
     const debtRefund = debt > 0 ? Math.floor(debt * baseRefundRate) : 0
     const debtBonus = debt > 0 ? Math.floor(debt * this.debtBonusRate) : 0
-    const totalDebtRefund = debtRefund + debtBonus
+    const uncappedRefund = debtRefund + debtBonus
+    const totalDebtRefund = Math.min(250, uncappedRefund) // Capped at 250 PTS max per rebirth for balance
     const rebirthFlat = missCount > 0 ? this.extraFlatBonus : 0
 
     let finalScore = Math.floor((basePts + ctx.flatBuff + rebirthFlat + totalDebtRefund) * dynamicMult) - oraclePenalty

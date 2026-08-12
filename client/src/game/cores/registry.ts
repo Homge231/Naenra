@@ -596,7 +596,9 @@ export function isAegisCore(name: string | null | undefined): boolean {
     'guardian angel',
     'combo shield',
     'speed shield',
-    'shield mission'
+    'shield mission',
+    'reflective barrier',
+    'aegis sanctuary'
   ].includes(key)
 }
 
@@ -617,7 +619,9 @@ export function isPandoraCore(name: string | null | undefined): boolean {
     "pandora's wrath",
     'cosmic entropy',
     "pandora's mirror",
-    'reality collapse'
+    'reality collapse',
+    'wild card',
+    'pandora overdrive'
   ].includes(key)
 }
 
@@ -634,7 +638,9 @@ export function isPowerCore(name: string | null | undefined): boolean {
     'desperado',
     'brute force',
     'overload',
-    'supermassive'
+    'supermassive',
+    'overcharge',
+    'cataclysm'
   ].some(x => key.includes(x))
 }
 
@@ -647,7 +653,14 @@ export function isPhoenixCore(name: string | null | undefined): boolean {
   return [
     'phoenix',
     'rebirth',
-    'ashes to ashes'
+    'ashes to ashes',
+    'solar ember',
+    'feather shield',
+    'blazing resurrection',
+    'phoenix overlord',
+    'supernova ashes',
+    'immortal phoenix',
+    'eternal rebirth'
   ].some(x => key.includes(x))
 }
 
