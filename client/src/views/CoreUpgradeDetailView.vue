@@ -200,9 +200,9 @@
     <!-- Hover Tooltip Container (Desktop) & Bottom Sheet Modal (Mobile) -->
     <Teleport to="body">
       <Transition name="fade">
-        <!-- Mobile Bottom Sheet Modal -->
+        <!-- Mobile Bottom Sheet Modal (Opened via explicit tap on mobile) -->
         <div 
-          v-if="isTooltipVisible && hoveredCore && (isMobileScreen || isTouchDevice)"
+          v-if="isTooltipVisible && hoveredCore && isMobileScreen"
           class="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in"
           @click="hideTooltip"
         >
@@ -614,6 +614,7 @@ const formattedTooltipCore = computed(() => {
 })
 
 const showTooltip = (event: MouseEvent | TouchEvent, core: any) => {
+  if (isMobileScreen.value) return
   if (audioService?.playHover) audioService.playHover()
   hoveredCore.value = core
   isTooltipVisible.value = true
@@ -640,11 +641,13 @@ const hideTooltip = () => {
 }
 
 const handleCardInteraction = (event: MouseEvent | TouchEvent, upgrade: any, index: number) => {
-  if (isMobileScreen.value || isTouchDevice.value) {
+  if (isMobileScreen.value) {
     if (hoveredCore.value?.id === upgrade.id && isTooltipVisible.value) {
       hideTooltip()
     } else {
-      showTooltip(event, upgrade)
+      if (audioService?.playHover) audioService.playHover()
+      hoveredCore.value = upgrade
+      isTooltipVisible.value = true
     }
   } else {
     triggerCardFlip(index)
