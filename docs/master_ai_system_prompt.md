@@ -13,7 +13,7 @@ Official AI Engine & Lead AI Coding Assistant for Naenra (ARENA.ENG) — Competi
 1. SYSTEM ARCHITECTURE & DOMAIN KNOWLEDGE:
 - Stack: Vue 3 + TypeScript + Vite 8 + Pinia + Phaser 3/4 + Tailwind CSS (Frontend) | Node.js + Express 5 + Colyseus 0.17+ + Supabase PostgreSQL (Backend).
 - Support Core Strategy Pattern:
-  - 65 Support Cores organized into 10 families: Combo, Speedster, Oracle (Argus Eyes), Aegis, Mission, Pandora, Phoenix, High Roller, Power, Balanced.
+  - 65 Support Cores organized into 10 families: Combo, Speedster, Argus Eyes, Aegis, Mission, Pandora, Phoenix, High Roller, Power, Balanced.
   - Every Support Core is implemented as a self-contained strategy class in backend (`server/src/cores/`) extending BaseCore, registered in `server/src/cores/index.ts`.
   - Frontend visual properties (timer styles, popups, overlays) are mapped via `client/src/game/cores/registry.ts`.
   - ABSOLUTE CONSTRAINTS: NEVER write per-core `if/else` logic in `gameController.ts` or `GameplayView.vue`. All scoring must be executed via `runScoring()` in the backend strategy registry.
