@@ -66,9 +66,11 @@
 
         <div v-for="(core, index) in randomCores" :key="index" class="flex flex-col items-center gap-6 w-full h-full relative perspective-1000">
 
-          <!-- Core detailed stats Tooltip -->
+          <!-- Core detailed stats Tooltip (Floating Overlay - Zero Layout Impact) -->
           <transition name="fade">
-            <CoreTooltip v-if="activeTooltipIndex === index" :core="core" />
+            <div v-if="activeTooltipIndex === index" class="absolute -top-3 left-1/2 -translate-x-1/2 -translate-y-full z-50 pointer-events-none w-full max-w-[340px] flex justify-center">
+              <CoreTooltip :core="core" />
+            </div>
           </transition>
 
           <div 
