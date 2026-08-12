@@ -392,10 +392,51 @@ export const useMissionsStore = defineStore('missions', () => {
 
   const masteryLevel = computed(() => Math.floor(totalXpEarned.value / 250) + 1)
 
+  const lockedCoreNames = new Set([
+    'Combo Burst', 'Hyper Combo',
+    'Velocity Shield', 'Hyperdrive',
+    'Inner Eye', 'Prophecy',
+    'Contract Hunter', 'Mission Legend',
+    'Reflective Barrier', 'Aegis Sanctuary',
+    'Zen Momentum', 'Serenity',
+    'Overcharge', 'Cataclysm',
+    'Wild Card', 'Pandora Overdrive',
+    'Feather Shield', 'Phoenix Overlord',
+    'High Stakes', 'Casino Empire'
+  ])
+
   function isCoreUnlocked(coreNameOrId: string): boolean {
     if (!coreNameOrId) return true
-    // All 65 Support Cores are 100% UNLOCKED and accessible for tactical match evolution!
-    return true
+    const nameLower = String(coreNameOrId).trim().toLowerCase()
+
+    // 1. If core is NOT in the 1/3 locked list, it is UNLOCKED BY DEFAULT (2/3 cores free)
+    const isLockedByDefault = Array.from(lockedCoreNames).some(
+      lockedName => lockedName.toLowerCase() === nameLower
+    )
+    if (!isLockedByDefault) return true
+
+    // 2. Check if explicitly unlocked in unlockedCoreNames (claimed via Mission Tracker)
+    const inUnlockedNames = unlockedCoreNames.value.some(
+      unlockedName => unlockedName.trim().toLowerCase() === nameLower
+    )
+    if (inUnlockedNames) return true
+
+    // 3. Check if claimed in authStore profile
+    const authStore = useAuthStore()
+    if (authStore.profile?.unlocked_core_ids?.some(id => id.trim().toLowerCase() === nameLower)) {
+      return true
+    }
+
+    // 4. Check if corresponding mission is completed
+    const completedMission = missions.value.find(m =>
+      m.isCompleted && (
+        m.unlockCoreName.trim().toLowerCase() === nameLower ||
+        m.id.trim().toLowerCase() === nameLower
+      )
+    )
+    if (completedMission) return true
+
+    return false
   }
 
   function claimReward(missionId: string) {
