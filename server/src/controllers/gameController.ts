@@ -25,17 +25,17 @@ const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misse
 const DEFAULT_WRONG_PENALTY = 50      // Default penalty for wrong answers or skips (-50 pts)
 
 const DEFAULT_LOCKED_CORES = new Set([
-  // Tier 3 and late Tier 2 end-game locked cores (33 cores locked by default)
-  'hyper combo', 'super combo', 'chain lightning', 'combo mastery', 'golden combo', 'prismatic combo',
-  'hyperdrive', 'sonic boom', 'time freeze', 'chronobreak', 'warp speed', 'grand prix',
-  'prophecy', 'cosmic wisdom', 'predictive strike', 'mind reader', 'omniscience',
-  'mission legend', 'apex predator', 'bounty overlord', 'exodia', 'mission specialist',
-  'aegis sanctuary', 'spiked shield', 'bastion of light',
-  'serenity', 'nirvana', 'universal harmony', 'perfect harmony', 'zenith',
-  'cataclysm', 'absolute power', 'desperado', 'supernova', 'gigawatt', 'supermassive',
-  'pandora overdrive', 'chaos theory', "pandora's wrath",
-  'phoenix overlord', 'blazing resurrection', 'supernova ashes', 'immortal phoenix', 'eternal rebirth',
-  'casino empire', 'russian roulette', 'royal flush', 'house advantage', 'all in'
+  // 20 Support Cores strictly locked behind gameplay missions (2 per family across 10 families)
+  'combo burst', 'hyper combo',
+  'velocity shield', 'hyperdrive',
+  'inner eye', 'prophecy',
+  'contract hunter', 'mission legend',
+  'reflective barrier', 'aegis sanctuary',
+  'zen momentum', 'serenity',
+  'overcharge', 'cataclysm',
+  'wild card', 'pandora overdrive',
+  'feather shield', 'phoenix overlord',
+  'high stakes', 'casino empire'
 ])
 
 // ── Types ─────────────────────────────────────────────────────────────────────

@@ -219,51 +219,10 @@ const baseCore = ref<any>(null)
 const rawUpgrades = ref<any[]>([])
 
 const upgrades = computed(() => {
-  const unlockedIds = new Set(authStore.profile?.unlocked_core_ids || [])
-  
-  const DEFAULT_LOCKED_CORES = new Set([
-    // Round 2 (Tier 2) default locked (3 cores per family)
-    'combo burst', 'combo shield', 'combo focus',
-    'velocity shield', 'speed demon', 'mach speed',
-    'inner eye', 'future sight', 'divine guidance',
-    'contract hunter', 'swift mission', 'shield mission',
-    'reflective barrier', 'fortress aegis', 'shield burst',
-    'zen momentum', 'yin yang', 'harmony wave',
-    'overcharge', 'brute force', 'overload',
-    'wild card', 'warp reality', "pandora's curse",
-    'feather shield', 'ashes to ashes', 'solar ember',
-    'high stakes', 'double or nothing', 'lucky seven',
-    
-    // Round 3 (Tier 3) default locked (3 cores per family)
-    'hyper combo', 'super combo', 'chain lightning',
-    'hyperdrive', 'sonic boom', 'time freeze',
-    'prophecy', 'cosmic wisdom', 'predictive strike',
-    'mission legend', 'apex predator', 'bounty overlord',
-    'aegis sanctuary', 'spiked shield', 'guardian angel',
-    'serenity', 'nirvana', 'universal harmony',
-    'cataclysm', 'absolute power', 'desperado',
-    'pandora overdrive', 'reality collapse', 'butterfly effect',
-    'phoenix overlord', 'blazing resurrection', 'supernova ashes',
-    'casino empire', 'russian roulette', 'royal flush'
-  ])
-
   return rawUpgrades.value.map(upgrade => {
     const isBaseCore = upgrade.computedTier === 1 || upgrade.tier === 1 || upgrade.core_type === 'main'
-    const isMock = String(upgrade.id).startsWith('mock-')
-    const nameKey = String(upgrade.name || '').trim().toLowerCase()
     const isUnlockedInMissions = missionsStore.isCoreUnlocked(upgrade.name) || missionsStore.isCoreUnlocked(upgrade.id)
-    
-    let isLocked = false
-    if (!isBaseCore && !isUnlockedInMissions) {
-      if (isMock) {
-        // Fallback or mock cores
-        isLocked = DEFAULT_LOCKED_CORES.has(nameKey)
-      } else {
-        // Database cores (checked against user profile unlocked_core_ids by ID and Name)
-        isLocked = !unlockedIds.has(String(upgrade.id)) && !unlockedIds.has(nameKey) && !unlockedIds.has(upgrade.name)
-      }
-    }
-    
+    const isLocked = !isBaseCore && !isUnlockedInMissions
     const missionText = isLocked ? `Complete gameplay missions to unlock ${upgrade.name}.` : ''
     
     return {
