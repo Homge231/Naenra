@@ -36,23 +36,9 @@
 
     <main class="relative z-20 flex-1 flex flex-col lg:flex-row items-center justify-center w-full px-4 md:px-12 gap-4 md:gap-8 lg:gap-24 my-auto">
       
-      <div class="flex-1 flex justify-center items-center relative w-full max-w-lg">
-        <div class="absolute inset-0 bg-white/40 backdrop-blur-3xl rounded-full scale-125 shadow-[0_0_100px_rgba(251,146,60,0.15)] pointer-events-none"></div>
-
-        <div class="relative w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 flex items-center justify-center">
-          <div class="absolute inset-0 rounded-full border-2 border-orange-400/40 radar-pulse-1 pointer-events-none"></div>
-          <div class="absolute inset-0 rounded-full border-2 border-orange-500/20 radar-pulse-2 pointer-events-none"></div>
-          <div class="absolute inset-0 rounded-full border-2 border-red-500/10 radar-pulse-3 pointer-events-none"></div>
-
-          <div class="absolute inset-0 rounded-full border-4 border-white radar-sweep-bg overflow-hidden pointer-events-none shadow-lg">
-            <div class="absolute top-1/2 left-1/2 w-full h-full radar-sweep-line origin-top-left"></div>
-          </div>
-
-          <div class="absolute w-full h-px bg-gray-300/60"></div>
-          <div class="absolute h-full w-px bg-gray-300/60"></div>
-          <div class="absolute w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 rounded-full border-2 border-dashed border-gray-400/50"></div>
-
-          <div class="relative z-10 w-24 h-24 sm:w-32 sm:h-32 md:w-44 md:h-44 rounded-full p-[4px] md:p-[6px] bg-gradient-to-tr from-orange-500 via-red-500 to-yellow-400 shadow-[0_0_50px_rgba(251,146,60,0.5)]">
+      <div class="flex-1 flex justify-center items-center relative w-full max-w-lg mb-2 md:mb-0">
+        <div class="relative flex flex-col items-center">
+          <div class="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-[4px] md:p-[6px] bg-gradient-to-tr from-orange-500 via-red-500 to-yellow-400 shadow-[0_0_30px_rgba(251,146,60,0.3)]">
             <div class="w-full h-full rounded-full overflow-hidden bg-white border-2 md:border-4 border-white relative group">
               <img
                 :src="avatarUrl"
@@ -60,15 +46,17 @@
                 class="w-full h-full object-cover"
                 @error="(e) => (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`"
               />
-              <div class="absolute inset-0 bg-black/20 hidden group-hover:block transition-all"></div>
             </div>
             
-            <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-white border-2 border-gray-100 px-3 md:px-4 py-0.5 md:py-1.5 rounded-full shadow-lg whitespace-nowrap min-w-max flex items-center justify-center">
+            <div class="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-white border-2 border-orange-100 px-3 md:px-4 py-0.5 md:py-1 rounded-full shadow-md whitespace-nowrap min-w-max flex items-center justify-center">
               <p class="text-[10px] md:text-xs font-black text-orange-600 tracking-widest flex items-center gap-1">
                 ⭐ ELO: {{ elo }}
               </p>
             </div>
           </div>
+          <p class="mt-4 text-base md:text-xl font-black text-gray-900 uppercase tracking-wider drop-shadow-sm">
+            {{ username }}
+          </p>
         </div>
       </div>
 
