@@ -54,8 +54,11 @@
         
         <div v-for="(core, index) in upgradeCores" :key="core.id || index" class="flex flex-col items-center w-full relative shrink-0">
           
+          <!-- Core detailed stats Tooltip (Floating Overlay - Zero Layout Impact) -->
           <transition name="fade">
-            <CoreTooltip v-if="activeTooltipIndex === index" :core="core" :isLocked="core.isLocked" :missionText="core.missionText" />
+            <div v-if="activeTooltipIndex === index" class="absolute -top-3 left-1/2 -translate-x-1/2 -translate-y-full z-50 pointer-events-none w-full max-w-[340px] flex justify-center">
+              <CoreTooltip :core="core" :isLocked="core.isLocked" :missionText="core.missionText" />
+            </div>
           </transition>
 
           <div @click="selectCore(core)"
@@ -78,16 +81,10 @@
             <div class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             
             <span
-              class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest"
-              :class="core.isLocked
-                ? 'text-red-400 bg-red-500/10 border-red-500/30'
-                : core.classification === 'main'
-                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                  : core.classification === 'power'
-                    ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
-                    : 'text-violet-400 bg-violet-500/10 border-violet-500/30'"
+              class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest z-20"
+              :class="getUpgradeCategoryStyle(core)"
             >
-              {{ core.isLocked ? '🔒 LOCKED CORE' : (core.classification === 'main' ? 'MAIN CORE' : (core.classification === 'power' ? 'UPGRADE CORE • POWER' : 'UPGRADE CORE • EFFECT')) }}
+              {{ getUpgradeCategoryLabel(core) }}
             </span>
             
             <div class="relative w-12 h-12 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-2 md:mb-6 lg:mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
@@ -162,10 +159,25 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useGameStore } from '../../stores/gameStore'
 import { useMatchStore } from '../../stores/matchStore'
 import { getCoreIconPath } from '../../game/cores/icons'
+import { isPowerCore } from '../../game/cores/families'
 import CoreTooltip from './CoreTooltip.vue'
 import CoachMark from '../tutorial/CoachMark.vue'
 import { useTutorial } from '../../composables/useTutorial'
 import { audioService } from '../../services/audioService'
+
+const getUpgradeCategoryLabel = (core: any) => {
+  if (core?.isLocked) return '🔒 LOCKED CORE'
+  if (core?.classification === 'main') return '🛡️ MAIN CORE'
+  const isPower = core?.classification === 'power' || isPowerCore(core?.name || '')
+  return isPower ? '⚔️ UPGRADE CORE • POWER' : '🔮 UPGRADE CORE • EFFECT'
+}
+
+const getUpgradeCategoryStyle = (core: any) => {
+  if (core?.isLocked) return 'text-red-400 bg-red-500/10 border-red-500/30'
+  if (core?.classification === 'main') return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
+  const isPower = core?.classification === 'power' || isPowerCore(core?.name || '')
+  return isPower ? 'text-orange-400 bg-orange-500/10 border-orange-500/30' : 'text-violet-400 bg-violet-500/10 border-violet-500/30'
+}
 
 const settingsStore = useSettingsStore()
 
