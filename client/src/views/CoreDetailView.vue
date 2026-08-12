@@ -103,8 +103,13 @@
               @touchstart="showTooltip($event, upgrade)"
               @touchend="hideTooltip"
               class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-help relative overflow-hidden"
+              :class="[upgrade.isLocked ? 'opacity-60 grayscale-[40%]' : '']"
             >
-              <div class="absolute top-5 right-5 bg-orange/10 border border-orange/30 text-orange text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase shadow-sm">
+              <div :class="[
+                'absolute top-5 right-5 text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase shadow-sm border flex items-center gap-1',
+                upgrade.isLocked ? 'bg-red-500/10 border-red-500/30 text-red-500' : (upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange')
+              ]">
+                <span v-if="upgrade.isLocked" class="text-[10px]">🔒</span>
                 Round {{ upgrade.computedTier || 2 }}
               </div>
 
@@ -119,8 +124,9 @@
               </div>
 
               <div class="flex-1 flex flex-col">
-                <h4 class="text-xl font-black text-gray-900 uppercase tracking-wide mb-3 group-hover:text-orange transition-colors pr-16 leading-tight">
-                  {{ upgrade.name }}
+                <h4 class="text-xl font-black text-gray-900 uppercase tracking-wide mb-3 group-hover:text-orange transition-colors pr-16 leading-tight flex items-center gap-2">
+                  <span>{{ upgrade.name }}</span>
+                  <span v-if="upgrade.isLocked" class="text-xs text-red-500 font-bold" title="Locked by Mission">🔒</span>
                 </h4>
                 
                 <div class="w-12 h-1 bg-gray-200 rounded-full mb-4 group-hover:w-20 group-hover:bg-orange transition-all duration-300"></div>
@@ -129,11 +135,11 @@
                   {{ upgrade.description || upgrade.desc }}
                 </p>
                 
-                <div class="mt-6 text-[10px] font-black text-lightBlue tracking-widest uppercase flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                <div class="mt-6 text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity" :class="upgrade.isLocked ? 'text-red-500' : 'text-lightBlue'">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
-                  Hover for details
+                  {{ upgrade.isLocked ? '🔒 Mission Lock Details' : 'Hover for details' }}
                 </div>
               </div>
             </div>
@@ -160,7 +166,11 @@
       class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
       :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
     >
-      <CoreTooltip :core="hoveredCore" />
+      <CoreTooltip 
+        :core="hoveredCore" 
+        :isLocked="hoveredCore.isLocked" 
+        :missionText="hoveredCore.missionText || (hoveredCore.isLocked ? `Complete gameplay missions to unlock ${hoveredCore.name}.` : '')" 
+      />
     </div>
 
     <!-- Floating Scroll To Top Button -->
@@ -173,11 +183,13 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
+import { useMissionsStore } from '../stores/missionsStore'
 import CoreTooltip from '../components/game/CoreTooltip.vue' 
 import ScrollToTopButton from '../components/ScrollToTopButton.vue' 
 
 const route = useRoute()
 const router = useRouter()
+const missionsStore = useMissionsStore()
 const coreId = route.params.id
 
 const loading = ref(true)
@@ -358,7 +370,17 @@ onMounted(async () => {
              }
           })
 
-          upgrades.value = matchedUpgrades
+          // Map isLocked status using missionsStore
+          upgrades.value = matchedUpgrades.map((u: any) => {
+            const isBaseCore = u.tier === 1 || u.classification === 'main'
+            const isUnlockedInMissions = missionsStore.isCoreUnlocked(u.name) || missionsStore.isCoreUnlocked(u.id)
+            const isLocked = !isBaseCore && !isUnlockedInMissions
+            return {
+              ...u,
+              isLocked,
+              missionText: isLocked ? `Complete gameplay missions to unlock ${u.name}.` : ''
+            }
+          })
         }
       }
     }

@@ -2069,7 +2069,7 @@ async function goHome() {
   if (isMultiplayer.value) {
     errorStore.addError({
       type: 'warning',
-      message: '⚡ Match Forfeited! You left the 1v1 online match and lost -16 ELO points.',
+      message: ' Match Forfeited! You left the 1v1 online match and lost -16 ELO points.',
       duration: 6000
     })
   }
