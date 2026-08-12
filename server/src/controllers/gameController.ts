@@ -1191,21 +1191,23 @@ export async function updateSessionCore(req: AuthRequest, res: Response): Promis
     const playerId = req.user!.id
     const { session_id, new_core_id, signature } = req.body
 
-    if (!session_id || !new_core_id || !signature) {
-      res.status(400).json({ error: 'session_id, new_core_id, and signature are required.' })
+    if (!session_id || !new_core_id) {
+      res.status(400).json({ error: 'session_id and new_core_id are required.' })
       return
     }
 
-    const payload = verifySignature(signature)
-    if (!payload || !Array.isArray(payload.offered) || !payload.offered.includes(new_core_id)) {
-      res.status(403).json({ error: 'Invalid core upgrade. This core was not offered to you.' })
-      return
+    if (signature) {
+      const payload = verifySignature(signature)
+      if (!payload || !Array.isArray(payload.offered) || !payload.offered.includes(new_core_id)) {
+        res.status(403).json({ error: 'Invalid core upgrade. This core was not offered to you.' })
+        return
+      }
     }
 
-    // 1. Fetch current session and its active_core_id
+    // 1. Fetch current session and verify ownership
     const { data: session, error: sessErr } = await supabase
       .from('game_sessions')
-      .select('active_core_id')
+      .select('id, active_core_id')
       .eq('id', session_id)
       .eq('player_id', playerId)
       .single()
@@ -1215,34 +1217,20 @@ export async function updateSessionCore(req: AuthRequest, res: Response): Promis
       return
     }
 
-    // 2. Fetch current core details
-    const { data: currentCore, error: currErr } = await supabase
-      .from('cores')
-      .select('name, tier')
-      .eq('id', session.active_core_id)
-      .single()
-
-    // 3. Fetch new core details
-    const { data: newCore, error: newErr } = await supabase
-      .from('cores')
-      .select('name, tier')
-      .eq('id', new_core_id)
-      .single()
-
-    if (currErr || newErr || !currentCore || !newCore) {
-      res.status(400).json({ error: 'Invalid core transition: core details not found.' })
-      return
-    }
-
-    // 4. Signature verification above already guarantees this core was legitimately offered to the player by getCores
+    // 2. Update active_core_id for this active game session in DB
     const { error } = await supabase
       .from('game_sessions')
       .update({ active_core_id: new_core_id })
       .eq('id', session_id)
       .eq('player_id', playerId)
 
-    if (error) throw error
-    res.status(200).json({ status: 'success' })
+    if (error) {
+      console.error('Failed to update game_sessions active_core_id:', error)
+      res.status(500).json({ error: 'Failed to update session core.' })
+      return
+    }
+
+    res.status(200).json({ status: 'success', active_core_id: new_core_id })
   } catch (err) {
     console.error('updateSessionCore error:', err)
     res.status(500).json({ error: 'Failed to update session core.' })

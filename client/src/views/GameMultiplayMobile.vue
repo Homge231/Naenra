@@ -2064,8 +2064,28 @@ function goToUpgrade() {
   }
 }
 
-function handleUpgradeSelected(newCoreId: string) {
+async function handleUpgradeSelected(newCoreId: string) {
   const chosenCoreId = newCoreId || gameStore.activeCoreId || ''
+  if (chosenCoreId) {
+    activeCoreId.value = chosenCoreId
+    gameStore.activeCoreId = chosenCoreId
+    localStorage.setItem('naenra_active_core_id', chosenCoreId)
+
+    if (sessionId.value) {
+      try {
+        await fetchWithAuth(`/api/game/session/core`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            session_id: sessionId.value,
+            new_core_id: chosenCoreId
+          })
+        })
+      } catch (err) {
+        console.error('Failed to sync upgraded session core:', err)
+      }
+    }
+  }
+
   if (isMultiplayer.value) {
     isWaitingForNextRound.value = true
     if (currentRoom) {
@@ -2075,7 +2095,6 @@ function handleUpgradeSelected(newCoreId: string) {
       currentRoom.send("ready_next_round", { round: matchStore.currentRound + 1 })
     }
   } else {
-    // When upgrade is selected, restart match for the next round
     restartMatch()
   }
 }

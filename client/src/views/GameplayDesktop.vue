@@ -1600,8 +1600,26 @@ function goToUpgrade() {
   }
 }
 
-function handleUpgradeSelected(_newCoreId: string) {
-  // When upgrade is selected, restart match for the next round
+async function handleUpgradeSelected(newCoreId: string) {
+  if (newCoreId) {
+    activeCoreId.value = newCoreId
+    gameStore.activeCoreId = newCoreId
+    localStorage.setItem('naenra_active_core_id', newCoreId)
+
+    if (sessionId.value) {
+      try {
+        await fetchWithAuth(`/api/game/session/core`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            session_id: sessionId.value,
+            new_core_id: newCoreId
+          })
+        })
+      } catch (err) {
+        console.error('Failed to sync upgraded session core:', err)
+      }
+    }
+  }
   restartMatch()
 }
 
