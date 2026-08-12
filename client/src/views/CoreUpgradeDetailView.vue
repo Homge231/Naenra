@@ -108,9 +108,7 @@
               :key="upgrade.id"
               @mouseenter="handleMouseEnter(); showTooltip($event, upgrade)"
               @mouseleave="hideTooltip"
-              @touchstart="showTooltip($event, upgrade)"
-              @touchend="hideTooltip"
-              @click="triggerCardFlip(index)"
+              @click="handleCardInteraction($event, upgrade, index)"
               class="group backdrop-blur-xl border-2 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden"
               :class="[
                 upgrade.isLocked 
@@ -199,19 +197,42 @@
       </div>
     </div>
 
-    <!-- Hover Tooltip Container -->
-    <div 
-      v-if="isTooltipVisible && hoveredCore"
-      class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
-      :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
-    >
-      <CoreTooltip 
-        v-if="formattedTooltipCore" 
-        :core="formattedTooltipCore" 
-        :isLocked="formattedTooltipCore.isLocked" 
-        :missionText="formattedTooltipCore.missionText" 
-      />
-    </div>
+    <!-- Hover Tooltip Container (Desktop) & Bottom Sheet Modal (Mobile) -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <!-- Mobile Bottom Sheet Modal -->
+        <div 
+          v-if="isTooltipVisible && hoveredCore && (isMobileScreen || isTouchDevice)"
+          class="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in"
+          @click="hideTooltip"
+        >
+          <div class="relative w-full max-w-sm pointer-events-auto" @click.stop>
+            <CoreTooltip 
+              v-if="formattedTooltipCore" 
+              :core="formattedTooltipCore" 
+              :isLocked="formattedTooltipCore.isLocked" 
+              :missionText="formattedTooltipCore.missionText" 
+              :isMobile="true"
+              @close="hideTooltip"
+            />
+          </div>
+        </div>
+
+        <!-- Desktop Hover Tooltip -->
+        <div 
+          v-else-if="isTooltipVisible && hoveredCore"
+          class="fixed z-[9999] pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
+          :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
+        >
+          <CoreTooltip 
+            v-if="formattedTooltipCore" 
+            :core="formattedTooltipCore" 
+            :isLocked="formattedTooltipCore.isLocked" 
+            :missionText="formattedTooltipCore.missionText" 
+          />
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Floating Scroll To Top Button -->
     <ScrollToTopButton />
@@ -224,7 +245,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
 import { useCardTilt } from '../composables/useCardTilt'
+import { useDeviceMode } from '../composables/useDeviceMode'
 
+const { isMobileScreen, isTouchDevice } = useDeviceMode()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useAuthStore } from '../stores/authStore'
@@ -592,6 +615,18 @@ const showTooltip = (event: MouseEvent | TouchEvent, core: any) => {
 const hideTooltip = () => {
   isTooltipVisible.value = false
   hoveredCore.value = null
+}
+
+const handleCardInteraction = (event: MouseEvent | TouchEvent, upgrade: any, index: number) => {
+  if (isMobileScreen.value || isTouchDevice.value) {
+    if (hoveredCore.value?.id === upgrade.id && isTooltipVisible.value) {
+      hideTooltip()
+    } else {
+      showTooltip(event, upgrade)
+    }
+  } else {
+    triggerCardFlip(index)
+  }
 }
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')

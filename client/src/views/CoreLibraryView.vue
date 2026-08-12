@@ -144,12 +144,36 @@
 
         </main>
 
-        <!-- Hover Tooltip Container -->
-        <div v-if="isTooltipVisible && hoveredCore"
-            class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
-            :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }">
-            <CoreTooltip :core="hoveredCore" :isLocked="hoveredCore.isLocked" />
-        </div>
+        <!-- Hover Tooltip Container (Desktop) & Bottom Sheet Modal (Mobile) -->
+        <Teleport to="body">
+            <Transition name="fade">
+                <!-- Mobile Bottom Sheet Modal -->
+                <div 
+                    v-if="isTooltipVisible && hoveredCore && (isMobileScreen || isTouchDevice)"
+                    class="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in"
+                    @click="hideTooltip"
+                >
+                    <div class="relative w-full max-w-sm pointer-events-auto" @click.stop>
+                        <CoreTooltip 
+                            v-if="hoveredCore" 
+                            :core="hoveredCore" 
+                            :isLocked="hoveredCore.isLocked" 
+                            :isMobile="true"
+                            @close="hideTooltip"
+                        />
+                    </div>
+                </div>
+
+                <!-- Desktop Hover Tooltip -->
+                <div 
+                    v-else-if="isTooltipVisible && hoveredCore"
+                    class="fixed z-[9999] pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
+                    :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
+                >
+                    <CoreTooltip :core="hoveredCore" :isLocked="hoveredCore.isLocked" />
+                </div>
+            </Transition>
+        </Teleport>
 
         <!-- Floating Scroll To Top Button -->
         <ScrollToTopButton />
@@ -163,6 +187,9 @@ import { useAuthStore } from '../stores/authStore'
 import { useMissionsStore } from '../stores/missionsStore'
 import ScrollToTopButton from '../components/ScrollToTopButton.vue'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
+import { useDeviceMode } from '../composables/useDeviceMode'
+
+const { isMobileScreen, isTouchDevice } = useDeviceMode()
 
 const router = useRouter()
 const authStore = useAuthStore()
