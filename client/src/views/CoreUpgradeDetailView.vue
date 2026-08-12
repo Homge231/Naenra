@@ -16,30 +16,30 @@
     </div>
 
     <!-- Header Navigation -->
-    <header class="relative z-30 w-full px-6 md:px-12 pt-6 pb-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <!-- NAENRA Logo (Click to go Home) -->
-        <div class="flex items-center gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50 active:scale-95 transition-transform"
+    <header class="relative z-30 w-full px-3 md:px-6 lg:px-12 pt-3 md:pt-6 pb-2 md:pb-4 flex items-center justify-between">
+      <div class="flex items-center gap-2 md:gap-3">
+        <!-- NAENRA Logo -->
+        <div class="flex items-center gap-2 md:gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl shadow-sm border border-white/50 active:scale-95 transition-transform"
           @click="router.push('/home')" title="Go to Home">
-          <div class="w-12 h-12 flex items-center justify-center">
+          <div class="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
             <svg class="w-full h-full text-orange fill-current group-hover:scale-110 transition-transform"
               viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
             </svg>
           </div>
           <div class="leading-none">
-            <h1 class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
+            <h1 class="text-xl md:text-3xl font-black mb-0.5 md:mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
               NAENRA
             </h1>
-            <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">EVOLUTION PATHS</p>
+            <p class="text-[8px] md:text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">EVOLUTION PATHS</p>
           </div>
         </div>
 
-        <!-- Compact Icon Button: Back to Library right next to Logo -->
+        <!-- Back button -->
         <button @click="router.push('/library')"
-          class="w-12 h-12 rounded-2xl bg-white/60 backdrop-blur-md border border-white/50 text-gray-600 hover:text-orange hover:bg-white transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center group"
+          class="w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white/60 backdrop-blur-md border border-white/50 text-gray-600 hover:text-orange hover:bg-white transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center group"
           title="Back to Core Library">
-          <svg class="w-6 h-6 text-gray-500 group-hover:text-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 md:w-6 md:h-6 text-gray-500 group-hover:text-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
@@ -57,30 +57,32 @@
       </div>
 
       <!-- Main Detail Layout -->
-      <main v-else-if="baseCore" class="w-full px-6 md:px-12 py-4 flex flex-col gap-12">
+      <main v-else-if="baseCore" class="w-full px-4 md:px-6 lg:px-12 py-3 md:py-4 flex flex-col gap-5 md:gap-12">
         
-        <!-- Base Core Showcase Banner -->
-        <div class="flex flex-col md:flex-row gap-8 items-center md:items-start bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2.5rem] p-8 md:p-10 shadow-sm w-full">
-          <div class="w-32 h-32 md:w-40 md:h-40 rounded-3xl p-[3px] shadow-md bg-gradient-to-br from-orange to-hexred flex-shrink-0">
-            <div class="w-full h-full bg-white rounded-[21px] flex items-center justify-center overflow-hidden">
+        <!-- Base Core compact card (row layout like library) -->
+        <div class="flex flex-row gap-3 md:gap-8 items-center bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-10 shadow-sm w-full">
+          <!-- Icon -->
+          <div class="w-14 h-14 md:w-40 md:h-40 rounded-xl md:rounded-3xl p-[3px] shadow-md bg-gradient-to-br from-orange to-hexred flex-shrink-0">
+            <div class="w-full h-full bg-white rounded-[11px] md:rounded-[21px] flex items-center justify-center overflow-hidden">
               <img 
                 :src="resolveIcon(baseCore)" 
                 :alt="baseCore.name" 
                 @error="onImgError"
-                class="w-full h-full object-contain drop-shadow-sm p-2 rounded-[21px]" 
+                class="w-full h-full object-contain drop-shadow-sm p-1.5 md:p-2" 
               />
             </div>
           </div>
           
-          <div class="flex-1 text-center md:text-left flex flex-col justify-center">
-            <div class="inline-flex items-center gap-2 bg-orange/10 border border-orange/30 px-3.5 py-1 rounded-full w-max mx-auto md:mx-0 mb-4">
-              <span class="w-2 h-2 rounded-full bg-orange animate-pulse"></span>
-              <span class="text-[10px] font-black tracking-widest text-orange uppercase">Base Core - Round 1</span>
+          <!-- Text -->
+          <div class="flex-1 flex flex-col justify-center min-w-0">
+            <div class="inline-flex items-center gap-1 md:gap-2 bg-orange/10 border border-orange/30 px-2 md:px-3.5 py-0.5 md:py-1 rounded-full w-max mb-1.5 md:mb-4">
+              <span class="w-1.5 h-1.5 rounded-full bg-orange animate-pulse"></span>
+              <span class="text-[8px] md:text-[10px] font-black tracking-widest text-orange uppercase">Base Core - Round 1</span>
             </div>
-            <h1 class="text-4xl md:text-6xl font-black text-gray-900 uppercase tracking-tight mb-4 drop-shadow-sm">
+            <h1 class="text-lg md:text-6xl font-black text-gray-900 uppercase tracking-tight mb-1 md:mb-4 leading-tight">
               {{ baseCore.name }}
             </h1>
-            <p class="text-gray-600 font-semibold text-base md:text-lg max-w-3xl leading-relaxed">
+            <p class="text-[11px] md:text-lg text-gray-600 font-semibold leading-snug max-w-3xl line-clamp-3 md:line-clamp-none">
               {{ baseCore.description || baseCore.desc || 'Base tactical core providing fundamental scoring mechanics for typing matches.' }}
             </p>
           </div>
@@ -88,18 +90,19 @@
 
         <!-- Upgrade Path / Evolution Section -->
         <div class="w-full">
-          <div class="flex items-center gap-4 mb-8">
-            <h3 class="text-2xl md:text-3xl font-black text-gray-900 uppercase tracking-wide">Evolution Paths</h3>
-            <div class="h-1 flex-1 bg-gradient-to-r from-gray-200 to-transparent rounded-full"></div>
+          <div class="flex items-center gap-3 md:gap-4 mb-3 md:mb-8">
+            <h3 class="text-base md:text-3xl font-black text-gray-900 uppercase tracking-wide">Evolution Paths</h3>
+            <div class="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent rounded-full"></div>
           </div>
 
           <div v-if="upgrades.length === 0" class="text-center py-12 bg-white/40 rounded-3xl border border-white/60">
             <p class="text-gray-400 font-black uppercase tracking-widest">No upgrade evolutions found for this core.</p>
           </div>
 
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <!-- 2-column grid matching library style -->
+          <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 pb-6">
             
-            <!-- Upgrade Card -->
+            <!-- Upgrade Card (same structure as library card) -->
             <div 
               v-for="(upgrade, index) in upgrades" 
               :key="upgrade.id"
@@ -108,51 +111,49 @@
               @touchstart="showTooltip($event, upgrade)"
               @touchend="hideTooltip"
               @click="triggerCardFlip(index)"
-              class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative overflow-hidden"
+              class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative"
               :class="[
                 upgrade.isLocked ? 'opacity-60 grayscale-[40%]' : '',
                 isFlipping(index) ? 'card-flip-anim' : ''
               ]"
             >
-              <!-- Tier Badge -->
-              <div :class="[
-                'absolute top-5 right-5 text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase shadow-sm border flex items-center gap-1',
-                upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange'
-              ]">
-                <span v-if="upgrade.isLocked" class="text-[10px]" title="Core Locked">🔒</span>
-                Round {{ upgrade.computedTier || 2 }}
-              </div>
+              <!-- Top row: icon (left) + round badge (right) — matches library layout -->
+              <div class="flex justify-between items-start mb-3 md:mb-6">
+                <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all">
+                  <div class="w-full h-full bg-white rounded-[10px] md:rounded-[14px] flex items-center justify-center overflow-hidden">
+                    <img 
+                      :src="resolveIcon(upgrade)" 
+                      :alt="upgrade.name" 
+                      @error="onImgError"
+                      class="w-7 h-7 md:w-10 md:h-10 object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" 
+                    />
+                  </div>
+                </div>
 
-              <!-- Icon -->
-              <div class="w-16 h-16 rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred mb-6 group-hover:scale-110 transition-transform origin-left flex-shrink-0">
-                <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
-                  <img 
-                    :src="resolveIcon(upgrade)" 
-                    :alt="upgrade.name" 
-                    @error="onImgError"
-                    class="w-10 h-10 object-contain drop-shadow-sm group-hover:rotate-6 transition-transform duration-300" 
-                  />
+                <!-- Round badge (same style as category pill in library) -->
+                <div :class="[
+                  'px-2 md:px-3 py-0.5 md:py-1 rounded-full border shadow-sm flex items-center gap-1',
+                  upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange'
+                ]">
+                  <span v-if="upgrade.isLocked" class="text-[9px]" title="Core Locked">🔒</span>
+                  <span class="text-[9px] md:text-[10px] font-black tracking-widest uppercase">Round {{ upgrade.computedTier || 2 }}</span>
                 </div>
               </div>
 
-              <!-- Info -->
+              <!-- Name + divider + description -->
               <div class="flex-1 flex flex-col">
-                <h4 class="text-xl font-black text-gray-900 uppercase tracking-wide mb-2 group-hover:text-orange transition-colors">
+                <h4 class="text-sm md:text-xl font-black text-gray-900 uppercase tracking-wide mb-1 md:mb-2 group-hover:text-orange transition-colors leading-tight">
                   {{ upgrade.name }}
                 </h4>
                 
-                <div class="w-10 h-1 bg-gray-200 rounded-full mb-4 group-hover:w-16 group-hover:bg-orange transition-all duration-300"></div>
+                <div class="w-8 md:w-10 h-0.5 md:h-1 bg-gray-200 rounded-full mb-2 md:mb-4 group-hover:w-12 md:group-hover:w-16 group-hover:bg-orange transition-all duration-300"></div>
 
-                <p class="text-sm font-bold text-gray-500 leading-relaxed flex-1">
+                <p class="text-[11px] md:text-sm font-bold text-gray-500 leading-relaxed flex-1 hidden md:block">
                   {{ getCoreDescription(upgrade) }}
                 </p>
-                
-                <div class="mt-6 text-[10px] font-black text-lightBlue tracking-widest uppercase flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  Hover for details
-                </div>
+                <p class="text-[10px] font-semibold text-gray-400 leading-snug flex-1 md:hidden line-clamp-2">
+                  {{ getCoreDescription(upgrade) }}
+                </p>
               </div>
             </div>
 

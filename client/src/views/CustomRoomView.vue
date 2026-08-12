@@ -21,33 +21,33 @@
             </div>
         </div>
 
-        <div class="absolute top-8 left-4 md:left-8 z-50 flex flex-col items-start gap-1.5">
-            <p class="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase ml-1">Leave</p>
+        <div class="absolute top-4 md:top-8 left-3 md:left-8 z-50 flex flex-col items-start gap-1">
+            <p class="text-[9px] md:text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase ml-1">Leave</p>
             <button @click="router.push('/home')"
-                class="flex items-center justify-center px-4 py-2.5 bg-white border-2 border-gray-200 rounded-2xl shadow-sm group hover:bg-red-50 hover:border-red-200 transition-all duration-300 focus:outline-none"
+                class="flex items-center justify-center px-3 md:px-4 py-2 md:py-2.5 bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl shadow-sm group hover:bg-red-50 hover:border-red-200 transition-all duration-300 focus:outline-none"
                 title="Abandon Room">
-                <svg class="w-6 h-6 text-gray-400 group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 md:w-6 md:h-6 text-gray-400 group-hover:text-red-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
                 </svg>
             </button>
         </div>
 
-        <div class="absolute top-8 right-4 md:right-8 z-50 flex flex-col items-end gap-1.5">
-            <p class="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase mr-1">Room Code</p>
+        <div class="absolute top-4 md:top-8 right-3 md:right-8 z-50 flex flex-col items-end gap-1">
+            <p class="text-[9px] md:text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase mr-1">Room Code</p>
             <div
-                class="flex items-center gap-4 bg-white/80 backdrop-blur-md border-2 border-gray-200 px-5 py-2.5 rounded-2xl shadow-sm group hover:border-orange-300 transition-all duration-300">
-                <span class="text-2xl font-mono font-black text-gray-900 tracking-widest drop-shadow-sm">
+                class="flex items-center gap-2 md:gap-4 bg-white/80 backdrop-blur-md border-2 border-gray-200 px-3 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl shadow-sm group hover:border-orange-300 transition-all duration-300">
+                <span class="text-lg md:text-2xl font-mono font-black text-gray-900 tracking-widest drop-shadow-sm">
                     {{ roomId }}
                 </span>
                 <button @click="copyRoomId"
                     class="relative text-gray-400 hover:text-orange-500 transition-colors focus:outline-none p-1 active:scale-95"
                     :title="copied ? 'Copied!' : 'Copy to clipboard'">
-                    <svg v-if="!copied" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg v-if="!copied" class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z">
                         </path>
                     </svg>
-                    <svg v-else class="w-6 h-6 text-green-500" fill="none"
+                    <svg v-else class="w-5 h-5 md:w-6 md:h-6 text-green-500" fill="none"
                         stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
                     </svg>
@@ -59,94 +59,95 @@
             </div>
         </div>
 
-        <div class="absolute bottom-8 left-4 md:left-8 z-50 flex flex-col items-start gap-1.5">
-            <p class="text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase ml-1">Settings</p>
+        <div class="absolute bottom-4 md:bottom-8 left-3 md:left-8 z-50 flex flex-col items-start gap-1">
+            <p class="text-[9px] md:text-[10px] text-gray-400 font-bold tracking-[0.2em] uppercase ml-1">Settings</p>
             <button @click="isRoomSettingsOpen = true"
-                class="flex items-center justify-center px-4 py-2.5 bg-white border-2 border-gray-200 text-gray-500 rounded-2xl shadow-sm group hover:bg-gray-50 hover:text-gray-900 transition-all duration-300 focus:outline-none active:scale-95"
+                class="flex items-center justify-center px-3 md:px-4 py-2 md:py-2.5 bg-white border-2 border-gray-200 text-gray-500 rounded-xl md:rounded-2xl shadow-sm group hover:bg-gray-50 hover:text-gray-900 transition-all duration-300 focus:outline-none active:scale-95"
                 title="Room Settings">
-                <svg class="w-6 h-6 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 md:w-6 md:h-6 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                 </svg>
             </button>
         </div>
 
-        <main class="relative z-20 flex flex-col items-center w-full max-w-5xl px-4 mt-12 md:mt-0">
-            <h1 class="text-4xl md:text-5xl font-black italic tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500 mb-12 drop-shadow-sm">
+        <main class="relative z-20 flex flex-col items-center w-full max-w-5xl px-4 mt-16 md:mt-0">
+            <h1 class="text-2xl md:text-5xl font-black italic tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-500 mb-6 md:mb-12 drop-shadow-sm">
                 Custom Room
             </h1>
 
-            <div class="flex flex-col md:flex-row items-center justify-center gap-10 md:gap-24 w-full mb-16">
+            <div class="flex flex-row md:flex-row items-center justify-center gap-6 md:gap-24 w-full mb-8 md:mb-16">
 
+                <!-- Player 1 -->
                 <div class="flex flex-col items-center transform transition-transform duration-500 hover:-translate-y-2">
                     <template v-if="player1">
-                        <div class="w-32 h-32 md:w-44 md:h-44 rounded-[2rem] bg-white backdrop-blur-xl border-4 border-orange-200 p-2 shadow-lg relative">
-                            <div class="absolute -top-3 -right-3 bg-gray-900 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-md border-2 border-gray-900">Host</div>
-                            <img :src="player1.avatar" :alt="player1.name" class="w-full h-full rounded-[1.5rem] object-cover bg-gray-100" />
+                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-white backdrop-blur-xl border-4 border-orange-200 p-1.5 md:p-2 shadow-lg relative">
+                            <div class="absolute -top-2.5 -right-2.5 md:-top-3 md:-right-3 bg-gray-900 text-white text-[9px] md:text-[10px] font-black px-2 md:px-3 py-0.5 md:py-1 rounded-full uppercase tracking-wider shadow-md border-2 border-gray-900">Host</div>
+                            <img :src="player1.avatar" :alt="player1.name" class="w-full h-full rounded-[1.2rem] md:rounded-[1.5rem] object-cover bg-gray-100" />
                         </div>
-                        <p class="mt-6 text-xl md:text-2xl font-black tracking-widest uppercase text-gray-900 drop-shadow-sm">
+                        <p class="mt-3 md:mt-6 text-base md:text-2xl font-black tracking-widest uppercase text-gray-900 drop-shadow-sm">
                             {{ player1.name }}
                         </p>
                     </template>
                     <template v-else>
-                        <div class="w-32 h-32 md:w-44 md:h-44 rounded-[2rem] bg-gray-100/80 backdrop-blur-md border-4 border-dashed border-gray-300 flex items-center justify-center p-2 shadow-inner">
-                            <svg class="w-12 h-12 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-gray-100/80 backdrop-blur-md border-4 border-dashed border-gray-300 flex items-center justify-center p-2 shadow-inner">
+                            <svg class="w-8 h-8 md:w-12 md:h-12 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                             </svg>
                         </div>
-                        <p class="mt-6 text-sm font-bold tracking-[0.2em] uppercase text-gray-400 animate-pulse">
+                        <p class="mt-3 md:mt-6 text-xs md:text-sm font-bold tracking-[0.2em] uppercase text-gray-400 animate-pulse">
                             Loading...
                         </p>
                     </template>
                 </div>
 
+                <!-- VS -->
                 <div class="flex flex-col items-center justify-center relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-400 blur-xl opacity-30 rounded-full"></div>
-                    <span class="relative z-10 text-5xl md:text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-orange-500 to-red-600 drop-shadow-sm">
+                    <span class="relative z-10 text-3xl md:text-6xl font-black italic text-transparent bg-clip-text bg-gradient-to-b from-orange-500 to-red-600 drop-shadow-sm">
                         VS
                     </span>
                 </div>
 
+                <!-- Player 2 -->
                 <div class="flex flex-col items-center transform transition-transform duration-500 hover:-translate-y-2">
                     <template v-if="player2">
-                        <div class="w-32 h-32 md:w-44 md:h-44 rounded-[2rem] bg-white backdrop-blur-xl border-4 border-blue-200 p-2 shadow-lg">
-                            <img :src="player2.avatar" :alt="player2.name" class="w-full h-full rounded-[1.5rem] object-cover bg-gray-100" />
+                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-white backdrop-blur-xl border-4 border-blue-200 p-1.5 md:p-2 shadow-lg">
+                            <img :src="player2.avatar" :alt="player2.name" class="w-full h-full rounded-[1.2rem] md:rounded-[1.5rem] object-cover bg-gray-100" />
                         </div>
-                        <p class="mt-6 text-xl md:text-2xl font-black tracking-widest uppercase text-gray-900 drop-shadow-sm">
+                        <p class="mt-3 md:mt-6 text-base md:text-2xl font-black tracking-widest uppercase text-gray-900 drop-shadow-sm">
                             {{ player2.name }}
                         </p>
                     </template>
 
                     <template v-else>
-                        <div class="w-32 h-32 md:w-44 md:h-44 rounded-[2rem] bg-gray-100/80 backdrop-blur-md border-4 border-dashed border-gray-300 flex items-center justify-center p-2 shadow-inner">
-                            <svg class="w-12 h-12 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-gray-100/80 backdrop-blur-md border-4 border-dashed border-gray-300 flex items-center justify-center p-2 shadow-inner">
+                            <svg class="w-8 h-8 md:w-12 md:h-12 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                             </svg>
                         </div>
-                        <p class="mt-6 text-sm font-bold tracking-[0.2em] uppercase text-gray-400 animate-pulse">
+                        <p class="mt-3 md:mt-6 text-xs md:text-sm font-bold tracking-[0.2em] uppercase text-gray-400 animate-pulse">
                             Waiting...
                         </p>
                     </template>
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-col items-center w-full max-w-sm" v-if="isHost">
+            <div class="mt-2 md:mt-4 flex flex-col items-center w-full max-w-sm" v-if="isHost">
                 <button 
                     :disabled="!canStartGame"
                     @click="initiateMatch"
-                    class="group relative w-full py-5 bg-gray-900 text-white font-black text-xl md:text-2xl tracking-widest uppercase rounded-[2rem] shadow-[0_8px_20px_rgba(0,0,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:-translate-y-1 active:scale-[0.98] disabled:hover:translate-y-0 transition-all duration-300 overflow-hidden">
-                    
+                    class="group relative w-full py-3.5 md:py-5 bg-gray-900 text-white font-black text-lg md:text-2xl tracking-widest uppercase rounded-[1.5rem] md:rounded-[2rem] shadow-[0_8px_20px_rgba(0,0,0,0.15)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-black hover:shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:-translate-y-1 active:scale-[0.98] disabled:hover:translate-y-0 transition-all duration-300 overflow-hidden">
                     <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] group-hover:animate-shimmer hidden group-hover:block"></div>
-                    
                     <span class="relative z-10">Play Game</span>
                 </button>
-                <p v-if="!canStartGame" class="mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest animate-pulse">
+                <p v-if="!canStartGame" class="mt-3 md:mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest animate-pulse">
                     Waiting for opponent...
                 </p>
             </div>
             
-            <div class="mt-4 flex flex-col items-center w-full max-w-sm" v-else>
-                <div v-if="canStartGame" class="py-4 px-8 bg-orange-50 border-2 border-orange-200 rounded-2xl text-center shadow-sm">
+            <div class="mt-2 md:mt-4 flex flex-col items-center w-full max-w-sm" v-else>
+                <div v-if="canStartGame" class="py-3 md:py-4 px-6 md:px-8 bg-orange-50 border-2 border-orange-200 rounded-2xl text-center shadow-sm">
                     <p class="text-sm font-black text-orange-500 animate-pulse tracking-widest uppercase">
                         Waiting for host to start...
                     </p>

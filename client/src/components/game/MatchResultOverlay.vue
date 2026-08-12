@@ -222,16 +222,16 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
       </div>
       
       <!-- Main Panel -->
-      <div class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-darkNavy/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8 cyber-grid flex flex-col items-center result-panel"
+      <div class="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-darkNavy/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 md:p-8 cyber-grid flex flex-col items-center result-panel custom-scrollbar"
            :class="[
              isVictory && settingsStore.vfxEnabled ? 'border-yellow-500/30 shadow-[0_0_40px_rgba(255,215,0,0.15)]' : '',
              !isVictory && settingsStore.vfxEnabled ? 'border-red-500/30 shadow-[0_0_30px_rgba(220,38,38,0.1)]' : ''
            ]">
            
         <!-- Header -->
-        <div class="text-center mb-10 flex flex-col items-center">
-          <div class="text-6xl mb-2">{{ isVictory ? '🏆' : '💀' }}</div>
-          <h1 class="text-7xl font-black italic tracking-widest uppercase text-transparent bg-clip-text"
+        <div class="text-center mb-6 md:mb-10 flex flex-col items-center">
+          <div class="text-4xl md:text-6xl mb-1 md:mb-2">{{ isVictory ? '🏆' : '💀' }}</div>
+          <h1 class="text-5xl md:text-7xl font-black italic tracking-widest uppercase text-transparent bg-clip-text"
               :class="[
                 isVictory ? 'bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500' : 'bg-gradient-to-r from-red-400 via-red-600 to-red-800',
                 settingsStore.vfxEnabled && isVictory ? 'drop-shadow-[0_0_40px_rgba(255,215,0,0.6)]' : '',
@@ -242,9 +242,9 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
         </div>
 
         <!-- Score Comparison -->
-        <div class="flex w-full justify-between items-center mb-10 gap-4">
+        <div class="flex w-full justify-between items-center mb-6 md:mb-10 gap-2 md:gap-4">
           <!-- Player Score Panel -->
-          <div class="flex-1 flex flex-col items-center p-6 rounded-xl border border-white/5 bg-black/40"
+          <div class="flex-1 flex flex-col items-center p-3 md:p-6 rounded-xl border border-white/5 bg-black/40"
                :class="[isVictory && settingsStore.vfxEnabled ? 'border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : '']">
             <img v-if="playerAvatar" :src="playerAvatar" class="w-16 h-16 rounded-full mb-3 border-2 border-white/20" alt="Player Avatar" />
             <div class="text-[10px] tracking-widest uppercase text-white/50 mb-1">{{ playerName }}</div>
@@ -253,10 +253,10 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
             </div>
           </div>
 
-          <div class="text-3xl font-black text-white/20 px-4 italic">VS</div>
+          <div class="text-xl md:text-3xl font-black text-white/20 px-2 md:px-4 italic">VS</div>
 
           <!-- Opponent Score Panel -->
-          <div class="flex-1 flex flex-col items-center p-6 rounded-xl border border-white/5 bg-black/40"
+          <div class="flex-1 flex flex-col items-center p-3 md:p-6 rounded-xl border border-white/5 bg-black/40"
                :class="[!isVictory && settingsStore.vfxEnabled ? 'border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.1)]' : '']">
             <template v-if="opponentAvatar">
               <img :src="opponentAvatar" class="w-16 h-16 rounded-full mb-3 border-2 border-white/20" alt="Opponent Avatar" />
@@ -272,20 +272,20 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
         </div>
 
         <!-- Stats Breakdown Grid -->
-        <div class="w-full grid grid-cols-3 gap-4 mb-10">
-          <div class="stat-row bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col items-center" style="animation-delay: 0.1s">
-            <span class="text-[10px] tracking-widest uppercase text-white/50 mb-1">Avg WPM</span>
-            <span class="text-3xl font-black text-orange">{{ avgWpm }}</span>
+        <div class="w-full grid grid-cols-3 gap-2 md:gap-4 mb-6 md:mb-10">
+          <div class="stat-row bg-white/5 border border-white/10 rounded-lg p-2 md:p-4 flex flex-col items-center" style="animation-delay: 0.1s">
+            <span class="text-[9px] md:text-[10px] tracking-widest uppercase text-white/50 mb-1">Avg WPM</span>
+            <span class="text-xl md:text-3xl font-black text-orange">{{ avgWpm }}</span>
           </div>
-          <div class="stat-row bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col items-center" style="animation-delay: 0.2s">
-            <span class="text-[10px] tracking-widest uppercase text-white/50 mb-1">Accuracy</span>
-            <span class="text-3xl font-black text-lightBlue">{{ accuracy }}%</span>
+          <div class="stat-row bg-white/5 border border-white/10 rounded-lg p-2 md:p-4 flex flex-col items-center" style="animation-delay: 0.2s">
+            <span class="text-[9px] md:text-[10px] tracking-widest uppercase text-white/50 mb-1">Accuracy</span>
+            <span class="text-xl md:text-3xl font-black text-lightBlue">{{ accuracy }}%</span>
           </div>
-          <div class="stat-row bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col items-center" style="animation-delay: 0.3s">
-            <span class="text-[10px] tracking-widest uppercase text-white/50 mb-1">Questions</span>
-            <span class="text-3xl font-black text-white">
+          <div class="stat-row bg-white/5 border border-white/10 rounded-lg p-2 md:p-4 flex flex-col items-center" style="animation-delay: 0.3s">
+            <span class="text-[9px] md:text-[10px] tracking-widest uppercase text-white/50 mb-1">Questions</span>
+            <span class="text-xl md:text-3xl font-black text-white">
               <span class="text-success">{{ correctCount }}</span>
-              <span class="text-white/30 text-xl mx-1">/</span>
+              <span class="text-white/30 text-lg md:text-xl mx-1">/</span>
               <span class="text-hexred">{{ totalCount - correctCount }}</span>
             </span>
           </div>
@@ -296,11 +296,11 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
           <div class="text-[10px] tracking-widest uppercase text-white/50 mb-3 sticky top-0 bg-darkNavy/90 backdrop-blur-md z-10 py-2 border-b border-white/10 text-center">Word Recap</div>
           <div class="flex flex-col gap-2">
             <div v-for="(item, index) in matchHistory" :key="index" 
-                 class="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 shadow-sm hover:bg-white/10 transition-colors"
+                 class="flex items-center justify-between p-2 md:p-3 rounded-lg bg-white/5 border border-white/5 shadow-sm hover:bg-white/10 transition-colors"
                  :class="item.isCorrect ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-red-500'">
-              <div class="flex flex-col text-left overflow-hidden">
-                <span class="text-[10px] text-white/40 uppercase tracking-widest mb-1 truncate">Target: <span class="text-white">{{ item.correct }}</span></span>
-                <span class="text-lg font-black truncate" :class="item.isCorrect ? 'text-green-400' : 'text-red-400'">
+              <div class="flex flex-col text-left overflow-hidden w-full pr-2">
+                <span class="text-[9px] md:text-[10px] text-white/40 uppercase tracking-widest mb-1 truncate">Target: <span class="text-white">{{ item.correct }}</span></span>
+                <span class="text-base md:text-lg font-black truncate" :class="item.isCorrect ? 'text-green-400' : 'text-red-400'">
                   {{ item.submitted || '(Skipped)' }}
                 </span>
               </div>
@@ -348,8 +348,8 @@ const confettiPieces = Array.from({ length: 25 }, (_, i) => ({
 
             <!-- FLOATING RATING BADGE PIN THAT PHYSICALLY TRAVELS/SLIDES FORWARD (THẮNG) OR BACKWARD (THUA) ALONG THE BAR -->
             <div class="absolute top-[-38px] -translate-x-1/2 transition-all duration-75 ease-linear pointer-events-none z-20 flex flex-col items-center"
-                 :style="{ left: `${Math.max(6, Math.min(94, animatedRankProgress))}%` }">
-              <div class="px-3 py-1 rounded-full font-black text-xs font-mono tracking-wider shadow-xl flex items-center gap-1 border whitespace-nowrap"
+                 :style="{ left: `${Math.max(12, Math.min(88, animatedRankProgress))}%` }">
+              <div class="px-2 md:px-3 py-1 rounded-full font-black text-[10px] md:text-xs font-mono tracking-wider shadow-xl flex items-center gap-1 border whitespace-nowrap"
                    :class="(eloChange ?? 0) >= 0 
                      ? 'bg-emerald-500 text-slate-950 border-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.8)]' 
                      : 'bg-rose-500 text-white border-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.8)]'">

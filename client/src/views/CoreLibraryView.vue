@@ -27,10 +27,10 @@
         </div>
 
         <!-- Header -->
-        <header class="relative z-20 flex justify-between items-center p-4 lg:px-8">
-            <div class="flex items-center gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50 active:scale-95 transition-transform"
+        <header class="relative z-20 flex justify-between items-center p-3 md:p-4 lg:px-8">
+            <div class="flex items-center gap-2 md:gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl shadow-sm border border-white/50 active:scale-95 transition-transform"
                 @click="router.push('/home')">
-                <div class="w-12 h-12 flex items-center justify-center">
+                <div class="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
                     <svg class="w-full h-full text-orange fill-current group-hover:scale-110 transition-transform"
                         viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
@@ -38,37 +38,37 @@
                 </div>
                 <div class="leading-none">
                     <h1
-                        class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
+                        class="text-xl md:text-3xl font-black mb-0.5 md:mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-sm uppercase">
                         NAENRA
                     </h1>
-                    <p class="text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">SELECTION CORES</p>
+                    <p class="text-[8px] md:text-[10px] text-lightBlue font-bold tracking-[0.3em] uppercase">SELECTION CORES</p>
                 </div>
             </div>
 
             <button @click="router.push('/missions')"
-                class="px-5 py-2.5 rounded-full font-black text-xs uppercase tracking-widest bg-white/80 text-gray-700 border border-white/60 hover:bg-orange/10 hover:text-orange transition-all shadow-sm flex items-center gap-2 cursor-pointer">
-                <span>🎯</span> Missions Tracker
+                class="px-3 md:px-5 py-1.5 md:py-2.5 rounded-full font-black text-[10px] md:text-xs uppercase tracking-widest bg-white/80 text-gray-700 border border-white/60 hover:bg-orange/10 hover:text-orange transition-all shadow-sm flex items-center gap-1.5 md:gap-2 cursor-pointer">
+                <span>🎯</span> <span class="hidden sm:inline">Missions Tracker</span><span class="sm:hidden">Missions</span>
             </button>
         </header>
 
         <!-- Main Content -->
-        <main class="relative z-20 flex-1 w-full max-w-7xl mx-auto px-6 md:px-12 py-8 flex flex-col">
+        <main class="relative z-20 flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-12 py-4 md:py-8 flex flex-col">
 
             <!-- Title & Category Tabs -->
-            <div class="mb-10 text-center md:text-left">
-                <h2 class="text-4xl md:text-5xl font-black text-gray-900 uppercase tracking-tight drop-shadow-sm mb-3">
+            <div class="mb-5 md:mb-10 text-center md:text-left">
+                <h2 class="text-3xl md:text-5xl font-black text-gray-900 uppercase tracking-tight drop-shadow-sm mb-2 md:mb-3">
                     Core <span
                         class="text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred">Library</span>
                 </h2>
-                <p class="text-sm font-bold text-gray-500 max-w-2xl mx-auto md:mx-0 mb-6">
+                <p class="text-xs md:text-sm font-bold text-gray-500 max-w-2xl mx-auto md:mx-0 mb-4 md:mb-6">
                     Study the skills and formulate your strategy before entering the typing arena. Below are all active base cores.
                 </p>
 
                 <!-- Category Tabs (Attack, Defense, Economy, All) -->
-                <div class="flex flex-wrap justify-center md:justify-start gap-3">
+                <div class="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3">
                     <button v-for="tab in tabs" :key="tab" @click="activeTab = tab"
                         :class="[
-                            'px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all shadow-sm border cursor-pointer',
+                            'px-4 md:px-6 py-1.5 md:py-2.5 rounded-full font-black text-[10px] md:text-xs uppercase tracking-widest transition-all shadow-sm border cursor-pointer',
                             activeTab === tab 
                                 ? 'bg-gradient-to-r from-orange to-hexred text-white border-transparent shadow-[0_4px_14px_rgba(255,107,0,0.35)] scale-105' 
                                 : 'bg-white/80 text-gray-500 border-white/60 hover:bg-orange/10 hover:text-orange hover:border-orange/30'
@@ -89,44 +89,47 @@
             </div>
 
             <!-- Grid Layout -->
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+            <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 pb-12">
 
                 <div v-for="core in filteredCores" :key="core.id" 
                     @click="router.push(`/library/core/${getCoreSlug(core)}`)"
                     @mouseenter="showTooltip($event, core)"
                     @mouseleave="hideTooltip"
-                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2rem] p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative"
+                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative"
                     :class="{ 'opacity-65 grayscale-[30%]': core.isLocked }">
 
-                    <div class="flex justify-between items-start mb-6">
+                    <div class="flex justify-between items-start mb-3 md:mb-6">
                         <div
-                            class="w-16 h-16 rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all">
+                            class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all">
                             <div
-                                class="w-full h-full bg-white rounded-[14px] flex items-center justify-center overflow-hidden">
+                                class="w-full h-full bg-white rounded-[10px] md:rounded-[14px] flex items-center justify-center overflow-hidden">
                                 <img :src="resolveIcon(core)"
                                     :alt="core.name"
                                     @error="onImgError"
-                                    class="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" />
+                                    class="w-7 h-7 md:w-10 md:h-10 object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" />
                             </div>
                         </div>
 
                         <!-- Category Pill -->
-                        <div class="px-3 py-1 rounded-full border shadow-sm bg-orange/10 text-orange border-orange/30 flex items-center gap-1">
-                            <span v-if="core.isLocked" class="text-[10px]" title="Core Locked">🔒</span>
-                            <span class="text-[10px] font-black tracking-widest uppercase">{{ getCategory(core) }}</span>
+                        <div class="px-2 md:px-3 py-0.5 md:py-1 rounded-full border shadow-sm bg-orange/10 text-orange border-orange/30 flex items-center gap-1">
+                            <span v-if="core.isLocked" class="text-[9px] md:text-[10px]" title="Core Locked">🔒</span>
+                            <span class="text-[9px] md:text-[10px] font-black tracking-widest uppercase">{{ getCategory(core) }}</span>
                         </div>
                     </div>
 
                     <div class="flex-1 flex flex-col">
                         <h3
-                            class="text-xl font-black text-gray-900 uppercase tracking-wide mb-2 group-hover:text-orange transition-colors">
+                            class="text-sm md:text-xl font-black text-gray-900 uppercase tracking-wide mb-1 md:mb-2 group-hover:text-orange transition-colors leading-tight">
                             {{ core.name }}
                         </h3>
                         <div
-                            class="w-10 h-1 bg-gray-200 rounded-full mb-4 group-hover:w-16 group-hover:bg-orange transition-all duration-300">
+                            class="w-8 md:w-10 h-0.5 md:h-1 bg-gray-200 rounded-full mb-2 md:mb-4 group-hover:w-12 md:group-hover:w-16 group-hover:bg-orange transition-all duration-300">
                         </div>
-                        <p class="text-sm font-semibold text-gray-500 leading-relaxed flex-1">
+                        <p class="text-[11px] md:text-sm font-semibold text-gray-500 leading-relaxed flex-1 hidden md:block">
                             {{ core.description || core.desc || 'Base core for competitive typing matches.' }}
+                        </p>
+                        <p class="text-[10px] font-semibold text-gray-400 leading-snug flex-1 md:hidden line-clamp-2">
+                            {{ core.description || core.desc || 'Base core.' }}
                         </p>
                     </div>
 

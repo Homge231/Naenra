@@ -16,7 +16,7 @@
 
     <main class="relative z-10 flex flex-col items-center justify-center px-4 md:px-6 max-w-4xl mx-auto w-full">
       <h2
-        class="text-4xl md:text-5xl font-black text-white mb-3 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] tracking-widest text-center uppercase">
+        class="text-2xl md:text-5xl font-black text-white mb-1 md:mb-3 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] tracking-widest text-center uppercase">
         Tactical Upgrade
       </h2>
       <p class="text-lightBlue/80 mb-6 text-sm md:text-base tracking-[0.2em] uppercase text-center font-bold">
@@ -49,17 +49,17 @@
         </svg>
       </div>
 
-      <div v-else id="tutorial-upgrade-cards" class="relative z-20 grid grid-cols-1 md:grid-cols-2 gap-8 w-full items-stretch"
+      <div v-else id="tutorial-upgrade-cards" class="relative z-20 flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-8 w-full items-stretch overflow-y-auto md:overflow-visible max-h-[65vh] md:max-h-none px-2 pb-4 scrollbar-hide"
         :class="{ 'pointer-events-none': loading && upgradeCores.length > 0 }">
         
-        <div v-for="(core, index) in upgradeCores" :key="core.id || index" class="flex flex-col items-center w-full h-full relative">
+        <div v-for="(core, index) in upgradeCores" :key="core.id || index" class="flex flex-col items-center w-full relative shrink-0">
           
           <transition name="fade">
             <CoreTooltip v-if="activeTooltipIndex === index" :core="core" :isLocked="core.isLocked" :missionText="core.missionText" />
           </transition>
 
           <div @click="selectCore(core)"
-            class="group flex-1 w-full relative backdrop-blur-xl rounded-2xl p-8 md:p-12 transition-all duration-500 flex flex-col items-center text-center overflow-hidden"
+            class="group flex-1 w-full relative backdrop-blur-xl rounded-2xl p-4 md:p-12 transition-all duration-500 flex flex-col items-center text-center overflow-hidden min-h-[160px] md:min-h-[250px]"
             :class="[
               core.isLocked
                 ? 'bg-black/50 border border-red-500/30 cursor-not-allowed grayscale opacity-70'
@@ -90,13 +90,13 @@
               {{ core.isLocked ? '🔒 LOCKED CORE' : (core.classification === 'main' ? 'MAIN CORE' : (core.classification === 'power' ? 'UPGRADE CORE • POWER' : 'UPGRADE CORE • EFFECT')) }}
             </span>
             
-            <div class="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-6 lg:mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
+            <div class="relative w-12 h-12 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-2 md:mb-6 lg:mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)]"
               :class="core.isLocked
                 ? 'border-red-500/50 text-gray-500'
                 : selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
               <img :src="core.icon" :alt="core.name"
                 @error="onImgError"
-                class="w-12 h-12 lg:w-16 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300"
+                class="w-6 h-6 md:w-12 md:h-12 lg:w-16 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300"
                 :class="{ 'grayscale opacity-60': core.isLocked }" />
 
               <!-- Padlock Overlay -->
@@ -107,15 +107,15 @@
               </div>
             </div>
 
-            <h3 class="text-3xl font-black mb-1 tracking-wide transition-colors duration-500"
+            <h3 class="text-base md:text-3xl font-black mb-0 md:mb-1 tracking-wide transition-colors duration-500"
               :class="core.isLocked ? 'text-gray-400' : (selectedCore?.id === core.id ? 'text-lightBlue' : 'text-white group-hover:text-lightBlue')">
               {{ core.name }}
             </h3>
-            <span class="text-xs font-bold uppercase tracking-widest mb-4" :class="core.isLocked ? 'text-red-400/90' : 'text-lightOrange/90'">
+            <span class="text-[9px] md:text-xs font-bold uppercase tracking-widest mb-1 md:mb-4" :class="core.isLocked ? 'text-red-400/90' : 'text-lightOrange/90'">
               {{ core.isLocked ? '🔒 Mission Required' : `Upgrade Core (Tier ${core.tier || 2})` }}
             </span>
 
-            <p v-if="!core.isLocked" class="text-base text-gray-300/80 leading-relaxed max-w-[250px] z-10">{{ core.description }}</p>
+            <p v-if="!core.isLocked" class="text-[10px] md:text-base text-gray-300/80 leading-tight md:leading-relaxed max-w-[250px] z-10">{{ core.description }}</p>
             <div v-else class="w-full bg-red-950/40 border border-red-500/30 rounded-xl p-3 text-center z-10">
               <p class="text-[10px] font-black uppercase tracking-wider text-red-400 mb-1 flex items-center justify-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -21,18 +21,18 @@
       </div>
     </div>
 
-    <div class="relative z-10 w-full max-w-md p-8 md:p-10 bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-2 border-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] transform transition-all hover:shadow-[0_15px_50px_rgba(234,88,12,0.15)]">
+    <div class="relative z-10 w-full max-w-sm md:max-w-md p-5 md:p-10 mx-4 bg-white/80 backdrop-blur-xl rounded-[2rem] border-2 border-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] transform transition-all hover:shadow-[0_15px_50px_rgba(234,88,12,0.15)]">
       
-      <div class="mb-8 flex flex-col items-center">
-        <div class="w-16 h-16 mb-4 flex items-center justify-center transform -skew-x-12 shadow-[4px_4px_0_rgba(255,123,0,0.5)] bg-white/5 border border-white/10">
-          <svg class="w-10 h-10 text-orange fill-current transform skew-x-12" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <div class="mb-5 md:mb-8 flex flex-col items-center">
+        <div class="w-12 h-12 md:w-16 md:h-16 mb-3 md:mb-4 flex items-center justify-center transform -skew-x-12 shadow-[4px_4px_0_rgba(255,123,0,0.5)] bg-white/5 border border-white/10">
+          <svg class="w-7 h-7 md:w-10 md:h-10 text-orange fill-current transform skew-x-12" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
         </div>
-        <h1 class="text-4xl font-black mb-2 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-lg uppercase italic">
+        <h1 class="text-3xl md:text-4xl font-black mb-1 md:mb-2 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-lg uppercase italic">
           Naenra
         </h1>
-        <p class="text-lightBlue font-bold tracking-[0.2em] text-[10px] uppercase">
+        <p class="text-lightBlue font-bold tracking-[0.2em] text-[9px] md:text-[10px] uppercase">
           TYPING ESPORTS ARENA
         </p>
       </div>
@@ -45,68 +45,68 @@
         {{ successMessage }}
       </div>
 
-      <div class="flex mb-8 bg-gray-100/80 rounded-2xl p-1.5 border border-gray-200 shadow-inner">
+      <div class="flex mb-5 md:mb-8 bg-gray-100/80 rounded-2xl p-1 md:p-1.5 border border-gray-200 shadow-inner">
         <button
           @click="switchMode('login')"
           :class="mode === 'login' ? 'bg-white text-[#ea580c] shadow-sm border-b-2 border-[#ea580c]' : 'text-gray-400 hover:text-gray-700'"
-          class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
+          class="flex-1 py-2 md:py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
         >
           Login
         </button>
         <button
           @click="switchMode('register')"
           :class="mode === 'register' ? 'bg-white text-[#ea580c] shadow-sm border-b-2 border-[#ea580c]' : 'text-gray-400 hover:text-gray-700'"
-          class="flex-1 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
+          class="flex-1 py-2 md:py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300"
         >
           Register
         </button>
       </div>
 
-      <div v-if="mode === 'register'" class="space-y-4">
+      <div v-if="mode === 'register'" class="space-y-3 md:space-y-4">
         <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Username</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Username</label>
           <input
             v-model="form.username"
             @keyup.enter="handleRegister"
             type="text"
             placeholder="Player_One"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl px-4 py-3 md:py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.username" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.username }}</p>
         </div>
 
         <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
           <input
             v-model="form.email"
             @keyup.enter="mode === 'register' ? handleRegister() : handleLogin()"
             type="email"
             placeholder="player@naenra.com"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl px-4 py-3 md:py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.email" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.email }}</p>
         </div>
 
         <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Password</label>
           <input
             v-model="form.password"
             @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl px-4 py-3 md:py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.password" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.password }}</p>
         </div>
 
         <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Confirm Password</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Confirm Password</label>
           <input
             v-model="form.confirmPassword"
             @keyup.enter="handleRegister"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl px-4 py-3 md:py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.confirmPassword" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.confirmPassword }}</p>
         </div>
@@ -114,7 +114,7 @@
         <button
           @click="handleRegister"
           :disabled="loading"
-          class="group relative w-full mt-6 bg-gradient-to-r from-orange to-hexred text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
+          class="group relative w-full mt-4 md:mt-6 bg-gradient-to-r from-orange to-hexred text-white font-black py-3 md:py-4 rounded-xl md:rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
         >
           <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
           <span class="relative z-10 flex items-center justify-center gap-2">
@@ -124,21 +124,21 @@
         </button>
       </div>
 
-      <div v-if="mode === 'login'" class="space-y-4">
+      <div v-if="mode === 'login'" class="space-y-3 md:space-y-4">
         <div>
-          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Email</label>
+          <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Email</label>
           <input
             v-model="form.email"
             @keyup.enter="handleLogin"
             type="email"
             placeholder="player@naenra.com"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl px-4 py-3 md:py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.email" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.email }}</p>
         </div>
 
         <div>
-          <div class="flex justify-between items-center mb-2 px-1">
+          <div class="flex justify-between items-center mb-1.5 px-1">
             <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Password</label>
             <button
               type="button" 
@@ -153,12 +153,12 @@
             @keyup.enter="handleLogin"
             type="password"
             placeholder="••••••••"
-            class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
+            class="w-full bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl px-4 py-3 md:py-4 text-gray-900 font-black text-sm placeholder-gray-300 focus:outline-none focus:border-[#ea580c] focus:ring-4 focus:ring-[#ffedd5] transition-all shadow-sm"
           />
           <p v-if="errors.password" class="text-red-500 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-wider">{{ errors.password }}</p>
         </div>
 
-        <label class="flex items-center gap-3 cursor-pointer group mt-2 px-1">
+        <label class="flex items-center gap-3 cursor-pointer group mt-1 md:mt-2 px-1">
           <div class="relative">
             <input
               v-model="rememberMe"
@@ -166,12 +166,12 @@
               class="sr-only"
             />
             <div
-              class="w-5 h-5 rounded-lg border-2 transition-all duration-200 flex items-center justify-center"
+              class="w-4 h-4 md:w-5 md:h-5 rounded-lg border-2 transition-all duration-200 flex items-center justify-center"
               :class="rememberMe
                 ? 'bg-gradient-to-br from-orange to-hexred border-transparent'
                 : 'bg-white border-gray-300 group-hover:border-[#ea580c]'"
             >
-              <svg v-if="rememberMe" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg v-if="rememberMe" class="w-2.5 h-2.5 md:w-3 md:h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -184,7 +184,7 @@
         <button
           @click="handleLogin"
           :disabled="loading"
-          class="group relative w-full mt-4 bg-gradient-to-r from-orange to-hexred text-white font-black py-4 rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
+          class="group relative w-full mt-2 md:mt-4 bg-gradient-to-r from-orange to-hexred text-white font-black py-3 md:py-4 rounded-xl md:rounded-2xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.4)] transition-all duration-300 uppercase tracking-widest text-sm disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden active:scale-[0.98]"
         >
           <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
           <span class="relative z-10 flex items-center justify-center gap-2">
@@ -194,16 +194,16 @@
         </button>
       </div>
 
-      <div class="relative flex py-6 items-center">
+      <div class="relative flex py-4 md:py-6 items-center">
         <div class="flex-grow border-t border-gray-200"></div>
-        <span class="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-black tracking-[0.2em] uppercase">OR INSTANT PLAY</span>
+        <span class="flex-shrink-0 mx-3 md:mx-4 text-gray-400 text-[9px] md:text-[10px] font-black tracking-[0.2em] uppercase">OR INSTANT PLAY</span>
         <div class="flex-grow border-t border-gray-200"></div>
       </div>
 
       <button
         @click="handleGuestPlay"
         :disabled="loading"
-        class="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-orange to-lightOrange text-white font-black tracking-widest uppercase shadow-[0_4px_15px_rgba(255,123,0,0.4)] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-xs mb-3 cursor-pointer border border-white/20"
+        class="w-full flex items-center justify-center gap-2 py-3 md:py-4 bg-gradient-to-r from-orange to-lightOrange text-white font-black tracking-widest uppercase shadow-[0_4px_15px_rgba(255,123,0,0.4)] rounded-xl md:rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-xs mb-2 md:mb-3 cursor-pointer border border-white/20"
       >
         <span class="drop-shadow-md">⚡ PLAY NOW AS GUEST</span>
       </button>
@@ -211,7 +211,7 @@
       <button
         @click="handleGoogle"
         :disabled="loading"
-        class="w-full flex items-center justify-center gap-3 py-4 bg-white border-2 border-gray-200 rounded-2xl hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-300 text-gray-600 text-xs font-black tracking-widest uppercase disabled:opacity-50 shadow-sm cursor-pointer"
+        class="w-full flex items-center justify-center gap-3 py-3 md:py-4 bg-white border-2 border-gray-200 rounded-xl md:rounded-2xl hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all duration-300 text-gray-600 text-xs font-black tracking-widest uppercase disabled:opacity-50 shadow-sm cursor-pointer"
       >
         <svg width="18" height="18" viewBox="0 0 48 48">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
