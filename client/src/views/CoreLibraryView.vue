@@ -111,9 +111,10 @@
                         </div>
 
                         <!-- Category Pill -->
-                        <div class="px-3 py-1 rounded-full border shadow-sm bg-orange/10 text-orange border-orange/30 flex items-center gap-1">
-                            <span v-if="core.isLocked" class="text-[10px]" title="Core Locked">🔒</span>
-                            <span class="text-[10px] font-black tracking-widest uppercase">{{ getCategory(core) }}</span>
+                        <div class="px-3 py-1 rounded-full border shadow-sm flex items-center gap-1"
+                            :class="core.isLocked ? 'bg-red-500/10 text-red-500 border-red-500/30' : 'bg-orange/10 text-orange border-orange/30'">
+                            <span v-if="core.isLocked" class="text-[10px] font-black tracking-widest uppercase flex items-center gap-1">🔒 LOCKED</span>
+                            <span v-else class="text-[10px] font-black tracking-widest uppercase">{{ getCategory(core) }}</span>
                         </div>
                     </div>
 
@@ -223,9 +224,7 @@ const filteredCores = computed(() => {
         
     return baseCores.map((c: any) => {
         const isBaseCore = c.tier === 1 || c.core_type === 'main'
-        const nameKey = (c.name || '').toLowerCase()
-        const isUnlockedInMissions = missionsStore.isCoreUnlocked(c.name) || missionsStore.isCoreUnlocked(c.id)
-        const isLocked = !isBaseCore && !unlockedIds.has(String(c.id)) && !unlockedIds.has(nameKey) && !unlockedIds.has(c.name) && !isUnlockedInMissions
+        const isLocked = !isBaseCore && !missionsStore.isCoreUnlocked(c.name)
         return {
             ...c,
             isLocked

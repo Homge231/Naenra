@@ -9,6 +9,11 @@ export const CORE_FAMILIES: Record<string, { tier1: string[], tier2: string[], t
     tier2: ['Time Warp', 'Speed Shield', 'Mach Speed', 'Overdrive', 'Speed Demon', 'Velocity Shield'],
     tier3: ['Chronobreak', 'Time Freeze', 'Warp Speed', 'Grand Prix', 'Sonic Boom', 'Hyperdrive']
   },
+  'argus eyes': {
+    tier1: ['Argus Eyes'],
+    tier2: ['Clairvoyance', 'Third Eye', 'Future Sight', 'Divine Guidance', 'Oracle Blessing', 'Inner Eye'],
+    tier3: ['Omniscience', 'Mind Reader', 'Predictive Strike', 'Cosmic Wisdom', 'Divine Eye', 'Prophecy']
+  },
   'oracle': {
     tier1: ['Argus Eyes'],
     tier2: ['Clairvoyance', 'Third Eye', 'Future Sight', 'Divine Guidance', 'Oracle Blessing', 'Inner Eye'],

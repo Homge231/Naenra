@@ -108,13 +108,13 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 350,
       icon: '⚡'
     },
-    // Oracle Family
+    // Argus Eyes Family
     {
       id: 'mission_inner_eye',
       title: 'Third Eye Seer',
-      description: 'Complete 3 rounds with Oracle Core hints to unlock Inner Eye.',
+      description: 'Complete 3 rounds with Argus Eyes Core hints to unlock Inner Eye.',
       category: 'Utility',
-      coreFamily: 'oracle',
+      coreFamily: 'argus eyes',
       unlockCoreName: 'Inner Eye',
       targetCount: 3,
       currentProgress: 0,
@@ -126,9 +126,9 @@ export const useMissionsStore = defineStore('missions', () => {
     {
       id: 'mission_prophecy',
       title: 'Prophetic Vision',
-      description: 'Complete 5 rounds using Oracle Core without any errors to unlock Prophecy.',
+      description: 'Complete 5 rounds using Argus Eyes Core without any errors to unlock Prophecy.',
       category: 'Utility',
-      coreFamily: 'oracle',
+      coreFamily: 'argus eyes',
       unlockCoreName: 'Prophecy',
       targetCount: 5,
       currentProgress: 0,
