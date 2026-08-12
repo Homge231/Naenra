@@ -26,6 +26,17 @@ export class MissionCoreStrategy extends BaseCore {
     }
     const oraclePenalty = this._oraclePenalty(ctx)
 
+    // Check Aegis Shield Easter Egg Synergy
+    const currentShields = ctx.currentShields || 0
+    let shieldDelta = 0
+    let forgiveMistake = false
+
+    if (!isCorrect && currentShields > 0) {
+      shieldDelta = -1
+      forgiveMistake = true
+      penalty = 0 // Aegis Shield absorbs the point loss
+    }
+
     // Check pattern match: count consecutive correct answers at the end of history
     let missionBonus = 0
     let missionCompleted = 0
@@ -33,22 +44,18 @@ export class MissionCoreStrategy extends BaseCore {
     
     let consecutiveCorrect = 0
     if (ctx.missionProgress !== undefined) {
-      consecutiveCorrect = ctx.missionProgress + (isCorrect ? 1 : 0)
+      if (isCorrect) {
+        consecutiveCorrect = ctx.missionProgress + 1
+      } else if (currentShields > 0) {
+        // Easter Egg Synergy: Aegis Shield absorbs the mistake and PRESERVES the mission streak!
+        consecutiveCorrect = ctx.missionProgress
+      } else {
+        consecutiveCorrect = 0
+      }
       
       // Swift Mission: must be answered in under 4s
       if (this.coreName === 'swift mission' && isCorrect && ctx.timeTaken > 4000) {
         consecutiveCorrect = 0
-      }
-
-      if (!isCorrect) {
-        // Shield Mission Special: streak does NOT break if protected by a shield
-        const isShieldMission = this.coreName === 'shield mission'
-        const currentShields = ctx.currentShields || 0
-        if (isShieldMission && currentShields > 0) {
-          consecutiveCorrect = ctx.missionProgress
-        } else {
-          consecutiveCorrect = 0
-        }
       }
     } else {
       // Fallback if no missionProgress provided
@@ -86,6 +93,8 @@ export class MissionCoreStrategy extends BaseCore {
     return {
       pointsDelta: net,
       timerDelta: timerDelta > 0 ? timerDelta : undefined,
+      shieldDelta: shieldDelta < 0 ? shieldDelta : undefined,
+      forgiveMistake: forgiveMistake ? true : undefined,
       breakdown: {
         base,
         combo_bonus: 0,
@@ -94,7 +103,8 @@ export class MissionCoreStrategy extends BaseCore {
         oracle_penalty: oraclePenalty,
         penalty,
         mission_completed: missionCompleted,
-        mission_streak: consecutiveCorrect % this.missionReq
+        mission_streak: consecutiveCorrect % this.missionReq,
+        shield_blocked: forgiveMistake ? 1 : 0
       }
     }
   }
