@@ -708,29 +708,38 @@ export const useMissionsStore = defineStore('missions', () => {
     if (!coreNameOrId) return true
     const nameLower = String(coreNameOrId).trim().toLowerCase()
 
-    // 1. If core is NOT in the 1/3 locked list, it is UNLOCKED BY DEFAULT (2/3 cores free)
+    // Resolve target core name (handle mission IDs or core name lookup)
+    let targetName = nameLower
+    const matchingMission = missions.value.find(m => 
+      m.unlockCoreName.toLowerCase() === nameLower || m.id.toLowerCase() === nameLower
+    )
+    if (matchingMission) {
+      targetName = matchingMission.unlockCoreName.toLowerCase()
+    }
+
+    // 1. If core name is NOT in the 1/3 locked list, it is UNLOCKED BY DEFAULT (2/3 cores free)
     const isLockedByDefault = Array.from(lockedCoreNames).some(
-      lockedName => lockedName.toLowerCase() === nameLower
+      lockedName => lockedName.toLowerCase() === targetName
     )
     if (!isLockedByDefault) return true
 
     // 2. Check if explicitly unlocked in unlockedCoreNames (claimed via Mission Tracker)
     const inUnlockedNames = unlockedCoreNames.value.some(
-      unlockedName => unlockedName.trim().toLowerCase() === nameLower
+      unlockedName => unlockedName.trim().toLowerCase() === targetName
     )
     if (inUnlockedNames) return true
 
     // 3. Check if claimed in authStore profile
     const authStore = useAuthStore()
-    if (authStore.profile?.unlocked_core_ids?.some(id => id.trim().toLowerCase() === nameLower)) {
+    if (authStore.profile?.unlocked_core_ids?.some(id => id.trim().toLowerCase() === targetName)) {
       return true
     }
 
     // 4. Check if corresponding mission is completed
     const completedMission = missions.value.find(m =>
       m.isCompleted && (
-        m.unlockCoreName.trim().toLowerCase() === nameLower ||
-        m.id.trim().toLowerCase() === nameLower
+        m.unlockCoreName.trim().toLowerCase() === targetName ||
+        m.id.trim().toLowerCase() === targetName
       )
     )
     if (completedMission) return true

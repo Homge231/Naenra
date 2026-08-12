@@ -245,7 +245,7 @@ const rawUpgrades = ref<any[]>([])
 const upgrades = computed(() => {
   return rawUpgrades.value.map(upgrade => {
     const isBaseCore = upgrade.computedTier === 1 || upgrade.tier === 1 || upgrade.core_type === 'main'
-    const isUnlockedInMissions = missionsStore.isCoreUnlocked(upgrade.name) || missionsStore.isCoreUnlocked(upgrade.id)
+    const isUnlockedInMissions = missionsStore.isCoreUnlocked(upgrade.name)
     const isLocked = !isBaseCore && !isUnlockedInMissions
     const missionText = isLocked ? `Complete gameplay missions to unlock ${upgrade.name}.` : ''
     

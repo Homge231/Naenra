@@ -387,7 +387,7 @@ onMounted(async () => {
           // Map isLocked status using missionsStore
           upgrades.value = matchedUpgrades.map((u: any) => {
             const isBaseCore = u.tier === 1 || u.classification === 'main'
-            const isUnlockedInMissions = missionsStore.isCoreUnlocked(u.name) || missionsStore.isCoreUnlocked(u.id)
+            const isUnlockedInMissions = missionsStore.isCoreUnlocked(u.name)
             const isLocked = !isBaseCore && !isUnlockedInMissions
             return {
               ...u,
