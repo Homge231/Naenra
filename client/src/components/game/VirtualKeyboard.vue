@@ -15,14 +15,17 @@
       </div>
       <!-- Row 3 -->
       <div class="flex justify-center gap-1 sm:gap-1.5">
-        <button @click="emitKey('Skip')" class="vk-btn-special text-amber-500 font-bold px-2">
+        <button @click="emitKey('Skip')" class="vk-btn-special text-amber-400 font-bold px-1.5 sm:px-2.5">
           SKIP ⏩
         </button>
         <button v-for="key in row3" :key="key" @click="emitKey(key)" class="vk-btn">
           {{ key }}
         </button>
-        <button @click="emitKey('Backspace')" class="vk-btn-special text-hexred font-bold px-3">
+        <button @click="emitKey('Backspace')" class="vk-btn-special text-hexred font-bold px-2 sm:px-3">
           ⌫
+        </button>
+        <button @click="emitKey('Enter')" class="vk-btn-special text-emerald-400 font-bold px-2 sm:px-3">
+          ↵ ENTER
         </button>
       </div>
     </div>
