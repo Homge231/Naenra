@@ -1,20 +1,16 @@
 <template>
-  <div class="min-h-screen lg:h-screen w-full bg-[#fff8f5] text-gray-800 overflow-y-auto lg:overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col pb-8 lg:pb-0">
+  <div class="min-h-screen w-full bg-[#fff8f5] text-gray-800 relative font-sans selection:bg-orange/50 flex flex-col justify-between">
     
-    <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
-      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
-      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
-      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
-      
-      <div class="absolute top-[15%] left-[5%] text-4xl md:text-6xl font-black text-gray-300 uppercase animate-float-slow opacity-50">S</div>
-      <div class="absolute top-[60%] left-[75%] text-6xl md:text-8xl font-black text-gray-300 uppercase animate-float-delayed opacity-30">P</div>
-      <div class="absolute top-[80%] left-[15%] text-3xl md:text-5xl font-black text-gray-300 uppercase animate-pulse-slow opacity-40">E</div>
-      <div class="absolute top-[25%] left-[70%] text-5xl md:text-7xl font-black text-gray-300 uppercase animate-float-slow opacity-50" style="animation-delay: 2s;">D</div>
+    <!-- Ambient Background Blobs -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+      <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange/20 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
+      <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-hexred/10 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
+      <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-lightBlue/20 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
     </div>
 
     <!-- Header -->
-    <header class="relative z-20 w-full px-3 md:px-12 py-3 md:py-6 flex justify-between items-center">
-      <div class="flex items-center gap-2 md:gap-4 group cursor-pointer bg-white/60 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl shadow-sm border border-white/50" @click="cancelMatchmaking">
+    <header class="relative z-20 w-full px-4 md:px-12 py-4 md:py-6 flex justify-between items-center">
+      <div class="flex items-center gap-2 md:gap-4 group cursor-pointer bg-white/70 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl shadow-sm border border-white/60" @click="cancelMatchmaking">
         <div class="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
           <svg class="w-full h-full text-orange fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
@@ -28,41 +24,24 @@
         </div>
       </div>
 
-      <div class="hidden md:flex items-center gap-2 bg-white/60 backdrop-blur-md border border-gray-200 px-4 py-2 rounded-full shadow-sm">
+      <div class="flex items-center gap-2 bg-white/70 backdrop-blur-md border border-white/60 px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-sm">
         <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-        <span class="text-[10px] font-black text-gray-500 tracking-[0.2em] uppercase">Asia-East-1 Connected</span>
-      </div>
-
-      <!-- Mobile: server status pill -->
-      <div class="flex md:hidden items-center gap-1.5 bg-white/60 backdrop-blur-md border border-gray-200 px-3 py-1.5 rounded-full shadow-sm">
-        <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-        <span class="text-[9px] font-black text-gray-500 tracking-widest uppercase">Connected</span>
+        <span class="text-[9px] md:text-xs font-black text-gray-600 tracking-widest uppercase">Connected</span>
       </div>
     </header>
 
-    <!-- Main: compact vertical layout for mobile -->
-    <main class="relative z-20 flex-1 flex flex-col lg:flex-row items-center justify-center w-full px-4 md:px-12 gap-4 md:gap-12 lg:gap-24 pb-4">
+    <!-- Main Content Container -->
+    <main class="relative z-20 flex-1 flex flex-col items-center justify-center px-4 py-4 md:py-6 w-full max-w-lg mx-auto gap-4 md:gap-6">
       
-      <!-- Radar Section: smaller on mobile -->
-      <div class="flex justify-center items-center relative flex-shrink-0">
-        <div class="absolute inset-0 bg-white/40 backdrop-blur-3xl rounded-full scale-125 shadow-[0_0_100px_rgba(251,146,60,0.15)] pointer-events-none"></div>
+      <!-- Player Profile Card -->
+      <div class="flex flex-col items-center gap-3 w-full bg-white/60 backdrop-blur-xl border border-white/80 p-5 md:p-6 rounded-3xl shadow-lg relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-orange/10 via-transparent to-transparent pointer-events-none"></div>
 
-        <div class="relative w-44 h-44 md:w-96 md:h-96 flex items-center justify-center">
-          <div class="absolute inset-0 rounded-full border-2 border-orange-400/40 radar-pulse-1 pointer-events-none"></div>
-          <div class="absolute inset-0 rounded-full border-2 border-orange-500/20 radar-pulse-2 pointer-events-none"></div>
-          <div class="absolute inset-0 rounded-full border-2 border-red-500/10 radar-pulse-3 pointer-events-none"></div>
-
-          <div class="absolute inset-0 rounded-full border-4 border-white radar-sweep-bg overflow-hidden pointer-events-none shadow-lg">
-            <div class="absolute top-1/2 left-1/2 w-full h-full radar-sweep-line origin-top-left"></div>
-          </div>
-
-          <div class="absolute w-full h-px bg-gray-300/60"></div>
-          <div class="absolute h-full w-px bg-gray-300/60"></div>
-          <div class="absolute w-32 h-32 md:w-56 md:h-56 rounded-full border-2 border-dashed border-gray-400/50"></div>
-
-          <!-- Avatar: smaller on mobile -->
-          <div class="relative z-10 w-20 h-20 md:w-44 md:h-44 rounded-full p-[4px] md:p-[6px] bg-gradient-to-tr from-orange-500 via-red-500 to-yellow-400 shadow-[0_0_50px_rgba(251,146,60,0.5)]">
-            <div class="w-full h-full rounded-full overflow-hidden bg-white border-2 md:border-4 border-white relative group">
+        <div class="relative flex items-center justify-center">
+          <div class="absolute inset-0 rounded-full bg-orange/30 animate-ping opacity-75"></div>
+          
+          <div class="relative z-10 w-24 h-24 md:w-28 md:h-28 rounded-full p-1 bg-gradient-to-tr from-orange via-hexred to-yellow-400 shadow-xl">
+            <div class="w-full h-full rounded-full overflow-hidden bg-white border-2 border-white">
               <img
                 :src="avatarUrl"
                 :alt="username"
@@ -70,72 +49,65 @@
                 @error="(e) => (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`"
               />
             </div>
-            
-            <div class="absolute -bottom-1.5 md:-bottom-2 left-1/2 transform -translate-x-1/2 bg-white border-2 border-gray-100 px-2.5 md:px-4 py-0.5 md:py-1.5 rounded-full shadow-lg whitespace-nowrap min-w-max flex items-center justify-center">
-              <p class="text-[9px] md:text-xs font-black text-orange-600 tracking-widest flex items-center gap-1">
-                ⭐ ELO: {{ elo }}
-              </p>
-            </div>
           </div>
-          <p class="mt-4 text-base md:text-xl font-black text-gray-900 uppercase tracking-wider drop-shadow-sm">
+        </div>
+
+        <div class="text-center z-10">
+          <h2 class="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-wider mb-1">
             {{ username }}
+          </h2>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-orange/10 border border-orange/20 rounded-full text-orange font-black text-xs uppercase tracking-widest">
+            <span>⭐ ELO: {{ elo }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matchmaking Status & Timer Card -->
+      <div class="flex flex-col items-center text-center gap-2 w-full bg-white/70 backdrop-blur-xl border border-white/80 p-5 md:p-6 rounded-3xl shadow-lg">
+        <div class="flex items-center gap-2 text-orange">
+          <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span class="text-xs md:text-sm font-black uppercase tracking-[0.2em]">Searching for Opponent...</span>
+        </div>
+
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Elapsed Time</p>
+        <div class="text-5xl md:text-6xl font-black font-mono tracking-tight text-gray-900 drop-shadow-sm">
+          {{ formattedElapsedTime }}
+        </div>
+      </div>
+
+      <!-- Ranked Rules Card -->
+      <div class="w-full bg-white/50 backdrop-blur-md p-4 rounded-2xl border border-white/70 shadow-sm text-left flex items-start gap-3">
+        <div class="p-2 bg-orange/10 text-orange rounded-xl flex-shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-xs font-black text-gray-900 uppercase tracking-wider mb-0.5">Ranked Matchmaking Rules</h3>
+          <p class="text-[10px] md:text-xs text-gray-500 font-medium leading-relaxed">
+            Matching with an opponent based on ELO rating (±100 variance). If no human opponent is found within 30s, an AI bot will match automatically.
           </p>
         </div>
       </div>
 
-      <!-- Info Section -->
-      <div class="flex-1 flex flex-col items-center lg:items-start w-full max-w-lg">
-        
-        <!-- Searching label -->
-        <div class="flex items-center gap-3 mb-2 md:mb-4">
-          <div class="relative flex items-center justify-center w-9 h-9 md:w-12 md:h-12 bg-white rounded-xl shadow-sm border border-gray-100">
-            <svg class="w-5 h-5 md:w-6 md:h-6 text-orange-500 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          </div>
-          <div>
-            <h2 class="text-2xl md:text-4xl font-black text-gray-900 uppercase tracking-tight">Searching</h2>
-            <p class="text-xs font-bold text-orange-500 uppercase tracking-[0.2em] animate-pulse">Finding Opponent...</p>
-          </div>
-        </div>
-
-        <div class="w-full h-px bg-gradient-to-r from-gray-200 to-transparent my-3 hidden lg:block"></div>
-
-        <!-- Timer: compact on mobile -->
-        <div class="flex flex-col items-center lg:items-start mb-3 md:mb-10">
-          <p class="text-[9px] md:text-xs font-black text-gray-400 uppercase tracking-[0.3em] mb-1">Elapsed Time</p>
-          <div class="text-[3.5rem] md:text-[7rem] leading-none font-black font-mono tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-gray-800 to-gray-400 drop-shadow-sm">
-            {{ formattedElapsedTime }}
-          </div>
-        </div>
-
-        <!-- Rules card: compact on mobile -->
-        <div class="w-full bg-white/70 backdrop-blur-md p-3 md:p-6 rounded-2xl md:rounded-3xl border border-white shadow-sm mb-3 md:mb-10 text-center lg:text-left">
-          <div class="flex items-start gap-2 md:gap-4">
-            <div class="mt-0.5 p-1.5 md:p-2 bg-blue-50 rounded-lg text-blue-500 flex-shrink-0">
-              <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </div>
-            <div>
-              <h3 class="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest mb-0.5 md:mb-1">Ranked Matchmaking Rules</h3>
-              <p class="text-[10px] md:text-xs text-gray-500 font-bold leading-relaxed">
-                System is matching you with an opponent based on ELO rating (±100 variance). If no human opponent is found within 30s, an AI Bot of similar rank will match automatically.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cancel button -->
-        <button
-          @click="cancelMatchmaking"
-          @mouseenter="audioService.playHover()"
-          class="group relative w-full lg:w-auto h-11 md:h-16 px-6 md:px-10 bg-white border-2 border-gray-200 hover:bg-red-50 hover:border-red-200 rounded-xl md:rounded-2xl text-gray-500 hover:text-red-600 font-black text-xs md:text-sm tracking-[0.2em] uppercase transition-all duration-300 shadow-sm active:scale-95 flex items-center justify-center gap-2 md:gap-3"
-        >
-          <svg class="w-4 h-4 md:w-5 md:h-5 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
-          <span>CANCEL MATCHMAKING</span>
-        </button>
-      </div>
+      <!-- Cancel Matchmaking Button -->
+      <button
+        @click="cancelMatchmaking"
+        @mouseenter="audioService.playHover()"
+        class="w-full py-3.5 md:py-4 bg-white border-2 border-gray-200 hover:bg-red-50 hover:border-red-300 text-gray-600 hover:text-hexred rounded-2xl font-black text-xs md:text-sm tracking-[0.2em] uppercase transition-all duration-200 shadow-md active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span>Cancel Matchmaking</span>
+      </button>
 
     </main>
+
+    <div class="h-2"></div>
   </div>
 </template>
 
@@ -261,7 +233,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Background Floating Animations */
 .animate-float-slow {
   animation: floatSky 12s ease-in-out infinite alternate;
 }
@@ -280,48 +251,5 @@ onUnmounted(() => {
 @keyframes pulseBlob {
   0% { transform: scale(1); opacity: 0.3; }
   100% { transform: scale(1.1); opacity: 0.5; }
-}
-
-.animate-spin-slow {
-  animation: spin 3s linear infinite;
-}
-
-/* Radar Sweep Line Animation (Cam) */
-.radar-sweep-line {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.4) 0%, rgba(249, 115, 22, 0) 60%);
-  animation: radar-spin 3s linear infinite;
-}
-
-@keyframes radar-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Pulsing Radar Ring Keyframes */
-.radar-pulse-1 {
-  animation: radar-expand 3s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
-}
-
-.radar-pulse-2 {
-  animation: radar-expand 3s cubic-bezier(0.1, 0.8, 0.3, 1) 1s infinite;
-}
-
-.radar-pulse-3 {
-  animation: radar-expand 3s cubic-bezier(0.1, 0.8, 0.3, 1) 2s infinite;
-}
-
-@keyframes radar-expand {
-  0% {
-    transform: scale(0.6);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1.4);
-    opacity: 0;
-  }
 }
 </style>
