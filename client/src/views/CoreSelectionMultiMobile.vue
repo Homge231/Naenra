@@ -325,9 +325,15 @@ function handleCardReroll(index: number) {
   activeTimeouts.add(t2)
 }
 // ── Triggers & Handlers ─────────────────────────────────────────────────────
+const isMounted = ref(true)
+
 function startTimer() {
-  if (selectionTimer) return
+  if (selectionTimer || !isMounted.value) return
   selectionTimer = setInterval(() => {
+    if (!isMounted.value) {
+      stopTimer()
+      return
+    }
     if (tutorial.isCurrentScreen('core-select')) return // Pause timer while tutorial is active
 
     if (timeLeft.value <= 1) {
@@ -347,7 +353,7 @@ function stopTimer() {
 }
 
 function triggerTimeout() {
-  if (loading.value) return
+  if (loading.value || !isMounted.value) return
 
   let coreToSubmit = selectedCore.value
 
@@ -375,6 +381,7 @@ async function fetchSupportCores() {
     })
     if (!res.ok) throw new Error('failed')
     const data = await res.json()
+    if (!isMounted.value) return
 
     supportCores.value = (data.cores ?? []).map((c: any) => ({
       id: c.id,
@@ -399,6 +406,7 @@ async function fetchSupportCores() {
 
     startTimer()
   } catch (err) {
+    if (!isMounted.value) return
     console.error('fetchSupportCores error:', err)
     errorMsg.value = 'Failed to load Support Cores.'
     loading.value = false
@@ -557,6 +565,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  isMounted.value = false
   waitingForOpponent.value = false
   stopTimer()
   if (touchTimeout) clearTimeout(touchTimeout)

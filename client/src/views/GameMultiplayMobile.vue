@@ -2611,11 +2611,9 @@ onMounted(async () => {
     }
   }
 
-  // Ensure we start a fresh match if navigating here from outside
-  if (!gameStore.sessionId) {
-    matchStore.resetMatch(4)
-  }
-  resetTimer()
+  const isMounted = ref(true)
+
+  if (!isMounted.value) return
 
   if (!gameStore.sessionId) {
     await createSession()
@@ -2623,11 +2621,18 @@ onMounted(async () => {
     sessionId.value = gameStore.sessionId
   }
 
+  if (!isMounted.value) return
+
   // Always fetch full cores list — needed for OpponentWidget history, core tooltips, and Pandora
   await fetchPandoraPool()
 
+  if (!isMounted.value) return
+
   await fetchBatch()
+  if (!isMounted.value) return
+
   await loadQuestion()
+  if (!isMounted.value) return
 
   if (gameState.value !== 'upgrade') {
     audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
@@ -2640,6 +2645,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  isMounted.value = false
   if (selfReconnectInterval) clearInterval(selfReconnectInterval)
   if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
   stopMatchTimer()
