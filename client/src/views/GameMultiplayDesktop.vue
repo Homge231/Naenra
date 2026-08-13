@@ -2049,7 +2049,6 @@ function goToUpgrade() {
 async function handleUpgradeSelected(newCoreId: string) {
   const chosenCoreId = newCoreId || gameStore.activeCoreId || ''
   if (chosenCoreId) {
-    activeCoreId.value = chosenCoreId
     gameStore.activeCoreId = chosenCoreId
     localStorage.setItem('naenra_active_core_id', chosenCoreId)
 

@@ -2067,7 +2067,6 @@ function goToUpgrade() {
 async function handleUpgradeSelected(newCoreId: string) {
   const chosenCoreId = newCoreId || gameStore.activeCoreId || ''
   if (chosenCoreId) {
-    activeCoreId.value = chosenCoreId
     gameStore.activeCoreId = chosenCoreId
     localStorage.setItem('naenra_active_core_id', chosenCoreId)
 
@@ -2565,6 +2564,8 @@ function setupRoomEventHandlers(room: any) {
   })
 }
 
+const isMounted = ref(true)
+
 onMounted(async () => {
   matchStore.maxRounds = 4
 
@@ -2610,8 +2611,6 @@ onMounted(async () => {
       return
     }
   }
-
-  const isMounted = ref(true)
 
   if (!isMounted.value) return
 
