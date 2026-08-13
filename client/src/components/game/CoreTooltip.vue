@@ -20,13 +20,24 @@ const props = withDefaults(
     isLocked?: boolean
     missionText?: string
     position?: 'top' | 'bottom'
+    isMobile?: boolean
+    showClose?: boolean
+    showEvolutionBtn?: boolean
   }>(),
   {
     isLocked: false,
     missionText: '',
-    position: 'top'
+    position: 'top',
+    isMobile: false,
+    showClose: false,
+    showEvolutionBtn: false
   }
 )
+
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'viewEvolution'): void
+}>()
 
 const missionsStore = useMissionsStore()
 
@@ -219,51 +230,61 @@ const stats = computed(() => {
 
 <template>
   <div 
-    class="absolute z-[9999] left-1/2 -translate-x-1/2 w-[350px] max-w-[90vw] p-5 rounded-2xl border-2 text-left flex flex-col gap-4 transition-all duration-300 pointer-events-none select-none bg-slate-950 shadow-2xl"
+    class="relative z-[9999] w-full max-w-[320px] sm:max-w-[340px] p-3.5 sm:p-4 rounded-2xl border-2 text-left flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 select-none bg-slate-950 shadow-2xl overflow-hidden"
     :class="[
       isCoreLocked ? 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.4)]' : currentConfig.border,
-      position === 'bottom' ? 'top-full mt-3' : 'bottom-full mb-6'
+      !isMobile && position === 'bottom' ? 'top-full mt-3' : (!isMobile ? 'bottom-full mb-6' : '')
     ]"
   >
+    <!-- Close Button (Visible when isMobile or showClose is true) -->
+    <button 
+      v-if="isMobile || showClose"
+      @click.stop="emit('close')"
+      class="absolute top-2.5 right-2.5 text-gray-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-700 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-colors cursor-pointer z-20 pointer-events-auto"
+      title="Close Details"
+    >
+      ✕
+    </button>
+
     <!-- 🔒 LOCKED POPUP CONTENT (Replaces upgrade stats until unlocked) -->
     <template v-if="isCoreLocked">
-      <div class="flex items-start justify-between border-b border-red-900/60 pb-3">
-        <div class="flex flex-col gap-1">
+      <div class="flex items-start justify-between border-b border-red-900/60 pb-2.5 pr-6">
+        <div class="flex flex-col gap-0.5">
           <div class="flex items-center gap-1.5 text-red-400">
-            <span class="text-base">🔒</span>
-            <h4 class="text-white text-base font-black tracking-wide uppercase">
+            <span class="text-sm">🔒</span>
+            <h4 class="text-white text-sm font-black tracking-wide uppercase">
               {{ core.name }}
             </h4>
           </div>
-          <span class="text-[10px] font-bold text-red-300/80 uppercase tracking-widest">
+          <span class="text-[9px] font-bold text-red-300/80 uppercase tracking-widest">
             Tier {{ tierRoman }} Core • LOCKED
           </span>
         </div>
-        <span class="px-2.5 py-1 rounded-full bg-red-950 border border-red-700 text-[9px] font-black uppercase tracking-widest text-red-300 animate-pulse">
+        <span class="px-2 py-0.5 rounded-full bg-red-950 border border-red-700 text-[8px] font-black uppercase tracking-widest text-red-300 animate-pulse">
           Locked
         </span>
       </div>
 
       <!-- Mission Progress & Details Box -->
-      <div class="flex flex-col gap-3 p-3.5 rounded-xl bg-red-950/70 border border-red-600/80 text-red-100">
-        <div class="flex items-center justify-between text-xs font-black uppercase tracking-wider text-red-300">
-          <span class="flex items-center gap-1.5">🎯 Mission Requirement</span>
-          <span class="text-[10px] bg-red-900/90 px-2 py-0.5 rounded text-white">
+      <div class="flex flex-col gap-2 p-3 rounded-xl bg-red-950/70 border border-red-600/80 text-red-100">
+        <div class="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-red-300">
+          <span class="flex items-center gap-1">🎯 Mission Requirement</span>
+          <span class="text-[9px] bg-red-900/90 px-1.5 py-0.5 rounded text-white">
             {{ relatedMission ? `${relatedMission.currentProgress}/${relatedMission.targetCount}` : 'Required' }}
           </span>
         </div>
 
-        <p class="text-xs font-bold text-red-100 leading-relaxed">
+        <p class="text-[11px] font-bold text-red-100 leading-snug">
           {{ relatedMission?.description || props.missionText || props.core.missionText || `Complete the gameplay mission challenge to unlock ${core.name}.` }}
         </p>
 
         <!-- Mission Progress Bar -->
-        <div v-if="relatedMission" class="flex flex-col gap-1 mt-1">
-          <div class="flex justify-between text-[10px] font-black text-red-300">
+        <div v-if="relatedMission" class="flex flex-col gap-1 mt-0.5">
+          <div class="flex justify-between text-[9px] font-black text-red-300">
             <span>Mission Progress</span>
             <span>{{ Math.round((relatedMission.currentProgress / relatedMission.targetCount) * 100) }}%</span>
           </div>
-          <div class="w-full h-2.5 bg-red-950 rounded-full overflow-hidden p-0.5 border border-red-800">
+          <div class="w-full h-2 bg-red-950 rounded-full overflow-hidden p-0.5 border border-red-800">
             <div 
               class="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"
               :style="{ width: `${Math.min(100, (relatedMission.currentProgress / relatedMission.targetCount) * 100)}%` }"
@@ -272,47 +293,47 @@ const stats = computed(() => {
         </div>
       </div>
 
-      <div class="p-2.5 rounded-xl bg-slate-900 border border-red-900/50 text-[11px] font-bold text-gray-300 leading-relaxed flex items-center gap-2">
-        <span class="text-base shrink-0">💡</span>
-        <span>Complete & claim this mission in <strong class="text-orange-400">Missions Dashboard</strong> to view full stats & unlock this Core!</span>
+      <div class="p-2 rounded-xl bg-slate-900 border border-red-900/50 text-[10px] font-bold text-gray-300 leading-snug flex items-center gap-1.5">
+        <span class="text-sm shrink-0">💡</span>
+        <span>Complete & claim in <strong class="text-orange-400">Missions Dashboard</strong> to unlock!</span>
       </div>
     </template>
 
     <!-- ✨ UNLOCKED UPGRADE DETAILS (Shown ONLY after core is unlocked) -->
     <template v-else>
-      <div class="flex items-start justify-between border-b border-slate-700 pb-3">
-        <div class="flex flex-col gap-1">
-          <h4 class="text-white text-base font-black tracking-wide uppercase">
+      <div class="flex items-start justify-between border-b border-slate-700/80 pb-2.5 pr-6">
+        <div class="flex flex-col gap-0.5">
+          <h4 class="text-white text-sm font-black tracking-wide uppercase">
             {{ core.name }}
           </h4>
-          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
             Tier {{ tierRoman }} Core
           </span>
           <span
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border-2 text-[9px] font-black uppercase tracking-widest w-fit mt-0.5"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest w-fit mt-0.5"
             :class="[traitConfig.color, traitConfig.bg]"
           >
             {{ traitConfig.icon }} {{ traitConfig.label }}
           </span>
         </div>
-        <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border-2 border-slate-700 text-[9px] font-bold uppercase tracking-widest text-gray-300">
+        <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[8px] font-bold uppercase tracking-widest text-gray-300">
           <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="currentConfig.dot"></span>
           {{ currentConfig.displayName }}
         </span>
       </div>
 
-      <div class="grid grid-cols-3 gap-2 py-1">
-        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-2 py-2 rounded-lg border border-slate-700">
+      <div class="grid grid-cols-3 gap-1.5 py-0.5">
+        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-1.5 py-1.5 rounded-lg border border-slate-800">
           <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Multiplier</span>
-          <span class="text-sm font-black text-white font-mono flex-1 flex items-center">{{ stats.multiplier }}</span>
+          <span class="text-xs font-black text-white font-mono flex-1 flex items-center">{{ stats.multiplier }}</span>
         </div>
-        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-2 py-2 rounded-lg border border-slate-700">
+        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-1.5 py-1.5 rounded-lg border border-slate-800">
           <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Flat Buff</span>
-          <span class="text-sm font-black text-white font-mono flex-1 flex items-center">{{ stats.flat }}</span>
+          <span class="text-xs font-black text-white font-mono flex-1 flex items-center">{{ stats.flat }}</span>
         </div>
-        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-1 py-2 rounded-lg border border-slate-700">
+        <div class="flex flex-col gap-0.5 items-center bg-slate-900 px-1 py-1.5 rounded-lg border border-slate-800">
           <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wider text-center">Mistakes</span>
-          <span class="text-[10px] leading-tight font-black font-mono text-center flex-1 flex items-center justify-center" 
+          <span class="text-[9px] leading-tight font-black font-mono text-center flex-1 flex items-center justify-center" 
                 :class="stats.penalty !== 'Standard' ? 'text-orange-400' : 'text-gray-300'">
             {{ stats.penalty }}
           </span>
@@ -320,34 +341,45 @@ const stats = computed(() => {
       </div>
 
       <div
-        class="flex items-start gap-2 px-3 py-2 rounded-xl border-2 text-[10px] leading-relaxed"
+        class="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg border text-[9px] leading-snug"
         :class="[traitConfig.color, traitConfig.bg]"
       >
-        <span class="mt-0.5 shrink-0">{{ traitConfig.icon }}</span>
+        <span class="shrink-0">{{ traitConfig.icon }}</span>
         <span class="text-gray-200">{{ traitConfig.desc }}</span>
       </div>
 
-      <div class="flex flex-col gap-1.5 text-xs text-gray-300 leading-relaxed">
-        <p class="font-bold text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Tactical Description</p>
-        <p class="italic text-gray-400 mb-1">
+      <div class="flex flex-col gap-1 text-[11px] text-gray-300 leading-snug">
+        <p class="font-bold text-[8px] text-gray-400 uppercase tracking-widest">Tactical Description</p>
+        <p class="italic text-gray-400 text-[10px]">
           "{{ core.description }}"
         </p>
-        <div v-if="stats.mechanic" class="p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-[11px] leading-relaxed text-blue-300">
+        <div v-if="stats.mechanic" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[10px] leading-snug text-blue-300">
           {{ stats.mechanic }}
         </div>
       </div>
+
+      <button 
+        v-if="showEvolutionBtn"
+        @click.stop="emit('viewEvolution')"
+        class="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 hover:brightness-110 text-white font-black text-[11px] uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1 pointer-events-auto"
+      >
+        <span>View Evolution Paths</span>
+        <span class="text-sm">➔</span>
+      </button>
     </template>
 
-    <!-- Pointer arrow -->
-    <div 
-      v-if="position === 'bottom'"
-      class="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px]"
-      :class="isCoreLocked ? 'border-b-red-500' : currentConfig.pointerBorder.replace('border-t-', 'border-b-')"
-    ></div>
-    <div 
-      v-else
-      class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px]"
-      :class="isCoreLocked ? 'border-t-red-500' : currentConfig.pointerBorder"
-    ></div>
+    <!-- Pointer arrow (only on desktop non-mobile) -->
+    <template v-if="!isMobile">
+      <div 
+        v-if="position === 'bottom'"
+        class="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px]"
+        :class="isCoreLocked ? 'border-b-red-500' : currentConfig.pointerBorder.replace('border-t-', 'border-b-')"
+      ></div>
+      <div 
+        v-else
+        class="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px]"
+        :class="isCoreLocked ? 'border-t-red-500' : currentConfig.pointerBorder"
+      ></div>
+    </template>
   </div>
 </template>

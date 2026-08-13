@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col justify-between items-center">
+  <div class="min-h-screen md:h-screen w-full bg-[#fff8f5] text-gray-800 overflow-y-auto md:overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col justify-between items-center pb-6 md:pb-0">
     
     <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
       <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
@@ -17,48 +17,48 @@
       </div>
     </div>
 
-    <header class="relative z-20 w-full flex justify-between items-center p-4 lg:px-8">
+    <header class="relative z-20 w-full flex justify-between items-center p-3 md:p-4 lg:px-8">
       
-      <div class="flex items-center gap-4 group bg-white/60 backdrop-blur-md px-4 py-2 rounded-2xl shadow-sm border border-white/50">
-        <div class="w-12 h-12 flex items-center justify-center">
+      <div class="flex items-center gap-2 md:gap-4 group bg-white/60 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-xl md:rounded-2xl shadow-sm border border-white/50">
+        <div class="w-8 h-8 md:w-12 md:h-12 flex items-center justify-center">
           <svg class="w-full h-full text-orange-500 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
         </div>
         <div class="leading-none">
-          <h1 class="text-3xl font-black mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 drop-shadow-sm uppercase">
+          <h1 class="text-xl md:text-3xl font-black mb-0.5 md:mb-1 tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 drop-shadow-sm uppercase">
             NAENRA
           </h1>
-          <p class="text-[10px] text-blue-500 font-bold tracking-[0.3em] uppercase">MATCH FOUND ARENA</p>
+          <p class="text-[8px] md:text-[10px] text-blue-500 font-bold tracking-[0.3em] uppercase">MATCH FOUND ARENA</p>
         </div>
       </div>
 
-      <div class="inline-flex items-center gap-2.5 bg-green-50 border border-green-200 px-5 py-2 rounded-full shadow-sm">
-        <span class="w-3 h-3 rounded-full bg-green-500 animate-ping"></span>
-        <span class="text-[10px] font-black text-green-600 tracking-[0.25em] uppercase hidden sm:block">Opponent Connected</span>
+      <div class="inline-flex items-center gap-2 md:gap-2.5 bg-green-50 border border-green-200 px-3 md:px-5 py-1.5 md:py-2 rounded-full shadow-sm">
+        <span class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500 animate-ping"></span>
+        <span class="text-[9px] md:text-[10px] font-black text-green-600 tracking-[0.25em] uppercase hidden sm:block">Opponent Connected</span>
       </div>
     </header>
 
-    <main class="relative z-20 my-auto flex flex-col items-center justify-center w-full max-w-5xl px-4 lg:px-8">
+    <main class="relative z-20 my-auto flex flex-col items-center justify-center w-full max-w-5xl px-3 md:px-8 py-2 md:py-0">
       
-      <div class="text-center mb-8 animate-bounce-slow">
-        <h2 class="text-5xl md:text-7xl font-black italic uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-br from-gray-900 via-orange-500 to-red-600 drop-shadow-md">
+      <div class="text-center mb-3 md:mb-8 animate-bounce-slow">
+        <h2 class="text-3xl sm:text-5xl md:text-7xl font-black italic uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-br from-gray-900 via-orange-500 to-red-600 drop-shadow-md">
           MATCH FOUND
         </h2>
-        <p class="text-xs md:text-sm text-gray-500 font-mono font-black tracking-[0.3em] uppercase mt-3 bg-white/50 inline-block px-4 py-1 rounded-full border border-gray-200">
+        <p class="text-[10px] md:text-sm text-gray-500 font-mono font-black tracking-[0.2em] md:tracking-[0.3em] uppercase mt-1 md:mt-3 bg-white/50 inline-block px-3 md:px-4 py-0.5 md:py-1 rounded-full border border-gray-200">
           &gt; PREPARE FOR 1V1 TYPING BATTLE
         </p>
       </div>
 
-      <div class="w-full grid grid-cols-1 md:grid-cols-11 gap-6 items-center bg-white/80 backdrop-blur-xl border-2 border-white rounded-[2.5rem] p-6 md:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)] relative overflow-hidden">
+      <div class="w-full grid grid-cols-1 md:grid-cols-11 gap-3 md:gap-6 items-center bg-white/80 backdrop-blur-xl border-2 border-white rounded-2xl md:rounded-[2.5rem] p-3.5 md:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.08)] relative overflow-hidden">
         
-        <div class="md:col-span-5 flex flex-col items-center text-center p-8 bg-gray-50/50 border-2 border-orange-100 rounded-3xl relative group hover:border-orange-300 transition-colors transform hover:-translate-y-2 duration-300 shadow-sm">
-          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[10px] font-black tracking-widest px-4 py-1 rounded-full uppercase shadow-md border-2 border-white">
+        <div class="md:col-span-5 flex flex-col items-center text-center p-3.5 md:p-8 bg-gray-50/50 border-2 border-orange-100 rounded-2xl md:rounded-3xl relative group hover:border-orange-300 transition-colors transform hover:-translate-y-1 md:hover:-translate-y-2 duration-300 shadow-sm">
+          <div class="absolute -top-3.5 md:-top-4 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-[9px] md:text-[10px] font-black tracking-widest px-3 md:px-4 py-0.5 md:py-1 rounded-full uppercase shadow-md border-2 border-white">
             YOU
           </div>
           
-          <div class="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-[6px] bg-gradient-to-tr from-orange-400 to-red-500 shadow-[0_0_40px_rgba(251,146,60,0.3)] mb-5">
-            <div class="w-full h-full rounded-full overflow-hidden bg-white border-4 border-white">
+          <div class="relative w-20 h-20 sm:w-28 sm:h-28 md:w-40 md:h-40 rounded-full p-[4px] md:p-[6px] bg-gradient-to-tr from-orange-400 to-red-500 shadow-[0_0_40px_rgba(251,146,60,0.3)] mb-2 md:mb-5 mt-1 md:mt-0">
+            <div class="w-full h-full rounded-full overflow-hidden bg-white border-2 md:border-4 border-white">
               <img
                 :src="myAvatarUrl"
                 :alt="myUsername"
@@ -68,38 +68,38 @@
             </div>
           </div>
 
-          <h3 class="text-2xl font-black tracking-wider text-gray-900 mb-2 uppercase truncate max-w-full">
+          <h3 class="text-base sm:text-xl md:text-2xl font-black tracking-wider text-gray-900 mb-1 md:mb-2 uppercase truncate max-w-full">
             {{ myUsername }}
           </h3>
-          <div class="inline-flex items-center gap-1.5 text-sm font-mono font-black text-orange-600 bg-orange-50 px-4 py-1.5 rounded-xl border border-orange-200">
+          <div class="inline-flex items-center gap-1.5 text-xs md:text-sm font-mono font-black text-orange-600 bg-orange-50 px-3 md:px-4 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-orange-200">
             <span>ELO: {{ myElo }}</span>
           </div>
         </div>
 
-        <div class="md:col-span-1 flex flex-col items-center justify-center my-6 md:my-0">
+        <div class="md:col-span-1 flex flex-col items-center justify-center my-1 md:my-0">
           <div class="relative flex items-center justify-center">
-            <span class="text-6xl md:text-8xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-orange-500 via-red-500 to-red-700 drop-shadow-md select-none transform -skew-x-12">
+            <span class="text-4xl md:text-8xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-orange-500 via-red-500 to-red-700 drop-shadow-md select-none transform -skew-x-12">
               VS
             </span>
           </div>
 
-          <div class="mt-8 flex flex-col items-center">
-            <div class="w-20 h-20 md:w-24 md:h-24 rounded-full border-8 border-gray-100 border-t-orange-500 flex items-center justify-center bg-white shadow-lg animate-[spin_2s_linear_infinite]">
-              <span class="text-4xl md:text-5xl font-black font-mono text-gray-900 animate-[spin_2s_linear_infinite_reverse]">
+          <div class="mt-2 md:mt-8 flex flex-col items-center">
+            <div class="w-12 h-12 md:w-24 md:h-24 rounded-full border-4 md:border-8 border-gray-100 border-t-orange-500 flex items-center justify-center bg-white shadow-lg animate-[spin_2s_linear_infinite]">
+              <span class="text-xl md:text-5xl font-black font-mono text-gray-900 animate-[spin_2s_linear_infinite_reverse]">
                 {{ countdown }}
               </span>
             </div>
-            <span class="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase mt-4">STARTING IN</span>
+            <span class="text-[8px] md:text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase mt-1 md:mt-4">STARTING IN</span>
           </div>
         </div>
 
-        <div class="md:col-span-5 flex flex-col items-center text-center p-8 bg-gray-50/50 border-2 border-blue-100 rounded-3xl relative group hover:border-blue-300 transition-colors transform hover:-translate-y-2 duration-300 shadow-sm">
-          <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[10px] font-black tracking-widest px-4 py-1 rounded-full uppercase shadow-md border-2 border-white">
+        <div class="md:col-span-5 flex flex-col items-center text-center p-3.5 md:p-8 bg-gray-50/50 border-2 border-blue-100 rounded-2xl md:rounded-3xl relative group hover:border-blue-300 transition-colors transform hover:-translate-y-1 md:hover:-translate-y-2 duration-300 shadow-sm">
+          <div class="absolute -top-3.5 md:-top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-[9px] md:text-[10px] font-black tracking-widest px-3 md:px-4 py-0.5 md:py-1 rounded-full uppercase shadow-md border-2 border-white">
             OPPONENT
           </div>
 
-          <div class="relative w-32 h-32 md:w-40 md:h-40 rounded-full p-[6px] bg-gradient-to-tr from-cyan-400 to-blue-500 shadow-[0_0_40px_rgba(59,130,246,0.3)] mb-5">
-            <div class="w-full h-full rounded-full overflow-hidden bg-white border-4 border-white">
+          <div class="relative w-20 h-20 sm:w-28 sm:h-28 md:w-40 md:h-40 rounded-full p-[4px] md:p-[6px] bg-gradient-to-tr from-cyan-400 to-blue-500 shadow-[0_0_40px_rgba(59,130,246,0.3)] mb-2 md:mb-5 mt-1 md:mt-0">
+            <div class="w-full h-full rounded-full overflow-hidden bg-white border-2 md:border-4 border-white">
               <img
                 :src="opponentAvatarUrl"
                 :alt="opponentUsername"
@@ -109,10 +109,10 @@
             </div>
           </div>
 
-          <h3 class="text-2xl font-black tracking-wider text-gray-900 mb-2 uppercase truncate max-w-full">
+          <h3 class="text-base sm:text-xl md:text-2xl font-black tracking-wider text-gray-900 mb-1 md:mb-2 uppercase truncate max-w-full">
             {{ opponentUsername }}
           </h3>
-          <div class="inline-flex items-center gap-1.5 text-sm font-mono font-black text-blue-600 bg-blue-50 px-4 py-1.5 rounded-xl border border-blue-200">
+          <div class="inline-flex items-center gap-1.5 text-xs md:text-sm font-mono font-black text-blue-600 bg-blue-50 px-3 md:px-4 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-blue-200">
             <span>ELO: {{ opponentElo }}</span>
           </div>
         </div>
@@ -120,8 +120,8 @@
       </div>
     </main>
 
-    <div class="relative z-20 flex justify-center pb-4">
-      <footer class="text-center text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase bg-white/60 py-2 px-6 rounded-full border border-gray-200/50 backdrop-blur-sm shadow-sm">
+    <div class="relative z-20 flex justify-center pb-2 md:pb-4">
+      <footer class="text-center text-[8px] md:text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase bg-white/60 py-1.5 md:py-2 px-4 md:px-6 rounded-full border border-gray-200/50 backdrop-blur-sm shadow-sm">
         SERVER: ASIA-EAST-1 &nbsp;&bull;&nbsp; PROTOCOL: WS / COLYSEUS 0.17
       </footer>
     </div>

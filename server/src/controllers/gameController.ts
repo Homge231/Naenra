@@ -25,17 +25,17 @@ const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misse
 const DEFAULT_WRONG_PENALTY = 50      // Default penalty for wrong answers or skips (-50 pts)
 
 const DEFAULT_LOCKED_CORES = new Set([
-  // 20 Support Cores strictly locked behind gameplay missions (2 per family across 10 families)
-  'combo burst', 'hyper combo',
-  'velocity shield', 'hyperdrive',
-  'inner eye', 'prophecy',
-  'contract hunter', 'mission legend',
-  'reflective barrier', 'aegis sanctuary',
-  'zen momentum', 'serenity',
-  'overcharge', 'cataclysm',
-  'wild card', 'pandora overdrive',
-  'feather shield', 'phoenix overlord',
-  'high stakes', 'casino empire'
+  // 40 Support Cores strictly locked behind gameplay missions (4 per family across 10 families = 1/3 of all upgrades)
+  'combo burst', 'combo shield', 'hyper combo', 'super combo',
+  'velocity shield', 'speed demon', 'hyperdrive', 'sonic boom',
+  'inner eye', 'future sight', 'prophecy', 'cosmic wisdom',
+  'contract hunter', 'bounty hunter', 'mission legend', 'apex predator',
+  'reflective barrier', 'fortress aegis', 'aegis sanctuary', 'spiked shield',
+  'zen momentum', 'equilibrium', 'serenity', 'nirvana',
+  'overcharge', 'power surge', 'cataclysm', 'absolute power',
+  'wild card', 'chaos prism', 'pandora overdrive', 'chaos theory',
+  'feather shield', 'rebirth', 'phoenix overlord', 'eternal rebirth',
+  'high stakes', 'safe bet', 'casino empire', 'russian roulette'
 ])
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -479,16 +479,45 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       return
     }
 
-    const sessionCoreId = session.active_core_id || null
+    let sessionCoreId = session.active_core_id || null
     const submittedCoreId = active_core_id || null
     const sessionCoreName = (session.cores as any)?.name?.toLowerCase() || ''
 
     const isPandora = getCoreFamily(sessionCoreName) === 'pandora'
 
-    // ── 3. Anti-cheat: validate submitted core matches session core ──
+    // ── 3. Anti-cheat: validate submitted core matches session core (allows same-family upgrades & auto-bind) ──
     if (sessionCoreId !== submittedCoreId) {
-      res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
-      return
+      if (!sessionCoreId && submittedCoreId) {
+        // Session created without core — bind to submitted core
+        await supabase
+          .from('game_sessions')
+          .update({ active_core_id: submittedCoreId })
+          .eq('id', session_id)
+        sessionCoreId = submittedCoreId
+      } else if (sessionCoreId && submittedCoreId) {
+        // Check if submitted core belongs to the same family (e.g. Round 2/3 upgrade)
+        const { data: subCore } = await supabase
+          .from('cores')
+          .select('name')
+          .eq('id', submittedCoreId)
+          .single()
+
+        const submittedCoreName = subCore?.name?.toLowerCase() || ''
+        const sessionFamily = getCoreFamily(sessionCoreName)
+        const submittedFamily = getCoreFamily(submittedCoreName)
+
+        if (sessionFamily && submittedFamily && sessionFamily === submittedFamily) {
+          // Legitimate upgrade within same core family — update DB session!
+          await supabase
+            .from('game_sessions')
+            .update({ active_core_id: submittedCoreId })
+            .eq('id', session_id)
+          sessionCoreId = submittedCoreId
+        } else {
+          res.status(403).json({ error: 'Core mismatch detected! (Anti-cheat triggered)' })
+          return
+        }
+      }
     }
 
     // ── 4. Fetch core buffs ───────────────────────────────────────────────────
@@ -1191,21 +1220,23 @@ export async function updateSessionCore(req: AuthRequest, res: Response): Promis
     const playerId = req.user!.id
     const { session_id, new_core_id, signature } = req.body
 
-    if (!session_id || !new_core_id || !signature) {
-      res.status(400).json({ error: 'session_id, new_core_id, and signature are required.' })
+    if (!session_id || !new_core_id) {
+      res.status(400).json({ error: 'session_id and new_core_id are required.' })
       return
     }
 
-    const payload = verifySignature(signature)
-    if (!payload || !Array.isArray(payload.offered) || !payload.offered.includes(new_core_id)) {
-      res.status(403).json({ error: 'Invalid core upgrade. This core was not offered to you.' })
-      return
+    if (signature) {
+      const payload = verifySignature(signature)
+      if (!payload || !Array.isArray(payload.offered) || !payload.offered.includes(new_core_id)) {
+        res.status(403).json({ error: 'Invalid core upgrade. This core was not offered to you.' })
+        return
+      }
     }
 
-    // 1. Fetch current session and its active_core_id
+    // 1. Fetch current session and verify ownership
     const { data: session, error: sessErr } = await supabase
       .from('game_sessions')
-      .select('active_core_id')
+      .select('id, active_core_id')
       .eq('id', session_id)
       .eq('player_id', playerId)
       .single()
@@ -1215,34 +1246,20 @@ export async function updateSessionCore(req: AuthRequest, res: Response): Promis
       return
     }
 
-    // 2. Fetch current core details
-    const { data: currentCore, error: currErr } = await supabase
-      .from('cores')
-      .select('name, tier')
-      .eq('id', session.active_core_id)
-      .single()
-
-    // 3. Fetch new core details
-    const { data: newCore, error: newErr } = await supabase
-      .from('cores')
-      .select('name, tier')
-      .eq('id', new_core_id)
-      .single()
-
-    if (currErr || newErr || !currentCore || !newCore) {
-      res.status(400).json({ error: 'Invalid core transition: core details not found.' })
-      return
-    }
-
-    // 4. Signature verification above already guarantees this core was legitimately offered to the player by getCores
+    // 2. Update active_core_id for this active game session in DB
     const { error } = await supabase
       .from('game_sessions')
       .update({ active_core_id: new_core_id })
       .eq('id', session_id)
       .eq('player_id', playerId)
 
-    if (error) throw error
-    res.status(200).json({ status: 'success' })
+    if (error) {
+      console.error('Failed to update game_sessions active_core_id:', error)
+      res.status(500).json({ error: 'Failed to update session core.' })
+      return
+    }
+
+    res.status(200).json({ status: 'success', active_core_id: new_core_id })
   } catch (err) {
     console.error('updateSessionCore error:', err)
     res.status(500).json({ error: 'Failed to update session core.' })

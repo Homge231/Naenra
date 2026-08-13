@@ -108,18 +108,18 @@
               :key="upgrade.id"
               @mouseenter="handleMouseEnter(); showTooltip($event, upgrade)"
               @mouseleave="hideTooltip"
-              @touchstart="showTooltip($event, upgrade)"
-              @touchend="hideTooltip"
-              @click="triggerCardFlip(index)"
-              class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative"
+              @click="handleCardInteraction($event, upgrade, index)"
+              class="group backdrop-blur-xl border-2 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm transition-all duration-300 flex flex-col h-full cursor-pointer relative overflow-hidden"
               :class="[
-                upgrade.isLocked ? 'opacity-60 grayscale-[40%]' : '',
+                upgrade.isLocked 
+                  ? 'bg-red-950/10 border-red-500/40 opacity-80 grayscale-[30%] hover:border-red-500' 
+                  : 'bg-white/80 border-white hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] hover:-translate-y-2',
                 isFlipping(index) ? 'card-flip-anim' : ''
               ]"
             >
               <!-- Top row: icon (left) + round badge (right) — matches library layout -->
               <div class="flex justify-between items-start mb-3 md:mb-6">
-                <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all">
+                <div class="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all flex-shrink-0" :class="{ 'grayscale opacity-60': upgrade.isLocked }">
                   <div class="w-full h-full bg-white rounded-[10px] md:rounded-[14px] flex items-center justify-center overflow-hidden">
                     <img 
                       :src="resolveIcon(upgrade)" 
@@ -128,32 +128,65 @@
                       class="w-7 h-7 md:w-10 md:h-10 object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" 
                     />
                   </div>
+                  <!-- Padlock Overlay -->
+                  <div v-if="upgrade.isLocked" class="absolute inset-0 rounded-xl md:rounded-2xl bg-black/70 backdrop-blur-[2px] flex items-center justify-center border-2 border-red-500/60 shadow-inner">
+                    <svg class="w-6 h-6 md:w-8 md:h-8 text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
                 </div>
 
                 <!-- Round badge (same style as category pill in library) -->
                 <div :class="[
-                  'px-2 md:px-3 py-0.5 md:py-1 rounded-full border shadow-sm flex items-center gap-1',
-                  upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange'
+                  'px-2 md:px-3 py-0.5 md:py-1 rounded-full border shadow-sm flex items-center gap-1 font-bold',
+                  upgrade.isLocked 
+                    ? 'bg-red-500/15 border-red-500/40 text-red-500' 
+                    : (upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange')
                 ]">
-                  <span v-if="upgrade.isLocked" class="text-[9px]" title="Core Locked">🔒</span>
+                  <span v-if="upgrade.isLocked" class="text-[9px] md:text-[10px]">🔒</span>
                   <span class="text-[9px] md:text-[10px] font-black tracking-widest uppercase">Round {{ upgrade.computedTier || 2 }}</span>
                 </div>
               </div>
 
               <!-- Name + divider + description -->
               <div class="flex-1 flex flex-col">
-                <h4 class="text-sm md:text-xl font-black text-gray-900 uppercase tracking-wide mb-1 md:mb-2 group-hover:text-orange transition-colors leading-tight">
-                  {{ upgrade.name }}
+                <h4 class="text-sm md:text-xl font-black text-gray-900 uppercase tracking-wide mb-1 md:mb-2 group-hover:text-orange transition-colors leading-tight flex items-center gap-1.5" :class="{ 'text-red-600': upgrade.isLocked }">
+                  <span>{{ upgrade.name }}</span>
+                  <span v-if="upgrade.isLocked" class="text-xs text-red-500 font-bold" title="Locked by Mission">🔒</span>
                 </h4>
                 
-                <div class="w-8 md:w-10 h-0.5 md:h-1 bg-gray-200 rounded-full mb-2 md:mb-4 group-hover:w-12 md:group-hover:w-16 group-hover:bg-orange transition-all duration-300"></div>
+                <div class="w-8 md:w-10 h-0.5 md:h-1 rounded-full mb-2 md:mb-4 transition-all duration-300" :class="upgrade.isLocked ? 'bg-red-300' : 'bg-gray-200 group-hover:w-12 md:group-hover:w-16 group-hover:bg-orange'"></div>
 
-                <p class="text-[11px] md:text-sm font-bold text-gray-500 leading-relaxed flex-1 hidden md:block">
+                <p v-if="!upgrade.isLocked" class="text-[11px] md:text-sm font-bold text-gray-500 leading-relaxed flex-1 hidden md:block">
                   {{ getCoreDescription(upgrade) }}
                 </p>
-                <p class="text-[10px] font-semibold text-gray-400 leading-snug flex-1 md:hidden line-clamp-2">
+                <p v-if="!upgrade.isLocked" class="text-[10px] font-semibold text-gray-400 leading-snug flex-1 md:hidden line-clamp-2">
                   {{ getCoreDescription(upgrade) }}
                 </p>
+
+                <!-- Red Banner for Locked Cores -->
+                <div v-else class="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-2 md:p-3 text-center mt-auto">
+                  <p class="text-[9px] font-black uppercase tracking-wider text-red-500 mb-0.5 flex items-center justify-center gap-1">
+                    <svg class="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    🔒 Mission Required
+                  </p>
+                  <p class="text-[10px] md:text-xs font-bold text-red-600 leading-snug">
+                    {{ upgrade.missionText || 'Complete gameplay missions to unlock.' }}
+                  </p>
+                </div>
+
+                <!-- Mobile Tap for Details footer -->
+                <div v-if="isMobileScreen" class="mt-3 pt-2 border-t border-gray-100/80 flex items-center justify-between text-[9px] font-bold text-gray-400">
+                  <span class="flex items-center gap-1 group-hover:text-orange transition-colors">
+                    <svg class="w-3 h-3 text-orange animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Tap for Details</span>
+                  </span>
+                  <span class="text-orange font-black group-hover:translate-x-0.5 transition-transform">➔</span>
+                </div>
               </div>
             </div>
 
@@ -175,19 +208,42 @@
       </div>
     </div>
 
-    <!-- Hover Tooltip Container -->
-    <div 
-      v-if="isTooltipVisible && hoveredCore"
-      class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
-      :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
-    >
-      <CoreTooltip 
-        v-if="formattedTooltipCore" 
-        :core="formattedTooltipCore" 
-        :isLocked="formattedTooltipCore.isLocked" 
-        :missionText="formattedTooltipCore.missionText" 
-      />
-    </div>
+    <!-- Hover Tooltip Container (Desktop) & Bottom Sheet Modal (Mobile) -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <!-- Mobile Bottom Sheet Modal (Opened via explicit tap on mobile) -->
+        <div 
+          v-if="isTooltipVisible && hoveredCore && isMobileScreen"
+          class="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in"
+          @click="hideTooltip"
+        >
+          <div class="relative w-full max-w-sm pointer-events-auto" @click.stop>
+            <CoreTooltip 
+              v-if="formattedTooltipCore" 
+              :core="formattedTooltipCore" 
+              :isLocked="formattedTooltipCore.isLocked" 
+              :missionText="formattedTooltipCore.missionText" 
+              :isMobile="true"
+              @close="hideTooltip"
+            />
+          </div>
+        </div>
+
+        <!-- Desktop Hover Tooltip -->
+        <div 
+          v-else-if="isTooltipVisible && hoveredCore"
+          class="fixed z-[9999] pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
+          :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
+        >
+          <CoreTooltip 
+            v-if="formattedTooltipCore" 
+            :core="formattedTooltipCore" 
+            :isLocked="formattedTooltipCore.isLocked" 
+            :missionText="formattedTooltipCore.missionText" 
+          />
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Floating Scroll To Top Button -->
     <ScrollToTopButton />
@@ -200,7 +256,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../services/audioService'
 import { useCardTilt } from '../composables/useCardTilt'
+import { useDeviceMode } from '../composables/useDeviceMode'
 
+const { isMobileScreen, isTouchDevice } = useDeviceMode()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useAuthStore } from '../stores/authStore'
@@ -221,7 +279,7 @@ const rawUpgrades = ref<any[]>([])
 const upgrades = computed(() => {
   return rawUpgrades.value.map(upgrade => {
     const isBaseCore = upgrade.computedTier === 1 || upgrade.tier === 1 || upgrade.core_type === 'main'
-    const isUnlockedInMissions = missionsStore.isCoreUnlocked(upgrade.name) || missionsStore.isCoreUnlocked(upgrade.id)
+    const isUnlockedInMissions = missionsStore.isCoreUnlocked(upgrade.name)
     const isLocked = !isBaseCore && !isUnlockedInMissions
     const missionText = isLocked ? `Complete gameplay missions to unlock ${upgrade.name}.` : ''
     
@@ -432,91 +490,113 @@ onMounted(async () => {
       allCoresList = Array.isArray(rawData) ? rawData : Object.values(rawData)
     }
 
+    const targetParam = String(coreId).toLowerCase().replace(/[^a-z0-9]/g, '')
+
     if (allCoresList.length > 0) {
       // Find Base Core by UUID, clean slug, or clean name
-      const targetParam = String(coreId).toLowerCase().replace(/[^a-z0-9]/g, '')
       baseCore.value = allCoresList.find((c: any) => 
         String(c.id) === String(coreId) || 
         String(c._id) === String(coreId) ||
         cleanName(c.name) === targetParam
       )
+    }
 
-      if (baseCore.value) {
-        const baseCleaned = cleanName(baseCore.value.name)
-        let targetFamily: any = null
-
-        for (const key in CORE_FAMILIES) {
-          const family = CORE_FAMILIES[key]
-          const isPartOfFamily = 
-            family.tier1.some((n: string) => cleanName(n) === baseCleaned) ||
-            family.tier2.some((n: string) => cleanName(n) === baseCleaned) ||
-            family.tier3.some((n: string) => cleanName(n) === baseCleaned)
-            
-          if (isPartOfFamily) {
-            targetFamily = family
-            break
+    // Fallback: If not found in API list, construct base core directly from CORE_FAMILIES
+    if (!baseCore.value) {
+      for (const key in CORE_FAMILIES) {
+        const family = CORE_FAMILIES[key]
+        const tier1Name = family.tier1[0]
+        if (cleanName(tier1Name) === targetParam || key === targetParam || cleanName(key) === targetParam) {
+          const mapData = CORE_DETAILS_MAP[tier1Name.toLowerCase()] || {}
+          baseCore.value = {
+            id: 'mock-' + tier1Name,
+            name: tier1Name,
+            description: mapData.description || 'Base tactical core.',
+            tier: 1,
+            computedTier: 1,
+            core_type: 'main'
           }
+          break
         }
+      }
+    }
 
-        if (targetFamily) {
-          const matchedUpgrades: any[] = []
+    if (baseCore.value) {
+      const baseCleaned = cleanName(baseCore.value.name)
+      let targetFamily: any = null
 
-          // Process Tier 2 Upgrades
-          targetFamily.tier2.forEach((expectedName: string) => {
-             const cName = cleanName(expectedName)
-             const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
-             const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
-             
-             if (foundInDB) {
-                 matchedUpgrades.push({ 
-                   ...foundInDB, 
+      for (const key in CORE_FAMILIES) {
+        const family = CORE_FAMILIES[key]
+        const isPartOfFamily = 
+          cleanName(key) === baseCleaned ||
+          family.tier1.some((n: string) => cleanName(n) === baseCleaned) ||
+          family.tier2.some((n: string) => cleanName(n) === baseCleaned) ||
+          family.tier3.some((n: string) => cleanName(n) === baseCleaned)
+          
+        if (isPartOfFamily) {
+          targetFamily = family
+          break
+        }
+      }
+
+      if (targetFamily) {
+        const matchedUpgrades: any[] = []
+
+        // Process Tier 2 Upgrades
+        targetFamily.tier2.forEach((expectedName: string) => {
+           const cName = cleanName(expectedName)
+           const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
+           const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
+           
+           if (foundInDB) {
+               matchedUpgrades.push({ 
+                 ...foundInDB, 
+                 computedTier: 2,
+                 description: getCoreDescription(foundInDB),
+                 multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
+                 flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
+               })
+           } else {
+               matchedUpgrades.push({
+                   id: 'mock-' + expectedName,
+                   name: expectedName,
+                   description: mapData.description || 'Evolution effect providing enhanced tactical mechanics.',
                    computedTier: 2,
-                   description: getCoreDescription(foundInDB),
-                   multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
-                   flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
-                 })
-             } else {
-                 matchedUpgrades.push({
-                     id: 'mock-' + expectedName,
-                     name: expectedName,
-                     description: mapData.description || 'Evolution effect providing enhanced tactical mechanics.',
-                     computedTier: 2,
-                     multiplier_buff: mapData.multiplier_buff || 1.0,
-                     flat_buff: mapData.flat_buff || 0,
-                     classification: mapData.classification || 'upgrade'
-                 })
-             }
-          })
+                   multiplier_buff: mapData.multiplier_buff || 1.0,
+                   flat_buff: mapData.flat_buff || 0,
+                   classification: mapData.classification || 'upgrade'
+               })
+           }
+        })
 
-          // Process Tier 3 Upgrades
-          targetFamily.tier3.forEach((expectedName: string) => {
-             const cName = cleanName(expectedName)
-             const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
-             const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
-             
-             if (foundInDB) {
-                 matchedUpgrades.push({ 
-                   ...foundInDB, 
+        // Process Tier 3 Upgrades
+        targetFamily.tier3.forEach((expectedName: string) => {
+           const cName = cleanName(expectedName)
+           const foundInDB = allCoresList.find((c: any) => cleanName(c.name) === cName)
+           const mapData = CORE_DETAILS_MAP[expectedName.toLowerCase()] || {}
+           
+           if (foundInDB) {
+               matchedUpgrades.push({ 
+                 ...foundInDB, 
+                 computedTier: 3,
+                 description: getCoreDescription(foundInDB),
+                 multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
+                 flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
+               })
+           } else {
+               matchedUpgrades.push({
+                   id: 'mock-' + expectedName,
+                   name: expectedName,
+                   description: mapData.description || 'Ultimate core evolution yielding maximum tactical performance.',
                    computedTier: 3,
-                   description: getCoreDescription(foundInDB),
-                   multiplier_buff: foundInDB.multiplier_buff || mapData.multiplier_buff || 1.0,
-                   flat_buff: foundInDB.flat_buff || mapData.flat_buff || 0
-                 })
-             } else {
-                 matchedUpgrades.push({
-                     id: 'mock-' + expectedName,
-                     name: expectedName,
-                     description: mapData.description || 'Ultimate core evolution yielding maximum tactical performance.',
-                     computedTier: 3,
-                     multiplier_buff: mapData.multiplier_buff || 1.0,
-                     flat_buff: mapData.flat_buff || 0,
-                     classification: mapData.classification || 'upgrade'
-                 })
-             }
-          })
+                   multiplier_buff: mapData.multiplier_buff || 1.0,
+                   flat_buff: mapData.flat_buff || 0,
+                   classification: mapData.classification || 'upgrade'
+               })
+           }
+        })
 
-          rawUpgrades.value = matchedUpgrades
-        }
+        rawUpgrades.value = matchedUpgrades
       }
     }
   } catch (err) {
@@ -545,6 +625,7 @@ const formattedTooltipCore = computed(() => {
 })
 
 const showTooltip = (event: MouseEvent | TouchEvent, core: any) => {
+  if (isMobileScreen.value) return
   if (audioService?.playHover) audioService.playHover()
   hoveredCore.value = core
   isTooltipVisible.value = true
@@ -568,6 +649,21 @@ const showTooltip = (event: MouseEvent | TouchEvent, core: any) => {
 const hideTooltip = () => {
   isTooltipVisible.value = false
   hoveredCore.value = null
+}
+
+const handleCardInteraction = (event: MouseEvent | TouchEvent, upgrade: any, index: number) => {
+  event.stopPropagation()
+  if (isMobileScreen.value) {
+    if (hoveredCore.value?.id === upgrade.id && isTooltipVisible.value) {
+      hideTooltip()
+    } else {
+      if (audioService?.playHover) audioService.playHover()
+      hoveredCore.value = upgrade
+      isTooltipVisible.value = true
+    }
+  } else {
+    triggerCardFlip(index)
+  }
 }
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')

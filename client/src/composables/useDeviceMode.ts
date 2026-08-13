@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, watchEffect } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 export function useDeviceMode() {
   const isMobileScreen = ref(false);
@@ -6,6 +6,8 @@ export function useDeviceMode() {
   const showVirtualKeyboard = ref(false);
 
   const checkDevice = () => {
+    if (typeof window === 'undefined') return;
+    
     // Check if the screen width is mobile sized (< 768px as per US-81)
     isMobileScreen.value = window.innerWidth < 768;
     
@@ -19,6 +21,9 @@ export function useDeviceMode() {
     // Show virtual keyboard on touch devices that are also mobile screens
     showVirtualKeyboard.value = isTouchDevice.value && isMobileScreen.value;
   };
+
+  // Run synchronously during initialization so correct view component mounts immediately
+  checkDevice();
 
   onMounted(() => {
     checkDevice();
@@ -35,3 +40,4 @@ export function useDeviceMode() {
     showVirtualKeyboard
   };
 }
+

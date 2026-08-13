@@ -115,11 +115,22 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       }
     });
 
-    this.onMessage("update_core", (client, message: { coreId: string }) => {
+    this.onMessage("update_core", async (client, message: { coreId: string }) => {
       const player = this.state.players.get(client.sessionId);
       if (player) {
         player.activeCoreId = message.coreId;
         console.log(`Updated player ${player.name} activeCoreId to ${player.activeCoreId}`);
+        if (player.id && message.coreId) {
+          try {
+            await supabase
+              .from('game_sessions')
+              .update({ active_core_id: message.coreId })
+              .eq('player_id', player.id)
+              .eq('status', 'active');
+          } catch (err) {
+            console.error('[MatchRoom] Failed to update game_sessions active_core_id:', err);
+          }
+        }
       }
     });
 

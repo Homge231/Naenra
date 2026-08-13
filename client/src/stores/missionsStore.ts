@@ -28,8 +28,8 @@ export interface MissionToast {
 }
 
 export const useMissionsStore = defineStore('missions', () => {
-  const STORAGE_KEY = 'naenra_core_missions_v3'
-  const UNLOCKED_CORES_KEY = 'naenra_unlocked_cores_v3'
+  const STORAGE_KEY = 'naenra_core_missions_v5'
+  const UNLOCKED_CORES_KEY = 'naenra_unlocked_cores_v5'
 
   const activeToasts = ref<MissionToast[]>([])
   let toastIdCounter = 0
@@ -50,7 +50,7 @@ export const useMissionsStore = defineStore('missions', () => {
   }
 
   const initialMissions: CoreMission[] = [
-    // Combo Family
+    // ── Combo Family (4 missions: 2 Tier 2 + 2 Tier 3) ───────────────────────
     {
       id: 'mission_combo_burst',
       title: 'Combo Streak Mastery',
@@ -66,6 +66,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '🔥'
     },
     {
+      id: 'mission_combo_shield',
+      title: 'Combo Shield Specialist',
+      description: 'Reach a 15-word typing streak to unlock Combo Shield.',
+      category: 'Defense',
+      coreFamily: 'combo',
+      unlockCoreName: 'Combo Shield',
+      targetCount: 15,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 200,
+      icon: '🛡️'
+    },
+    {
       id: 'mission_hyper_combo',
       title: 'Hyper Combo Legend',
       description: 'Reach a 20-word typing streak to unlock Hyper Combo.',
@@ -79,13 +93,28 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 400,
       icon: '💥'
     },
-    // Speedster Family
+    {
+      id: 'mission_super_combo',
+      title: 'Super Combo Dominator',
+      description: 'Score 1,500 points in a single round with Combo Core to unlock Super Combo.',
+      category: 'Attack',
+      coreFamily: 'combo',
+      unlockCoreName: 'Super Combo',
+      targetCount: 1500,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 450,
+      icon: '🎯'
+    },
+
+    // ── Speedster Family (4 missions: 2 Tier 2 + 2 Tier 3) ───────────────────
     {
       id: 'mission_velocity_shield',
       title: 'Shield Defender',
       description: 'Absorb 5 typing penalties with Aegis Core to unlock Velocity Shield.',
       category: 'Defense',
-      coreFamily: 'aegis',
+      coreFamily: 'speedster',
       unlockCoreName: 'Velocity Shield',
       targetCount: 5,
       currentProgress: 0,
@@ -93,6 +122,20 @@ export const useMissionsStore = defineStore('missions', () => {
       isClaimed: false,
       rewardXp: 200,
       icon: '🛡️'
+    },
+    {
+      id: 'mission_speed_demon',
+      title: 'Speed Demon Sprint',
+      description: 'Answer 5 questions in under 1.5 seconds each to unlock Speed Demon.',
+      category: 'Attack',
+      coreFamily: 'speedster',
+      unlockCoreName: 'Speed Demon',
+      targetCount: 5,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 220,
+      icon: '🏎️'
     },
     {
       id: 'mission_hyperdrive',
@@ -108,7 +151,22 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 350,
       icon: '⚡'
     },
-    // Argus Eyes Family
+    {
+      id: 'mission_sonic_boom',
+      title: 'Sonic Boom Velocity',
+      description: 'Solve a question in under 1 second to unlock Sonic Boom.',
+      category: 'Attack',
+      coreFamily: 'speedster',
+      unlockCoreName: 'Sonic Boom',
+      targetCount: 1,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 480,
+      icon: '🚀'
+    },
+
+    // ── Argus Eyes Family (4 missions: 2 Tier 2 + 2 Tier 3) ──────────────────
     {
       id: 'mission_inner_eye',
       title: 'Third Eye Seer',
@@ -124,6 +182,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '🔮'
     },
     {
+      id: 'mission_future_sight',
+      title: 'Future Sight Visionary',
+      description: 'Finish 2 matches using Argus Eyes without hints to unlock Future Sight.',
+      category: 'Utility',
+      coreFamily: 'argus eyes',
+      unlockCoreName: 'Future Sight',
+      targetCount: 2,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 240,
+      icon: '✨'
+    },
+    {
       id: 'mission_prophecy',
       title: 'Prophetic Vision',
       description: 'Complete 5 rounds using Argus Eyes Core without any errors to unlock Prophecy.',
@@ -137,7 +209,22 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 380,
       icon: '👁️'
     },
-    // Mission Family
+    {
+      id: 'mission_cosmic_wisdom',
+      title: 'Cosmic Wisdom Master',
+      description: 'Maintain 95% accuracy in 3 consecutive matches to unlock Cosmic Wisdom.',
+      category: 'Utility',
+      coreFamily: 'argus eyes',
+      unlockCoreName: 'Cosmic Wisdom',
+      targetCount: 3,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 460,
+      icon: '🌌'
+    },
+
+    // ── Mission Family (4 missions: 2 Tier 2 + 2 Tier 3) ─────────────────────
     {
       id: 'mission_contract_hunter',
       title: 'Bounty Hunter',
@@ -153,6 +240,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '🎯'
     },
     {
+      id: 'mission_bounty_hunter',
+      title: 'Bounty Specialist',
+      description: 'Complete 3 target word objectives in a single match to unlock Bounty Hunter.',
+      category: 'Strategy',
+      coreFamily: 'mission',
+      unlockCoreName: 'Bounty Hunter',
+      targetCount: 3,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 270,
+      icon: '🤠'
+    },
+    {
       id: 'mission_mission_legend',
       title: 'Mission Legend',
       description: 'Complete 10 gameplay missions to unlock Mission Legend.',
@@ -166,7 +267,22 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 500,
       icon: '🏆'
     },
-    // Aegis Family
+    {
+      id: 'mission_apex_predator',
+      title: 'Apex Predator Hunter',
+      description: 'Win 5 matches while using Mission Core to unlock Apex Predator.',
+      category: 'Strategy',
+      coreFamily: 'mission',
+      unlockCoreName: 'Apex Predator',
+      targetCount: 5,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 490,
+      icon: '🦅'
+    },
+
+    // ── Aegis Family (4 missions: 2 Tier 2 + 2 Tier 3) ───────────────────────
     {
       id: 'mission_reflective_barrier',
       title: 'Reflective Barrier',
@@ -182,6 +298,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '🏛️'
     },
     {
+      id: 'mission_fortress_aegis',
+      title: 'Fortress Aegis Defender',
+      description: 'Stack 3 Aegis shields in a single round to unlock Fortress Aegis.',
+      category: 'Defense',
+      coreFamily: 'aegis',
+      unlockCoreName: 'Fortress Aegis',
+      targetCount: 3,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 260,
+      icon: '🏰'
+    },
+    {
       id: 'mission_aegis_sanctuary',
       title: 'Aegis Sanctuary',
       description: 'Survive an entire match without taking any penalties to unlock Aegis Sanctuary.',
@@ -193,9 +323,24 @@ export const useMissionsStore = defineStore('missions', () => {
       isCompleted: false,
       isClaimed: false,
       rewardXp: 450,
-      icon: '🏰'
+      icon: '⛩️'
     },
-    // Balanced / Zen Family
+    {
+      id: 'mission_spiked_shield',
+      title: 'Spiked Shield Counter',
+      description: 'Reflect 10 typing penalty points using Aegis Core to unlock Spiked Shield.',
+      category: 'Defense',
+      coreFamily: 'aegis',
+      unlockCoreName: 'Spiked Shield',
+      targetCount: 10,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 470,
+      icon: '🔰'
+    },
+
+    // ── Balanced Family (4 missions: 2 Tier 2 + 2 Tier 3) ────────────────────
     {
       id: 'mission_zen_momentum',
       title: 'Zen Focus',
@@ -211,6 +356,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '🧘'
     },
     {
+      id: 'mission_equilibrium',
+      title: 'Equilibrium Harmonizer',
+      description: 'Complete a round with 90%+ accuracy to unlock Equilibrium.',
+      category: 'Economy',
+      coreFamily: 'balanced',
+      unlockCoreName: 'Equilibrium',
+      targetCount: 1,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 230,
+      icon: '☯️'
+    },
+    {
       id: 'mission_serenity',
       title: 'Master Serenity',
       description: 'Complete 3 matches with 100% accuracy to unlock Serenity.',
@@ -224,7 +383,22 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 420,
       icon: '✨'
     },
-    // Power Family
+    {
+      id: 'mission_nirvana',
+      title: 'Nirvana Transcendence',
+      description: 'Complete 5 consecutive rounds without any typos to unlock Nirvana.',
+      category: 'Economy',
+      coreFamily: 'balanced',
+      unlockCoreName: 'Nirvana',
+      targetCount: 5,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 500,
+      icon: '🌟'
+    },
+
+    // ── Power Family (4 missions: 2 Tier 2 + 2 Tier 3) ───────────────────────
     {
       id: 'mission_overcharge',
       title: 'Power Surge',
@@ -240,6 +414,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '⚡'
     },
     {
+      id: 'mission_power_surge',
+      title: 'Power Surge Amplifier',
+      description: 'Score 500 flat buff points with Power Core to unlock Power Surge.',
+      category: 'Attack',
+      coreFamily: 'power',
+      unlockCoreName: 'Power Surge',
+      targetCount: 500,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 280,
+      icon: '💥'
+    },
+    {
       id: 'mission_cataclysm',
       title: 'Cataclysmic Force',
       description: 'Score over 2,000 total match points to unlock Cataclysm.',
@@ -253,7 +441,22 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 480,
       icon: '🌋'
     },
-    // Pandora Family
+    {
+      id: 'mission_absolute_power',
+      title: 'Absolute Power Titan',
+      description: 'Win 3 matches using Power Core upgrades to unlock Absolute Power.',
+      category: 'Attack',
+      coreFamily: 'power',
+      unlockCoreName: 'Absolute Power',
+      targetCount: 3,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 500,
+      icon: '⚡'
+    },
+
+    // ── Pandora Family (4 missions: 2 Tier 2 + 2 Tier 3) ─────────────────────
     {
       id: 'mission_wild_card',
       title: 'Pandora Unboxed',
@@ -269,6 +472,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '📦'
     },
     {
+      id: 'mission_chaos_prism',
+      title: 'Chaos Prism Weaver',
+      description: 'Trigger 3 random shapeshifts in Pandora Core to unlock Chaos Prism.',
+      category: 'Utility',
+      coreFamily: 'pandora',
+      unlockCoreName: 'Chaos Prism',
+      targetCount: 3,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 270,
+      icon: '💎'
+    },
+    {
       id: 'mission_pandora_overdrive',
       title: 'Pandora Overdrive',
       description: 'Trigger 5 random shapeshifts in Pandora Core to unlock Pandora Overdrive.',
@@ -282,7 +499,22 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 460,
       icon: '🌀'
     },
-    // Phoenix Family
+    {
+      id: 'mission_chaos_theory',
+      title: 'Chaos Theory Master',
+      description: 'Score 1,200 points during a Pandora chaos state to unlock Chaos Theory.',
+      category: 'Utility',
+      coreFamily: 'pandora',
+      unlockCoreName: 'Chaos Theory',
+      targetCount: 1200,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 490,
+      icon: '🌪️'
+    },
+
+    // ── Phoenix Family (4 missions: 2 Tier 2 + 2 Tier 3) ─────────────────────
     {
       id: 'mission_feather_shield',
       title: 'Feather Shield',
@@ -298,8 +530,22 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '🪶'
     },
     {
+      id: 'mission_rebirth',
+      title: 'Phoenix Rebirth Flame',
+      description: 'Revive from penalty state twice in a match to unlock Rebirth.',
+      category: 'Defense',
+      coreFamily: 'phoenix',
+      unlockCoreName: 'Rebirth',
+      targetCount: 2,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 250,
+      icon: '🔥'
+    },
+    {
       id: 'mission_phoenix_overlord',
-      title: 'Phoenix Rebirth',
+      title: 'Phoenix Overlord Rebirth',
       description: 'Come back from behind to win a match with Phoenix Core to unlock Phoenix Overlord.',
       category: 'Strategy',
       coreFamily: 'phoenix',
@@ -311,7 +557,22 @@ export const useMissionsStore = defineStore('missions', () => {
       rewardXp: 500,
       icon: '🦅'
     },
-    // High Roller Family
+    {
+      id: 'mission_eternal_rebirth',
+      title: 'Eternal Rebirth Champion',
+      description: 'Win 3 matches after dropping below 50% accuracy to unlock Eternal Rebirth.',
+      category: 'Strategy',
+      coreFamily: 'phoenix',
+      unlockCoreName: 'Eternal Rebirth',
+      targetCount: 3,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 490,
+      icon: '☀️'
+    },
+
+    // ── High Roller Family (4 missions: 2 Tier 2 + 2 Tier 3) ─────────────────
     {
       id: 'mission_high_stakes',
       title: 'High Stakes Gamble',
@@ -327,6 +588,20 @@ export const useMissionsStore = defineStore('missions', () => {
       icon: '🎲'
     },
     {
+      id: 'mission_safe_bet',
+      title: 'Safe Bet Tactician',
+      description: 'Maintain a positive score multiplier for 3 rounds to unlock Safe Bet.',
+      category: 'Economy',
+      coreFamily: 'highroller',
+      unlockCoreName: 'Safe Bet',
+      targetCount: 3,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 290,
+      icon: '♠️'
+    },
+    {
       id: 'mission_casino_empire',
       title: 'Casino Empire',
       description: 'Win 3 high-multiplier matches to unlock Casino Empire.',
@@ -339,6 +614,20 @@ export const useMissionsStore = defineStore('missions', () => {
       isClaimed: false,
       rewardXp: 490,
       icon: '🎰'
+    },
+    {
+      id: 'mission_russian_roulette',
+      title: 'Russian Roulette High Roller',
+      description: 'Risk and score 500+ points in a single high-stakes round to unlock Russian Roulette.',
+      category: 'Economy',
+      coreFamily: 'highroller',
+      unlockCoreName: 'Russian Roulette',
+      targetCount: 500,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false,
+      rewardXp: 500,
+      icon: '🃏'
     }
   ]
 
@@ -393,45 +682,64 @@ export const useMissionsStore = defineStore('missions', () => {
   const masteryLevel = computed(() => Math.floor(totalXpEarned.value / 250) + 1)
 
   const lockedCoreNames = new Set([
-    'Combo Burst', 'Hyper Combo',
-    'Velocity Shield', 'Hyperdrive',
-    'Inner Eye', 'Prophecy',
-    'Contract Hunter', 'Mission Legend',
-    'Reflective Barrier', 'Aegis Sanctuary',
-    'Zen Momentum', 'Serenity',
-    'Overcharge', 'Cataclysm',
-    'Wild Card', 'Pandora Overdrive',
-    'Feather Shield', 'Phoenix Overlord',
-    'High Stakes', 'Casino Empire'
+    // Combo
+    'Combo Burst', 'Combo Shield', 'Hyper Combo', 'Super Combo',
+    // Speedster
+    'Velocity Shield', 'Speed Demon', 'Hyperdrive', 'Sonic Boom',
+    // Argus Eyes
+    'Inner Eye', 'Future Sight', 'Prophecy', 'Cosmic Wisdom',
+    // Mission
+    'Contract Hunter', 'Bounty Hunter', 'Mission Legend', 'Apex Predator',
+    // Aegis
+    'Reflective Barrier', 'Fortress Aegis', 'Aegis Sanctuary', 'Spiked Shield',
+    // Balanced
+    'Zen Momentum', 'Equilibrium', 'Serenity', 'Nirvana',
+    // Power
+    'Overcharge', 'Power Surge', 'Cataclysm', 'Absolute Power',
+    // Pandora
+    'Wild Card', 'Chaos Prism', 'Pandora Overdrive', 'Chaos Theory',
+    // Phoenix
+    'Feather Shield', 'Rebirth', 'Phoenix Overlord', 'Eternal Rebirth',
+    // High Roller
+    'High Stakes', 'Safe Bet', 'Casino Empire', 'Russian Roulette'
   ])
 
   function isCoreUnlocked(coreNameOrId: string): boolean {
     if (!coreNameOrId) return true
     const nameLower = String(coreNameOrId).trim().toLowerCase()
 
-    // 1. If core is NOT in the 1/3 locked list, it is UNLOCKED BY DEFAULT (2/3 cores free)
+    // Resolve target core name (handle mission IDs or core name lookup)
+    let targetName = nameLower
+    const matchingMission = missions.value.find(m => 
+      m.unlockCoreName.toLowerCase() === nameLower || m.id.toLowerCase() === nameLower
+    )
+    if (matchingMission) {
+      targetName = matchingMission.unlockCoreName.toLowerCase()
+    }
+
+    // 1. If core name is NOT in the 1/3 locked list, it is UNLOCKED BY DEFAULT (2/3 cores free)
     const isLockedByDefault = Array.from(lockedCoreNames).some(
-      lockedName => lockedName.toLowerCase() === nameLower
+      lockedName => lockedName.toLowerCase() === targetName
     )
     if (!isLockedByDefault) return true
 
     // 2. Check if explicitly unlocked in unlockedCoreNames (claimed via Mission Tracker)
     const inUnlockedNames = unlockedCoreNames.value.some(
-      unlockedName => unlockedName.trim().toLowerCase() === nameLower
+      unlockedName => unlockedName.trim().toLowerCase() === targetName
     )
     if (inUnlockedNames) return true
 
     // 3. Check if claimed in authStore profile
     const authStore = useAuthStore()
-    if (authStore.profile?.unlocked_core_ids?.some(id => id.trim().toLowerCase() === nameLower)) {
+    if (authStore.profile?.unlocked_core_ids?.some(id => id.trim().toLowerCase() === targetName)) {
       return true
     }
 
     // 4. Check if corresponding mission is completed
     const completedMission = missions.value.find(m =>
       m.isCompleted && (
-        m.unlockCoreName.trim().toLowerCase() === nameLower ||
-        m.id.trim().toLowerCase() === nameLower
+        m.unlockCoreName.trim().toLowerCase() === targetName ||
+        m.id.trim().toLowerCase() === targetName
       )
     )
     if (completedMission) return true

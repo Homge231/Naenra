@@ -1,15 +1,15 @@
 <template>
-  <div class="h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col">
+  <div class="min-h-screen lg:h-screen w-full bg-[#fff8f5] text-gray-800 overflow-y-auto lg:overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col pb-8 lg:pb-0">
     
     <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
       <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
       <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
       <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
       
-      <div class="absolute top-[15%] left-[10%] text-6xl font-black text-gray-300 uppercase animate-float-slow opacity-50">S</div>
-      <div class="absolute top-[60%] left-[80%] text-8xl font-black text-gray-300 uppercase animate-float-delayed opacity-30">P</div>
-      <div class="absolute top-[80%] left-[20%] text-5xl font-black text-gray-300 uppercase animate-pulse-slow opacity-40">E</div>
-      <div class="absolute top-[25%] left-[75%] text-7xl font-black text-gray-300 uppercase animate-float-slow opacity-50" style="animation-delay: 2s;">D</div>
+      <div class="absolute top-[15%] left-[5%] text-4xl md:text-6xl font-black text-gray-300 uppercase animate-float-slow opacity-50">S</div>
+      <div class="absolute top-[60%] left-[75%] text-6xl md:text-8xl font-black text-gray-300 uppercase animate-float-delayed opacity-30">P</div>
+      <div class="absolute top-[80%] left-[15%] text-3xl md:text-5xl font-black text-gray-300 uppercase animate-pulse-slow opacity-40">E</div>
+      <div class="absolute top-[25%] left-[70%] text-5xl md:text-7xl font-black text-gray-300 uppercase animate-float-slow opacity-50" style="animation-delay: 2s;">D</div>
     </div>
 
     <!-- Header -->
@@ -77,6 +77,9 @@
               </p>
             </div>
           </div>
+          <p class="mt-4 text-base md:text-xl font-black text-gray-900 uppercase tracking-wider drop-shadow-sm">
+            {{ username }}
+          </p>
         </div>
       </div>
 

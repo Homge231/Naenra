@@ -53,7 +53,7 @@
         <svg class="animate-spin w-10 h-10 text-lightBlue" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c..."></path>
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
 
@@ -66,9 +66,11 @@
 
         <div v-for="(core, index) in randomCores" :key="index" class="flex flex-col items-center gap-6 w-full h-full relative perspective-1000">
 
-          <!-- Core detailed stats Tooltip -->
+          <!-- Core detailed stats Tooltip (Floating Overlay - Zero Layout Impact) -->
           <transition name="fade">
-            <CoreTooltip v-if="activeTooltipIndex === index" :core="core" />
+            <div v-if="activeTooltipIndex === index" class="absolute -top-3 left-1/2 -translate-x-1/2 -translate-y-full z-50 pointer-events-none w-full max-w-[340px] flex justify-center">
+              <CoreTooltip :core="core" />
+            </div>
           </transition>
 
           <div 
@@ -90,17 +92,12 @@
               class="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
             </div>
 
-            <!-- 🛡️/⚔️/🔮 Main / Power / Effect mini badge (top-left of card) -->
+            <!-- ⚔️/🔮 Power / Effect mini badge (top-left of card) -->
             <span
               class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest select-none z-20 shadow-md"
-              :class="core.classification === 'main'
-                ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                : core.classification === 'power'
-                  ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
-                  : 'text-violet-400 bg-violet-500/10 border-violet-500/30'"
+              :class="getCoreCategory(core).style"
             >
-              {{ core.classification === 'main' ? '🛡️' : (core.classification === 'power' ? '⚔️' : '🔮') }}
-              {{ core.classification === 'main' ? 'Anchor' : (core.classification === 'power' ? 'Power' : 'Effect') }}
+              {{ getCoreCategory(core).icon }} {{ getCoreCategory(core).label }}
             </span>
 
             <div
@@ -173,11 +170,28 @@ import { useMatchStore } from '../stores/matchStore'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
 import { getCoreIconPath } from '../game/cores/icons'
+import { isPowerCore } from '../game/cores/families'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import { useTutorial } from '../composables/useTutorial'
 import { useCardTilt } from '../composables/useCardTilt'
 import { initAudio } from '../composables/game/useAudioEngine'
 import { audioService } from '../services/audioService'
+
+const getCoreCategory = (core: any): { label: string; icon: string; style: string } => {
+  const isPower = core?.classification === 'power' || isPowerCore(core?.name || '')
+  if (isPower) {
+    return {
+      label: 'Power',
+      icon: '⚔️',
+      style: 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+    }
+  }
+  return {
+    label: 'Effect',
+    icon: '🔮',
+    style: 'text-violet-400 bg-violet-500/10 border-violet-500/30'
+  }
+}
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -301,10 +315,16 @@ function handleCardReroll(index: number) {
   }, 600)
   activeTimeouts.add(t2)
 }
+const isMounted = ref(true)
+
 // ── Triggers & Handlers ─────────────────────────────────────────────────────
 function startTimer() {
-  if (selectionTimer) return
+  if (selectionTimer || !isMounted.value) return
   selectionTimer = setInterval(() => {
+    if (!isMounted.value) {
+      stopTimer()
+      return
+    }
     if (tutorial.isCurrentScreen('core-select')) return // Pause timer while tutorial is active
 
     if (timeLeft.value <= 1) {
@@ -331,7 +351,7 @@ function adminSkipCore() {
 }
 
 function triggerTimeout() {
-  if (loading.value) return
+  if (loading.value || !isMounted.value) return
 
   let coreToSubmit = selectedCore.value
 
@@ -359,6 +379,7 @@ async function fetchSupportCores() {
     })
     if (!res.ok) throw new Error('failed')
     const data = await res.json()
+    if (!isMounted.value) return
 
     supportCores.value = (data.cores ?? []).map((c: any) => ({
       id: c.id,
@@ -377,6 +398,7 @@ async function fetchSupportCores() {
 
     startTimer()
   } catch (err) {
+    if (!isMounted.value) return
     console.error('fetchSupportCores error:', err)
     errorMsg.value = 'Failed to load Support Cores.'
     loading.value = false
@@ -480,6 +502,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  isMounted.value = false
   stopTimer()
   if (touchTimeout) clearTimeout(touchTimeout)
   for (const t of activeTimeouts) clearTimeout(t)

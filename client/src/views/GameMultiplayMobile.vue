@@ -110,14 +110,6 @@
               <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Match in progress</p>
               <p class="text-sm text-gray-200 font-mono mt-1">Score: <span class="text-white font-bold">{{ score }}</span></p>
             </div>
-            <button @click.stop="goHome"
-              class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-left">
-              <svg class="w-4 h-4 text-orange flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              Back to Home
-            </button>
             <button @click.stop="confirmQuit = true; menuOpen = false"
               class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-hexred hover:bg-hexred/10 transition-colors text-left">
               <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,7 +228,7 @@
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
-      class="relative z-20 flex-1 flex flex-col items-center justify-center justify-center py-4 px-2 max-w-5xl mx-auto w-full">
+      class="relative z-20 flex-1 flex flex-col items-center justify-center py-2 pt-16 sm:pt-20 px-2 max-w-5xl mx-auto w-full">
 
       <!-- Speedster wind streak overlay component -->
       <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
@@ -340,7 +332,7 @@
           <transition name="card-flip" mode="out-in">
             <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-10">
               <!-- Top-half container for Hint and Question Text -->
-              <div class="w-full flex flex-col gap-6">
+              <div class="w-full flex flex-col gap-3 sm:gap-6">
                 <div v-if="currentQuestion.hint"
                   class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-3 md:p-6 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
                   <div
@@ -472,7 +464,7 @@
     </div>
 
     <!-- Right-Side Indicators Container -->
-    <div class="absolute top-52 right-8 z-20 flex flex-col items-end gap-4 transition-all duration-300">
+    <div class="absolute top-16 right-2 sm:top-52 sm:right-8 z-20 flex flex-col items-end gap-4 scale-75 sm:scale-100 origin-top-right transition-all duration-300 pointer-events-none">
       <!-- Combo indicator: only visible when active core is the Combo Core AND not Race Round -->
       <transition name="fade-scale">
         <div v-if="isComboCore && matchStore.currentRound !== 4">
@@ -482,7 +474,7 @@
     </div>
 
     <!-- Left-Side Indicators Container -->
-    <div class="absolute top-52 left-8 z-20 flex flex-col gap-4 transition-all duration-300 pointer-events-none">
+    <div class="absolute top-16 left-2 sm:top-52 sm:left-8 z-20 flex flex-col gap-4 scale-75 sm:scale-100 origin-top-left transition-all duration-300 pointer-events-none">
       <!-- Aegis Shield Mode Indicator (hidden in Race Round) -->
       <transition name="fade-scale">
         <div v-if="isAegisMode && matchStore.currentRound !== 4">
@@ -626,8 +618,8 @@
             </svg>
           </div>
           <p class="text-xl text-white font-black uppercase mb-2">Abandon Match?</p>
-          <p class="text-gray-400 text-sm mb-8 leading-relaxed">Your current progress and score of <span
-              class="text-orange font-bold">{{ score }} pts</span> will be completely lost.</p>
+          <p class="text-gray-400 text-sm mb-8 leading-relaxed">Leaving this match counts as a forfeit. You will lose <span
+              class="text-hexred font-bold">-16 ELO</span> rating points and your current match score.</p>
           <div class="flex gap-3">
             <button @click="confirmQuit = false; refocusInput()"
               class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-xs tracking-widest uppercase transition-colors rounded-lg">Resume</button>
@@ -718,12 +710,12 @@
     </transition>
 
     <!-- Opponent Toast Notifications Stack -->
-    <div class="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-2 pointer-events-none">
+    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-full max-w-xs px-4">
       <transition-group name="toast-slide">
         <div v-for="toast in toasts" :key="toast.id"
-          class="bg-darkNavy/90 border border-white/10 shadow-lg rounded-lg px-4 py-3 flex items-center gap-3 backdrop-blur-sm min-w-[200px]">
-          <span class="text-xl">{{ toast.icon }}</span>
-          <span class="text-sm font-bold tracking-widest uppercase" :class="toast.color">
+          class="bg-darkNavy/95 border border-white/20 shadow-2xl rounded-xl px-4 py-2.5 flex items-center gap-3 backdrop-blur-md w-full justify-center">
+          <span class="text-xl flex-shrink-0">{{ toast.icon }}</span>
+          <span class="text-xs md:text-sm font-black tracking-wider uppercase text-center" :class="toast.color">
             {{ toast.message }}
           </span>
         </div>
@@ -2072,8 +2064,28 @@ function goToUpgrade() {
   }
 }
 
-function handleUpgradeSelected(newCoreId: string) {
+async function handleUpgradeSelected(newCoreId: string) {
   const chosenCoreId = newCoreId || gameStore.activeCoreId || ''
+  if (chosenCoreId) {
+    activeCoreId.value = chosenCoreId
+    gameStore.activeCoreId = chosenCoreId
+    localStorage.setItem('naenra_active_core_id', chosenCoreId)
+
+    if (sessionId.value) {
+      try {
+        await fetchWithAuth(`/api/game/session/core`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            session_id: sessionId.value,
+            new_core_id: chosenCoreId
+          })
+        })
+      } catch (err) {
+        console.error('Failed to sync upgraded session core:', err)
+      }
+    }
+  }
+
   if (isMultiplayer.value) {
     isWaitingForNextRound.value = true
     if (currentRoom) {
@@ -2083,7 +2095,6 @@ function handleUpgradeSelected(newCoreId: string) {
       currentRoom.send("ready_next_round", { round: matchStore.currentRound + 1 })
     }
   } else {
-    // When upgrade is selected, restart match for the next round
     restartMatch()
   }
 }
@@ -2600,11 +2611,9 @@ onMounted(async () => {
     }
   }
 
-  // Ensure we start a fresh match if navigating here from outside
-  if (!gameStore.sessionId) {
-    matchStore.resetMatch(4)
-  }
-  resetTimer()
+  const isMounted = ref(true)
+
+  if (!isMounted.value) return
 
   if (!gameStore.sessionId) {
     await createSession()
@@ -2612,11 +2621,18 @@ onMounted(async () => {
     sessionId.value = gameStore.sessionId
   }
 
+  if (!isMounted.value) return
+
   // Always fetch full cores list — needed for OpponentWidget history, core tooltips, and Pandora
   await fetchPandoraPool()
 
+  if (!isMounted.value) return
+
   await fetchBatch()
+  if (!isMounted.value) return
+
   await loadQuestion()
+  if (!isMounted.value) return
 
   if (gameState.value !== 'upgrade') {
     audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
@@ -2629,6 +2645,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  isMounted.value = false
   if (selfReconnectInterval) clearInterval(selfReconnectInterval)
   if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
   stopMatchTimer()

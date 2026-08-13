@@ -106,10 +106,11 @@
               @touchstart="showTooltip($event, upgrade)"
               @touchend="hideTooltip"
               class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-help relative"
+              :class="[upgrade.isLocked ? 'opacity-60 grayscale-[40%] bg-gray-900/5' : '']"
             >
               <!-- Top row: icon + round badge (same as library card) -->
               <div class="flex justify-between items-start mb-3 md:mb-6">
-                <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all">
+                <div class="relative w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl p-[3px] shadow-sm bg-gradient-to-br from-orange to-hexred group-hover:brightness-110 transition-all" :class="{ 'grayscale opacity-60': upgrade.isLocked }">
                   <div class="w-full h-full bg-white rounded-[10px] md:rounded-[14px] flex items-center justify-center overflow-hidden">
                     <img 
                       :src="resolveIcon(upgrade)" 
@@ -117,18 +118,26 @@
                       class="w-7 h-7 md:w-10 md:h-10 object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300" 
                     />
                   </div>
+                  <div v-if="upgrade.isLocked" class="absolute inset-0 rounded-xl md:rounded-2xl bg-black/65 backdrop-blur-[1px] flex items-center justify-center border border-red-500/50">
+                    <span class="text-xs md:text-sm">🔒</span>
+                  </div>
                 </div>
 
                 <!-- Round badge (same style as category pill in library) -->
-                <div class="px-2 md:px-3 py-0.5 md:py-1 rounded-full border shadow-sm bg-orange/10 text-orange border-orange/30 flex items-center">
+                <div :class="[
+                  'px-2 md:px-3 py-0.5 md:py-1 rounded-full border shadow-sm flex items-center gap-1',
+                  upgrade.isLocked ? 'bg-red-500/10 border-red-500/30 text-red-500 font-bold' : (upgrade.computedTier === 3 ? 'bg-hexred/10 border-hexred/30 text-hexred' : 'bg-orange/10 border-orange/30 text-orange')
+                ]">
+                  <span v-if="upgrade.isLocked" class="text-[9px] md:text-[10px]">🔒</span>
                   <span class="text-[9px] md:text-[10px] font-black tracking-widest uppercase">Round {{ upgrade.computedTier || 2 }}</span>
                 </div>
               </div>
 
               <!-- Name + divider + description -->
               <div class="flex-1 flex flex-col">
-                <h4 class="text-sm md:text-xl font-black text-gray-900 uppercase tracking-wide mb-1 md:mb-2 group-hover:text-orange transition-colors leading-tight">
-                  {{ upgrade.name }}
+                <h4 class="text-sm md:text-xl font-black text-gray-900 uppercase tracking-wide mb-1 md:mb-2 group-hover:text-orange transition-colors leading-tight flex items-center gap-1.5">
+                  <span>{{ upgrade.name }}</span>
+                  <span v-if="upgrade.isLocked" class="text-xs text-red-500 font-bold" title="Locked by Mission">🔒</span>
                 </h4>
                 
                 <div class="w-8 md:w-10 h-0.5 md:h-1 bg-gray-200 rounded-full mb-2 md:mb-4 group-hover:w-12 md:group-hover:w-16 group-hover:bg-orange transition-all duration-300"></div>
@@ -140,7 +149,7 @@
                   {{ upgrade.description || upgrade.desc }}
                 </p>
                 
-                <div class="mt-6 text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity" :class="upgrade.isLocked ? 'text-red-500' : 'text-lightBlue'">
+                <div class="mt-6 text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity" :class="upgrade.isLocked ? 'text-red-500 font-bold' : 'text-lightBlue'">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
@@ -378,7 +387,7 @@ onMounted(async () => {
           // Map isLocked status using missionsStore
           upgrades.value = matchedUpgrades.map((u: any) => {
             const isBaseCore = u.tier === 1 || u.classification === 'main'
-            const isUnlockedInMissions = missionsStore.isCoreUnlocked(u.name) || missionsStore.isCoreUnlocked(u.id)
+            const isUnlockedInMissions = missionsStore.isCoreUnlocked(u.name)
             const isLocked = !isBaseCore && !isUnlockedInMissions
             return {
               ...u,

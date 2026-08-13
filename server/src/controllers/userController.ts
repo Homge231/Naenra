@@ -42,17 +42,17 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       .select('id, name, tier, core_type')
 
     const DEFAULT_LOCKED_CORES = new Set([
-      // 20 Support Cores strictly locked behind gameplay missions (2 per family across 10 families)
-      'combo burst', 'hyper combo',
-      'velocity shield', 'hyperdrive',
-      'inner eye', 'prophecy',
-      'contract hunter', 'mission legend',
-      'reflective barrier', 'aegis sanctuary',
-      'zen momentum', 'serenity',
-      'overcharge', 'cataclysm',
-      'wild card', 'pandora overdrive',
-      'feather shield', 'phoenix overlord',
-      'high stakes', 'casino empire'
+      // 40 Support Cores strictly locked behind gameplay missions (4 per family across 10 families = 1/3 of all upgrades)
+      'combo burst', 'combo shield', 'hyper combo', 'super combo',
+      'velocity shield', 'speed demon', 'hyperdrive', 'sonic boom',
+      'inner eye', 'future sight', 'prophecy', 'cosmic wisdom',
+      'contract hunter', 'bounty hunter', 'mission legend', 'apex predator',
+      'reflective barrier', 'fortress aegis', 'aegis sanctuary', 'spiked shield',
+      'zen momentum', 'equilibrium', 'serenity', 'nirvana',
+      'overcharge', 'power surge', 'cataclysm', 'absolute power',
+      'wild card', 'chaos prism', 'pandora overdrive', 'chaos theory',
+      'feather shield', 'rebirth', 'phoenix overlord', 'eternal rebirth',
+      'high stakes', 'safe bet', 'casino empire', 'russian roulette'
     ])
 
     const baseCoreIds = (allDBCores || [])

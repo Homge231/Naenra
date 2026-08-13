@@ -60,9 +60,17 @@
                     Core <span
                         class="text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred">Library</span>
                 </h2>
-                <p class="text-xs md:text-sm font-bold text-gray-500 max-w-2xl mx-auto md:mx-0 mb-4 md:mb-6">
+                <p class="text-xs md:text-sm font-bold text-gray-500 max-w-2xl mx-auto md:mx-0 mb-3 md:mb-4">
                     Study the skills and formulate your strategy before entering the typing arena. Below are all active base cores.
                 </p>
+
+                <!-- Visual Information Banner (Mobile Only) -->
+                <div v-if="isMobileScreen" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange/10 border border-orange/20 text-orange mb-4 md:mb-6 shadow-sm">
+                    <span class="text-xs">💡</span>
+                    <span class="text-[10px] md:text-xs font-black uppercase tracking-wider">
+                        Tap card to view Evolutions • <strong class="text-hexred underline decoration-dotted">Press & Hold</strong> for Quick Core Info
+                    </span>
+                </div>
 
                 <!-- Category Tabs (Attack, Defense, Economy, All) -->
                 <div class="flex flex-wrap justify-center md:justify-start gap-2 md:gap-3">
@@ -92,10 +100,15 @@
             <div v-else class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6 pb-12">
 
                 <div v-for="core in filteredCores" :key="core.id" 
-                    @click="router.push(`/library/core/${getCoreSlug(core)}`)"
+                    @click="handleCardClick($event, core)"
+                    @mousedown="startHold($event, core)"
+                    @mouseup="cancelHold"
+                    @mouseleave="cancelHold(); hideTooltip()"
+                    @touchstart.passive="startHold($event, core)"
+                    @touchend="cancelHold"
+                    @touchmove="cancelHold"
                     @mouseenter="showTooltip($event, core)"
-                    @mouseleave="hideTooltip"
-                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative"
+                    class="group bg-white/80 backdrop-blur-xl border-2 border-white rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-7 shadow-sm hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] transform transition-all duration-300 hover:-translate-y-2 flex flex-col h-full cursor-pointer relative select-none"
                     :class="{ 'opacity-65 grayscale-[30%]': core.isLocked }">
 
                     <div class="flex justify-between items-start mb-3 md:mb-6">
@@ -133,6 +146,17 @@
                         </p>
                     </div>
 
+                    <!-- Hold for info indicator footer (Mobile only) -->
+                    <div v-if="isMobileScreen" class="mt-3 pt-2 border-t border-gray-100/80 flex items-center justify-between text-[9px] md:text-[10px] font-bold text-gray-400">
+                        <span class="flex items-center gap-1 group-hover:text-orange transition-colors">
+                            <svg class="w-3 h-3 text-orange animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Hold for Info</span>
+                        </span>
+                        <span class="text-orange font-black group-hover:translate-x-0.5 transition-transform">➔</span>
+                    </div>
+
                 </div>
 
             </div>
@@ -144,12 +168,39 @@
 
         </main>
 
-        <!-- Hover Tooltip Container -->
-        <div v-if="isTooltipVisible && hoveredCore"
-            class="fixed z-50 pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
-            :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }">
-            <CoreTooltip :core="hoveredCore" :isLocked="hoveredCore.isLocked" />
-        </div>
+        <!-- Hover Tooltip Container (Desktop) & Press-and-Hold Info Modal -->
+        <Teleport to="body">
+            <Transition name="fade">
+                <!-- Press & Hold Interactive Info Modal -->
+                <div 
+                    v-if="isModalOpen && modalCore"
+                    class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in"
+                    @click="closeModal"
+                >
+                    <div class="relative w-full max-w-sm pointer-events-auto" @click.stop>
+                        <CoreTooltip 
+                            v-if="modalCore" 
+                            :core="modalCore" 
+                            :isLocked="modalCore.isLocked" 
+                            :isMobile="true"
+                            :showClose="true"
+                            :showEvolutionBtn="true"
+                            @close="closeModal"
+                            @viewEvolution="goToEvolution(modalCore)"
+                        />
+                    </div>
+                </div>
+
+                <!-- Desktop Hover Tooltip -->
+                <div 
+                    v-else-if="isTooltipVisible && hoveredCore && !isMobileScreen"
+                    class="fixed z-[9998] pointer-events-none transform -translate-x-1/2 -translate-y-full pb-4"
+                    :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }"
+                >
+                    <CoreTooltip :core="hoveredCore" :isLocked="hoveredCore.isLocked" />
+                </div>
+            </Transition>
+        </Teleport>
 
         <!-- Floating Scroll To Top Button -->
         <ScrollToTopButton />
@@ -163,6 +214,10 @@ import { useAuthStore } from '../stores/authStore'
 import { useMissionsStore } from '../stores/missionsStore'
 import ScrollToTopButton from '../components/ScrollToTopButton.vue'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
+import { useDeviceMode } from '../composables/useDeviceMode'
+import { CORE_FAMILIES } from '../game/cores/families'
+
+const { isMobileScreen } = useDeviceMode()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -175,7 +230,41 @@ const hoveredCore = ref<any>(null)
 const tooltipX = ref(0)
 const tooltipY = ref(0)
 
+const isModalOpen = ref(false)
+const modalCore = ref<any>(null)
+let holdTimer: ReturnType<typeof setTimeout> | null = null
+let isLongPress = false
+const HOLD_THRESHOLD = 400
+
+function startHold(event: MouseEvent | TouchEvent, core: any) {
+    isLongPress = false
+    if (holdTimer) clearTimeout(holdTimer)
+    
+    holdTimer = setTimeout(() => {
+        isLongPress = true
+        modalCore.value = core
+        isModalOpen.value = true
+        hideTooltip()
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(50)
+        }
+    }, HOLD_THRESHOLD)
+}
+
+function cancelHold() {
+    if (holdTimer) {
+        clearTimeout(holdTimer)
+        holdTimer = null
+    }
+}
+
+function closeModal() {
+    isModalOpen.value = false
+    modalCore.value = null
+}
+
 function showTooltip(event: MouseEvent, core: any) {
+    if (isMobileScreen.value || isModalOpen.value) return
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
     tooltipX.value = rect.left + rect.width / 2
     tooltipY.value = rect.top
@@ -186,6 +275,27 @@ function showTooltip(event: MouseEvent, core: any) {
 function hideTooltip() {
     isTooltipVisible.value = false
     hoveredCore.value = null
+}
+
+const handleCardClick = (event: MouseEvent | TouchEvent, core: any) => {
+    event.stopPropagation()
+    if (isLongPress) {
+        event.preventDefault()
+        isLongPress = false
+        return
+    }
+    cancelHold()
+    hideTooltip()
+    closeModal()
+    const slug = getCoreSlug(core)
+    router.push(`/library/core/${slug}`)
+}
+
+const goToEvolution = (core: any) => {
+    cancelHold()
+    hideTooltip()
+    closeModal()
+    router.push(`/library/core/${getCoreSlug(core)}`)
 }
 
 const activeTab = ref('All')
@@ -270,14 +380,31 @@ onMounted(async () => {
             const raw = data.data || data.cores || data || []
             // Filter to Tier 1 / Base Cores
             coresData.value = raw.filter((c: any) => c.tier === 1 || !c.tier || c.core_type === 'main')
-        } else {
-            throw new Error('Failed to fetch from API')
         }
     } catch (err) {
         console.error("Lỗi lấy Cores từ server:", err)
-    } finally {
-        loading.value = false
     }
+
+    // Fallback: If server returns empty array or request fails, populate base cores from CORE_FAMILIES
+    if (!coresData.value || coresData.value.length === 0) {
+        const fallbackCores: any[] = []
+        for (const key in CORE_FAMILIES) {
+            const family = CORE_FAMILIES[key]
+            const tier1Name = family.tier1[0]
+            if (!fallbackCores.some(c => c.name === tier1Name)) {
+                fallbackCores.push({
+                    id: 'base-' + key,
+                    name: tier1Name,
+                    tier: 1,
+                    core_type: 'main',
+                    description: `${tier1Name} base tactical core.`
+                })
+            }
+        }
+        coresData.value = fallbackCores
+    }
+
+    loading.value = false
 })
 
 // Background Floating Animations
