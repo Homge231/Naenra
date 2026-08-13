@@ -3,38 +3,38 @@
     <div 
       v-if="visible"
       ref="widgetRef"
-      class="absolute top-14 right-2 sm:top-24 sm:right-10 z-30 flex flex-col items-end gap-2 scale-90 sm:scale-100 origin-top-right transition-all duration-300"
+      class="absolute top-11 right-1.5 sm:top-24 sm:right-10 z-30 flex flex-col items-end gap-2 scale-75 sm:scale-100 origin-top-right transition-all duration-300"
       @mouseenter="isCorePopupOpen = true"
       @mouseleave="isCorePopupOpen = false"
     >
       <!-- Main Opponent Floating HUD Bar (Click/Tap Wrapper) -->
       <div 
-        class="flex items-center gap-4 bg-darkNavy/40 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-105 cursor-pointer select-none"
+        class="flex items-center gap-2 sm:gap-4 bg-darkNavy/40 backdrop-blur-xl border border-white/10 p-2 sm:p-4 rounded-xl sm:rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-105 cursor-pointer select-none"
         @click="toggleCorePopup"
       >
         <!-- Opponent Profile Info -->
-        <div class="flex items-center gap-3">
-          <div class="relative w-12 h-12 rounded-xl overflow-hidden border border-white/20 bg-black/40">
+        <div class="flex items-center gap-2 sm:gap-3">
+          <div class="relative w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl overflow-hidden border border-white/20 bg-black/40">
             <img v-if="avatar" :src="avatar" :alt="name" class="w-full h-full object-cover" />
-            <span v-else class="text-white font-black text-xl flex items-center justify-center h-full">?</span>
+            <span v-else class="text-white font-black text-sm sm:text-xl flex items-center justify-center h-full">?</span>
           </div>
           <div class="flex flex-col">
-            <span class="text-[9px] font-bold text-orange tracking-[0.2em] uppercase flex items-center gap-1">
+            <span class="text-[8px] sm:text-[9px] font-bold text-orange tracking-[0.15em] sm:tracking-[0.2em] uppercase flex items-center gap-1">
               Opponent
-              <span v-if="coreDetails" class="text-[8px] text-lightBlue">✦ Core</span>
+              <span v-if="coreDetails" class="text-[7px] sm:text-[8px] text-lightBlue">✦ Core</span>
             </span>
-            <span class="text-sm font-black text-white tracking-wide truncate max-w-[120px]">{{ name }}</span>
+            <span class="text-xs sm:text-sm font-black text-white tracking-wide truncate max-w-[80px] sm:max-w-[120px]">{{ name }}</span>
           </div>
         </div>
         
         <!-- Score Divider -->
-        <div class="w-[1px] h-10 bg-white/10"></div>
+        <div class="w-[1px] h-7 sm:h-10 bg-white/10"></div>
         
         <!-- Opponent Score -->
-        <div class="flex flex-col items-center min-w-[60px]">
-          <span class="text-[9px] font-bold text-lightBlue tracking-[0.2em] uppercase">Score</span>
+        <div class="flex flex-col items-center min-w-[40px] sm:min-w-[60px]">
+          <span class="text-[8px] sm:text-[9px] font-bold text-lightBlue tracking-[0.15em] sm:tracking-[0.2em] uppercase">Score</span>
           <span 
-            class="text-2xl font-black text-white tabular-nums drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] transition-all duration-200"
+            class="text-lg sm:text-2xl font-black text-white tabular-nums drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] transition-all duration-200"
             :class="{ 'score-pop': isScoreChanging }"
           >
             {{ score }}
@@ -42,7 +42,7 @@
         </div>
 
         <!-- Chevron / Indicator Icon for Pop-up -->
-        <div v-if="coreDetails" class="ml-1 text-xs text-gray-400 transition-transform duration-200" :class="{ 'rotate-180 text-orange': isCorePopupOpen }">
+        <div v-if="coreDetails" class="ml-0.5 sm:ml-1 text-[10px] sm:text-xs text-gray-400 transition-transform duration-200" :class="{ 'rotate-180 text-orange': isCorePopupOpen }">
           ▼
         </div>
       </div>

@@ -86,18 +86,18 @@
       :shift-announcement="shiftAnnouncement" />
 
     <header v-show="gameState !== 'upgrade'"
-      class="relative z-30 flex justify-between items-center px-8 lg:px-12 py-5 bg-darkNavy/30 backdrop-blur-md border-b border-white/10 shadow-lg">
+      class="relative z-30 flex justify-between items-center px-2 sm:px-8 py-2 sm:py-5 bg-darkNavy/30 backdrop-blur-md border-b border-white/10 shadow-lg">
       <div class="relative" ref="menuRef">
         <button @click.stop="menuOpen = !menuOpen"
-          class="flex items-center gap-3 focus:outline-none hover:opacity-80 transition-opacity">
-          <svg class="w-8 h-8 text-orange fill-current" viewBox="0 0 24 24">
+          class="flex items-center gap-1.5 sm:gap-3 focus:outline-none hover:opacity-80 transition-opacity">
+          <svg class="w-5 h-5 sm:w-8 sm:h-8 text-orange fill-current" viewBox="0 0 24 24">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
           <span
-            class="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase drop-shadow-md">
+            class="text-sm sm:text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase drop-shadow-md">
             NAENRA
           </span>
-          <svg class="w-4 h-4 text-gray-300 transition-transform duration-200" :class="menuOpen ? 'rotate-180' : ''"
+          <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 transition-transform duration-200" :class="menuOpen ? 'rotate-180' : ''"
             fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -177,42 +177,40 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-8">
-        <!-- Sound Toggle removed -->
-
+      <div class="flex items-center gap-1.5 sm:gap-6">
         <div id="tutorial-score-area"
-          class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
-          <span class="text-xs font-bold text-orange tracking-[0.2em] uppercase">Score</span>
-          <span class="text-xl font-black text-white tabular-nums">{{ score }}</span>
+          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
+          <span class="text-[9px] sm:text-xs font-bold text-orange tracking-[0.1em] uppercase hidden sm:inline">Score</span>
+          <span class="text-[9px] font-bold text-orange tracking-[0.1em] uppercase sm:hidden">Scr</span>
+          <span class="text-sm sm:text-xl font-black text-white tabular-nums">{{ score }}</span>
         </div>
 
         <div
-          class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
-          <span class="text-xs font-bold text-lightBlue tracking-[0.2em] uppercase">Q</span>
-          <span class="text-xl font-black text-white">{{ questionsAnswered }}</span>
+          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
+          <span class="text-[9px] sm:text-xs font-bold text-lightBlue tracking-[0.1em] uppercase">Q</span>
+          <span class="text-sm sm:text-xl font-black text-white">{{ questionsAnswered }}</span>
         </div>
 
-        <div class="relative flex items-center gap-2"
+        <div
+          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
+          <span class="text-[9px] sm:text-xs font-bold text-gray-400 tracking-[0.1em] uppercase">Rnd</span>
+          <span class="text-sm sm:text-xl font-black text-white">{{ matchStore.currentRound }}/{{ matchStore.maxRounds }}</span>
+        </div>
+
+        <div class="relative flex items-center gap-1 ml-0.5 sm:ml-1"
           :class="timeLeft <= 10 ? 'text-hexred' : activeCoreModule.timerColor">
-          <svg class="w-5 h-5 drop-shadow-md" :class="activeCoreModule.timerIconClass || undefined" fill="none"
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-md" :class="activeCoreModule.timerIconClass || undefined" fill="none"
             stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="font-mono font-black text-3xl tabular-nums drop-shadow-lg" :class="[
+          <span class="font-mono font-black text-xl sm:text-3xl tabular-nums drop-shadow-lg" :class="[
             activeCoreModule?.timerColor,
             timeLeft <= 10 && settingsStore.vfxEnabled ? 'animate-pulse' : '',
             settingsStore.vfxEnabled ? (activeCoreModule?.timerClass || '') : ''
           ]">
             {{ String(timeLeft ?? 0).padStart(2, '0') }}
           </span>
-          <!-- Round Indicator Preparation -->
-          <div class="absolute -bottom-4 w-full text-center whitespace-nowrap scale-75">
-            <span id="tutorial-round-indicator"
-              class="text-[9px] font-bold text-gray-500 uppercase tracking-widest bg-darkBlue/50 px-2 py-0.5 rounded-full border border-white/5">
-              Round {{ matchStore.currentRound }}/{{ matchStore.maxRounds }}
-            </span>
-          </div>
         </div>
       </div>
     </header>
