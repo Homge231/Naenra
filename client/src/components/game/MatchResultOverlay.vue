@@ -46,7 +46,7 @@ const settingsStore = useSettingsStore()
 
 const animatedPlayerScore = ref(0)
 const animatedOpponentScore = ref(0)
-const animatedElo = ref(1000)
+const animatedElo = ref(0)
 const animatedRankProgress = ref(0)
 
 const correctCount = computed(() => props.matchHistory.filter(h => h.isCorrect).length)
@@ -66,15 +66,15 @@ const avgWpm = computed(() => {
   return Math.round((totalCorrectChars / 5) / durationMinutes)
 })
 
-// Effective ELO resolution (never default to 0!)
+// Effective ELO resolution (allow 0 ELO)
 const effectiveNewElo = computed(() => {
-  if (props.newElo && props.newElo > 0) return props.newElo
-  if (authStore.profile?.elo && authStore.profile.elo > 0) return authStore.profile.elo
-  return 1000
+  if (typeof props.newElo === 'number' && !isNaN(props.newElo)) return props.newElo
+  if (typeof authStore.profile?.elo === 'number' && !isNaN(authStore.profile.elo)) return authStore.profile.elo
+  return 0
 })
 
 const effectiveOldElo = computed(() => {
-  if (props.oldElo && props.oldElo > 0) return props.oldElo
+  if (typeof props.oldElo === 'number' && !isNaN(props.oldElo)) return props.oldElo
   const change = props.eloChange ?? 0
   return Math.max(0, effectiveNewElo.value - change)
 })
