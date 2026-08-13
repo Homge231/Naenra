@@ -1,5 +1,5 @@
 <template>
-  <div class="app-wrapper relative">
+  <div class="app-wrapper relative w-full max-w-full overflow-x-hidden min-h-screen">
     <RouterView />
     <ErrorNotification />
     <MissionToastOverlay />
