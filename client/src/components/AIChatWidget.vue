@@ -754,8 +754,8 @@ function renderMarkdown(raw: string): string {
 /* ── Root Container ──────────────────────────── */
 .ai-chat-root {
   position: fixed;
-  bottom: 24px;
-  right: 88px;
+  bottom: 20px;
+  right: 16px;
   z-index: 9999;
   font-family: inherit;
 }
@@ -764,9 +764,9 @@ function renderMarkdown(raw: string): string {
 .chat-window {
   position: absolute;
   bottom: 72px;
-  right: -64px;
+  right: 0;
   width: 410px;
-  height: 560px;
+  height: 540px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 120px);
   background: rgba(255, 255, 255, 0.96);
@@ -781,8 +781,19 @@ function renderMarkdown(raw: string): string {
 }
 
 @media (max-width: 640px) {
+  .ai-chat-root {
+    bottom: 16px;
+    right: 16px;
+  }
   .chat-window {
-    right: -72px;
+    position: fixed;
+    bottom: 88px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    height: 420px;
+    max-height: calc(100vh - 120px);
+    border-radius: 20px;
   }
 }
 

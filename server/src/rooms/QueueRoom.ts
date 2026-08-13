@@ -127,6 +127,8 @@ export class QueueRoom extends Room<{ state: QueueState }> {
       if (matched.has(p.sessionId)) continue;
 
       const waitTimeMs = Date.now() - p.joinedAt;
+      console.log(`[QueueRoom] Player ${p.userId} waiting: ${Math.round(waitTimeMs/1000)}s / 30s`);
+
       if (waitTimeMs >= 30000) {
         // Trigger Bot Match Fallback after 30 seconds
         matched.add(p.sessionId);
@@ -134,7 +136,7 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
         try {
           const botProfile = generateBotProfile(p.elo);
-          console.log(`[QueueRoom] 30s timeout reached for ${p.userId} (${p.sessionId}). Instantiating AI Bot: ${botProfile.name} (Elo: ${botProfile.elo})`);
+          console.log(`[QueueRoom] ⚡ 30s timeout! Spawning AI Bot for ${p.userId}: ${botProfile.name} (Elo: ${botProfile.elo})`);
 
           const matchRoom = await matchMaker.createRoom("match_room", {
             isCustom: false,
@@ -142,9 +144,15 @@ export class QueueRoom extends Room<{ state: QueueState }> {
             botProfile
           });
 
+          console.log(`[QueueRoom] Bot match room created: ${matchRoom.roomId}`);
+
           const client = this.clients.find(c => c.sessionId === p.sessionId);
           if (client) {
             client.send("match_found", { roomId: matchRoom.roomId, isBotMatch: true });
+            console.log(`[QueueRoom] ✅ match_found sent to ${p.userId} → room ${matchRoom.roomId}`);
+          } else {
+            console.warn(`[QueueRoom] ⚠️ Client ${p.sessionId} not found in this.clients — cannot send match_found!`);
+            console.log(`[QueueRoom] Available clients:`, this.clients.map(c => c.sessionId));
           }
 
           console.log(`[QueueRoom] Matched human ${p.userId} with Bot ${botProfile.name} in room ${matchRoom.roomId}`);

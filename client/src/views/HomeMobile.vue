@@ -182,7 +182,9 @@
       </div>
     </div>
 
-    <AIChatWidget />
+    <Teleport to="body">
+      <AIChatWidget />
+    </Teleport>
   </div>
 </template>
 
