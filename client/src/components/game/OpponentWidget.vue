@@ -3,7 +3,7 @@
     <div 
       v-if="visible"
       ref="widgetRef"
-      class="absolute top-24 right-6 md:right-10 z-30 flex flex-col items-end gap-2"
+      class="absolute top-14 right-2 sm:top-24 sm:right-10 z-30 flex flex-col items-end gap-2 scale-90 sm:scale-100 origin-top-right transition-all duration-300"
       @mouseenter="isCorePopupOpen = true"
       @mouseleave="isCorePopupOpen = false"
     >

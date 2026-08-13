@@ -227,7 +227,7 @@
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
-      class="relative z-20 flex-1 flex flex-col items-center justify-center justify-center py-4 px-2 max-w-5xl mx-auto w-full">
+      class="relative z-20 flex-1 flex flex-col items-center justify-center py-2 pt-16 sm:pt-20 px-2 max-w-5xl mx-auto w-full">
 
       <!-- Speedster wind streak overlay component -->
       <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
@@ -318,7 +318,7 @@
           <transition name="card-flip" mode="out-in">
             <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-10">
               <!-- Top-half container for Hint and Question Text -->
-              <div class="w-full flex flex-col gap-6">
+              <div class="w-full flex flex-col gap-3 sm:gap-6">
                 <div v-if="currentQuestion.hint"
                   class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-3 md:p-6 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
                   <div
@@ -450,7 +450,7 @@
     </div>
 
     <!-- Right-Side Indicators Container -->
-    <div class="absolute top-52 right-8 z-20 flex flex-col items-end gap-4 transition-all duration-300 pointer-events-none">
+    <div class="absolute top-16 right-2 sm:top-52 sm:right-8 z-20 flex flex-col items-end gap-4 scale-75 sm:scale-100 origin-top-right transition-all duration-300 pointer-events-none">
       <!-- Combo indicator: only visible when active core is the Combo Core AND not Race Round -->
       <transition name="fade-scale">
         <div v-if="false">
@@ -460,7 +460,7 @@
     </div>
 
     <!-- Left-Side Indicators Container -->
-    <div class="absolute top-52 left-8 z-20 flex flex-col gap-4 transition-all duration-300 pointer-events-none">
+    <div class="absolute top-16 left-2 sm:top-52 sm:left-8 z-20 flex flex-col gap-4 scale-75 sm:scale-100 origin-top-left transition-all duration-300 pointer-events-none">
       <!-- Aegis Shield Mode Indicator (hidden in Race Round) -->
       <transition name="fade-scale">
         <div v-if="false">
@@ -677,7 +677,7 @@
     </transition>
 
     <!-- Opponent Toast Notifications Stack -->
-    <div class="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-full max-w-xs px-4">
+    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-full max-w-xs px-4">
       <transition-group name="toast-slide">
         <div v-for="toast in toasts" :key="toast.id"
           class="bg-darkNavy/95 border border-white/20 shadow-2xl rounded-xl px-4 py-2.5 flex items-center gap-3 backdrop-blur-md w-full justify-center">
