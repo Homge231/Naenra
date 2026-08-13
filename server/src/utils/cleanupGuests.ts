@@ -2,9 +2,9 @@ import { supabase } from '../config/supabase.js'
 
 /**
  * Deletes guest accounts older than specified days to free up DB space and recycle resources.
- * @param daysOlderThan Number of days threshold (default: 3 days)
+ * @param daysOlderThan Number of days threshold (default: 1 day = 24h)
  */
-export async function cleanupOldGuestAccounts(daysOlderThan = 3): Promise<{ deletedCount: number }> {
+export async function cleanupOldGuestAccounts(daysOlderThan = 1): Promise<{ deletedCount: number }> {
   try {
     const cutoffDate = new Date(Date.now() - daysOlderThan * 24 * 60 * 60 * 1000).toISOString()
 
@@ -25,22 +25,32 @@ export async function cleanupOldGuestAccounts(daysOlderThan = 3): Promise<{ dele
       return { deletedCount: 0 }
     }
 
-    console.log(`[CleanupGuests] Found ${oldGuests.length} guest accounts older than ${daysOlderThan} days. Cleaning up...`)
+    console.log(`[CleanupGuests] Found ${oldGuests.length} guest accounts older than ${daysOlderThan} day(s). Cleaning up...`)
 
     let count = 0
     for (const guest of oldGuests) {
-      // Delete game sessions first to prevent FK constraint errors
-      await supabase.from('game_sessions').delete().eq('player_id', guest.id)
-      
-      // Delete from players table
-      await supabase.from('players').delete().eq('id', guest.id)
+      try {
+        // Delete all dependent child records first to satisfy Foreign Key constraints
+        await supabase.from('game_session_answers').delete().eq('player_id', guest.id)
+        await supabase.from('game_sessions').delete().eq('player_id', guest.id)
+        await supabase.from('user_vocab_stats').delete().eq('user_id', guest.id)
+        await supabase.from('user_core_progress').delete().eq('user_id', guest.id)
 
-      // Delete from Supabase Auth
-      const { error: authErr } = await supabase.auth.admin.deleteUser(guest.id)
-      if (authErr) {
-        console.warn(`[CleanupGuests] Could not delete auth user ${guest.id}:`, authErr.message)
-      } else {
+        // Delete from public.players table
+        const { error: playerErr } = await supabase.from('players').delete().eq('id', guest.id)
+        if (playerErr) {
+          console.warn(`[CleanupGuests] Could not delete DB player ${guest.id}:`, playerErr.message)
+        }
+
+        // Delete from Supabase Auth admin API
+        const { error: authErr } = await supabase.auth.admin.deleteUser(guest.id)
+        if (authErr) {
+          console.warn(`[CleanupGuests] Could not delete auth user ${guest.id}:`, authErr.message)
+        }
+
         count++
+      } catch (err: any) {
+        console.error(`[CleanupGuests] Error deleting guest ${guest.id}:`, err?.message || err)
       }
     }
 

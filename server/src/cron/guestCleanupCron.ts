@@ -6,7 +6,7 @@ export function initGuestCleanupCron() {
   cron.schedule('0 3 * * *', async () => {
     console.log('[GuestCleanupCron] Running daily guest account cleanup job...')
     try {
-      const result = await cleanupOldGuestAccounts(3)
+      const result = await cleanupOldGuestAccounts(1)
       console.log(`[GuestCleanupCron] Successfully cleaned up ${result.deletedCount} old guest accounts.`)
     } catch (err) {
       console.error('[GuestCleanupCron] Error during guest account cleanup:', err)
@@ -17,7 +17,7 @@ export function initGuestCleanupCron() {
   setTimeout(async () => {
     console.log('[GuestCleanupCron] Running startup check for old guest accounts...')
     try {
-      await cleanupOldGuestAccounts(3)
+      await cleanupOldGuestAccounts(1)
     } catch (err) {
       console.error('[GuestCleanupCron] Startup guest cleanup error:', err)
     }
