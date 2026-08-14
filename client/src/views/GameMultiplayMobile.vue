@@ -1693,7 +1693,7 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 function handleVirtualKey(key: string) {
-  if (key === 'Skip' || key === 'Enter') {
+  if (key === 'Enter') {
     handleKeydown(new KeyboardEvent('keydown', { key: 'Enter' }))
   } else if (key === 'Backspace') {
     handleKeydown(new KeyboardEvent('keydown', { key: 'Backspace' }))

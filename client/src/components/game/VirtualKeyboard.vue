@@ -15,16 +15,13 @@
       </div>
       <!-- Row 3 -->
       <div class="flex justify-center gap-1 sm:gap-1.5">
-        <button @click="emitKey('Skip')" class="vk-btn-special text-amber-400 font-bold px-1.5 sm:px-2.5">
-          SKIP ⏩
+        <button @click="emitKey('Backspace')" class="vk-btn-special text-hexred font-bold flex-[1.2] px-1.5 sm:px-2.5" title="Delete">
+          ⌫ DEL
         </button>
         <button v-for="key in row3" :key="key" @click="emitKey(key)" class="vk-btn">
           {{ key }}
         </button>
-        <button @click="emitKey('Backspace')" class="vk-btn-special text-hexred font-bold px-2 sm:px-3">
-          ⌫
-        </button>
-        <button @click="emitKey('Enter')" class="vk-btn-special text-emerald-400 font-bold px-2 sm:px-3">
+        <button @click="emitKey('Enter')" class="vk-btn-special text-emerald-400 font-bold flex-[1.2] px-1.5 sm:px-2.5" title="Enter">
           ↵ ENTER
         </button>
       </div>
@@ -62,6 +59,7 @@ const emitKey = (key: string) => {
 }
 
 .vk-btn-special {
-  @apply h-12 sm:h-14 bg-white/5 hover:bg-white/15 active:bg-white/30 rounded text-sm sm:text-base font-black transition-colors select-none flex items-center justify-center border border-white/5;
+  @apply h-12 sm:h-14 bg-white/5 hover:bg-white/15 active:bg-white/30 rounded text-xs sm:text-sm font-black transition-colors select-none flex items-center justify-center border border-white/5;
+  min-width: 36px;
 }
 </style>
