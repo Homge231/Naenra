@@ -654,10 +654,102 @@ export const useMissionsStore = defineStore('missions', () => {
     return []
   }
 
-  function saveState() {
+  const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+  const isSyncing = ref(false)
+
+  let syncTimeout: any = null
+  function debouncedCloudSync() {
+    if (syncTimeout) clearTimeout(syncTimeout)
+    syncTimeout = setTimeout(async () => {
+      const token = localStorage.getItem('arena_token')
+      const authStore = useAuthStore()
+      if (!token || authStore.isGuest) return
+
+      try {
+        const payload = missions.value.map(m => ({
+          coreName: m.unlockCoreName,
+          currentProgress: m.currentProgress,
+          isCompleted: m.isCompleted,
+          isClaimed: m.isClaimed,
+          isUnlocked: m.isClaimed || isCoreUnlocked(m.unlockCoreName)
+        }))
+
+        await fetch(`${SERVER_URL}/api/user/core-progress/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ progressList: payload })
+        })
+      } catch (err) {
+        console.warn('[MissionsStore] Cloud progress sync error:', err)
+      }
+    }, 2000)
+  }
+
+  async function fetchCloudProgress() {
+    const token = localStorage.getItem('arena_token')
+    if (!token) return
+
+    try {
+      const authStore = useAuthStore()
+      if (authStore.isGuest) return
+
+      isSyncing.value = true
+      const res = await fetch(`${SERVER_URL}/api/user/core-progress`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (!res.ok) return
+
+      const data = await res.json()
+      if (data.unlockedCoreNames && Array.isArray(data.unlockedCoreNames)) {
+        const mergedNames = new Set([...unlockedCoreNames.value, ...data.unlockedCoreNames])
+        unlockedCoreNames.value = Array.from(mergedNames)
+      }
+
+      if (data.missions && Array.isArray(data.missions)) {
+        for (const cloudM of data.missions) {
+          const localM = missions.value.find(m => 
+            m.unlockCoreName.toLowerCase() === cloudM.coreName.toLowerCase() ||
+            m.id.toLowerCase() === cloudM.coreName.toLowerCase()
+          )
+          if (localM) {
+            localM.currentProgress = Math.max(localM.currentProgress, cloudM.currentProgress)
+            if (cloudM.isCompleted || cloudM.isUnlocked) {
+              localM.isCompleted = true
+            }
+            if (cloudM.isUnlocked) {
+              localM.isClaimed = true
+            }
+          }
+        }
+      }
+
+      saveState(false)
+    } catch (err) {
+      console.warn('[MissionsStore] Failed to fetch cloud core progress:', err)
+    } finally {
+      isSyncing.value = false
+    }
+  }
+
+  // Trigger initial cloud fetch on startup if token exists
+  if (typeof window !== 'undefined' && localStorage.getItem('arena_token')) {
+    setTimeout(() => {
+      fetchCloudProgress()
+    }, 500)
+  }
+
+  function saveState(shouldSyncToCloud: boolean = true) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(missions.value))
       localStorage.setItem(UNLOCKED_CORES_KEY, JSON.stringify(unlockedCoreNames.value))
+      if (shouldSyncToCloud) {
+        debouncedCloudSync()
+      }
     } catch (e) {
       console.error('Failed to save missions state:', e)
     }
@@ -776,7 +868,26 @@ export const useMissionsStore = defineStore('missions', () => {
         'unlocked'
       )
 
-      saveState()
+      saveState(true)
+
+      // Sync claim to Supabase cloud
+      const token = localStorage.getItem('arena_token')
+      if (token && !authStore.isGuest) {
+        fetch(`${SERVER_URL}/api/user/core-progress/claim`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            coreName: mission.unlockCoreName,
+            missionId: mission.id
+          })
+        }).catch(err => {
+          console.warn('[MissionsStore] Failed to sync claim to cloud:', err)
+        })
+      }
+
       return mission.rewardXp
     }
     return 0
@@ -941,6 +1052,8 @@ export const useMissionsStore = defineStore('missions', () => {
     adminCompleteMission,
     showToast,
     dismissToast,
-    resetMissions
+    resetMissions,
+    fetchCloudProgress,
+    isSyncing
   }
 })
