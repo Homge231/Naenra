@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showVirtualKeyboard" class="virtual-keyboard-container w-full bg-darkNavy/90 backdrop-blur-md p-2 rounded-t-xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-50">
+  <div v-if="showVirtualKeyboard" class="virtual-keyboard-container sticky bottom-0 left-0 right-0 shrink-0 w-full bg-darkNavy/90 backdrop-blur-md p-2 rounded-t-xl border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] z-50">
     <div class="flex flex-col gap-2 max-w-lg mx-auto">
       <!-- Row 1 -->
       <div class="flex justify-center gap-1 sm:gap-1.5">

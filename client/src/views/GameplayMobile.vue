@@ -231,7 +231,7 @@
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
-      class="relative z-20 flex-1 flex flex-col items-center justify-center py-4 px-2 max-w-5xl mx-auto w-full">
+      class="relative z-20 flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center py-4 px-2 max-w-5xl mx-auto w-full">
 
       <!-- Speedster wind streak overlay component -->
       <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
@@ -252,7 +252,7 @@
             <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-4">
 
               <div v-if="currentQuestion.hint"
-                class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-xl p-3 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
+                class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-xl p-3 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full max-h-28 sm:max-h-36 overflow-y-auto custom-scrollbar transition-all duration-300 transform hover:-translate-y-1">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue to-transparent">
                 </div>
                 <div class="flex items-center justify-center gap-1 mb-1 opacity-90">
@@ -274,7 +274,7 @@
                 :oracle-hint-text="oracleHintText" :oracle-next-cost="oracleNextCost" @use-hint="useOracleHint" />
 
               <div
-                class="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-5 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300 transform-gpu"
+                class="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-5 shadow-2xl flex flex-col items-center text-center w-full max-h-36 sm:max-h-44 overflow-y-auto custom-scrollbar transition-all duration-300 transform-gpu"
                 :class="{
                   'burning-edge-active': isBurningComboActive,
                   'shake-error': isTypingError,

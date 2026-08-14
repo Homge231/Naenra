@@ -228,7 +228,7 @@
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
-      class="relative z-20 flex-1 flex flex-col items-center justify-center py-2 pt-16 sm:pt-20 px-2 max-w-5xl mx-auto w-full">
+      class="relative z-20 flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center py-2 pt-16 sm:pt-20 px-2 max-w-5xl mx-auto w-full">
 
       <!-- Speedster wind streak overlay component -->
       <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
@@ -255,7 +255,7 @@
              </div>
              
              <!-- Shared Question -->
-             <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-5 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300">
+             <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col items-center text-center w-full max-h-36 sm:max-h-44 overflow-y-auto custom-scrollbar transition-all duration-300">
                 <div v-if="currentRaceQuestion?.hint" class="mb-4 text-sm font-bold text-lightBlue uppercase tracking-widest bg-blue/10 px-4 py-1 rounded-full border border-blue/30 inline-block">
                   HINT: {{ currentRaceQuestion.hint }}
                 </div>
