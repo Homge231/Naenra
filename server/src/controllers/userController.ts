@@ -310,3 +310,224 @@ export const getLeaderboard = async (req: AuthRequest, res: Response): Promise<a
     return res.status(500).json({ error: error.message || 'Failed to fetch leaderboard' })
   }
 }
+
+// ── US-88: Core Progress Cloud Sync Endpoints ─────────────────────────────────
+
+export const getUserCoreProgress = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+    // Fetch user progress rows
+    const { data: progressRows, error: pErr } = await supabase
+      .from('user_core_progress')
+      .select('core_id, current_progress, is_unlocked, unlocked_at')
+      .eq('user_id', userId)
+
+    if (pErr) throw pErr
+
+    // Fetch all cores
+    const { data: allCores, error: cErr } = await supabase
+      .from('cores')
+      .select('id, name, classification, tier, description, flat_buff, multiplier_buff, icon_url')
+
+    if (cErr) throw cErr
+
+    // Fetch all core missions
+    const { data: allMissions, error: mErr } = await supabase
+      .from('core_missions')
+      .select('id, core_id, mission_type, target_value, description')
+
+    if (mErr) throw mErr
+
+    const progressMap = new Map<string, any>()
+    for (const p of progressRows || []) {
+      progressMap.set(String(p.core_id), p)
+    }
+
+    const missionMap = new Map<string, any>()
+    for (const m of allMissions || []) {
+      missionMap.set(String(m.core_id), m)
+    }
+
+    const unlockedCoreNames: string[] = []
+    const unlockedCoreIds: string[] = []
+    const missions: any[] = []
+
+    for (const core of allCores || []) {
+      const coreId = String(core.id)
+      const coreName = String(core.name || '').trim()
+      const isBase = core.tier === 1 || core.classification === 'main'
+      const p = progressMap.get(coreId)
+      const m = missionMap.get(coreId)
+
+      const isUnlocked = isBase || Boolean(p?.is_unlocked)
+      if (isUnlocked) {
+        unlockedCoreNames.push(coreName)
+        unlockedCoreIds.push(coreId)
+      }
+
+      if (!isBase) {
+        const targetValue = Math.max(1, Number(m?.target_value || 10))
+        const currentProg = p ? Number(p.current_progress || 0) : 0
+        missions.push({
+          missionId: m?.id || `mission_${coreId}`,
+          coreId,
+          coreName,
+          title: m?.description || `${coreName} Mission`,
+          description: m?.description || `Complete gameplay tasks to unlock ${coreName}.`,
+          missionType: m?.mission_type || 'matches_played',
+          targetCount: targetValue,
+          currentProgress: isUnlocked ? targetValue : Math.min(targetValue, currentProg),
+          isCompleted: isUnlocked || currentProg >= targetValue,
+          isUnlocked,
+          unlockedAt: p?.unlocked_at || null,
+          tier: core.tier || 2,
+          iconUrl: core.icon_url
+        })
+      }
+    }
+
+    return res.status(200).json({
+      unlockedCoreNames: Array.from(new Set(unlockedCoreNames)),
+      unlockedCoreIds: Array.from(new Set(unlockedCoreIds)),
+      missions
+    })
+  } catch (error: any) {
+    console.error('getUserCoreProgress error:', error)
+    return res.status(500).json({ error: error.message || 'Failed to fetch core progress' })
+  }
+}
+
+export const claimCoreMission = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+    const { coreId, coreName } = req.body
+    if (!coreId && !coreName) {
+      return res.status(400).json({ error: 'coreId or coreName is required' })
+    }
+
+    // Resolve core
+    let query = supabase.from('cores').select('id, name, tier, classification')
+    if (coreId) {
+      query = query.eq('id', coreId)
+    } else {
+      query = query.ilike('name', String(coreName).trim())
+    }
+    const { data: core, error: cErr } = await query.maybeSingle()
+    if (cErr || !core) {
+      return res.status(404).json({ error: 'Core not found' })
+    }
+
+    // Fetch target value from core_missions
+    const { data: mission } = await supabase
+      .from('core_missions')
+      .select('target_value')
+      .eq('core_id', core.id)
+      .maybeSingle()
+
+    const targetValue = Math.max(1, Number(mission?.target_value || 10))
+
+    // Upsert as unlocked in user_core_progress
+    const now = new Date().toISOString()
+    const { error: upsertErr } = await supabase
+      .from('user_core_progress')
+      .upsert({
+        user_id: userId,
+        core_id: core.id,
+        current_progress: targetValue,
+        is_unlocked: true,
+        unlocked_at: now,
+        updated_at: now
+      }, { onConflict: 'user_id,core_id' })
+
+    if (upsertErr) throw upsertErr
+
+    return res.status(200).json({
+      success: true,
+      coreId: core.id,
+      coreName: core.name,
+      isUnlocked: true,
+      unlockedAt: now
+    })
+  } catch (error: any) {
+    console.error('claimCoreMission error:', error)
+    return res.status(500).json({ error: error.message || 'Failed to claim core mission' })
+  }
+}
+
+export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise<any> => {
+  try {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+    const { progressList } = req.body
+    if (!Array.isArray(progressList) || progressList.length === 0) {
+      return res.status(200).json({ message: 'No progress items to sync' })
+    }
+
+    // Fetch all cores to map by name or id
+    const { data: allCores } = await supabase
+      .from('cores')
+      .select('id, name')
+
+    const coreNameMap = new Map<string, string>()
+    const coreIdMap = new Set<string>()
+    for (const c of allCores || []) {
+      coreNameMap.set(String(c.name).toLowerCase().trim(), String(c.id))
+      coreIdMap.add(String(c.id))
+    }
+
+    // Fetch existing progress
+    const { data: existingProgress } = await supabase
+      .from('user_core_progress')
+      .select('core_id, current_progress, is_unlocked, unlocked_at')
+      .eq('user_id', userId)
+
+    const existingMap = new Map<string, any>()
+    for (const p of existingProgress || []) {
+      existingMap.set(String(p.core_id), p)
+    }
+
+    const now = new Date().toISOString()
+    const upserts = []
+
+    for (const item of progressList) {
+      let resolvedCoreId = item.coreId
+      if (!resolvedCoreId && item.coreName) {
+        resolvedCoreId = coreNameMap.get(String(item.coreName).toLowerCase().trim())
+      }
+      if (!resolvedCoreId || !coreIdMap.has(resolvedCoreId)) continue
+
+      const existing = existingMap.get(resolvedCoreId)
+      const incomingProgress = Number(item.currentProgress || 0)
+      const existingProgressVal = existing ? Number(existing.current_progress || 0) : 0
+      const finalProgress = Math.max(existingProgressVal, incomingProgress)
+      const isUnlocked = Boolean(existing?.is_unlocked) || Boolean(item.isUnlocked) || Boolean(item.isClaimed)
+
+      upserts.push({
+        user_id: userId,
+        core_id: resolvedCoreId,
+        current_progress: finalProgress,
+        is_unlocked: isUnlocked,
+        unlocked_at: isUnlocked ? (existing?.unlocked_at || now) : null,
+        updated_at: now
+      })
+    }
+
+    if (upserts.length > 0) {
+      const { error: upsertErr } = await supabase
+        .from('user_core_progress')
+        .upsert(upserts, { onConflict: 'user_id,core_id' })
+
+      if (upsertErr) throw upsertErr
+    }
+
+    return res.status(200).json({ success: true, syncedCount: upserts.length })
+  } catch (error: any) {
+    console.error('syncCoreProgress error:', error)
+    return res.status(500).json({ error: error.message || 'Failed to sync core progress' })
+  }
+}

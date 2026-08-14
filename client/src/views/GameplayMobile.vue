@@ -1151,6 +1151,9 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       if (data.mission_progress_updates && data.mission_progress_updates.length > 0) {
         missionToastUpdates.value = data.mission_progress_updates
       }
+
+      // Synchronize cloud mission progress
+      missionsStore.fetchCloudProgress()
     }
   } catch (err) {
     console.error(err)
