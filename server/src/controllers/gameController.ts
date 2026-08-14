@@ -189,22 +189,32 @@ export function generateOracleHints(word: string): string[] {
 export async function getQuestions(req: AuthRequest, res: Response): Promise<void> {
   const BATCH_SIZE = 20
   try {
-    const { topic, vocabularyLevel } = req.query
-    let query = supabase.from('questions').select('id, target_word')
-    if (topic && typeof topic === 'string' && topic !== 'Any') {
-      query = query.eq('topic', topic)
+    const { topic, vocabularyLevel, round } = req.query
+    const roundNum = parseInt(round as string, 10) || 0
+
+    let query = supabase.from('questions').select('id, target_word, difficulty, category, topic')
+    // Round 4 uses random questions from any topic; Rounds 1-3 use selected topic
+    if (topic && typeof topic === 'string' && topic !== 'Any' && roundNum !== 4) {
+      query = query.or(`topic.eq.${topic},category.eq.${topic}`)
     }
     const { data: qData, error: idError } = await query
     if (idError) throw idError
     if (!qData || qData.length === 0) { res.status(404).json({ error: 'No questions available.' }); return }
 
     let filtered = qData
-    if (vocabularyLevel === 'Easy') {
-      filtered = filtered.filter(q => q.target_word && q.target_word.length <= 5)
-    } else if (vocabularyLevel === 'Normal') {
-      filtered = filtered.filter(q => q.target_word && q.target_word.length >= 6 && q.target_word.length <= 8)
-    } else if (vocabularyLevel === 'Hard') {
-      filtered = filtered.filter(q => q.target_word && q.target_word.length >= 9)
+    // Explicit Database Category & Difficulty Progression System:
+    // Round 1 -> A1 & A2 (or word length <= 5)
+    // Round 2 -> B1 & B2 (or word length 6 to 8)
+    // Round 3 -> C1 (or word length >= 9)
+    // Round 4 -> Random mix (any difficulty)
+    if (roundNum === 1 || vocabularyLevel === 'Easy') {
+      filtered = filtered.filter(q => q.difficulty === 'A1' || q.difficulty === 'A2' || (q.target_word && q.target_word.length <= 5))
+    } else if (roundNum === 2 || vocabularyLevel === 'Normal') {
+      filtered = filtered.filter(q => q.difficulty === 'B1' || q.difficulty === 'B2' || (q.target_word && q.target_word.length >= 6 && q.target_word.length <= 8))
+    } else if (roundNum === 3 || vocabularyLevel === 'Hard') {
+      filtered = filtered.filter(q => q.difficulty === 'C1' || (q.target_word && q.target_word.length >= 9))
+    } else if (roundNum === 4) {
+      filtered = qData // Round 4: Completely random mix
     }
 
     if (filtered.length === 0) {

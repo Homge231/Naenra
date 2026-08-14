@@ -62,7 +62,8 @@ export function useQuestionQueue(options: UseQuestionQueueOptions) {
         }
       }
 
-      const res = await options.fetchWithAuth(`/api/game/questions?topic=${topic}&vocabularyLevel=${vocabularyLevel}`)
+      const currentRound = options.matchStore.currentRound || 1
+      const res = await options.fetchWithAuth(`/api/game/questions?topic=${topic}&vocabularyLevel=${vocabularyLevel}&round=${currentRound}`)
       if (!res.ok) throw new Error('fetch failed')
       const data = await res.json()
       questionQueue.value.push(...(data.questions as QuestionPayload[]))
