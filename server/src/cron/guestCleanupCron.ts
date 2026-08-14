@@ -1,5 +1,5 @@
 import cron from 'node-cron'
-import { cleanupOldGuestAccounts } from '../utils/cleanupGuests.js'
+import { cleanupOldGuestAccounts } from '../utils/cleanupGuests'
 
 export function initGuestCleanupCron() {
   // Run daily at 3:00 AM (0 3 * * *)

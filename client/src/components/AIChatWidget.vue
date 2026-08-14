@@ -312,6 +312,7 @@ const {
   startLiveSession,
   stopLiveSession,
   sendTextMessage,
+  speakTextViaLive,
   onAiTranscript,
   onUserTranscript,
   onTurnComplete
@@ -334,11 +335,6 @@ let liveSpeechRec: any = null
 onAiTranscript((text: string) => {
   if (!text) return
 
-  // Ensure a user query bubble precedes the AI response if no user bubble exists for this turn
-  if (messages.value.length === 0 || (currentAiLiveMsgIdx.value === -1 && messages.value[messages.value.length - 1]?.role !== 'user')) {
-    messages.value.push({ role: 'user', content: '🎙️ Live Voice Question' })
-  }
-
   if (currentAiLiveMsgIdx.value === -1 || currentAiLiveMsgIdx.value >= messages.value.length || messages.value[currentAiLiveMsgIdx.value]?.role !== 'model') {
     messages.value.push({ role: 'model', content: text })
     currentAiLiveMsgIdx.value = messages.value.length - 1
@@ -356,11 +352,7 @@ onAiTranscript((text: string) => {
 // Real-time transcript from Gemini Live Server User Input (if sent by server)
 onUserTranscript((text: string) => {
   if (!text) return
-  // If a temporary Voice Question bubble was pushed, update it with server transcript
-  if (messages.value.length > 0 && messages.value[messages.value.length - 1]?.content === '🎙️ Live Voice Question') {
-    messages.value[messages.value.length - 1].content = text
-    currentUserLiveMsgIdx.value = messages.value.length - 1
-  } else if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
+  if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
     messages.value.push({ role: 'user', content: text })
     currentUserLiveMsgIdx.value = messages.value.length - 1
   } else {

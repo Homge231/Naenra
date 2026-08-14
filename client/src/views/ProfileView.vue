@@ -1,7 +1,8 @@
 <template>
-  <div class="min-h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col items-center justify-center">
+  <div class="min-h-screen w-full bg-[#fff8f5] text-gray-800 relative font-sans selection:bg-orange-300/50 flex flex-col">
     
-    <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+    <!-- Background Ambient Blobs -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
       <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
       <div class="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] bg-red-300/20 rounded-full mix-blend-multiply blur-[100px] animate-float-delayed"></div>
       <div class="absolute top-[30%] left-[60%] w-[30vw] h-[30vw] bg-rose-200/40 rounded-full mix-blend-multiply blur-[80px] animate-pulse-slow"></div>
@@ -21,156 +22,174 @@
       </div>
     </div>
 
-    <div class="relative z-10 w-full max-w-md p-8 md:p-10 bg-white/80 backdrop-blur-xl rounded-[2.5rem] border-2 border-white shadow-[0_10px_40px_rgba(0,0,0,0.05)]">
-
-      <div class="flex items-center gap-4 mb-8">
-        <button @click="router.push('/home')" class="w-10 h-10 flex items-center justify-center bg-white border-2 border-gray-100 text-gray-500 rounded-full hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <!-- Header Navigation -->
+    <header class="relative z-20 flex justify-between items-center p-3 sm:p-4 lg:px-8">
+      <div class="flex items-center gap-2 sm:gap-3 cursor-pointer bg-white/70 backdrop-blur-md px-3 py-2 rounded-2xl shadow-sm border border-white/60 active:scale-95 transition-transform"
+        @click="router.push('/home')">
+        <button class="w-8 h-8 flex items-center justify-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h1 class="text-2xl font-black uppercase tracking-widest text-gray-900 drop-shadow-sm">
+        <span class="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-900">Back to Home</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest bg-white/70 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/60">
           Player Profile
-        </h1>
+        </span>
       </div>
+    </header>
 
-      <div v-if="loading" class="flex justify-center py-12">
-        <svg class="animate-spin w-10 h-10 text-gray-900" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      </div>
+    <!-- Main Content Container -->
+    <main class="relative z-10 flex-1 w-full max-w-md sm:max-w-lg lg:max-w-2xl mx-auto px-4 py-2 sm:py-6 flex flex-col justify-center">
 
-      <div v-else>
-        <div class="flex flex-col items-center mb-8 relative">
-          <div class="relative group cursor-pointer" :class="{ 'cursor-default': !editMode }">
-            <div class="w-28 h-28 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 p-[3px] shadow-lg">
-              <img
-                :src="displayAvatar"
-                :alt="form.username"
-                class="w-full h-full rounded-full object-cover bg-white border-2 border-white"
-                @error="(e) => (e.target as HTMLImageElement).src = fallbackAvatar"
+      <div class="w-full bg-white/85 backdrop-blur-xl rounded-3xl sm:rounded-[2.5rem] border-2 border-white p-5 sm:p-8 md:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)]">
+
+        <div v-if="loading" class="flex justify-center py-12">
+          <svg class="animate-spin w-10 h-10 text-gray-900" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+
+        <div v-else>
+          <!-- User Avatar & Identity Header -->
+          <div class="flex flex-col items-center mb-6 sm:mb-8 relative">
+            <div class="relative group cursor-pointer" :class="{ 'cursor-default': !editMode }">
+              <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-orange-400 to-red-500 p-[3px] shadow-lg">
+                <img
+                  :src="displayAvatar"
+                  :alt="form.username"
+                  class="w-full h-full rounded-full object-cover bg-white border-2 border-white"
+                  @error="(e) => (e.target as HTMLImageElement).src = fallbackAvatar"
+                />
+              </div>
+              
+              <div
+                v-if="editMode"
+                class="absolute inset-0 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-[3px] border-transparent"
+                @click="triggerFileInput"
+              >
+                <svg class="w-7 h-7 sm:w-8 sm:h-8 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="handleFileChange"
               />
             </div>
             
-            <div
-              v-if="editMode"
-              class="absolute inset-0 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-[3px] border-transparent"
-              @click="triggerFileInput"
-            >
-              <svg class="w-8 h-8 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+            <div v-if="!editMode" class="mt-3 sm:mt-4 text-center">
+              <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{{ profile.username }}</h2>
             </div>
-            <input
-              ref="fileInputRef"
-              type="file"
-              accept="image/*"
-              class="hidden"
-              @change="handleFileChange"
-            />
+
+            <p v-if="editMode" class="text-xs font-bold text-gray-600 mt-3 uppercase tracking-widest bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">
+              Click avatar to change
+            </p>
+            <p v-if="editMode && uploadedBase64" class="text-xs text-green-600 mt-2 font-bold animate-pulse">
+              ✓ New image selected
+            </p>
+          </div>
+
+          <!-- ELO Rating & Rank Grid -->
+          <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+            <div class="bg-gradient-to-br from-orange-50 to-orange-100/80 border border-orange-200/80 rounded-2xl p-3.5 sm:p-5 text-center shadow-sm">
+              <p class="text-[10px] sm:text-xs font-bold text-orange-600/70 uppercase tracking-widest mb-0.5 sm:mb-1">ELO Rating</p>
+              <p class="text-2xl sm:text-3xl font-black text-orange-600">{{ profile.elo }}</p>
+            </div>
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100/80 border border-blue-200/80 rounded-2xl p-3.5 sm:p-5 text-center shadow-sm flex flex-col justify-center">
+              <p class="text-[10px] sm:text-xs font-bold text-blue-600/70 uppercase tracking-widest mb-0.5 sm:mb-1">Rank</p>
+              <p class="text-lg sm:text-xl font-black text-blue-600 uppercase">{{ profile.rank }}</p>
+            </div>
           </div>
           
-          <div v-if="!editMode" class="mt-4 text-center">
-            <h2 class="text-2xl font-black text-gray-900 tracking-tight">{{ profile.username }}</h2>
+          <!-- Match Statistics Bar -->
+          <div class="bg-gray-50/90 border border-gray-200/60 rounded-2xl py-3.5 sm:py-4 flex items-center shadow-inner mb-6 sm:mb-8">
+            <div class="flex-1 text-center border-r border-gray-200">
+              <p class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5 sm:mb-1">Wins</p>
+              <p class="text-lg sm:text-xl font-black text-green-500">{{ profile.wins }}</p>
+            </div>
+            <div class="flex-1 text-center border-r border-gray-200">
+              <p class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5 sm:mb-1">Losses</p>
+              <p class="text-lg sm:text-xl font-black text-red-500">{{ profile.losses }}</p>
+            </div>
+            <div class="flex-1 text-center">
+              <p class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest mb-0.5 sm:mb-1">Matches</p>
+              <p class="text-lg sm:text-xl font-black text-gray-800">{{ profile.total_matches }}</p>
+            </div>
           </div>
 
-          <p v-if="editMode" class="text-xs font-bold text-gray-600 mt-3 uppercase tracking-widest bg-gray-100 px-4 py-1.5 rounded-full border border-gray-200">
-            Click avatar to change
-          </p>
-          <p v-if="editMode && uploadedBase64" class="text-xs text-green-600 mt-2 font-bold animate-pulse">
-            ✓ New image selected
-          </p>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-4 text-center shadow-sm">
-            <p class="text-[10px] font-bold text-orange-600/70 uppercase tracking-widest mb-1">ELO Rating</p>
-            <p class="text-3xl font-black text-orange-600">{{ profile.elo }}</p>
-          </div>
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl p-4 text-center shadow-sm flex flex-col justify-center">
-            <p class="text-[10px] font-bold text-blue-600/70 uppercase tracking-widest mb-1">Rank</p>
-            <p class="text-xl font-black text-blue-600 uppercase">{{ profile.rank }}</p>
-          </div>
-        </div>
-        
-        <div class="bg-gray-50 border border-gray-100 rounded-2xl py-4 flex items-center shadow-inner mb-8">
-          <div class="flex-1 text-center border-r border-gray-200">
-            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Wins</p>
-            <p class="text-xl font-black text-green-500">{{ profile.wins }}</p>
-          </div>
-          <div class="flex-1 text-center border-r border-gray-200">
-            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Losses</p>
-            <p class="text-xl font-black text-red-500">{{ profile.losses }}</p>
-          </div>
-          <div class="flex-1 text-center">
-            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Matches</p>
-            <p class="text-xl font-black text-gray-800">{{ profile.total_matches }}</p>
-          </div>
-        </div>
-
-        <div v-if="!editMode" class="space-y-3">
-          <button
-            @click="enterEditMode"
-            class="group relative w-full h-[60px] bg-gray-900 text-white font-black text-sm tracking-widest uppercase rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:bg-black transition-all duration-300 overflow-hidden active:scale-[0.98]"
-          >
-            <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
-            <span class="relative z-10 flex items-center justify-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-              Edit Profile
-            </span>
-          </button>
-          
-          <button
-            @click="handleReplayTutorial"
-            class="w-full bg-white border-2 border-gray-200 text-gray-600 font-black py-4 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Replay Tutorial
-          </button>
-        </div>
-
-        <div v-else class="space-y-4">
-          <div>
-            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Username</label>
-            <input
-              v-model="form.username"
-              type="text"
-              maxlength="30"
-              placeholder="Your username"
-              class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-4 text-gray-900 font-black text-sm placeholder-gray-400 focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm text-center"
-            />
-          </div>
-
-          <p v-if="errorMsg" class="text-red-500 text-xs font-bold text-center uppercase tracking-wider bg-red-50 py-2.5 rounded-xl border border-red-100">{{ errorMsg }}</p>
-          <p v-if="successMsg" class="text-green-600 text-xs font-bold text-center uppercase tracking-wider bg-green-50 py-2.5 rounded-xl border border-green-100">{{ successMsg }}</p>
-
-          <div class="flex gap-3 mt-6">
+          <!-- Action Buttons -->
+          <div v-if="!editMode" class="space-y-3">
             <button
-              @click="cancelEdit"
-              class="flex-1 py-4 bg-white border-2 border-gray-200 text-gray-500 font-black rounded-2xl hover:bg-gray-50 hover:text-gray-900 transition-all uppercase tracking-widest text-xs active:scale-[0.98] shadow-sm"
-            >
-              Cancel
-            </button>
-            <button
-              @click="handleSave"
-              :disabled="saving"
-              class="group relative flex-1 py-4 bg-gray-900 hover:bg-black text-white font-black rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-all duration-300 uppercase tracking-widest text-xs overflow-hidden disabled:opacity-50 active:scale-[0.98]"
+              @click="enterEditMode"
+              class="group relative w-full h-12 sm:h-14 bg-gray-900 text-white font-black text-xs sm:text-sm tracking-widest uppercase rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.25)] hover:bg-black transition-all duration-300 overflow-hidden active:scale-[0.98] cursor-pointer"
             >
               <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
               <span class="relative z-10 flex items-center justify-center gap-2">
-                <svg v-if="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                <svg v-else class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                {{ saving ? 'Saving...' : 'Save' }}
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                Edit Profile
               </span>
             </button>
+            
+            <button
+              @click="handleReplayTutorial"
+              class="w-full bg-white border-2 border-gray-200 text-gray-600 font-black h-11 sm:h-12 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 uppercase tracking-widest text-xs flex items-center justify-center gap-2 active:scale-[0.98] shadow-sm cursor-pointer"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Reset Tutorial
+            </button>
+
+            <p v-if="successMsg" class="text-green-600 text-xs font-bold text-center uppercase tracking-wider bg-green-50 py-2.5 rounded-xl border border-green-100 animate-fade-in mt-3">{{ successMsg }}</p>
+          </div>
+
+          <div v-else class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Username</label>
+              <input
+                v-model="form.username"
+                type="text"
+                maxlength="30"
+                placeholder="Your username"
+                class="w-full bg-white border-2 border-gray-200 rounded-2xl px-5 py-3.5 sm:py-4 text-gray-900 font-black text-sm placeholder-gray-400 focus:outline-none focus:border-gray-900 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm text-center"
+              />
+            </div>
+
+            <p v-if="errorMsg" class="text-red-500 text-xs font-bold text-center uppercase tracking-wider bg-red-50 py-2.5 rounded-xl border border-red-100">{{ errorMsg }}</p>
+            <p v-if="successMsg" class="text-green-600 text-xs font-bold text-center uppercase tracking-wider bg-green-50 py-2.5 rounded-xl border border-green-100">{{ successMsg }}</p>
+
+            <div class="flex gap-3 mt-6">
+              <button
+                @click="cancelEdit"
+                class="flex-1 py-3.5 bg-white border-2 border-gray-200 text-gray-500 font-black rounded-2xl hover:bg-gray-50 hover:text-gray-900 transition-all uppercase tracking-widest text-xs active:scale-[0.98] shadow-sm cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                @click="handleSave"
+                :disabled="saving"
+                class="group relative flex-1 py-3.5 bg-gray-900 hover:bg-black text-white font-black rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-all duration-300 uppercase tracking-widest text-xs overflow-hidden disabled:opacity-50 active:scale-[0.98] cursor-pointer"
+              >
+                <div class="absolute inset-0 z-0 bg-gradient-to-r from-transparent via-white/20 to-transparent w-full h-full -translate-x-[150%] animate-shimmer"></div>
+                <span class="relative z-10 flex items-center justify-center gap-2">
+                  <svg v-if="!saving" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                  <svg v-else class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  {{ saving ? 'Saving...' : 'Save' }}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -233,7 +252,11 @@ const floatingLetters = alphabet.map((char, index) => {
 
 function handleReplayTutorial() {
   tutorial.resetTutorial()
-  router.push('/game')
+  errorMsg.value = ''
+  successMsg.value = '✓ Tutorial reset! It will show again on your next match.'
+  setTimeout(() => {
+    successMsg.value = ''
+  }, 4000)
 }
 
 function triggerFileInput() {

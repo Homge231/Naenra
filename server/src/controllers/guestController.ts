@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import { supabase } from '../config/supabase'
 import { generateToken } from '../utils/jwt'
-import { cleanupOldGuestAccounts } from '../utils/cleanupGuests.js'
+import { cleanupOldGuestAccounts } from '../utils/cleanupGuests'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'arena-eng-super-secret-jwt-key-2024'
 

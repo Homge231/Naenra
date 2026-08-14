@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.js'
+import { supabase } from '../config/supabase'
 
 /**
  * Deletes guest accounts older than specified days to free up DB space and recycle resources.

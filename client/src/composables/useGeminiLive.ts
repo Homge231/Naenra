@@ -73,14 +73,19 @@ export function useGeminiLive() {
         await audioCtx.resume()
       }
 
-      // 2. Request Microphone Access without rigid sampleRate hardware constraints
-      micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      })
+      // 2. Request Microphone Access optionally (audio playback works even if mic is denied or unavailable)
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        })
+      } catch (micErr) {
+        console.warn('[Gemini Live]: Microphone not available or denied. Proceeding with audio output playback mode.', micErr)
+        micStream = null
+      }
 
       // 3. Connect WebSocket
       const wsUrl = getWsUrl()
@@ -88,7 +93,7 @@ export function useGeminiLive() {
 
       ws.onopen = () => {
         isConnecting.value = true
-        // Mic recording will start when server responds with setupComplete
+        // Session setup ready
       }
 
       ws.onmessage = (event) => {
@@ -111,7 +116,7 @@ export function useGeminiLive() {
       }
     } catch (err: unknown) {
       console.error('[Gemini Live Start Error]:', err)
-      const message = err instanceof Error ? err.message : 'Microphone or network permission denied.'
+      const message = err instanceof Error ? err.message : 'Network error or audio initialization failed.'
       errorMsg.value = message
       stopLiveSession()
     }
@@ -316,6 +321,35 @@ export function useGeminiLive() {
     ws.send(JSON.stringify(clientMsg))
   }
 
+  // Speak text using Gemini 3.1 Flash Live neural 'Puck' voice
+  async function speakTextViaLive(text: string) {
+    if (!text || !text.trim()) return
+    const cleanText = text
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F6D0}-\u{1F6FF}]/gu, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/<[^>]*>/g, '')
+      .replace(/^[-•*]\s+/gm, '')
+      .replace(/https?:\/\/\S+/g, '')
+      .trim()
+
+    if (!cleanText) return
+
+    if (!isLiveConnected.value) {
+      await startLiveSession()
+      let attempts = 0
+      while (!isLiveConnected.value && attempts < 20) {
+        await new Promise(r => setTimeout(r, 200))
+        attempts++
+      }
+    }
+
+    if (isLiveConnected.value) {
+      sendTextMessage(`Please read aloud clearly: "${cleanText}"`)
+    }
+  }
+
   // Stop Live Session
   function stopLiveSession() {
     isLiveConnected.value = false
@@ -359,8 +393,10 @@ export function useGeminiLive() {
     startLiveSession,
     stopLiveSession,
     sendTextMessage,
+    speakTextViaLive,
     onAiTranscript,
     onUserTranscript,
     onTurnComplete
   }
 }
+
