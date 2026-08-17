@@ -200,7 +200,14 @@ const adminUser = computed(() => {
   }
 })
 
-const navItems = [
+interface NavItem {
+  name: string
+  path: string
+  icon: string
+  badge?: string | number
+}
+
+const navItems: NavItem[] = [
   { name: 'Overview', path: '/admin/dashboard', icon: '📊' },
   { name: 'Questions Bank', path: '/admin/questions', icon: '❓' },
   { name: 'Players Manager', path: '/admin/players', icon: '👥' },

@@ -14,7 +14,7 @@
 
       <div class="flex items-center gap-3">
         <button 
-          @click="fetchPlayers" 
+          @click="fetchPlayers(false)" 
           :disabled="isLoading"
           class="flex items-center gap-2 px-3.5 py-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold font-mono transition-all shadow-sm active:scale-95 disabled:opacity-50"
         >
@@ -132,7 +132,7 @@
         <div class="flex items-center gap-2">
           <select 
             v-model="selectedSort" 
-            @change="fetchPlayers"
+            @change="fetchPlayers(false)"
             class="bg-slate-950/80 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-red-500 font-sans cursor-pointer"
           >
             <option value="created_at_desc">Newest Registered</option>
