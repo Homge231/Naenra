@@ -357,12 +357,17 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const { data: player } = await supabase
       .from('players')
-      .select('id, email, username, avatar_url, hashed_password, is_first_play, elo')
+      .select('id, email, username, avatar_url, hashed_password, is_first_play, elo, is_admin, role, is_banned')
       .eq('email', email)
       .single()
 
     if (!player || !player.hashed_password) {
       res.status(401).json({ error: 'Invalid email or password' })
+      return
+    }
+
+    if (player.is_banned) {
+      res.status(403).json({ error: 'Your account has been suspended by an administrator.' })
       return
     }
 
@@ -387,11 +392,14 @@ router.post('/login', async (req: Request, res: Response) => {
     await broadcastSessionInvalidated(player.id, newSessionVersion)
     kickUserClients(player.id)
 
+    const isAdmin = Boolean(player.is_admin) || player.role === 'admin'
     const token = generateToken({
       id: player.id,
       email: player.email || '',
       username: player.username || '',
-      sessionVersion: newSessionVersion
+      sessionVersion: newSessionVersion,
+      is_admin: isAdmin,
+      role: player.role || 'user'
     })
 
     res.json({
@@ -404,7 +412,9 @@ router.post('/login', async (req: Request, res: Response) => {
         avatar_url: player.avatar_url,
         elo: player.elo ?? 0,
         is_first_play: player.is_first_play ?? true,
-        session_version: newSessionVersion
+        session_version: newSessionVersion,
+        is_admin: isAdmin,
+        role: player.role || 'user'
       }
     })
 
@@ -592,6 +602,11 @@ router.post('/token', async (req: Request, res: Response) => {
       return
     }
 
+    if (freshProfile.is_banned) {
+      res.status(403).json({ error: 'Your account has been suspended by an administrator.' })
+      return
+    }
+
     const { data: versionResult, error: versionError } = await supabase
       .rpc('increment_session_version', { player_id: user.id })
 
@@ -607,14 +622,17 @@ router.post('/token', async (req: Request, res: Response) => {
     await broadcastSessionInvalidated(user.id, newSessionVersion)
     kickUserClients(user.id)
 
+    const isAdmin = Boolean(freshProfile.is_admin) || freshProfile.role === 'admin'
     const token = generateToken({
       id: user.id,
       email: user.email || '',
       username: freshProfile.username || user.user_metadata?.full_name || '',
-      sessionVersion: newSessionVersion
+      sessionVersion: newSessionVersion,
+      is_admin: isAdmin,
+      role: freshProfile.role || 'user'
     })
 
-    res.json({ token, user: { ...freshProfile, session_version: newSessionVersion } })
+    res.json({ token, user: { ...freshProfile, session_version: newSessionVersion, is_admin: isAdmin } })
   } catch (err) {
     console.error('token error:', err)
     res.status(500).json({ error: 'Internal server error' })

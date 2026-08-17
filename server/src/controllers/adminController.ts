@@ -1,6 +1,8 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
+import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
+import { kickUserClients } from '../utils/activeClients'
 
 /**
  * GET /api/admin/summary
@@ -329,6 +331,253 @@ export async function importQuestions(req: AuthRequest, res: Response): Promise<
       success: false,
       error: 'InternalServerError',
       message: 'Failed to bulk import questions'
+    })
+  }
+}
+
+/**
+ * GET /api/admin/players
+ * Returns paginated players with search, status filtering (all/online/offline/banned),
+ * sorting (elo/matches/wins/created_at), and KPI stats.
+ */
+export async function getPlayers(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const page = Math.max(1, parseInt((req.query.page as string) || '1'))
+    const limit = Math.max(1, Math.min(100, parseInt((req.query.limit as string) || '10')))
+    const search = ((req.query.search as string) || '').trim()
+    const status = ((req.query.status as string) || 'all').toLowerCase()
+    const sortBy = ((req.query.sortBy as string) || 'created_at')
+    const sortOrder = ((req.query.sortOrder as string) || 'desc').toLowerCase() === 'asc'
+
+    // 1. Identify currently active / online player IDs
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: activeSessions } = await supabase
+      .from('game_sessions')
+      .select('player_id')
+      .eq('status', 'active')
+      .gte('created_at', fiveMinutesAgo)
+
+    const onlinePlayerIds = new Set<string>()
+    if (activeSessions) {
+      activeSessions.forEach((s: any) => {
+        if (s.player_id) onlinePlayerIds.add(s.player_id)
+      })
+    }
+
+    // 2. Fetch global player KPI stats
+    const [totalRes, bannedRes] = await Promise.all([
+      supabase.from('players').select('*', { count: 'exact', head: true }),
+      supabase.from('players').select('*', { count: 'exact', head: true }).eq('is_banned', true)
+    ])
+
+    const totalPlayers = totalRes.count ?? 0
+    const bannedPlayers = bannedRes.count ?? 0
+    const onlinePlayers = onlinePlayerIds.size
+    const activeRate = totalPlayers > 0 ? Math.round(((totalPlayers - bannedPlayers) / totalPlayers) * 100) : 100
+
+    // 3. Build filtered player query
+    let query = supabase.from('players').select('*', { count: 'exact' })
+
+    if (search) {
+      query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
+    }
+
+    if (status === 'banned') {
+      query = query.eq('is_banned', true)
+    } else if (status === 'online') {
+      query = query.eq('is_banned', false)
+      if (onlinePlayerIds.size > 0) {
+        query = query.in('id', Array.from(onlinePlayerIds))
+      } else {
+        // No one online -> match impossible id to return empty list
+        query = query.eq('id', '00000000-0000-0000-0000-000000000000')
+      }
+    } else if (status === 'offline') {
+      query = query.eq('is_banned', false)
+      if (onlinePlayerIds.size > 0) {
+        query = query.not('id', 'in', `(${Array.from(onlinePlayerIds).join(',')})`)
+      }
+    }
+
+    const sortColumn = ['elo', 'wins', 'losses', 'total_matches', 'created_at'].includes(sortBy)
+      ? sortBy
+      : 'created_at'
+
+    const fromIndex = (page - 1) * limit
+    const toIndex = fromIndex + limit - 1
+
+    query = query.order(sortColumn, { ascending: sortOrder }).range(fromIndex, toIndex)
+
+    const { data: playersData, count, error } = await query
+
+    if (error) throw error
+
+    const total = count ?? 0
+    const totalPages = Math.ceil(total / limit) || 1
+
+    const mappedPlayers = (playersData || []).map((p: any) => {
+      const isBanned = p.is_banned === true
+      const isOnline = !isBanned && onlinePlayerIds.has(p.id)
+      const totalMatches = p.total_matches ?? 0
+      const wins = p.wins ?? 0
+      const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0
+
+      return {
+        id: p.id,
+        username: p.username || 'Anonymous',
+        email: p.email || '',
+        avatar_url: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.username || 'Player')}`,
+        elo: p.elo ?? 1000,
+        wins,
+        losses: p.losses ?? 0,
+        total_matches: totalMatches,
+        win_rate: winRate,
+        is_banned: isBanned,
+        banned_at: p.banned_at || null,
+        is_admin: p.is_admin === true || p.role === 'admin',
+        role: p.role || 'user',
+        status: isBanned ? 'banned' : isOnline ? 'online' : 'offline',
+        created_at: p.created_at
+      }
+    })
+
+    res.json({
+      success: true,
+      data: {
+        players: mappedPlayers,
+        total,
+        page,
+        limit,
+        totalPages,
+        stats: {
+          totalPlayers,
+          onlinePlayers,
+          bannedPlayers,
+          activeRate
+        }
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in getPlayers:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to retrieve player list'
+    })
+  }
+}
+
+/**
+ * POST /api/admin/players/:id/ban
+ * Bans a player, revokes their active JWT session, aborts ongoing matches, and disconnects them.
+ */
+export async function banPlayer(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = String(req.params.id || '')
+    const { reason } = req.body
+
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Player ID is required' })
+      return
+    }
+
+    // Check if target player exists and prevent banning other admins
+    const { data: targetPlayer, error: fetchErr } = await supabase
+      .from('players')
+      .select('id, email, username, is_admin, role')
+      .eq('id', id)
+      .single()
+
+    if (fetchErr || !targetPlayer) {
+      res.status(404).json({ success: false, message: 'Player not found' })
+      return
+    }
+
+    if (targetPlayer.is_admin || targetPlayer.role === 'admin') {
+      res.status(403).json({ success: false, message: 'Administrator accounts cannot be banned.' })
+      return
+    }
+
+    // 1. Update player status in DB
+    const { error: updateErr } = await supabase
+      .from('players')
+      .update({
+        is_banned: true,
+        banned_at: new Date().toISOString()
+      })
+      .eq('id', id)
+
+    if (updateErr) throw updateErr
+
+    // 2. Invalidate active session version
+    const { data: versionResult } = await supabase
+      .rpc('increment_session_version', { player_id: id })
+
+    const newVersion = versionResult ?? Date.now()
+
+    // 3. Abort active game sessions
+    await supabase
+      .from('game_sessions')
+      .update({ status: 'aborted' })
+      .eq('player_id', id)
+      .eq('status', 'active')
+
+    // 4. Broadcast session invalidation to kick client in real-time
+    try {
+      await broadcastSessionInvalidated(id, newVersion)
+      kickUserClients(id, 4003)
+    } catch (e) {
+      console.warn('Realtime kick warning:', e)
+    }
+
+    res.json({
+      success: true,
+      message: `Player ${targetPlayer.username || targetPlayer.email} has been suspended successfully.`,
+      reason: reason || 'Violation of terms of service'
+    })
+  } catch (error: any) {
+    console.error('Error in banPlayer:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to ban player'
+    })
+  }
+}
+
+/**
+ * POST /api/admin/players/:id/unban
+ * Unbans a player and restores their account access.
+ */
+export async function unbanPlayer(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = String(req.params.id || '')
+
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Player ID is required' })
+      return
+    }
+
+    const { error: updateErr } = await supabase
+      .from('players')
+      .update({
+        is_banned: false,
+        banned_at: null
+      })
+      .eq('id', id)
+
+    if (updateErr) throw updateErr
+
+    res.json({
+      success: true,
+      message: 'Player account has been restored successfully.'
+    })
+  } catch (error: any) {
+    console.error('Error in unbanPlayer:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to restore player account'
     })
   }
 }

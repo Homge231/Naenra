@@ -74,7 +74,7 @@ export async function authMiddleware(
 
     const { data: player, error } = await supabase
       .from('players')
-      .select('session_version')
+      .select('session_version, is_banned')
       .eq('id', decoded.id)
       .single()
 
@@ -82,6 +82,14 @@ export async function authMiddleware(
       res.status(401).json({
         error: 'Unauthorized',
         message: 'Account not found'
+      })
+      return
+    }
+
+    if (player.is_banned) {
+      res.status(403).json({
+        error: 'AccountBanned',
+        message: 'Your account has been suspended by an administrator.'
       })
       return
     }

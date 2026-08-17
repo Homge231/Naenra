@@ -58,5 +58,19 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
     }
   }
 
+  // Handle 403 AccountBanned globally
+  if (response.status === 403) {
+    try {
+      const cloned = response.clone()
+      const data = await cloned.json()
+      if (data?.error === 'AccountBanned') {
+        localStorage.removeItem('arena_token')
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login?reason=account_banned'
+        }
+      }
+    } catch {}
+  }
+
   return response
 }

@@ -282,6 +282,9 @@ onMounted(() => {
   if (route.query.reason === 'session_invalidated') {
     sessionInvalidatedMessage.value = 'Your account has been logged in from another device. You have been signed out.'
     router.replace({ query: {} })
+  } else if (route.query.reason === 'account_banned') {
+    sessionInvalidatedMessage.value = 'Your account has been suspended by an administrator for violating fair-play rules.'
+    router.replace({ query: {} })
   }
 })
 

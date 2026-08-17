@@ -7,7 +7,10 @@ import {
   createQuestion,
   updateQuestion,
   deleteQuestion,
-  importQuestions
+  importQuestions,
+  getPlayers,
+  banPlayer,
+  unbanPlayer
 } from '../controllers/adminController'
 
 const router = Router()
@@ -51,5 +54,10 @@ router.delete('/questions/:id', authMiddleware, requireAdmin, deleteQuestion)
 
 // Bulk Import CSV/JSON endpoint
 router.post('/questions/import', authMiddleware, requireAdmin, importQuestions)
+
+// Protected Player Management endpoints
+router.get('/players', authMiddleware, requireAdmin, getPlayers)
+router.post('/players/:id/ban', authMiddleware, requireAdmin, banPlayer)
+router.post('/players/:id/unban', authMiddleware, requireAdmin, unbanPlayer)
 
 export default router

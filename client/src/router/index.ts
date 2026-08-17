@@ -151,7 +151,7 @@ const router = createRouter({
         {
           path: 'players',
           name: 'admin-players',
-          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          component: () => import('../views/admin/PlayerManagementView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
