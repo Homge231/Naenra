@@ -637,7 +637,15 @@ export const useMissionsStore = defineStore('missions', () => {
   function loadSavedMissions(): CoreMission[] {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) return JSON.parse(saved)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          return parsed.map((m: CoreMission) => ({
+            ...m,
+            isCompleted: m.isCompleted || (m.currentProgress >= m.targetCount)
+          }))
+        }
+      }
     } catch (e) {
       console.warn('Failed to load saved core missions:', e)
     }
@@ -708,20 +716,20 @@ export const useMissionsStore = defineStore('missions', () => {
 
       // Server is source of truth — fully override unlockedCoreNames from server
       if (data.unlockedCoreNames && Array.isArray(data.unlockedCoreNames)) {
-        unlockedCoreNames.value = [...data.unlockedCoreNames]
+        unlockedCoreNames.value = Array.from(new Set([...unlockedCoreNames.value, ...data.unlockedCoreNames]))
       }
 
       if (data.missions && Array.isArray(data.missions)) {
         for (const cloudM of data.missions) {
           const localM = missions.value.find(m =>
-            m.unlockCoreName.toLowerCase() === cloudM.coreName.toLowerCase() ||
-            m.id.toLowerCase() === cloudM.coreName.toLowerCase()
+            m.unlockCoreName.toLowerCase() === String(cloudM.coreName || '').toLowerCase() ||
+            m.id.toLowerCase() === String(cloudM.coreName || '').toLowerCase()
           )
           if (localM) {
-            // Server is source of truth: override local progress completely
-            localM.currentProgress = Math.min(cloudM.currentProgress, localM.targetCount)
-            localM.isCompleted = cloudM.isCompleted || cloudM.isUnlocked || false
-            localM.isClaimed = cloudM.isUnlocked || false
+            // Keep the maximum progress achieved between local and cloud
+            localM.currentProgress = Math.min(localM.targetCount, Math.max(localM.currentProgress, Number(cloudM.currentProgress || 0)))
+            localM.isCompleted = cloudM.isCompleted || cloudM.isUnlocked || (localM.currentProgress >= localM.targetCount) || false
+            localM.isClaimed = cloudM.isUnlocked || localM.isClaimed || false
           }
         }
       }
@@ -882,7 +890,9 @@ export const useMissionsStore = defineStore('missions', () => {
           },
           body: JSON.stringify({
             coreName: mission.unlockCoreName,
-            missionId: mission.id
+            missionId: mission.id,
+            targetCount: mission.targetCount,
+            isCompleted: true
           })
         }).catch(err => {
           console.warn('[MissionsStore] Failed to sync claim to cloud:', err)

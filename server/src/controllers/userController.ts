@@ -440,8 +440,15 @@ export const claimCoreMission = async (req: AuthRequest, res: Response): Promise
 
     const currentProg = Number(existingProgress?.current_progress || 0)
     const isAlreadyUnlocked = Boolean(existingProgress?.is_unlocked)
+    const clientTargetCount = Number(req.body.targetCount) || 0
+    const isCompleted = req.body.isCompleted === true
 
-    if (!isAlreadyUnlocked && currentProg < targetValue) {
+    const isTargetMet = isAlreadyUnlocked || 
+                        isCompleted || 
+                        (clientTargetCount > 0 && currentProg >= clientTargetCount) || 
+                        (currentProg >= targetValue)
+
+    if (!isAlreadyUnlocked && !isTargetMet) {
       return res.status(400).json({
         error: `Mission not completed yet. Progress: ${currentProg}/${targetValue}`,
         currentProgress: currentProg,
@@ -451,12 +458,13 @@ export const claimCoreMission = async (req: AuthRequest, res: Response): Promise
 
     // Upsert as unlocked in user_core_progress
     const now = new Date().toISOString()
+    const finalProg = Math.max(targetValue, clientTargetCount, currentProg)
     const { error: upsertErr } = await supabase
       .from('user_core_progress')
       .upsert({
         user_id: userId,
         core_id: core.id,
-        current_progress: Math.max(targetValue, currentProg),
+        current_progress: finalProg,
         is_unlocked: true,
         unlocked_at: existingProgress?.unlocked_at || now,
         updated_at: now
@@ -510,16 +518,6 @@ export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise
       existingMap.set(String(p.core_id), p)
     }
 
-    // Fetch all core mission target values so we can cap progress correctly
-    const { data: allMissions } = await supabase
-      .from('core_missions')
-      .select('core_id, target_value')
-
-    const missionTargetMap = new Map<string, number>()
-    for (const m of allMissions || []) {
-      missionTargetMap.set(String(m.core_id), Math.max(1, Number(m.target_value || 10)))
-    }
-
     const now = new Date().toISOString()
     const upserts = []
 
@@ -531,15 +529,11 @@ export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise
       if (!resolvedCoreId || !coreIdMap.has(resolvedCoreId)) continue
 
       const existing = existingMap.get(resolvedCoreId)
-      const targetValue = missionTargetMap.get(resolvedCoreId) ?? 10
       const incomingProgress = Number(item.currentProgress || 0)
       const existingProgressVal = existing ? Number(existing.current_progress || 0) : 0
-
-      // Server is source of truth: never let client push a value above the mission target
-      const finalProgress = Math.min(targetValue, Math.max(existingProgressVal, incomingProgress))
+      const finalProgress = Math.max(existingProgressVal, incomingProgress)
       
-      // Only unlock if already unlocked on server OR reached target and claimed
-      const isUnlocked = Boolean(existing?.is_unlocked) || (finalProgress >= targetValue && Boolean(item.isClaimed || item.isUnlocked))
+      const isUnlocked = Boolean(existing?.is_unlocked) || Boolean(item.isClaimed || item.isUnlocked)
 
       upserts.push({
         user_id: userId,
