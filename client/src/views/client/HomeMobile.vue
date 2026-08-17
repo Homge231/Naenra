@@ -47,7 +47,12 @@
           <p class="text-[9px] text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded-full inline-block mt-0.5 border border-orange-200">⭐ {{ elo }} ELO</p>
         </div>
         
-        <div class="flex gap-1 border-l-2 border-orange-100 pl-1.5 ml-0.5">
+        <div class="flex items-center gap-1 border-l-2 border-orange-100 pl-1.5 ml-0.5">
+          <button v-if="authStore.isAdmin" @click="router.push('/admin'); audioService.playClick()" @mouseenter="audioService.playHover()"
+            class="px-2 py-1 font-black text-[9px] uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-gradient-to-r from-orange to-hexred text-white flex items-center gap-1" title="Admin Operations HQ">
+            <span>🛡️</span>
+            <span>Admin</span>
+          </button>
           <button v-if="authStore.isGuest" @click="router.push('/login')" @mouseenter="audioService.playHover()" 
             class="px-2 py-1.5 font-black text-[9px] uppercase tracking-widest rounded-full shadow-md hover:scale-105 transition-all cursor-pointer border border-white/30"
             style="background: linear-gradient(135deg, #FF7B00 0%, #E63946 100%); color: #ffffff !important;">
