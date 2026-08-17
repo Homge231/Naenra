@@ -8,6 +8,10 @@ export interface PostMatchStats {
   isWin: boolean
   activeCoreName?: string
   activeCoreFamily?: string
+  /** Best consecutive-correct streak the player achieved this match */
+  maxCombo?: number
+  /** Number of Aegis shields absorbed/used this match */
+  shieldsUsed?: number
 }
 
 export interface MissionProgressUpdate {
@@ -42,7 +46,12 @@ export async function evaluatePostMatchMissions(
   newlyUnlockedCores: UnlockedCoreDetail[]
   progressUpdates: MissionProgressUpdate[]
 }> {
-  const { userId, score, questionsAnswered, accuracy, isWin, activeCoreName, activeCoreFamily } = stats
+  const {
+    userId, score, questionsAnswered, accuracy, isWin,
+    activeCoreFamily,
+    maxCombo: maxComboThisMatch = 0,
+    shieldsUsed: shieldsUsedThisMatch = 0
+  } = stats
   if (!userId) {
     return { newlyUnlockedCores: [], progressUpdates: [] }
   }
@@ -85,7 +94,6 @@ export async function evaluatePostMatchMissions(
 
       const coreId = String(core.id)
       const coreName = String(core.name || '').trim()
-      const coreNameLower = coreName.toLowerCase()
       const isBaseCore = core.tier === 1 || core.classification === 'main'
 
       // Base cores are unlocked by default, skip
@@ -102,27 +110,30 @@ export async function evaluatePostMatchMissions(
       // Calculate progress delta based on match stats & core criteria
       let delta = 0
       const missionType = String(item.mission_type || '').toLowerCase()
-      const activeFamilyLower = (activeCoreFamily || '').toLowerCase()
 
       if (missionType === 'matches_played' || missionType === 'games_played') {
         delta = 1
       } else if (missionType === 'words_typed' || missionType === 'correct_answers') {
-        delta = Math.max(1, questionsAnswered)
+        // Cap delta so we never exceed target in a single match
+        delta = Math.min(Math.max(0, questionsAnswered), targetProgress - currentProgress)
+      } else if (missionType === 'max_combo') {
+        // Only grant progress equal to the best combo streak achieved this match,
+        // capped so we never exceed the target.
+        if (maxComboThisMatch >= targetProgress) {
+          // Player hit or surpassed the required streak — complete the mission
+          delta = targetProgress - currentProgress
+        } else if (maxComboThisMatch > currentProgress) {
+          // Partial progress: advance to the best combo reached so far
+          delta = maxComboThisMatch - currentProgress
+        }
+      } else if (missionType === 'shields_used') {
+        // Cap delta so we never exceed target in a single match
+        delta = Math.min(Math.max(0, shieldsUsedThisMatch), targetProgress - currentProgress)
       } else if (missionType === 'score_reach' || missionType === 'high_score') {
         if (score >= targetProgress) delta = targetProgress - currentProgress
       } else if (missionType === 'accuracy_streak' || missionType === 'high_accuracy') {
         if (accuracy >= 80) delta = 1
       } else if (missionType === 'win_match' || missionType === 'matches_won') {
-        if (isWin) delta = 1
-      } else if (coreNameLower.includes('combo')) {
-        if (questionsAnswered >= 5) delta = 1
-      } else if (coreNameLower.includes('oracle') || coreNameLower.includes('prophecy')) {
-        if (accuracy >= 80) delta = 1
-      } else if (coreNameLower.includes('aegis') || coreNameLower.includes('shield')) {
-        if (isWin || activeFamilyLower.includes('aegis')) delta = 1
-      } else if (coreNameLower.includes('pandora') || coreNameLower.includes('cataclysm')) {
-        if (score >= 800) delta = 1
-      } else if (coreNameLower.includes('phoenix') || coreNameLower.includes('overlord')) {
         if (isWin) delta = 1
       } else {
         // Default: 1 progress point per completed match

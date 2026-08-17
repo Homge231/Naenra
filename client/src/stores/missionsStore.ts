@@ -705,25 +705,23 @@ export const useMissionsStore = defineStore('missions', () => {
       if (!res.ok) return
 
       const data = await res.json()
+
+      // Server is source of truth — fully override unlockedCoreNames from server
       if (data.unlockedCoreNames && Array.isArray(data.unlockedCoreNames)) {
-        const mergedNames = new Set([...unlockedCoreNames.value, ...data.unlockedCoreNames])
-        unlockedCoreNames.value = Array.from(mergedNames)
+        unlockedCoreNames.value = [...data.unlockedCoreNames]
       }
 
       if (data.missions && Array.isArray(data.missions)) {
         for (const cloudM of data.missions) {
-          const localM = missions.value.find(m => 
+          const localM = missions.value.find(m =>
             m.unlockCoreName.toLowerCase() === cloudM.coreName.toLowerCase() ||
             m.id.toLowerCase() === cloudM.coreName.toLowerCase()
           )
           if (localM) {
-            localM.currentProgress = Math.max(localM.currentProgress, cloudM.currentProgress)
-            if (cloudM.isCompleted || cloudM.isUnlocked) {
-              localM.isCompleted = true
-            }
-            if (cloudM.isUnlocked) {
-              localM.isClaimed = true
-            }
+            // Server is source of truth: override local progress completely
+            localM.currentProgress = Math.min(cloudM.currentProgress, localM.targetCount)
+            localM.isCompleted = cloudM.isCompleted || cloudM.isUnlocked || false
+            localM.isClaimed = cloudM.isUnlocked || false
           }
         }
       }

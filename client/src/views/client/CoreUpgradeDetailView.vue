@@ -260,10 +260,10 @@ import { useDeviceMode } from '../../composables/useDeviceMode.ts'
 
 const { isMobileScreen, isTouchDevice } = useDeviceMode()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
-import CoreTooltip from '../components/game/CoreTooltip.vue'
+import CoreTooltip from '../../components/game/CoreTooltip.vue'
 import { useAuthStore } from '../../stores/authStore.ts'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
-import ScrollToTopButton from '../components/ScrollToTopButton.vue'
+import ScrollToTopButton from '../../components/ScrollToTopButton.vue'
 
 const authStore = useAuthStore()
 const missionsStore = useMissionsStore()

@@ -193,7 +193,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore.ts'
 import { audioService } from '../../services/audioService.ts'
-import AIChatWidget from '../components/AIChatWidget.vue'
+import AIChatWidget from '../../components/AIChatWidget.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

@@ -491,6 +491,16 @@ export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise
       existingMap.set(String(p.core_id), p)
     }
 
+    // Fetch all core mission target values so we can cap progress correctly
+    const { data: allMissions } = await supabase
+      .from('core_missions')
+      .select('core_id, target_value')
+
+    const missionTargetMap = new Map<string, number>()
+    for (const m of allMissions || []) {
+      missionTargetMap.set(String(m.core_id), Math.max(1, Number(m.target_value || 10)))
+    }
+
     const now = new Date().toISOString()
     const upserts = []
 
@@ -502,9 +512,12 @@ export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise
       if (!resolvedCoreId || !coreIdMap.has(resolvedCoreId)) continue
 
       const existing = existingMap.get(resolvedCoreId)
+      const targetValue = missionTargetMap.get(resolvedCoreId) ?? 10
       const incomingProgress = Number(item.currentProgress || 0)
       const existingProgressVal = existing ? Number(existing.current_progress || 0) : 0
-      const finalProgress = Math.max(existingProgressVal, incomingProgress)
+
+      // Server is source of truth: never let client push a value above the mission target
+      const finalProgress = Math.min(targetValue, Math.max(existingProgressVal, incomingProgress))
       const isUnlocked = Boolean(existing?.is_unlocked) || Boolean(item.isUnlocked) || Boolean(item.isClaimed)
 
       upserts.push({
