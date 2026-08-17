@@ -382,7 +382,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchWithAuth } from '../../services/api'
 import BanConfirmationModal from '../../components/admin/BanConfirmationModal.vue'
 
@@ -420,6 +420,7 @@ const isLoading = ref(true)
 
 const searchQuery = ref('')
 let searchTimeout: any = null
+let autoRefreshTimer: any = null
 
 const selectedStatus = ref<'all' | 'online' | 'offline' | 'banned'>('all')
 const selectedSort = ref('created_at_desc')
@@ -468,8 +469,10 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-async function fetchPlayers() {
-  isLoading.value = true
+async function fetchPlayers(isBackground = false) {
+  if (!isBackground) {
+    isLoading.value = true
+  }
   try {
     const [sortBy, sortOrder] = selectedSort.value.split('_')
     const params = new URLSearchParams({
@@ -497,10 +500,14 @@ async function fetchPlayers() {
       }
     }
   } catch (err: any) {
-    console.error('fetchPlayers error:', err)
-    showToast(err.message || 'Failed to fetch players', 'error')
+    if (!isBackground) {
+      console.error('fetchPlayers error:', err)
+      showToast(err.message || 'Failed to fetch players', 'error')
+    }
   } finally {
-    isLoading.value = false
+    if (!isBackground) {
+      isLoading.value = false
+    }
   }
 }
 
@@ -566,5 +573,14 @@ async function handleModalConfirm({ id, mode, reason }: { id: string; mode: 'ban
 
 onMounted(() => {
   fetchPlayers()
+  autoRefreshTimer = setInterval(() => {
+    // Periodic background presence refresh
+    fetchPlayers(true)
+  }, 6000)
+})
+
+onUnmounted(() => {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer)
+  if (searchTimeout) clearTimeout(searchTimeout)
 })
 </script>

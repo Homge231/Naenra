@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { verifyToken } from '../utils/jwt'
 import { supabase } from '../config/supabase'
+import { touchUserActivity } from '../utils/activeClients'
 
 export interface AuthRequest extends Request {
   user?: {
@@ -11,6 +12,8 @@ export interface AuthRequest extends Request {
     isGuest?: boolean
   }
 }
+
+const lastDbActivityUpdateMap = new Map<string, number>()
 
 export async function authMiddleware(
   req: AuthRequest,
@@ -39,6 +42,27 @@ export async function authMiddleware(
 
   try {
     const decoded = verifyToken(token)
+
+    if (!decoded || !decoded.id) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid token payload'
+      })
+      return
+    }
+
+    // Touch in-memory activity tracking for real-time presence
+    touchUserActivity(decoded.id)
+
+    // Throttled DB updated_at update (at most once every 60s per user)
+    const lastDbUpdate = lastDbActivityUpdateMap.get(decoded.id) || 0
+    if (Date.now() - lastDbUpdate > 60000) {
+      lastDbActivityUpdateMap.set(decoded.id, Date.now())
+      void supabase
+        .from('players')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', decoded.id)
+    }
 
     if (decoded.isGuest) {
       if (typeof decoded.id === 'string' && decoded.id.startsWith('guest_')) {

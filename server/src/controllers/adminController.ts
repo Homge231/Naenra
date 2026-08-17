@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
-import { kickUserClients } from '../utils/activeClients'
+import { kickUserClients, getOnlineUserIds } from '../utils/activeClients'
 
 /**
  * GET /api/admin/summary
@@ -350,17 +350,29 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
     const sortOrder = ((req.query.sortOrder as string) || 'desc').toLowerCase() === 'asc'
 
     // 1. Identify currently active / online player IDs
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: activeSessions } = await supabase
-      .from('game_sessions')
-      .select('player_id')
-      .eq('status', 'active')
-      .gte('created_at', fiveMinutesAgo)
+    const onlinePlayerIds = getOnlineUserIds()
 
-    const onlinePlayerIds = new Set<string>()
-    if (activeSessions) {
-      activeSessions.forEach((s: any) => {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const [activeSessionsRes, recentPlayersRes] = await Promise.all([
+      supabase
+        .from('game_sessions')
+        .select('player_id')
+        .eq('status', 'active')
+        .gte('updated_at', fiveMinutesAgo),
+      supabase
+        .from('players')
+        .select('id')
+        .gte('updated_at', fiveMinutesAgo)
+    ])
+
+    if (activeSessionsRes.data) {
+      activeSessionsRes.data.forEach((s: any) => {
         if (s.player_id) onlinePlayerIds.add(s.player_id)
+      })
+    }
+    if (recentPlayersRes.data) {
+      recentPlayersRes.data.forEach((p: any) => {
+        if (p.id) onlinePlayerIds.add(p.id)
       })
     }
 
