@@ -237,6 +237,7 @@ onUnmounted(() => {
     countdownInterval = null
   }
 })
+
 </script>
 
 <style scoped>

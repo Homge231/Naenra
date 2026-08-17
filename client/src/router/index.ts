@@ -17,8 +17,7 @@ const router = createRouter({
       path: '/home',
       alias: '/lobby',
       name: 'home',
-      component: () => import('../views/client/HomeView.vue'),
-      meta: { requiresAuth: true }
+      component: () => import('../views/client/HomeView.vue')
     },
     { 
       path: '/core', 
@@ -76,10 +75,6 @@ const router = createRouter({
       component: () => import('../views/client/ResetPasswordView.vue')
     },
     {
-      path: '/:pathMatch(.*)*',
-      redirect: '/' 
-    },
-    {
       path: '/profile',
       name: 'profile',
       component: () => import('../views/client/ProfileView.vue'),
@@ -127,6 +122,57 @@ const router = createRouter({
       component: () => import('../views/client/MissionsDashboardView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/admin',
+      component: () => import('../views/admin/AdminLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          redirect: '/admin/dashboard'
+        },
+        {
+          path: 'dashboard',
+          name: 'admin-dashboard',
+          component: () => import('../views/admin/AdminHome.vue')
+        },
+        {
+          path: 'questions',
+          name: 'admin-questions',
+          component: () => import('../views/admin/QuestionManagementView.vue')
+        },
+        {
+          path: 'players',
+          name: 'admin-players',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'leaderboard',
+          name: 'admin-leaderboard',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'matches',
+          name: 'admin-matches',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'cores',
+          name: 'admin-cores',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'ai',
+          name: 'admin-ai',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        }
+      ]
+    },
+    // Catch-all MUST be at the very end
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/' 
+    }
   ]
 })
 
@@ -136,7 +182,7 @@ router.beforeEach(async (to) => {
     return true;
   }
 
-  if (to.name === 'login' || to.name === 'reset-password' || to.name === 'forgot-password') {
+  if (to.name === 'login' || to.name === 'reset-password' || to.name === 'forgot-password' || to.name === 'home') {
     return true
   }
 
@@ -161,10 +207,12 @@ router.beforeEach(async (to) => {
   }
 
   // Fallback for Google OAuth users
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) return true
+  try {
+    const { data } = await supabase.auth.getSession()
+    if (data?.session) return true
+  } catch {}
 
-  return true
+  return { name: 'login' }
 })
 
 // Handle chunk load errors when deploying new versions

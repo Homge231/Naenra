@@ -188,11 +188,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/authStore.ts'
-import { audioService } from '../../services/audioService.ts'
-import AIChatWidget from '../components/AIChatWidget.vue'
+import { useAuthStore } from '../../stores/authStore'
+import { audioService } from '../../services/audioService'
+import AIChatWidget from '../../components/AIChatWidget.vue'
+import { getSavedReconnectionToken, reconnectMatchRoom, currentRoom } from '../../services/multiplayerService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -305,9 +306,6 @@ function handlePrimaryPlay() {
   startMatchmaking()
 }
 
-import { getSavedReconnectionToken, reconnectMatchRoom, currentRoom } from '../../services/multiplayerService.ts'
-import { onUnmounted } from 'vue'
-
 onMounted(async () => {
   audioService.stopBGM()
 
@@ -334,6 +332,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {})
+
 </script>
 
 <style scoped>

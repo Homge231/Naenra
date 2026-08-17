@@ -740,32 +740,28 @@ import { useScoreAnimation } from '../../composables/game/useScoreAnimation.ts'
 import { useMatchTimer } from '../../composables/game/useMatchTimer.ts'
 import { useQuestionQueue } from '../../composables/game/useQuestionQueue.ts'
 import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../../services/multiplayerService.ts'
-import OpponentWidget from '../components/game/OpponentWidget.vue'
-import CoreTooltip from '../components/game/CoreTooltip.vue'
-import AegisShieldIndicator from '../components/game/AegisShieldIndicator.vue'
-import ComboCoreIndicator from '../components/game/ComboCoreIndicator.vue'
-import MissionCoreIndicator from '../components/game/MissionCoreIndicator.vue'
-import CoreUpgradeOverlay from '../components/game/CoreUpgradeOverlay.vue'
-import OracleCoreIndicator from '../components/game/OracleCoreIndicator.vue'
-
-const isForfeitWin = ref(false)
-import FeedbackOverlay from '../components/game/FeedbackOverlay.vue'
-import MatchResultOverlay from '../components/game/MatchResultOverlay.vue'
-import PhaserBackground from '../components/game/PhaserBackground.vue'
-import Avatar from '../components/Avatar.vue'
-import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
-import PandoraOverlay from '../components/game/PandoraOverlay.vue'
-import CoreVfxOverlay from '../components/game/CoreVfxOverlay.vue'
-import CoachMark from '../components/tutorial/CoachMark.vue'
-import VirtualKeyboard from '../components/game/VirtualKeyboard.vue'
+import OpponentWidget from '../../components/game/OpponentWidget.vue'
+import CoreTooltip from '../../components/game/CoreTooltip.vue'
+import AegisShieldIndicator from '../../components/game/AegisShieldIndicator.vue'
+import ComboCoreIndicator from '../../components/game/ComboCoreIndicator.vue'
+import MissionCoreIndicator from '../../components/game/MissionCoreIndicator.vue'
+import CoreUpgradeOverlay from '../../components/game/CoreUpgradeOverlay.vue'
+import OracleCoreIndicator from '../../components/game/OracleCoreIndicator.vue'
+import FeedbackOverlay from '../../components/game/FeedbackOverlay.vue'
+import MatchResultOverlay from '../../components/game/MatchResultOverlay.vue'
+import PhaserBackground from '../../components/game/PhaserBackground.vue'
+import Avatar from '../../components/Avatar.vue'
+import SpeedsterOverlay from '../../components/game/SpeedsterOverlay.vue'
+import PandoraOverlay from '../../components/game/PandoraOverlay.vue'
+import CoreVfxOverlay from '../../components/game/CoreVfxOverlay.vue'
+import CoachMark from '../../components/tutorial/CoachMark.vue'
+import VirtualKeyboard from '../../components/game/VirtualKeyboard.vue'
 import { useTutorial } from '../../composables/useTutorial.ts'
 import { useDeviceMode } from '../../composables/useDeviceMode.ts'
 import { useGameStore } from '../../stores/gameStore.ts'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
 import { getCoreFamily } from '../../game/cores/families.ts'
 import { useMatchStore } from '../../stores/matchStore.ts'
-
-const missionsStore = useMissionsStore()
 import {
   initAudio,
   playKeystroke,
@@ -793,12 +789,16 @@ import {
   isPowerCore as checkPowerCore
 } from '../../game/cores/registry.ts'
 import { useSettingsStore } from '../../stores/settingsStore.ts'
-
-const settingsStore = useSettingsStore()
-const { isTouchDevice } = useDeviceMode()
 import { getCoreIconPath } from '../../game/cores/icons.ts'
 import { fetchWithAuth } from '../../services/api.ts'
 import { audioService } from '../../services/audioService.ts'
+
+const isForfeitWin = ref(false)
+
+const missionsStore = useMissionsStore()
+
+const settingsStore = useSettingsStore()
+const { isTouchDevice } = useDeviceMode()
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
@@ -2669,6 +2669,7 @@ onBeforeRouteLeave((to, _from, next) => {
   }
   next()
 })
+
 
 
 </script>

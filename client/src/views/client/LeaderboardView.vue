@@ -203,6 +203,7 @@ function goBack() {
 onMounted(() => {
   fetchLeaderboard()
 })
+
 </script>
 
 <style scoped>

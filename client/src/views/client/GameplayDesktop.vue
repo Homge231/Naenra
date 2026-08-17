@@ -537,30 +537,24 @@ import { useAuthStore } from '../../stores/authStore.ts'
 import { useScoreAnimation } from '../../composables/game/useScoreAnimation.ts'
 import { useMatchTimer } from '../../composables/game/useMatchTimer.ts'
 import { useQuestionQueue } from '../../composables/game/useQuestionQueue.ts'
-import AegisShieldIndicator from '../components/game/AegisShieldIndicator.vue'
-import ComboCoreIndicator from '../components/game/ComboCoreIndicator.vue'
-import MissionCoreIndicator from '../components/game/MissionCoreIndicator.vue'
-import CoreUpgradeOverlay from '../components/game/CoreUpgradeOverlay.vue'
-import OracleCoreIndicator from '../components/game/OracleCoreIndicator.vue'
-import FeedbackOverlay from '../components/game/FeedbackOverlay.vue'
-import PhaserBackground from '../components/game/PhaserBackground.vue'
-import Avatar from '../components/Avatar.vue'
-import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
-import PandoraOverlay from '../components/game/PandoraOverlay.vue'
-import CoreVfxOverlay from '../components/game/CoreVfxOverlay.vue'
-import CoachMark from '../components/tutorial/CoachMark.vue'
-import CoreUnlockCelebrationModal, { type UnlockedCoreDetail } from '../components/CoreUnlockCelebrationModal.vue'
+import AegisShieldIndicator from '../../components/game/AegisShieldIndicator.vue'
+import ComboCoreIndicator from '../../components/game/ComboCoreIndicator.vue'
+import MissionCoreIndicator from '../../components/game/MissionCoreIndicator.vue'
+import CoreUpgradeOverlay from '../../components/game/CoreUpgradeOverlay.vue'
+import OracleCoreIndicator from '../../components/game/OracleCoreIndicator.vue'
+import FeedbackOverlay from '../../components/game/FeedbackOverlay.vue'
+import PhaserBackground from '../../components/game/PhaserBackground.vue'
+import Avatar from '../../components/Avatar.vue'
+import SpeedsterOverlay from '../../components/game/SpeedsterOverlay.vue'
+import PandoraOverlay from '../../components/game/PandoraOverlay.vue'
+import CoreVfxOverlay from '../../components/game/CoreVfxOverlay.vue'
+import CoachMark from '../../components/tutorial/CoachMark.vue'
+import CoreUnlockCelebrationModal, { type UnlockedCoreDetail } from '../../components/CoreUnlockCelebrationModal.vue'
 import { useTutorial } from '../../composables/useTutorial.ts'
 import { useGameStore } from '../../stores/gameStore.ts'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
-
-const showCelebrationModal = ref(false)
-const unlockedCoresCelebrationList = ref<UnlockedCoreDetail[]>([])
-const missionToastUpdates = ref<any[]>([])
 import { getCoreFamily } from '../../game/cores/families.ts'
 import { useMatchStore } from '../../stores/matchStore.ts'
-
-const missionsStore = useMissionsStore()
 import {
   initAudio, 
   playKeystroke, 
@@ -588,12 +582,18 @@ import {
   isPowerCore as checkPowerCore
 } from '../../game/cores/registry.ts'
 import { useSettingsStore } from '../../stores/settingsStore.ts'
-
-const settingsStore = useSettingsStore()
-import CoreTooltip from '../components/game/CoreTooltip.vue'
+import CoreTooltip from '../../components/game/CoreTooltip.vue'
 import { getCoreIconPath } from '../../game/cores/icons.ts'
 import { fetchWithAuth } from '../../services/api.ts'
 import { audioService } from '../../services/audioService.ts'
+
+const showCelebrationModal = ref(false)
+const unlockedCoresCelebrationList = ref<UnlockedCoreDetail[]>([])
+const missionToastUpdates = ref<any[]>([])
+
+const missionsStore = useMissionsStore()
+
+const settingsStore = useSettingsStore()
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
@@ -1858,6 +1858,7 @@ onUnmounted(() => {
   for (const t of activeBgTimeouts) clearTimeout(t)
   activeBgTimeouts.clear()
 })
+
 
 
 </script>

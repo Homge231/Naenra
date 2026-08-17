@@ -198,8 +198,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { audioService } from '../../services/audioService.ts'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
-import CoreTooltip from '../components/game/CoreTooltip.vue' 
-import ScrollToTopButton from '../components/ScrollToTopButton.vue' 
+import CoreTooltip from '../../components/game/CoreTooltip.vue' 
+import ScrollToTopButton from '../../components/ScrollToTopButton.vue' 
 
 const route = useRoute()
 const router = useRouter()
@@ -438,6 +438,7 @@ const floatingLetters = alphabet.map((char, index) => ({
   delay: Math.random() * 15,
   duration: 15 + Math.random() * 20
 }))
+
 </script>
 
 <style scoped>

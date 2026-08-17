@@ -387,6 +387,7 @@ async function handleGoogle() {
   loading.value = true
   await auth.loginWithGoogle()
 }
+
 </script>
 
 <style scoped>

@@ -212,10 +212,12 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore.ts'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
-import ScrollToTopButton from '../components/ScrollToTopButton.vue'
-import CoreTooltip from '../components/game/CoreTooltip.vue'
+import ScrollToTopButton from '../../components/ScrollToTopButton.vue'
+import CoreTooltip from '../../components/game/CoreTooltip.vue'
 import { useDeviceMode } from '../../composables/useDeviceMode.ts'
 import { CORE_FAMILIES } from '../../game/cores/families.ts'
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { getCoreFamilyTheme } from '../../game/cores/families.ts'
 
 const { isMobileScreen } = useDeviceMode()
 
@@ -344,8 +346,6 @@ const filteredCores = computed(() => {
     })
 })
 
-import { getCoreIconPath } from '../../game/cores/icons.ts'
-import { getCoreFamilyTheme } from '../../game/cores/families.ts'
 
 const getCoreSlug = (core: any): string => {
     if (!core || !core.name) return String(core?.id || '')
@@ -425,6 +425,7 @@ const floatingLetters = alphabet.map((char, index) => ({
     duration: 15 + Math.random() * 20,
     color: colors[index % colors.length]
 }))
+
 </script>
 
 <style scoped>

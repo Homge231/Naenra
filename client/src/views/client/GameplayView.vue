@@ -9,4 +9,5 @@ import GameplayDesktop from './GameplayDesktop.vue';
 import GameplayMobile from './GameplayMobile.vue';
 
 const { isMobileScreen } = useDeviceMode();
+
 </script>

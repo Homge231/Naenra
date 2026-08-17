@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col">
+  <div class="h-screen w-full bg-[#fff8f5] text-gray-800 overflow-hidden relative font-sans selection:bg-orange-300/50 flex flex-col justify-between">
     
     <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
       <div class="absolute top-[-10%] left-[-5%] w-[50vw] h-[50vw] bg-orange-300/30 rounded-full mix-blend-multiply blur-[100px] animate-float-slow"></div>
@@ -19,6 +19,7 @@
       <div class="absolute left-[85%] text-3xl font-black text-gray-500 uppercase animate-drift-1 opacity-30 blur-[2px] pointer-events-auto hover:blur-none hover:opacity-100 hover:scale-[2] hover:text-indigo-500 hover:-rotate-45 transition-all duration-300 cursor-crosshair" style="animation-delay: 5s;">S</div>
     </div>
 
+    <!-- Header Mobile -->
     <header class="relative z-20 flex justify-between items-center p-2 lg:px-4">
       <div class="flex items-center gap-2 group cursor-pointer bg-white/60 backdrop-blur-md px-2 py-1.5 rounded-xl shadow-sm border border-white/50">
         <div class="w-8 h-8 flex items-center justify-center">
@@ -121,79 +122,64 @@
 
         <div class="w-full grid grid-cols-2 gap-2 px-4">
           <button @click="goToLeaderboard" @mouseenter="audioService.playHover()"
-            class="relative h-10 rounded-xl bg-white/80 border-[1.5px] border-white text-gray-600 hover:text-orange-500 transition-all font-black text-[9px] sm:text-[10px] tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
-            <span class="text-sm">🏆</span> Leaderboard
-            <span v-if="authStore.isGuest" class="text-[9px] text-amber-500">🔒</span>
+            class="relative h-11 rounded-xl bg-white/80 border-2 border-white text-gray-600 hover:text-orange-500 hover:bg-white transition-all font-black text-[10px] tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
+            <span>🏆</span> Leaderboard
           </button>
           
           <button @click="router.push('/library'); audioService.playClick()" @mouseenter="audioService.playHover()"
-            class="h-10 rounded-xl bg-white/80 border-[1.5px] border-white text-gray-600 hover:text-blue-500 transition-all font-black text-[9px] sm:text-[10px] tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
-            <span class="text-sm">📚</span> Library
+            class="h-11 rounded-xl bg-white/80 border-2 border-white text-gray-600 hover:text-blue-500 hover:bg-white transition-all font-black text-[10px] tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
+            <span>📚</span> Library
           </button>
 
           <button @click="goToMissions" @mouseenter="audioService.playHover()"
-            class="relative h-10 rounded-xl bg-white/80 border-[1.5px] border-white text-gray-600 hover:text-hexred transition-all font-black text-[9px] sm:text-[10px] tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
-            <span class="text-sm">🎯</span> Missions
-            <span v-if="authStore.isGuest" class="text-[9px] text-amber-500">🔒</span>
+            class="relative h-11 rounded-xl bg-white/80 border-2 border-white text-gray-600 hover:text-hexred hover:bg-white transition-all font-black text-[10px] tracking-widest uppercase shadow-sm active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
+            <span>🎯</span> Missions
           </button>
 
           <button @click="startSinglePlayer" @mouseenter="audioService.playHover()"
-            class="relative h-10 rounded-xl transition-all font-black text-[9px] sm:text-[10px] tracking-widest uppercase flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
-            :class="authStore.isGuest ? 'guest-single-mode-btn scale-105' : 'bg-white/80 border-[1.5px] border-white text-gray-600'">
+            class="relative h-11 rounded-xl transition-all font-black text-[10px] tracking-widest uppercase flex items-center justify-center gap-1 cursor-pointer active:scale-95 shadow-sm"
+            :class="authStore.isGuest ? 'guest-single-mode-btn scale-105 hover:scale-110' : 'bg-white/80 border-2 border-white text-gray-600 hover:text-red-500 hover:bg-white'">
             <span class="text-sm">🎮</span>
             <span>Single Mode</span>
-            <span v-if="authStore.isGuest" class="absolute -top-2 -right-1 bg-yellow-400 text-gray-950 text-[7px] font-black px-1.5 py-0.5 rounded-full shadow border border-white">
-              FREE PLAY
-            </span>
           </button>
         </div>
 
       </div>
     </main>
 
-    <div class="relative z-20 h-3 w-full bg-white flex mt-auto">
+    <div class="relative z-20 h-2 w-full bg-white flex mt-auto">
       <div class="w-1/3 h-full bg-gradient-to-r from-orange-400 to-red-400 rounded-tr-full"></div>
     </div>
 
     <!-- Guest Login Required Modal -->
     <div v-if="showGuestModal" class="fixed inset-0 z-[100] flex items-center justify-center px-4">
       <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="showGuestModal = false"></div>
-      <div class="relative bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl border-2 border-orange-200 flex flex-col items-center text-center animate-bounce-in">
-        <div class="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-3xl mb-4 border border-orange-200">
+      <div class="relative bg-white w-full max-w-xs rounded-2xl p-5 shadow-2xl border border-orange-200 flex flex-col items-center text-center">
+        <div class="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-2xl mb-3">
           🔒
         </div>
-        <h3 class="text-xl font-black text-gray-800 uppercase tracking-wide mb-2">LOGIN REQUIRED</h3>
-        <p class="text-sm font-bold text-gray-600 mb-6 leading-relaxed">
-          The <span class="text-orange-600 font-extrabold">"{{ guestFeatureName }}"</span> feature is for registered players only. 
-          <br/>Sign in to climb the ranks and unlock cores!
+        <h3 class="text-base font-black text-gray-800 uppercase mb-1">LOGIN REQUIRED</h3>
+        <p class="text-xs font-bold text-gray-600 mb-4">
+          Feature <span class="text-orange-600 font-extrabold">"{{ guestFeatureName }}"</span> requires a registered account.
         </p>
-        <div class="flex gap-3 w-full">
-          <button @click="showGuestModal = false; audioService.playClick()"
-            class="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer shadow-xs hover:bg-gray-200 active:scale-95"
-            style="background: #f3f4f6 !important; color: #374151 !important; border: 1px solid #e5e7eb !important;">
-            CANCEL
-          </button>
-          <button @click="router.push('/login'); audioService.playClick()"
-            class="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-            style="background: linear-gradient(135deg, #ff7b00 0%, #e63946 100%) !important; color: #ffffff !important; border: 1px solid rgba(255,255,255,0.4) !important;">
-            LOGIN
-          </button>
+        <div class="flex gap-2 w-full">
+          <button @click="showGuestModal = false" class="flex-1 py-2.5 rounded-xl font-bold text-xs bg-gray-100 text-gray-700">CANCEL</button>
+          <button @click="router.push('/login')" class="flex-1 py-2.5 rounded-xl font-black text-xs text-white bg-gradient-to-r from-orange to-hexred">LOGIN</button>
         </div>
       </div>
     </div>
 
-    <Teleport to="body">
-      <AIChatWidget />
-    </Teleport>
+    <AIChatWidget />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/authStore.ts'
-import { audioService } from '../../services/audioService.ts'
-import AIChatWidget from '../components/AIChatWidget.vue'
+import { useAuthStore } from '../../stores/authStore'
+import { audioService } from '../../services/audioService'
+import AIChatWidget from '../../components/AIChatWidget.vue'
+import { getSavedReconnectionToken, reconnectMatchRoom, currentRoom } from '../../services/multiplayerService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -305,9 +291,6 @@ function handlePrimaryPlay() {
   }
   startMatchmaking()
 }
-
-import { getSavedReconnectionToken, reconnectMatchRoom, currentRoom } from '../../services/multiplayerService.ts'
-import { onUnmounted } from 'vue'
 
 onMounted(async () => {
   audioService.stopBGM()
