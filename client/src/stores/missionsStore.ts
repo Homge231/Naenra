@@ -913,7 +913,16 @@ export const useMissionsStore = defineStore('missions', () => {
   }
 
   // Automatic evaluation of gameplay achievements & score thresholds
-  function evaluateGameplayProgress(stats: { score?: number; comboStreak?: number; wpm?: number; coreFamily?: string; coreName?: string; roundsCompleted?: number }) {
+  function evaluateGameplayProgress(stats: {
+    score?: number
+    comboStreak?: number
+    wpm?: number
+    coreFamily?: string
+    coreName?: string
+    roundsCompleted?: number
+    isWin?: boolean
+    mistakes?: number
+  }) {
     let stateChanged = false
 
     missions.value.forEach(m => {
@@ -921,9 +930,9 @@ export const useMissionsStore = defineStore('missions', () => {
 
       let justCompleted = false
 
-      // 1. Score-based missions (e.g. Cataclysm, High Stakes, Casino Empire)
+      // 1. High Score / Single-Round Point Threshold missions
       if (stats.score !== undefined && stats.score > 0) {
-        if (['Cataclysm', 'High Stakes', 'Casino Empire'].includes(m.unlockCoreName)) {
+        if (['Cataclysm', 'High Stakes', 'Chaos Theory', 'Super Combo', 'Power Surge', 'Russian Roulette'].includes(m.unlockCoreName)) {
           if (stats.score > m.currentProgress) {
             m.currentProgress = Math.min(m.targetCount, stats.score)
             if (m.currentProgress >= m.targetCount) {
@@ -935,9 +944,9 @@ export const useMissionsStore = defineStore('missions', () => {
         }
       }
 
-      // 2. Combo Streak missions (e.g. Combo Burst, Hyper Combo)
+      // 2. Combo Streak / Consecutive Answer missions
       if (stats.comboStreak !== undefined && stats.comboStreak > 0) {
-        if (['Combo Burst', 'Hyper Combo'].includes(m.unlockCoreName)) {
+        if (['Combo Burst', 'Combo Shield', 'Hyper Combo', 'Contract Hunter'].includes(m.unlockCoreName)) {
           if (stats.comboStreak > m.currentProgress) {
             m.currentProgress = Math.min(m.targetCount, stats.comboStreak)
             if (m.currentProgress >= m.targetCount) {
@@ -949,9 +958,9 @@ export const useMissionsStore = defineStore('missions', () => {
         }
       }
 
-      // 3. WPM speed missions (e.g. Overcharge, Hyperdrive)
+      // 3. WPM / Speed Typer missions
       if (stats.wpm !== undefined && stats.wpm > 0) {
-        if (['Overcharge', 'Hyperdrive'].includes(m.unlockCoreName)) {
+        if (['Overcharge', 'Hyperdrive', 'Sonic Boom', 'Speed Demon'].includes(m.unlockCoreName)) {
           if (stats.wpm > m.currentProgress) {
             m.currentProgress = Math.min(m.targetCount, stats.wpm)
             if (m.currentProgress >= m.targetCount) {
@@ -963,9 +972,30 @@ export const useMissionsStore = defineStore('missions', () => {
         }
       }
 
-      // 4. Rounds completed missions (e.g. Inner Eye, Prophecy, Wild Card, Contract Hunter, Mission Legend)
+      // 4. Rounds / Matches Completed & Specialized gameplay missions (e.g. Nirvana, Serenity, Zen Focus, Aegis, Phoenix, etc.)
       if (stats.roundsCompleted && stats.roundsCompleted > 0) {
-        if (['Inner Eye', 'Prophecy', 'Wild Card', 'Contract Hunter', 'Mission Legend', 'Feather Shield', 'Reflective Barrier', 'Velocity Shield'].includes(m.unlockCoreName)) {
+        const roundsBasedCores = [
+          // Balanced
+          'Nirvana', 'Zen Momentum', 'Equilibrium', 'Serenity',
+          // Argus Eyes
+          'Inner Eye', 'Future Sight', 'Prophecy', 'Cosmic Wisdom',
+          // Speedster
+          'Velocity Shield', 'Speed Demon', 'Sonic Boom',
+          // Mission
+          'Bounty Specialist', 'Bounty Hunter', 'Mission Legend', 'Apex Predator',
+          // Aegis
+          'Reflective Barrier', 'Fortress Aegis', 'Aegis Sanctuary', 'Spiked Shield',
+          // Power
+          'Absolute Power',
+          // Pandora
+          'Wild Card', 'Chaos Prism', 'Pandora Overdrive',
+          // Phoenix
+          'Feather Shield', 'Rebirth', 'Phoenix Overlord', 'Eternal Rebirth',
+          // High Roller
+          'Safe Bet', 'Casino Empire'
+        ]
+
+        if (roundsBasedCores.includes(m.unlockCoreName)) {
           m.currentProgress = Math.min(m.targetCount, m.currentProgress + stats.roundsCompleted)
           if (m.currentProgress >= m.targetCount) {
             m.isCompleted = true
