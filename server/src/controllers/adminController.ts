@@ -19,7 +19,7 @@ export async function getAdminSummary(_req: AuthRequest, res: Response): Promise
       liveMatchesRes,
       coresRes
     ] = await Promise.all([
-      supabase.from('players').select('*', { count: 'exact', head: true }),
+      supabase.from('players').select('*', { count: 'exact', head: true }).not('email', 'ilike', '%@guest.naenra.xyz%').not('email', 'ilike', 'guest_%'),
       supabase.from('questions').select('*', { count: 'exact', head: true }),
       supabase.from('game_sessions').select('*', { count: 'exact', head: true }),
       supabase.from('game_sessions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -376,10 +376,19 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
       })
     }
 
-    // 2. Fetch global player KPI stats
+    // 2. Fetch global player KPI stats (strictly registered accounts)
     const [totalRes, bannedRes] = await Promise.all([
-      supabase.from('players').select('*', { count: 'exact', head: true }),
-      supabase.from('players').select('*', { count: 'exact', head: true }).eq('is_banned', true)
+      supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .not('email', 'ilike', '%@guest.naenra.xyz%')
+        .not('email', 'ilike', 'guest_%'),
+      supabase
+        .from('players')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_banned', true)
+        .not('email', 'ilike', '%@guest.naenra.xyz%')
+        .not('email', 'ilike', 'guest_%')
     ])
 
     const totalPlayers = totalRes.count ?? 0
@@ -387,8 +396,12 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
     const onlinePlayers = onlinePlayerIds.size
     const activeRate = totalPlayers > 0 ? Math.round(((totalPlayers - bannedPlayers) / totalPlayers) * 100) : 100
 
-    // 3. Build filtered player query
-    let query = supabase.from('players').select('*', { count: 'exact' })
+    // 3. Build filtered player query (strictly registered accounts)
+    let query = supabase
+      .from('players')
+      .select('*', { count: 'exact' })
+      .not('email', 'ilike', '%@guest.naenra.xyz%')
+      .not('email', 'ilike', 'guest_%')
 
     if (search) {
       query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
