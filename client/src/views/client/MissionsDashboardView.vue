@@ -332,7 +332,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
 import { useAuthStore } from '../../stores/authStore.ts'
@@ -348,6 +348,10 @@ const categoryTabs = ['All', 'Attack', 'Defense', 'Utility', 'Economy', 'Strateg
 const activeTab = ref<string>('All')
 const searchQuery = ref('')
 const hideClaimed = ref(false)
+
+onMounted(async () => {
+  await missionsStore.fetchCloudProgress()
+})
 
 const resolveIcon = (mission: any) => {
   if (mission.unlockCoreName) {
