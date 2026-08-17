@@ -127,6 +127,52 @@ const router = createRouter({
       component: () => import('../views/client/MissionsDashboardView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/admin',
+      component: () => import('../views/admin/AdminLayout.vue'),
+      meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          redirect: '/admin/dashboard'
+        },
+        {
+          path: 'dashboard',
+          name: 'admin-dashboard',
+          component: () => import('../views/admin/AdminHome.vue')
+        },
+        {
+          path: 'questions',
+          name: 'admin-questions',
+          component: () => import('../views/admin/QuestionManagementView.vue')
+        },
+        {
+          path: 'players',
+          name: 'admin-players',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'leaderboard',
+          name: 'admin-leaderboard',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'matches',
+          name: 'admin-matches',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'cores',
+          name: 'admin-cores',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        },
+        {
+          path: 'ai',
+          name: 'admin-ai',
+          component: () => import('../views/admin/AdminPlaceholderView.vue')
+        }
+      ]
+    },
   ]
 })
 
