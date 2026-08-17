@@ -240,8 +240,15 @@
                   <span class="font-bold font-mono text-orange-400 text-sm">
                     ⭐ {{ p.elo }}
                   </span>
-                  <span class="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-full border border-orange-500/30 bg-orange-950/30 text-orange-300">
-                    {{ getRankTier(p.elo) }}
+                  <span 
+                    class="px-2 py-0.5 text-[10px] font-mono font-semibold rounded-full border"
+                    :style="{
+                      color: getTierForElo(p.elo).color,
+                      borderColor: `${getTierForElo(p.elo).color}40`,
+                      backgroundColor: `${getTierForElo(p.elo).color}15`
+                    }"
+                  >
+                    {{ getRankFromElo(p.elo) }}
                   </span>
                 </div>
               </td>
@@ -384,6 +391,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchWithAuth } from '../../services/api'
+import { getTierForElo, getRankFromElo } from '../../utils/ranks'
 import BanConfirmationModal from '../../components/admin/BanConfirmationModal.vue'
 
 interface PlayerRecord {
@@ -452,15 +460,6 @@ function showToast(msg: string, type: 'success' | 'error' = 'success') {
   setTimeout(() => {
     toastMessage.value = ''
   }, 4000)
-}
-
-function getRankTier(elo: number): string {
-  if (elo >= 2400) return 'Grandmaster'
-  if (elo >= 2000) return 'Master'
-  if (elo >= 1600) return 'Diamond'
-  if (elo >= 1300) return 'Gold'
-  if (elo >= 1000) return 'Silver'
-  return 'Bronze'
 }
 
 function formatDate(dateStr: string): string {

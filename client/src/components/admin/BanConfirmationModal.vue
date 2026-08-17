@@ -59,7 +59,7 @@
         </div>
         <div class="text-right shrink-0">
           <span class="text-xs font-bold text-orange-400 bg-orange-950/40 border border-orange-800/40 px-2 py-0.5 rounded-full font-mono">
-            ⭐ {{ player?.elo || 1000 }} ELO
+            ⭐ {{ player?.elo ?? 0 }} ELO
           </span>
           <p class="text-[10px] text-slate-500 mt-1 font-mono">{{ player?.total_matches || 0 }} matches</p>
         </div>

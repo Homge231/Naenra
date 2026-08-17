@@ -452,7 +452,7 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
         username: p.username || 'Anonymous',
         email: p.email || '',
         avatar_url: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.username || 'Player')}`,
-        elo: p.elo ?? 1000,
+        elo: p.elo ?? 0,
         wins,
         losses: p.losses ?? 0,
         total_matches: totalMatches,
