@@ -844,8 +844,11 @@ export const useMissionsStore = defineStore('missions', () => {
     if (mission && mission.isCompleted && !mission.isClaimed) {
       mission.isClaimed = true
 
-      if (mission.unlockCoreName && !isCoreUnlocked(mission.unlockCoreName)) {
-        unlockedCoreNames.value.push(mission.unlockCoreName)
+      if (mission.unlockCoreName) {
+        // Always add to unlockedCoreNames on claim (avoid duplicate only)
+        if (!unlockedCoreNames.value.some(n => n.trim().toLowerCase() === mission.unlockCoreName.trim().toLowerCase())) {
+          unlockedCoreNames.value.push(mission.unlockCoreName)
+        }
       }
 
       // Sync with authStore if profile exists
@@ -854,7 +857,7 @@ export const useMissionsStore = defineStore('missions', () => {
         if (!authStore.profile.unlocked_core_ids) {
           authStore.profile.unlocked_core_ids = []
         }
-        if (mission.unlockCoreName && !authStore.profile.unlocked_core_ids.includes(mission.unlockCoreName)) {
+        if (mission.unlockCoreName && !authStore.profile.unlocked_core_ids.some((id: string) => id.trim().toLowerCase() === mission.unlockCoreName.trim().toLowerCase())) {
           authStore.profile.unlocked_core_ids.push(mission.unlockCoreName)
         }
       }

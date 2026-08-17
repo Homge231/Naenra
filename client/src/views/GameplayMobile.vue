@@ -1780,7 +1780,7 @@ const handlePreventRefreshKeys = (e: KeyboardEvent) => {
 const handlePopState = (_e: PopStateEvent) => {
   if (gameState.value === 'playing' || gameState.value === 'upgrade') {
     gameStore.resetGame()
-    matchStore.resetMatch(3)
+    matchStore.resetMatch(1)
     audioService.stopBGM()
     router.replace('/home')
   }
@@ -1789,7 +1789,7 @@ const handlePopState = (_e: PopStateEvent) => {
 onBeforeRouteLeave((to, _from, next) => {
   if ((gameState.value === 'playing' || gameState.value === 'upgrade') && to.path !== '/home' && to.path !== '/') {
     gameStore.resetGame()
-    matchStore.resetMatch(3)
+    matchStore.resetMatch(1)
     audioService.stopBGM()
     next('/home')
   } else {
@@ -1839,7 +1839,8 @@ watch(() => gameState.value, (newState) => {
 })
 
 onMounted(async () => {
-  matchStore.maxRounds = 3
+  // Single-player is always 1 round; isFinalRound() must return true on timeout
+  matchStore.maxRounds = 1
 
   if (!activeCoreId.value) {
     router.replace('/core')
@@ -1848,7 +1849,7 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
-    matchStore.resetMatch(3)
+    matchStore.resetMatch(1)
   }
   resetTimer()
 
