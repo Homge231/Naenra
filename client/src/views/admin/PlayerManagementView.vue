@@ -482,10 +482,13 @@ async function fetchPlayers() {
     })
 
     const res = await fetchWithAuth(`/api/admin/players?${params.toString()}`)
-    if (!res.ok) throw new Error('Failed to load player list')
-
     const json = await res.json()
-    if (json.success && json.data) {
+
+    if (!res.ok || !json.success) {
+      throw new Error(json.message || 'Failed to load player list')
+    }
+
+    if (json.data) {
       players.value = json.data.players || []
       totalPlayers.value = json.data.total || 0
       totalPages.value = json.data.totalPages || 1
