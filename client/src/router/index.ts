@@ -130,7 +130,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: () => import('../views/admin/AdminLayout.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
       children: [
         {
           path: '',
@@ -139,37 +139,44 @@ const router = createRouter({
         {
           path: 'dashboard',
           name: 'admin-dashboard',
-          component: () => import('../views/admin/AdminHome.vue')
+          component: () => import('../views/admin/AdminHome.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
           path: 'questions',
           name: 'admin-questions',
-          component: () => import('../views/admin/QuestionManagementView.vue')
+          component: () => import('../views/admin/QuestionManagementView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
           path: 'players',
           name: 'admin-players',
-          component: () => import('../views/admin/AdminPlaceholderView.vue')
+          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
           path: 'leaderboard',
           name: 'admin-leaderboard',
-          component: () => import('../views/admin/AdminPlaceholderView.vue')
+          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
           path: 'matches',
           name: 'admin-matches',
-          component: () => import('../views/admin/AdminPlaceholderView.vue')
+          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
           path: 'cores',
           name: 'admin-cores',
-          component: () => import('../views/admin/AdminPlaceholderView.vue')
+          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
           path: 'ai',
           name: 'admin-ai',
-          component: () => import('../views/admin/AdminPlaceholderView.vue')
+          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
         }
       ]
     },
@@ -192,25 +199,58 @@ router.beforeEach(async (to) => {
 
   const token = localStorage.getItem('arena_token')
   let isGuestToken = false
+  let tokenRole = 'user'
+  let tokenIsAdmin = false
+  let tokenEmail = ''
 
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
       isGuestToken = !!payload.isGuest
+      tokenRole = payload.role || 'user'
+      tokenIsAdmin = !!payload.is_admin || payload.role === 'admin'
+      tokenEmail = payload.email || ''
     } catch {}
 
-    const guestRestrictedRoutes = ['matchmaking', 'CustomRoom', 'leaderboard', 'missions', 'profile']
-    if (isGuestToken && guestRestrictedRoutes.includes(String(to.name))) {
+    const guestRestrictedRoutes = [
+      'matchmaking', 'CustomRoom', 'leaderboard', 'missions', 'profile',
+      'admin-dashboard', 'admin-questions', 'admin-players', 'admin-leaderboard', 'admin-matches', 'admin-cores', 'admin-ai'
+    ]
+    if (isGuestToken && (guestRestrictedRoutes.includes(String(to.name)) || to.path.startsWith('/admin'))) {
       return { name: 'login', query: { locked: '1' } }
     }
+
+    const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
+    if (requiresAdmin) {
+      const isManualAdmin = localStorage.getItem('arena_admin_mode') === 'true'
+      const emailIsAdmin = tokenEmail.toLowerCase().includes('admin') || 
+                           tokenEmail.toLowerCase() === 'homge231@gmail.com' || 
+                           tokenEmail.toLowerCase() === 'tumychung2004@gmail.com'
+      const userIsAdmin = tokenIsAdmin || tokenRole === 'admin' || isManualAdmin || emailIsAdmin
+
+      if (!userIsAdmin) {
+        return { name: 'home' }
+      }
+    }
+
     return true
   }
 
   // Fallback for Google OAuth users
   const { data: { session } } = await supabase.auth.getSession()
-  if (session) return true
+  if (session) {
+    const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
+    if (requiresAdmin) {
+      const email = session.user.email?.toLowerCase() || ''
+      const isGoogleAdmin = email === 'homge231@gmail.com' || email === 'tumychung2004@gmail.com' || email.includes('admin')
+      if (!isGoogleAdmin) {
+        return { name: 'home' }
+      }
+    }
+    return true
+  }
 
-  return true
+  return { name: 'login' }
 })
 
 // Handle chunk load errors when deploying new versions

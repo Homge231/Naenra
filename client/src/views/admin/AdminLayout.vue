@@ -185,6 +185,13 @@ const authStore = useAuthStore()
 const isMobileMenuOpen = ref(false)
 
 const adminUser = computed(() => {
+  if (authStore.profile) {
+    return {
+      username: authStore.profile.username || 'System Admin',
+      email: authStore.user?.email || authStore.profile.email || 'admin@naenra.xyz',
+      avatar_url: authStore.profile.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
+    }
+  }
   return authStore.user || {
     username: 'System Admin',
     email: 'admin@naenra.xyz',
@@ -213,8 +220,8 @@ const currentRouteTitle = computed(() => {
 })
 
 onMounted(async () => {
-  if (!authStore.user) {
-    await authStore.fetchUser()
+  if (!authStore.profile) {
+    await authStore.fetchProfile()
   }
 })
 </script>
