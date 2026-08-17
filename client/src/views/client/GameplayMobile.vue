@@ -754,6 +754,10 @@ watch(() => matchStore.currentRound, (newRound, oldRound) => {
 
 
 const currentCombo = ref(0)
+const maxComboStreak = ref(0)
+watch(currentCombo, (val) => {
+  if (val > maxComboStreak.value) maxComboStreak.value = val
+})
 const isBurningComboActive = computed(() => isComboCore.value && currentCombo.value >= 3)
 const missionProgress = ref(0)
 const isAegisMode = computed(() =>
@@ -1129,7 +1133,10 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
       body: JSON.stringify({
         session_id: sid,
         active_core_id: coreId,
-        oracle_reveal_level: oracleLvl
+        oracle_reveal_level: oracleLvl,
+        max_combo: maxComboStreak.value,
+        shields_used: aegisShieldCount.value,
+        accuracy: 100
       })
     })
     if (res.ok) {

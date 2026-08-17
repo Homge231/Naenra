@@ -991,7 +991,7 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
     const playerId = req.user!.id
     if (!playerId) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { session_id, active_core_id, oracle_reveal_level, is_multiplayer, opponent_id, is_win, is_custom } = req.body
+    const { session_id, active_core_id, oracle_reveal_level, is_multiplayer, opponent_id, is_win, is_custom, max_combo, shields_used, accuracy } = req.body
     if (!session_id) { res.status(400).json({ error: 'session_id required' }); return }
 
     const { data: session, error: fetchErr } = await supabase
@@ -1006,13 +1006,19 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
 
     // Deduct Oracle Penalty on timeout if used
     let oraclePenalty = 0
-    const revealLevel = Number(oracle_reveal_level) || 0
-    if (revealLevel > 0 && active_core_id) {
+    let activeCoreName: string | undefined = undefined
+    if (active_core_id) {
       const { data: core } = await supabase.from('cores').select('name').eq('id', active_core_id).single()
-      if (core?.name?.toLowerCase().includes('oracle')) {
-        const cumulativeCosts = [10, 30, 60]
-        const levelIndex = Math.min(Math.max(revealLevel, 1), cumulativeCosts.length) - 1
-        oraclePenalty = cumulativeCosts[levelIndex]
+      if (core?.name) {
+        activeCoreName = core.name
+        if (core.name.toLowerCase().includes('oracle')) {
+          const revealLevel = Number(oracle_reveal_level) || 0
+          if (revealLevel > 0) {
+            const cumulativeCosts = [10, 30, 60]
+            const levelIndex = Math.min(Math.max(revealLevel, 1), cumulativeCosts.length) - 1
+            oraclePenalty = cumulativeCosts[levelIndex]
+          }
+        }
       }
     }
 
@@ -1137,9 +1143,11 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
       userId: playerId,
       score: finalScore,
       questionsAnswered: session.questions_answered ?? 0,
-      accuracy: 100, // Default post-match accuracy estimation
+      accuracy: typeof accuracy === 'number' ? Math.max(0, Math.min(100, accuracy)) : 100,
       isWin,
-      activeCoreName: undefined
+      activeCoreName,
+      maxCombo: Number(max_combo) || 0,
+      shieldsUsed: Number(shields_used) || 0
     })
 
     res.status(200).json({

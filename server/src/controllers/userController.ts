@@ -430,6 +430,25 @@ export const claimCoreMission = async (req: AuthRequest, res: Response): Promise
 
     const targetValue = Math.max(1, Number(mission?.target_value || 10))
 
+    // Fetch existing user progress to validate completion
+    const { data: existingProgress } = await supabase
+      .from('user_core_progress')
+      .select('current_progress, is_unlocked, unlocked_at')
+      .eq('user_id', userId)
+      .eq('core_id', core.id)
+      .maybeSingle()
+
+    const currentProg = Number(existingProgress?.current_progress || 0)
+    const isAlreadyUnlocked = Boolean(existingProgress?.is_unlocked)
+
+    if (!isAlreadyUnlocked && currentProg < targetValue) {
+      return res.status(400).json({
+        error: `Mission not completed yet. Progress: ${currentProg}/${targetValue}`,
+        currentProgress: currentProg,
+        targetValue
+      })
+    }
+
     // Upsert as unlocked in user_core_progress
     const now = new Date().toISOString()
     const { error: upsertErr } = await supabase
@@ -437,9 +456,9 @@ export const claimCoreMission = async (req: AuthRequest, res: Response): Promise
       .upsert({
         user_id: userId,
         core_id: core.id,
-        current_progress: targetValue,
+        current_progress: Math.max(targetValue, currentProg),
         is_unlocked: true,
-        unlocked_at: now,
+        unlocked_at: existingProgress?.unlocked_at || now,
         updated_at: now
       }, { onConflict: 'user_id,core_id' })
 
@@ -450,7 +469,7 @@ export const claimCoreMission = async (req: AuthRequest, res: Response): Promise
       coreId: core.id,
       coreName: core.name,
       isUnlocked: true,
-      unlockedAt: now
+      unlockedAt: existingProgress?.unlocked_at || now
     })
   } catch (error: any) {
     console.error('claimCoreMission error:', error)
@@ -518,7 +537,9 @@ export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise
 
       // Server is source of truth: never let client push a value above the mission target
       const finalProgress = Math.min(targetValue, Math.max(existingProgressVal, incomingProgress))
-      const isUnlocked = Boolean(existing?.is_unlocked) || Boolean(item.isUnlocked) || Boolean(item.isClaimed)
+      
+      // Only unlock if already unlocked on server OR reached target and claimed
+      const isUnlocked = Boolean(existing?.is_unlocked) || (finalProgress >= targetValue && Boolean(item.isClaimed || item.isUnlocked))
 
       upserts.push({
         user_id: userId,
