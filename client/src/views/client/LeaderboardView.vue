@@ -165,9 +165,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { audioService } from '../services/audioService'
-import { fetchWithAuth } from '../services/api'
-import { getTierForElo } from '../utils/ranks'
+import { audioService } from '../../services/audioService'
+import { fetchWithAuth } from '../../services/api'
+import { getTierForElo } from '../../utils/ranks'
 
 const router = useRouter()
 

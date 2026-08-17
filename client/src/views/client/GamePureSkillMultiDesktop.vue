@@ -82,7 +82,7 @@
       :placement="tutorial.currentStepData.value?.placement" @next="tutorial.next" @skip="tutorial.complete" />
 
     <!-- Pandora overlays: shift announcements and indicator (hidden in Race Round) -->
-    <PandoraOverlay v-if="matchStore.currentRound !== 4" :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
+    <PandoraOverlay v-if="false" :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
       :shift-announcement="shiftAnnouncement" />
 
     <header v-show="gameState !== 'upgrade'"
@@ -149,7 +149,7 @@
 
       <!-- Active Core History Badges in Center -->
       <!-- Hide core badges in Race Round (Round 4 = pure skill, no core effects) -->
-      <div v-if="gameStore.coreHistory.length > 0 && matchStore.currentRound !== 4" class="hidden md:flex flex-row items-center gap-2">
+      <div v-if="false" class="hidden md:flex flex-row items-center gap-2">
         <div v-for="(core, index) in gameStore.coreHistory" :key="`${core.id}-${index}`"
           class="relative flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300 cursor-pointer hover:bg-black/40"
           :class="[
@@ -216,10 +216,9 @@
           </span>
           <!-- Round Indicator Preparation -->
           <div class="absolute -bottom-6 w-full text-center whitespace-nowrap">
-            <span id="tutorial-round-indicator"
-              class="text-[9px] font-bold text-gray-500 uppercase tracking-widest bg-darkBlue/50 px-2 py-0.5 rounded-full border border-white/5">
-              Round {{ matchStore.currentRound }}/{{ matchStore.maxRounds }}
-            </span>
+            <div class="text-xl md:text-2xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred drop-shadow-[0_2px_10px_rgba(255,165,0,0.4)]">
+              PURE SKILL MODE
+            </div>
           </div>
         </div>
       </div>
@@ -232,7 +231,7 @@
          instead of the full viewport. Living as a direct sibling of header/main fixes it. -->
     <transition name="fade">
       <!-- Never show CoreUpgrade in Race Round (Round 4) even if gameState is upgrade somehow -->
-      <CoreUpgradeOverlay v-if="gameState === 'upgrade' && matchStore.currentRound !== 4" @selected="handleUpgradeSelected" />
+      <CoreUpgradeOverlay v-if="false" @selected="handleUpgradeSelected" />
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
@@ -300,34 +299,21 @@
                      </div>
                      <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2" :class="{ 'opacity-30 blur-[1px]': isRaceLocked }">
                         <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p1-'+i"
-                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner uppercase">
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner">
                            {{ typedLetters[i - 1] || '' }}
                         </div>
                      </div>
                  </div>
                  
                  <!-- Opponent -->
-                 <div class="flex flex-col items-center gap-4 md:pl-4 relative">
-                     <!-- Lock Overlay for Opponent -->
-                     <transition name="fade">
-                       <div v-if="isOpponentRaceLocked" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl transition-all duration-300 md:-ml-4">
-                         <div class="flex items-center gap-2 px-5 py-2.5 bg-black/80 border-2 border-red-500/50 rounded-lg shadow-[0_0_20px_rgba(239,68,68,0.4)]">
-                           <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                           </svg>
-                           <span class="text-red-400 font-bold tracking-widest uppercase text-sm">Locked</span>
-                         </div>
-                         <span class="text-xs text-gray-400 font-bold mt-2 uppercase tracking-widest">Waiting for you</span>
-                       </div>
-                     </transition>
-
+                 <div class="flex flex-col items-center gap-4 md:pl-4">
                      <div class="flex items-center gap-2 h-7">
                          <span class="text-orange font-black text-xl uppercase tracking-wider drop-shadow-md" v-if="!opponentTypingText.length">OPPONENT</span>
                          <span class="text-orange font-bold uppercase border border-orange px-2 py-0.5 rounded text-xs bg-orange/20 animate-pulse shadow-[0_0_10px_rgba(255,165,0,0.5)]" v-else>Opponent is typing...</span>
                      </div>
-                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2 opacity-80" :class="{ 'opacity-30 blur-[1px]': isOpponentRaceLocked }">
+                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2 opacity-80">
                         <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p2-'+i"
-                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-orange/10 border-b-4 border-orange/50 text-orange shadow-inner uppercase">
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-orange/10 border-b-4 border-orange/50 text-orange shadow-inner">
                            {{ opponentTypingText[i - 1] ? '*' : '' }}
                         </div>
                      </div>
@@ -476,14 +462,14 @@
 
       <!-- Combo indicator: only visible when active core is the Combo Core AND not Race Round -->
       <transition name="fade-scale">
-        <div v-if="isComboCore && matchStore.currentRound !== 4">
+        <div v-if="false">
           <ComboCoreIndicator :current-combo="currentCombo" />
         </div>
       </transition>
 
       <!-- Aegis Shield Mode Indicator (hidden in Race Round) -->
       <transition name="fade-scale">
-        <div v-if="isAegisMode && matchStore.currentRound !== 4">
+        <div v-if="false">
           <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" :max-shields="maxShields" />
         </div>
       </transition>
@@ -492,7 +478,7 @@
 
     <!-- Mission Tracker UI: only visible when active core is the Mission Core AND not Race Round -->
     <transition name="fade-scale">
-      <div v-if="isMissionCore && matchStore.currentRound !== 4" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
+      <div v-if="false" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
         <MissionCoreIndicator :mission-progress="missionProgress" :show-celebration="showMissionCelebration" />
       </div>
     </transition>
@@ -509,7 +495,7 @@
         <div id="tutorial-match-result"
           class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-2xl w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[90vh]">
           <p class="text-xs font-bold text-hexred tracking-[0.4em] uppercase mb-4 drop-shadow-md">
-            {{ matchStore.isFinalRound() ? 'Match Ended' : 'Round Ended' }}
+            Match Ended
           </p>
           <h2
             class="text-7xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(230,57,70,0.8)] mb-2 timeout-glitch">
@@ -586,28 +572,9 @@
           <div class="flex gap-4 justify-center flex-shrink-0 mt-6">
             <button v-if="!isMultiplayer" @click="router.push('/home')"
               class="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors rounded-lg">Home</button>
-
-            <!-- Next Round (Rounds 1 & 2) -->
-            <button v-if="!matchStore.isFinalRound()" :disabled="waitingForOpponent" @click="goToUpgrade"
-              class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed">
-              <div
-                class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-              </div>
-              <span class="relative z-10 text-white">
-                {{ waitingForOpponent ? 'Waiting for opponent...' : `Next Round (${timeoutCountdown}s)` }}
-              </span>
-            </button>
-
-            <!-- Skip Recap (Round 3) -->
-            <template v-else>
-              <button @click="skipRecapCountdown"
-                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
-                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                <span class="relative z-10 text-white">
-                  Skip Recap ({{ timeoutCountdown }}s)
-                </span>
-              </button>
-            </template>
+            <div v-else-if="waitingForOpponent" class="text-white text-sm uppercase tracking-widest font-bold flex-1 text-center py-4">
+               Waiting for opponent...
+            </div>
           </div>
         </div>
       </div>
@@ -660,7 +627,7 @@
 
     <!-- Match Result Overlay (Final Round) -->
     <MatchResultOverlay
-      :is-visible="showMatchResult && matchStore.isFinalRound()"
+      :is-visible="showMatchResult"
       :is-victory="matchResult?.isVictory ?? false"
       :player-score="score"
       :player-name="authStore.profile?.username ?? 'Player'"
@@ -733,11 +700,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { useScoreAnimation } from '../composables/game/useScoreAnimation'
-import { useMatchTimer } from '../composables/game/useMatchTimer'
-import { useQuestionQueue } from '../composables/game/useQuestionQueue'
-import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { useScoreAnimation } from '../../composables/game/useScoreAnimation.ts'
+import { useMatchTimer } from '../../composables/game/useMatchTimer.ts'
+import { useQuestionQueue } from '../../composables/game/useQuestionQueue.ts'
+import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../../services/multiplayerService.ts'
 import OpponentWidget from '../components/game/OpponentWidget.vue'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import AegisShieldIndicator from '../components/game/AegisShieldIndicator.vue'
@@ -755,13 +722,10 @@ import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
 import PandoraOverlay from '../components/game/PandoraOverlay.vue'
 import CoreVfxOverlay from '../components/game/CoreVfxOverlay.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
-import { useTutorial } from '../composables/useTutorial'
-import { useGameStore } from '../stores/gameStore'
-import { useMissionsStore } from '../stores/missionsStore'
-import { getCoreFamily } from '../game/cores/families'
-import { useMatchStore } from '../stores/matchStore'
-
-const missionsStore = useMissionsStore()
+import { useTutorial } from '../../composables/useTutorial.ts'
+import { useGameStore } from '../../stores/gameStore.ts'
+import { getCoreFamily } from '../../game/cores/families.ts'
+import { useMatchStore } from '../../stores/matchStore.ts'
 import {
   initAudio,
   playKeystroke,
@@ -776,7 +740,7 @@ import {
   playPandoraTransform,
   playOracleHint,
   playPhoenixRebirth
-} from '../composables/game/useAudioEngine'
+} from '../../composables/game/useAudioEngine.ts'
 import {
   getCoreModule,
   isComboCore as checkComboCore,
@@ -787,13 +751,13 @@ import {
   isPandoraCore as checkPandoraCore,
   getMaxShields as checkMaxShields,
   isPowerCore as checkPowerCore
-} from '../game/cores/registry'
-import { useSettingsStore } from '../stores/settingsStore'
+} from '../../game/cores/registry.ts'
+import { useSettingsStore } from '../../stores/settingsStore.ts'
 
 const settingsStore = useSettingsStore()
-import { getCoreIconPath } from '../game/cores/icons'
-import { fetchWithAuth } from '../services/api'
-import { audioService } from '../services/audioService'
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { fetchWithAuth } from '../../services/api.ts'
+import { audioService } from '../../services/audioService.ts'
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
@@ -867,7 +831,6 @@ function addToast(message: string, icon: string, color: string) {
 // ── State ──────────────────────────────────────────────────────────────────
 const gameState = ref<GameState>('loading')
 const isRaceLocked = ref(false)
-const isOpponentRaceLocked = ref(false)
 const typedLetters = ref<string[]>([])
 const opponentTypingText = ref<string>('')
 const currentRaceQuestion = ref<any>(null)
@@ -883,7 +846,7 @@ const isDev = import.meta.env.DEV
 
 // --- MULTIPLAYER CORE BINDINGS [US-51] ---
 const route = useRoute()
-const isMultiplayer = computed(() => route.path === '/game/multiplayer')
+const isMultiplayer = computed(() => route.path.includes('multiplayer'))
 const opponentName = ref('')
 const opponentAvatar = ref('')
 const opponentScore = ref(0)
@@ -1143,19 +1106,14 @@ const effectiveCores = computed(() => {
 
 // ── Pandora's Box Logic ──────────────────────────────────────────────────
 const basePandoraCoreName = computed(() => {
-  const baseCore = allCores.value.find(c => c.id === gameStore.activeCoreId)
-  return baseCore ? baseCore.name : gameStore.activeCoreName
+  return ''
 })
 const isPandoraMode = computed(() => checkPandoraCore(basePandoraCoreName.value))
 const isTrickster = computed(() => isPandoraMode.value && matchStore.currentRound === 2)
 const isChaos = computed(() => isPandoraMode.value && matchStore.currentRound === 3)
 
 const activeCoreNameDynamic = computed(() => {
-  if (isPandoraMode.value && currentPandoraCoreId.value) {
-    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
-    return shiftedCore ? shiftedCore.name : gameStore.activeCoreName
-  }
-  return gameStore.activeCoreName
+  return ''
 })
 
 const activeCoreIconUrlDynamic = computed(() => {
@@ -1427,9 +1385,12 @@ async function createSession() {
   try {
     const res = await fetchWithAuth(`/api/game/session`, {
       method: 'POST',
-      body: JSON.stringify({ active_core_id: activeCoreId.value })
+      body: JSON.stringify({ active_core_id: null, is_pure_skill: true })
     })
-    if (!res.ok) return
+    if (!res.ok) {
+      console.error('Failed to create session:', res.statusText)
+      return
+    }
     const data = await res.json()
     sessionId.value = data.session_id
     gameStore.sessionId = data.session_id
@@ -1472,15 +1433,6 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
         expectedScore: data.expected_score ?? 500,
         oldTier: data.old_tier,
         currentTier: data.current_tier
-      }
-
-      // US-74: Sync unlocked cores to profile
-      if (data.newly_unlocked_cores && data.newly_unlocked_cores.length > 0) {
-        if (authStore.profile) {
-          const unlockedSet = new Set(authStore.profile.unlocked_core_ids || [])
-          data.newly_unlocked_cores.forEach((c: any) => unlockedSet.add(String(c.id)))
-          authStore.profile.unlocked_core_ids = Array.from(unlockedSet)
-        }
       }
       // Wait for runRecapCountdown to finish before showing result
     }
@@ -1561,10 +1513,11 @@ async function skipQuestion() {
             question_id: questionId,
             answer: '',            // empty = full skip
             current_combo: capturedCombo,
-            active_core_id: activeCoreId.value,
-            secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
-            core_history_names: gameStore.coreHistory.map(c => c.name),
-            oracle_reveal_level: oracleRevealLevel.value,
+            active_core_id: null,  // Pure Skill: always null, no core used
+            secondary_core_id: undefined,
+            core_history_names: [],
+            oracle_reveal_level: 0,
+            is_pure_skill: true,
             time_taken: timeTaken,
             difficulty: currentRoom?.state.metadata.difficulty || 'Standard',
             current_shields: capturedShields,
@@ -1731,15 +1684,9 @@ async function checkAnswer() {
     currentCombo.value++
 
     if (currentRoom) {
-      const family = getCoreFamily(gameStore.activeCoreName || '')
-      if (family === 'combo' && currentCombo.value > 0 && currentCombo.value % 5 === 0) {
-        currentRoom.send('player_milestone', { type: 'combo', message: 'Opponent is on fire!', icon: '🔥', color: 'text-orange' })
-      } else if (family === 'oracle' && currentQuestion.value.target_length >= 9) {
-        currentRoom.send('player_milestone', { type: 'long_word', message: 'Opponent cleared a long word!', icon: '🤯', color: 'text-purple-400' })
-      } else if (family !== 'combo' && family !== 'oracle' && family !== 'aegis') {
-        if (elapsed < 2500) {
-          currentRoom.send('player_milestone', { type: 'massive_hit', message: 'Opponent scored a massive hit!', icon: '🚀', color: 'text-lightBlue' })
-        }
+      // Pure Skill Mode has no cores, so no combo/oracle milestones are sent.
+      if (elapsed < 2500) {
+        currentRoom.send('player_milestone', { type: 'massive_hit', message: 'Opponent scored a massive hit!', icon: '🚀', color: 'text-lightBlue' })
       }
     }
 
@@ -1801,11 +1748,12 @@ async function checkAnswer() {
           question_id: questionId,
           answer: typed,
           current_combo: capturedCombo,
-          active_core_id: activeCoreId.value,
-          secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
+          active_core_id: null,
+          secondary_core_id: undefined,
           core_history_names: gameStore.coreHistory.map(c => c.name),
           core_history: gameStore.coreHistory.map(c => c.id),
           oracle_reveal_level: capturedOracleLevel,
+          is_pure_skill: true,
           time_taken: timeTaken,
           difficulty: currentRoom?.state.metadata.difficulty || 'Standard',
           current_shields: capturedShields,
@@ -1830,12 +1778,6 @@ async function checkAnswer() {
         const newScore = data.new_total_score ?? score.value
         updateScoreAnimated(newScore)
         sendScoreUpdate(newScore)
-
-        // Evaluate mission progress for score and streaks
-        missionsStore.evaluateGameplayProgress({
-          score: newScore,
-          comboStreak: currentCombo.value
-        })
 
         questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
         pointsEarned.value = data.points_earned ?? pointsEarned.value
@@ -1973,16 +1915,9 @@ function resetTypingBoard() {
 // Initialises the countdown state and schedules callTimeoutEndpoint once the
 // 15s window has elapsed (or immediately completes the phase if it finishes).
 function startTimeoutPhase() {
-  gameState.value = 'timeout'
+  gameState.value = "timeout"
   inputRef.value?.blur()
   stopTimeoutInterval()
-
-  // Evaluate mission progress for score, streak, and round completion
-  missionsStore.evaluateGameplayProgress({
-    score: score.value,
-    comboStreak: currentCombo.value,
-    roundsCompleted: 1
-  })
 
   if (isMultiplayer.value && !isForfeitWin.value) {
     waitingForOpponent.value = true
@@ -1991,53 +1926,16 @@ function startTimeoutPhase() {
     }
   } else {
     waitingForOpponent.value = false
-    runRecapCountdown()
+    finalizeMatch()
   }
+}
 
-  // Only tell the backend the session is over if it's the final round!
-  // Otherwise, we keep the session alive to retain score and anti-cheat tracking.
+async function finalizeMatch() {
   const sid = sessionId.value
-  const coreId = activeCoreId.value
-  const oracleLvl = oracleRevealLevel.value
-
-  if (sid && matchStore.isFinalRound()) {
-    setTimeout(() => callTimeoutEndpoint(sid, coreId, oracleLvl), 300)
+  if (sid) {
+    await callTimeoutEndpoint(sid, activeCoreId.value, oracleRevealLevel.value)
   }
-}
-
-function runRecapCountdown() {
-  timeoutCountdown.value = 15
-  stopTimeoutInterval()
-
-  timeoutInterval = setInterval(() => {
-    timeoutCountdown.value--
-    if (timeoutCountdown.value <= 0) {
-      skipRecapCountdown()
-    }
-  }, 1000)
-}
-
-function skipRecapCountdown() {
-  timeoutCountdown.value = 0
-  stopTimeoutInterval()
-  if (!matchStore.isFinalRound()) {
-    // Use goToUpgrade so Round 3 correctly skips to Race Mode (Round 4)
-    // instead of wrongly showing the CoreUpgradeOverlay
-    goToUpgrade()
-  } else {
-    if (matchResult.value) {
-      showMatchResult.value = true
-    } else {
-      let attempts = 0
-      const waitResult = setInterval(() => {
-        attempts++
-        if (matchResult.value || attempts >= 10) { // Max wait 5 seconds (10 * 500ms)
-          clearInterval(waitResult)
-          showMatchResult.value = true
-        }
-      }, 500)
-    }
-  }
+  showMatchResult.value = true
 }
 
 function goToUpgrade() {
@@ -2054,27 +1952,8 @@ function goToUpgrade() {
   }
 }
 
-async function handleUpgradeSelected(newCoreId: string) {
+function handleUpgradeSelected(newCoreId: string) {
   const chosenCoreId = newCoreId || gameStore.activeCoreId || ''
-  if (chosenCoreId) {
-    gameStore.activeCoreId = chosenCoreId
-    localStorage.setItem('naenra_active_core_id', chosenCoreId)
-
-    if (sessionId.value) {
-      try {
-        await fetchWithAuth(`/api/game/session/core`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            session_id: sessionId.value,
-            new_core_id: chosenCoreId
-          })
-        })
-      } catch (err) {
-        console.error('Failed to sync upgraded session core:', err)
-      }
-    }
-  }
-
   if (isMultiplayer.value) {
     isWaitingForNextRound.value = true
     if (currentRoom) {
@@ -2084,6 +1963,7 @@ async function handleUpgradeSelected(newCoreId: string) {
       currentRoom.send("ready_next_round", { round: matchStore.currentRound + 1 })
     }
   } else {
+    // When upgrade is selected, restart match for the next round
     restartMatch()
   }
 }
@@ -2101,9 +1981,7 @@ async function restartMatch() {
   currentPandoraCoreId.value = null
   resetTypingBoard()
 
-  if (isMultiplayer.value && currentRoom && activeCoreId.value) {
-    currentRoom.send("update_core", { coreId: activeCoreId.value })
-  }
+  // Pure Skill Mode: never broadcast a core to the Colyseus room.
 
   // Transition to loading and fetch next batch
   // Note: We DO NOT call createSession() here so the backend continues the same session!
@@ -2128,8 +2006,20 @@ async function playAgain() {
   if (isMultiplayer.value && currentRoom) {
     const rId = currentRoom.roomId
     if (currentRoom.state?.isCustom) {
-      // For custom rooms, tell server to reset to lobby state instead of disconnecting
+      // Tell server to reset to lobby state (server broadcasts to all players)
       currentRoom.send('return_to_lobby')
+      // Reset local match state too
+      score.value = 0
+      questionsAnswered.value = 0
+      matchHistory.value = []
+      gameStore.coreHistory = []
+      gameStore.activeCoreId = null
+      gameStore.activeCoreName = null
+      gameStore.sessionId = null
+      matchStore.resetMatch(1)
+      matchStore.maxRounds = 1
+      isForfeitWin.value = false
+      matchResult.value = null
       router.push(`/room/custom?id=${rId}`)
     } else {
       leaveMatchRoom()
@@ -2145,7 +2035,7 @@ async function playAgain() {
   aegisShieldCount.value = 0
   missionProgress.value = 0
 
-  matchStore.resetMatch(4)
+  matchStore.resetMatch(1)
   matchHistory.value = []
   gameStore.coreHistory = []
   gameStore.activeCoreId = null
@@ -2160,13 +2050,14 @@ async function playAgain() {
 }
 
 function goHome() {
-  waitingForOpponent.value = false
   stopMatchTimer()
   stopTimeoutInterval()
   abandonCurrentSession()
   gameStore.sessionId = null
-  matchStore.resetMatch(4)
-  leaveMatchRoom()
+  matchStore.resetMatch(1)
+  if (isMultiplayer.value && currentRoom) {
+    leaveMatchRoom()
+  }
   router.push('/lobby')
 }
 
@@ -2182,15 +2073,15 @@ async function debugSkipRound() {
 function skipGameplay() {
   menuOpen.value = false
   stopMatchTimer()
-  if (!matchStore.isFinalRound()) {
-    gameState.value = 'upgrade'
-  } else {
-    startTimeoutPhase()
-  }
+  // Pure Skill mode has no upgrade phase — always go straight to match end
+  startTimeoutPhase()
 }
 
 async function abandonCurrentSession() {
-  if (!sessionId.value || gameState.value === 'timeout') return
+  // Note: intentionally NOT checking gameState === 'timeout' here.
+  // If the player quits mid-game, we still want to mark the session as abandoned
+  // even if the timer had already expired but the overlay hadn't been shown yet.
+  if (!sessionId.value) return
   try {
     await fetchWithAuth(`/api/game/abandon`, {
       method: 'POST',
@@ -2251,7 +2142,7 @@ watch(() => gameState.value, (newState) => {
   if (newState === 'upgrade') {
     audioService.playBGM('/audio/core_selection.mp3')
   } else if (newState === 'playing') {
-    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+    audioService.playBGM(audioService.getCoreBgmPath(''))
   }
 })
 
@@ -2275,6 +2166,9 @@ let selfReconnectInterval: ReturnType<typeof setInterval> | null = null
 const opponentReconnecting = ref(false)
 const opponentReconnectTimerSeconds = ref(15)
 let opponentReconnectInterval: ReturnType<typeof setInterval> | null = null
+
+// Hoisted to module scope so onUnmounted can cancel it
+let raceTimerFrame: number | null = null
 
 function startOpponentReconnectCountdown(timeout: number = 15) {
   opponentReconnecting.value = true
@@ -2346,9 +2240,7 @@ function setupRoomEventHandlers(room: any) {
   
   room.removeAllListeners()
 
-  if (activeCoreId.value) {
-    room.send("update_core", { coreId: activeCoreId.value })
-  }
+  // Pure Skill Mode: do NOT broadcast a core — there is no active core.
   updateOpponentData(room.state)
 
   room.onStateChange((state: any) => {
@@ -2366,7 +2258,7 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('opponent_forfeit', () => {
-    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
       return // Match is effectively over, ignore
     }
     clearOpponentReconnectCountdown()
@@ -2378,10 +2270,9 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('room_terminated', () => {
-    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
       return
     }
-    waitingForOpponent.value = false
     clearOpponentReconnectCountdown()
     stopMatchTimer()
     leaveMatchRoom()
@@ -2389,28 +2280,18 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('opponent_left', () => {
-    if (matchStore.isFinalRound() && (gameState.value === 'timeout' || showMatchResult.value)) {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
       return // Match is effectively over, ignore
     }
-    waitingForOpponent.value = false
     alert("Your opponent has left the match! You will be returned to the main menu.")
     goHome()
   })
 
   room.onMessage('start_recap_countdown', () => {
-    if(raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     waitingForOpponent.value = false
-    runRecapCountdown()
     gameState.value = 'timeout'
-    
-    if (matchStore.isFinalRound()) {
-      const sid = sessionId.value
-      const coreId = activeCoreId.value
-      const oracleLvl = oracleRevealLevel.value
-      if (sid) {
-        setTimeout(() => callTimeoutEndpoint(sid, coreId, oracleLvl), 300)
-      }
-    }
+    finalizeMatch()
   })
 
   room.onMessage('start_next_round', (data: any) => {
@@ -2435,7 +2316,7 @@ function setupRoomEventHandlers(room: any) {
 
   // --- Round 4 (Race Mode) Listeners ---
 
-  let raceTimerFrame: number | null = null;
+  // raceTimerFrame is hoisted to module scope for cleanup on unmount
 
   room.onMessage('next_race_question', (q: any) => {
     currentRaceQuestion.value = q
@@ -2443,12 +2324,10 @@ function setupRoomEventHandlers(room: any) {
     opponentTypingText.value = ''
     gameState.value = 'playing'
     isRaceLocked.value = false
-    isOpponentRaceLocked.value = false
     questionStartTime.value = Date.now()
 
     timeLeft.value = 12
     timerProgressPercent.value = 100
-    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     
     const duration = 12000;
@@ -2479,33 +2358,13 @@ function setupRoomEventHandlers(room: any) {
   })
 
   room.onMessage('race_won', (data: { winnerId: string, points: number }) => {
-    const isMe = data.winnerId === currentRoom?.sessionId
-    const targetWord = currentRaceQuestion.value?.target_word || currentRaceQuestion.value?.hint || 'Question'
-    const myTypedWord = typedLetters.value.join('')
-
-    questionsAnswered.value++
-
-    if (isMe) {
+    if (data.winnerId === currentRoom?.sessionId) {
       triggerScoreFlash('correct')
       spawnPointPopup(data.points, 'correct', 'RACE WON')
       score.value += data.points
-      if (currentRoom) {
-        currentRoom.send('update_score', { score: score.value })
-      }
-      matchHistory.value.push({
-        round: 4,
-        submitted: myTypedWord || targetWord,
-        correct: targetWord,
-        isCorrect: true
-      })
     } else {
+      opponentScore.value += data.points
       spawnPointPopup(0, 'typo', 'OPPONENT WON')
-      matchHistory.value.push({
-        round: 4,
-        submitted: myTypedWord || '(Missed)',
-        correct: targetWord,
-        isCorrect: false
-      })
     }
   })
 
@@ -2515,33 +2374,16 @@ function setupRoomEventHandlers(room: any) {
       if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
       else spawnPointPopup(0, 'custom', 'SKIPPED')
       score.value = Math.max(0, score.value - data.penalty)
-      if (currentRoom) {
-        currentRoom.send('update_score', { score: score.value })
-      }
       isRaceLocked.value = true // Lock input for this race question
     } else {
-      if (data.penalty > 0) {
-        addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')
-      } else {
-        addToast('Opponent skipped the question!', '⚠️', 'text-orange')
-      }
-      isOpponentRaceLocked.value = true
+      opponentScore.value = Math.max(0, opponentScore.value - data.penalty)
+      addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')
     }
   })
 
   room.onMessage('race_timeout', () => {
     if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
     opponentTypingText.value = ''
-    if (currentRaceQuestion.value && !isRaceLocked.value) {
-      const targetWord = currentRaceQuestion.value?.target_word || currentRaceQuestion.value?.hint || 'Question'
-      questionsAnswered.value++
-      matchHistory.value.push({
-        round: 4,
-        submitted: typedLetters.value.join('') || '(Timeout)',
-        correct: targetWord,
-        isCorrect: false
-      })
-    }
     typedLetters.value = []
     addToast('Time is up!', '⏱️', 'text-yellow-400')
   })
@@ -2555,8 +2397,6 @@ function setupRoomEventHandlers(room: any) {
 }
 
 onMounted(async () => {
-  matchStore.maxRounds = 4
-
   if (isMultiplayer.value && !currentRoom) {
     const token = getSavedReconnectionToken()
     if (token) {
@@ -2580,29 +2420,20 @@ onMounted(async () => {
     setupRoomEventHandlers(currentRoom)
   }
 
-  if (!activeCoreId.value) {
-    const savedCoreId = localStorage.getItem('naenra_active_core_id')
-    const savedCoreName = localStorage.getItem('naenra_active_core_name')
-    if (savedCoreId) {
-      gameStore.setActiveCore(savedCoreId, savedCoreName || '')
-    } else if (isMultiplayer.value) {
-      const myPlayer = currentRoom?.state?.players?.get(currentRoom.sessionId)
-      if (myPlayer && myPlayer.activeCoreId) {
-        console.log('[GameMultiplayView] Restored activeCoreId from server room state:', myPlayer.activeCoreId)
-        gameStore.setActiveCore(myPlayer.activeCoreId, 'Support Core')
-      } else {
-        router.replace('/home')
-        return
-      }
-    } else {
-      router.replace('/core')
-      return
-    }
+  // Pure Skill Mode does not use cores — clear any stale core state that
+  // may have been loaded from localStorage by the gameStore initializer.
+  gameStore.activeCoreId = null
+  gameStore.activeCoreName = null
+  localStorage.removeItem('naenra_active_core_id')
+  localStorage.removeItem('naenra_active_core_name')
+
+  // Ensure we start a fresh match if navigating here from outside
+  if (!gameStore.sessionId) {
+    matchStore.resetMatch(1)
+    // Pure Skill mode is always 1 round, adjust maxRounds accordingly
+    matchStore.maxRounds = 1
   }
-
-  const isMounted = ref(true)
-
-  if (!isMounted.value) return
+  resetTimer()
 
   if (!gameStore.sessionId) {
     await createSession()
@@ -2610,21 +2441,14 @@ onMounted(async () => {
     sessionId.value = gameStore.sessionId
   }
 
-  if (!isMounted.value) return
-
   // Always fetch full cores list — needed for OpponentWidget history, core tooltips, and Pandora
   await fetchPandoraPool()
 
-  if (!isMounted.value) return
-
   await fetchBatch()
-  if (!isMounted.value) return
-
   await loadQuestion()
-  if (!isMounted.value) return
 
   if (gameState.value !== 'upgrade') {
-    audioService.playBGM(audioService.getCoreBgmPath(gameStore.activeCoreName))
+    audioService.playBGM(audioService.getCoreBgmPath(''))
   }
 
   sendScoreUpdate(0)
@@ -2634,9 +2458,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  isMounted.value = false
   if (selfReconnectInterval) clearInterval(selfReconnectInterval)
   if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
+  if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
   stopMatchTimer()
   stopTimeoutInterval()
   document.removeEventListener('click', handleOutsideClick)
@@ -2646,7 +2470,7 @@ onUnmounted(() => {
 })
 
 onBeforeRouteLeave((to, _from, next) => {
-  if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom) {
+  if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom === true) {
     // Do not leave room, we are just returning to lobby
   } else {
     leaveMatchRoom()

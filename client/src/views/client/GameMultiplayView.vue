@@ -4,7 +4,7 @@
 </template>
 
 <script setup lang="ts">
-import { useDeviceMode } from '../composables/useDeviceMode';
+import { useDeviceMode } from '../../composables/useDeviceMode.ts';
 import GameMultiplayDesktop from './GameMultiplayDesktop.vue';
 import GameMultiplayMobile from './GameMultiplayMobile.vue';
 

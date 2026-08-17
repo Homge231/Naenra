@@ -29,7 +29,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { useErrorStore } from '../stores/errorStore'
+import { useErrorStore } from '../../stores/errorStore'
 
 const router = useRouter()
 const errorStore = useErrorStore()

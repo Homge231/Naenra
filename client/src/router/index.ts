@@ -11,69 +11,69 @@ const router = createRouter({
     {
       path: '/login', 
       name: 'login',
-      component: () => import('../views/LoginView.vue')
+      component: () => import('../views/client/LoginView.vue')
     },
     {
       path: '/home',
       alias: '/lobby',
       name: 'home',
-      component: () => import('../views/HomeView.vue'),
+      component: () => import('../views/client/HomeView.vue'),
       meta: { requiresAuth: true }
     },
     { 
       path: '/core', 
-      component: () => import('../views/CoreSelectionView.vue'), 
+      component: () => import('../views/client/CoreSelectionView.vue'), 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/core/multiplayer', 
-      component: () => import('../views/CoreSelectionMultiView.vue'), 
+      component: () => import('../views/client/CoreSelectionMultiView.vue'), 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/game', 
-      component: () => import('../views/GameplayView.vue'), 
+      component: () => import('../views/client/GameplayView.vue'), 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/game/multiplayer', 
-      component: () => import('../views/GameMultiplayView.vue'), 
+      component: () => import('../views/client/GameMultiplayView.vue'), 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/game/pure-skill-multiplayer', 
-      component: () => import('../views/GamePureSkillMultiView.vue'), 
+      component: () => import('../views/client/GamePureSkillMultiView.vue'), 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/shop', 
-      component: () => import('../views/ShopView.vue'), 
+      component: () => import('../views/client/ShopView.vue'), 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/end', 
-      component: () => import('../views/MatchEndView.vue'), 
+      component: () => import('../views/client/MatchEndView.vue'), 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/error', 
       name: 'error', 
-      component: () => import('../views/ErrorView.vue') 
+      component: () => import('../views/client/ErrorView.vue') 
     },
     {
       path: '/verify-otp',
       name: 'verify-otp',
-      component: () => import('../views/VerifyOTPView.vue')
+      component: () => import('../views/client/VerifyOTPView.vue')
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: () => import('../views/ForgotPasswordView.vue')
+      component: () => import('../views/client/ForgotPasswordView.vue')
     },
     {
       path: '/reset-password',
       name: 'reset-password',
-      component: () => import('../views/ResetPasswordView.vue')
+      component: () => import('../views/client/ResetPasswordView.vue')
     },
     {
       path: '/:pathMatch(.*)*',
@@ -82,49 +82,49 @@ const router = createRouter({
     {
       path: '/profile',
       name: 'profile',
-      component: () => import('../views/ProfileView.vue'),
+      component: () => import('../views/client/ProfileView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/room/custom',
       name: 'CustomRoom',
-      component: () => import('../views/CustomRoomView.vue'),
+      component: () => import('../views/client/CustomRoomView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/matchmaking',
       name: 'matchmaking',
-      component: () => import('../views/MatchmakingView.vue'),
+      component: () => import('../views/client/MatchmakingView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/match-found',
       name: 'match-found',
-      component: () => import('../views/MatchFoundView.vue'),
+      component: () => import('../views/client/MatchFoundView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/leaderboard',
       name: 'leaderboard',
-      component: () => import('../views/LeaderboardView.vue'),
+      component: () => import('../views/client/LeaderboardView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path:'/library',
       name: 'library',
-      component: () => import('../views/CoreLibraryView.vue'),
+      component: () => import('../views/client/CoreLibraryView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/library/core/:id',
       name: 'core-library-item',
-      component: () => import('../views/CoreUpgradeDetailView.vue'),
+      component: () => import('../views/client/CoreUpgradeDetailView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/missions',
       name: 'missions',
-      component: () => import('../views/MissionsDashboardView.vue'),
+      component: () => import('../views/client/MissionsDashboardView.vue'),
       meta: { requiresAuth: true }
     },
   ]

@@ -162,18 +162,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { useGameStore } from '../stores/gameStore'
-import { useMatchStore } from '../stores/matchStore'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { useGameStore } from '../../stores/gameStore.ts'
+import { useMatchStore } from '../../stores/matchStore.ts'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
-import { getCoreIconPath } from '../game/cores/icons'
-import { isPowerCore } from '../game/cores/families'
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { isPowerCore } from '../../game/cores/families.ts'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
-import { useTutorial } from '../composables/useTutorial'
-import { useCardTilt } from '../composables/useCardTilt'
-import { initAudio } from '../composables/game/useAudioEngine'
-import { audioService } from '../services/audioService'
+import { useTutorial } from '../../composables/useTutorial.ts'
+import { useCardTilt } from '../../composables/useCardTilt.ts'
+import { initAudio } from '../../composables/game/useAudioEngine.ts'
+import { audioService } from '../../services/audioService.ts'
 
 const getCoreCategory = (core: any): { label: string; icon: string; style: string } => {
   const isPower = core?.classification === 'power' || isPowerCore(core?.name || '')

@@ -196,8 +196,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { useTutorial } from '../composables/useTutorial'
+import { useAuthStore } from '../../stores/authStore'
+import { useTutorial } from '../../composables/useTutorial'
 
 const router = useRouter()
 const authStore = useAuthStore()

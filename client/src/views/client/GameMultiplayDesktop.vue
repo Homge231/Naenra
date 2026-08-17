@@ -86,18 +86,18 @@
       :shift-announcement="shiftAnnouncement" />
 
     <header v-show="gameState !== 'upgrade'"
-      class="relative z-30 flex justify-between items-center px-2 sm:px-8 py-2 sm:py-5 bg-darkNavy/30 backdrop-blur-md border-b border-white/10 shadow-lg">
+      class="relative z-30 flex justify-between items-center px-8 lg:px-12 py-5 bg-darkNavy/30 backdrop-blur-md border-b border-white/10 shadow-lg">
       <div class="relative" ref="menuRef">
         <button @click.stop="menuOpen = !menuOpen"
-          class="flex items-center gap-1.5 sm:gap-3 focus:outline-none hover:opacity-80 transition-opacity">
-          <svg class="w-5 h-5 sm:w-8 sm:h-8 text-orange fill-current" viewBox="0 0 24 24">
+          class="flex items-center gap-3 focus:outline-none hover:opacity-80 transition-opacity">
+          <svg class="w-8 h-8 text-orange fill-current" viewBox="0 0 24 24">
             <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
           </svg>
           <span
-            class="text-sm sm:text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase drop-shadow-md">
+            class="text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase drop-shadow-md">
             NAENRA
           </span>
-          <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 transition-transform duration-200" :class="menuOpen ? 'rotate-180' : ''"
+          <svg class="w-4 h-4 text-gray-300 transition-transform duration-200" :class="menuOpen ? 'rotate-180' : ''"
             fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -185,40 +185,42 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-1.5 sm:gap-6">
+      <div class="flex items-center gap-8">
+        <!-- Sound Toggle removed -->
+
         <div id="tutorial-score-area"
-          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
-          <span class="text-[9px] sm:text-xs font-bold text-orange tracking-[0.1em] uppercase hidden sm:inline">Score</span>
-          <span class="text-[9px] font-bold text-orange tracking-[0.1em] uppercase sm:hidden">Scr</span>
-          <span class="text-sm sm:text-xl font-black text-white tabular-nums">{{ score }}</span>
+          class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
+          <span class="text-xs font-bold text-orange tracking-[0.2em] uppercase">Score</span>
+          <span class="text-xl font-black text-white tabular-nums">{{ score }}</span>
         </div>
 
         <div
-          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
-          <span class="text-[9px] sm:text-xs font-bold text-lightBlue tracking-[0.1em] uppercase">Q</span>
-          <span class="text-sm sm:text-xl font-black text-white">{{ questionsAnswered }}</span>
+          class="flex items-center gap-3 bg-black/30 backdrop-blur-md border border-white/10 px-5 py-2 rounded-lg shadow-inner">
+          <span class="text-xs font-bold text-lightBlue tracking-[0.2em] uppercase">Q</span>
+          <span class="text-xl font-black text-white">{{ questionsAnswered }}</span>
         </div>
 
-        <div
-          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
-          <span class="text-[9px] sm:text-xs font-bold text-gray-400 tracking-[0.1em] uppercase">Rnd</span>
-          <span class="text-sm sm:text-xl font-black text-white">{{ matchStore.currentRound }}/{{ matchStore.maxRounds }}</span>
-        </div>
-
-        <div class="relative flex items-center gap-1 ml-0.5 sm:ml-1"
+        <div class="relative flex items-center gap-2"
           :class="timeLeft <= 10 ? 'text-hexred' : activeCoreModule.timerColor">
-          <svg class="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-md" :class="activeCoreModule.timerIconClass || undefined" fill="none"
+          <svg class="w-5 h-5 drop-shadow-md" :class="activeCoreModule.timerIconClass || undefined" fill="none"
             stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="font-mono font-black text-xl sm:text-3xl tabular-nums drop-shadow-lg" :class="[
+          <span class="font-mono font-black text-3xl tabular-nums drop-shadow-lg" :class="[
             activeCoreModule?.timerColor,
             timeLeft <= 10 && settingsStore.vfxEnabled ? 'animate-pulse' : '',
             settingsStore.vfxEnabled ? (activeCoreModule?.timerClass || '') : ''
           ]">
             {{ String(timeLeft ?? 0).padStart(2, '0') }}
           </span>
+          <!-- Round Indicator Preparation -->
+          <div class="absolute -bottom-6 w-full text-center whitespace-nowrap">
+            <span id="tutorial-round-indicator"
+              class="text-[9px] font-bold text-gray-500 uppercase tracking-widest bg-darkBlue/50 px-2 py-0.5 rounded-full border border-white/5">
+              Round {{ matchStore.currentRound }}/{{ matchStore.maxRounds }}
+            </span>
+          </div>
         </div>
       </div>
     </header>
@@ -234,7 +236,7 @@
     </transition>
 
     <main v-show="gameState !== 'upgrade'"
-      class="relative z-20 flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center py-2 pt-16 sm:pt-20 px-2 max-w-5xl mx-auto w-full">
+      class="relative z-20 flex-1 flex flex-col items-center justify-center py-10 px-6 lg:px-16 max-w-5xl mx-auto w-full">
 
       <!-- Speedster wind streak overlay component -->
       <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
@@ -243,11 +245,11 @@
       <!-- Active Core UI VFX Micro-animations -->
       <CoreVfxOverlay :activeCoreName="activeCoreNameDynamic" :playing="gameState === 'playing'" />
 
-      <section class="w-full max-w-4xl flex flex-col gap-3" style="perspective: 1500px;">
+      <section class="w-full max-w-4xl flex flex-col gap-10" style="perspective: 1500px;">
 
         <div v-if="gameState === 'loading'" class="w-full flex flex-col gap-10">
-          <div class="bg-blue/10 backdrop-blur-xl border border-blue/20 rounded-2xl p-3 h-16 animate-pulse"></div>
-          <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 h-32 animate-pulse"></div>
+          <div class="bg-blue/10 backdrop-blur-xl border border-blue/20 rounded-2xl p-6 h-28 animate-pulse"></div>
+          <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-14 h-44 animate-pulse"></div>
         </div>
 
         <template v-else-if="matchStore.currentRound === 4">
@@ -261,11 +263,11 @@
              </div>
              
              <!-- Shared Question -->
-             <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col items-center text-center w-full max-h-36 sm:max-h-44 overflow-y-auto custom-scrollbar transition-all duration-300">
-                <div v-if="currentRaceQuestion?.hint" class="mb-4 text-xs font-bold text-lightBlue uppercase tracking-widest bg-blue/10 px-4 py-1 rounded-full border border-blue/30 inline-block">
+             <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300">
+                <div v-if="currentRaceQuestion?.hint" class="mb-4 text-sm font-bold text-lightBlue uppercase tracking-widest bg-blue/10 px-4 py-1 rounded-full border border-blue/30 inline-block">
                   HINT: {{ currentRaceQuestion.hint }}
                 </div>
-                <p class="text-base font-medium text-gray-200 leading-relaxed max-w-3xl">
+                <p class="text-xl md:text-3xl font-medium text-gray-200 leading-relaxed max-w-3xl">
                    <span v-if="currentRaceQuestion?.question_text?.split(/_+/)[0]">
                      {{ currentRaceQuestion.question_text?.split(/_+/)[0] }}
                    </span>
@@ -298,7 +300,7 @@
                      </div>
                      <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2" :class="{ 'opacity-30 blur-[1px]': isRaceLocked }">
                         <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p1-'+i"
-                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-base px-1 py-0 font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner uppercase">
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner uppercase">
                            {{ typedLetters[i - 1] || '' }}
                         </div>
                      </div>
@@ -325,7 +327,7 @@
                      </div>
                      <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2 opacity-80" :class="{ 'opacity-30 blur-[1px]': isOpponentRaceLocked }">
                         <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p2-'+i"
-                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-base px-1 py-0 font-black rounded-lg transition-all duration-200 bg-orange/10 border-b-4 border-orange/50 text-orange shadow-inner uppercase">
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-2xl md:text-4xl font-black rounded-lg transition-all duration-200 bg-orange/10 border-b-4 border-orange/50 text-orange shadow-inner uppercase">
                            {{ opponentTypingText[i - 1] ? '*' : '' }}
                         </div>
                      </div>
@@ -338,21 +340,21 @@
           <transition name="card-flip" mode="out-in">
             <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-10">
               <!-- Top-half container for Hint and Question Text -->
-              <div class="w-full flex flex-col gap-3 sm:gap-6">
+              <div class="w-full flex flex-col gap-6">
                 <div v-if="currentQuestion.hint"
-                  class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-3 md:p-6 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
+                  class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-6 md:p-8 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
                   <div
                     class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue to-transparent">
                   </div>
-                  <div class="flex items-center justify-center gap-1.5 mb-1.5 opacity-90">
-                    <svg class="w-3 h-3 text-lightBlue" fill="currentColor" viewBox="0 0 20 20">
+                  <div class="flex items-center justify-center gap-1.5 mb-3 opacity-90">
+                    <svg class="w-4 h-4 text-lightBlue drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
                       <path
                         d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
                     </svg>
-                    <span class="text-[9px] font-bold text-lightBlue tracking-[0.25em] uppercase">Hint</span>
+                    <span class="text-[10px] font-bold text-lightBlue tracking-[0.25em] uppercase">Hint</span>
                   </div>
                   <h1
-                    class="text-xs font-bold text-white tracking-widest drop-shadow-sm leading-tight break-words px-2">
+                    class="text-2xl md:text-4xl font-black text-lightBlue tracking-wider drop-shadow-lg leading-tight break-words px-2 py-1">
                     {{ currentQuestion.hint }}
                   </h1>
                 </div>
@@ -363,7 +365,7 @@
                   :oracle-hint-text="oracleHintText" :oracle-next-cost="oracleNextCost" @use-hint="useOracleHint" />
 
                 <div
-                  class="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-5 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300 transform-gpu"
+                  class="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 md:p-12 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300 transform-gpu"
                   :class="{
                     'burning-edge-active': isBurningComboActive,
                     'shake-error': isTypingError,
@@ -371,7 +373,7 @@
                     'combo-fire-10': currentCombo >= 10 && currentCombo < 15,
                     'combo-fire-15': currentCombo >= 15
                   }">
-                  <p class="text-xl sm:text-2xl font-black text-white leading-snug max-w-3xl drop-shadow-md">
+                  <p class="text-xl md:text-3xl font-medium text-gray-200 leading-relaxed max-w-3xl">
                     <span v-if="currentQuestion?.question_text?.split(/_+/)[0]">
                       {{ currentQuestion.question_text?.split(/_+/)[0] }}
                     </span>
@@ -411,7 +413,7 @@
                         'border-white/20': idx !== typedLetters.length || gameState !== 'playing'
                       }">
                       <span
-                        class="text-base px-1 py-0 font-black uppercase tracking-widest drop-shadow-md transition-all duration-100"
+                        class="text-2xl md:text-4xl font-black uppercase tracking-widest drop-shadow-md transition-all duration-100"
                         :class="{
                           'text-white': typedLetters[idx] !== undefined && gameState === 'playing',
                           'glow-sweep': gameState === 'correct',
@@ -470,17 +472,15 @@
     </div>
 
     <!-- Right-Side Indicators Container -->
-    <div class="absolute top-16 right-2 sm:top-52 sm:right-8 z-20 flex flex-col items-end gap-4 scale-75 sm:scale-100 origin-top-right transition-all duration-300 pointer-events-none">
+    <div class="absolute top-52 right-8 z-20 flex flex-col items-end gap-4 transition-all duration-300">
+
       <!-- Combo indicator: only visible when active core is the Combo Core AND not Race Round -->
       <transition name="fade-scale">
         <div v-if="isComboCore && matchStore.currentRound !== 4">
           <ComboCoreIndicator :current-combo="currentCombo" />
         </div>
       </transition>
-    </div>
 
-    <!-- Left-Side Indicators Container -->
-    <div class="absolute top-16 left-2 sm:top-52 sm:left-8 z-20 flex flex-col gap-4 scale-75 sm:scale-100 origin-top-left transition-all duration-300 pointer-events-none">
       <!-- Aegis Shield Mode Indicator (hidden in Race Round) -->
       <transition name="fade-scale">
         <div v-if="isAegisMode && matchStore.currentRound !== 4">
@@ -488,13 +488,14 @@
         </div>
       </transition>
 
-      <!-- Mission Tracker UI: only visible when active core is the Mission Core AND not Race Round -->
-      <transition name="fade-scale">
-        <div v-if="isMissionCore && matchStore.currentRound !== 4" class="pointer-events-auto">
-          <MissionCoreIndicator :mission-progress="missionProgress" :show-celebration="showMissionCelebration" />
-        </div>
-      </transition>
     </div>
+
+    <!-- Mission Tracker UI: only visible when active core is the Mission Core AND not Race Round -->
+    <transition name="fade-scale">
+      <div v-if="isMissionCore && matchStore.currentRound !== 4" class="absolute top-28 left-8 z-20 flex transition-all duration-300">
+        <MissionCoreIndicator :mission-progress="missionProgress" :show-celebration="showMissionCelebration" />
+      </div>
+    </transition>
 
     <!-- Player Avatar -->
 
@@ -506,68 +507,68 @@
       <div v-if="gameState === 'timeout' && !showMatchResult" class="absolute inset-0 z-50 flex items-center justify-center">
         <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-xl"></div>
         <div id="tutorial-match-result"
-          class="relative border border-hexred/50 bg-darkNavy/90 p-4 max-w-sm w-full mx-3 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[88vh]">
-          <p class="text-[9px] font-bold text-hexred tracking-[0.4em] uppercase mb-1 drop-shadow-md">
+          class="relative border border-hexred/50 bg-darkNavy/90 p-12 max-w-2xl w-full mx-4 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[90vh]">
+          <p class="text-xs font-bold text-hexred tracking-[0.4em] uppercase mb-4 drop-shadow-md">
             {{ matchStore.isFinalRound() ? 'Match Ended' : 'Round Ended' }}
           </p>
           <h2
-            class="text-4xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(230,57,70,0.8)] mb-1 timeout-glitch">
+            class="text-7xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(230,57,70,0.8)] mb-2 timeout-glitch">
             TIME OUT
           </h2>
-          <div class="w-12 h-0.5 bg-gradient-to-r from-transparent via-hexred to-transparent mx-auto mb-3 mt-2"></div>
+          <div class="w-20 h-1 bg-gradient-to-r from-transparent via-hexred to-transparent mx-auto mb-10 mt-6"></div>
 
           <div v-if="isMultiplayer"
-            class="grid grid-cols-3 divide-x divide-white/10 mb-3 bg-black/30 py-2 rounded-xl border border-white/5 flex-shrink-0">
+            class="grid grid-cols-3 divide-x divide-white/10 mb-6 bg-black/30 py-4 rounded-xl border border-white/5 flex-shrink-0">
             <div>
-              <p class="text-[9px] text-orange uppercase tracking-widest mb-0.5 font-bold">Your Score</p>
-              <p class="text-2xl font-black text-white drop-shadow-md">{{ score }}</p>
+              <p class="text-[10px] text-orange uppercase tracking-widest mb-1 font-bold">Your Score</p>
+              <p class="text-4xl font-black text-white drop-shadow-md">{{ score }}</p>
             </div>
             <div>
-              <p class="text-[9px] text-lightBlue uppercase tracking-widest mb-0.5 font-bold">Opponent</p>
-              <p class="text-2xl font-black text-white drop-shadow-md">{{ opponentScore }}</p>
+              <p class="text-[10px] text-lightBlue uppercase tracking-widest mb-1 font-bold">Opponent</p>
+              <p class="text-4xl font-black text-white drop-shadow-md">{{ opponentScore }}</p>
             </div>
             <div>
-              <p class="text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Questions</p>
-              <p class="text-2xl font-black text-gray-300 drop-shadow-md">{{ questionsAnswered }}</p>
+              <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Questions</p>
+              <p class="text-4xl font-black text-gray-300 drop-shadow-md">{{ questionsAnswered }}</p>
             </div>
           </div>
           <div v-else
-            class="grid grid-cols-2 divide-x divide-white/10 mb-3 bg-black/30 py-2 rounded-xl border border-white/5 flex-shrink-0">
+            class="grid grid-cols-2 divide-x divide-white/10 mb-6 bg-black/30 py-4 rounded-xl border border-white/5 flex-shrink-0">
             <div>
-              <p class="text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Final Score</p>
-              <p class="text-3xl font-black text-orange drop-shadow-md">{{ score }}</p>
+              <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Final Score</p>
+              <p class="text-4xl font-black text-orange drop-shadow-md">{{ score }}</p>
             </div>
             <div>
-              <p class="text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Questions</p>
-              <p class="text-3xl font-black text-lightBlue drop-shadow-md">{{ questionsAnswered }}</p>
+              <p class="text-[10px] text-gray-400 uppercase tracking-widest mb-1">Questions</p>
+              <p class="text-4xl font-black text-lightBlue drop-shadow-md">{{ questionsAnswered }}</p>
             </div>
           </div>
 
           <!-- Recap Table -->
           <div v-if="matchHistory.length > 0"
-            class="mb-3 bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 overflow-y-auto custom-scrollbar max-h-36">
-            <table class="w-full text-left text-[10px] text-gray-300">
-              <thead class="bg-black/60 text-[9px] uppercase text-gray-500 sticky top-0 z-10">
+            class="mb-6 bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 overflow-y-auto custom-scrollbar">
+            <table class="w-full text-left text-sm text-gray-300">
+              <thead class="bg-black/60 text-xs uppercase text-gray-500 sticky top-0 z-10">
                 <tr>
-                  <th class="px-2 py-1.5 font-bold tracking-widest">Your Answer</th>
-                  <th class="px-2 py-1.5 font-bold tracking-widest border-l border-white/5">Correct Answer</th>
+                  <th class="px-6 py-4 font-bold tracking-widest">Your Answer</th>
+                  <th class="px-6 py-4 font-bold tracking-widest border-l border-white/5">Correct Answer</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-white/5">
                 <template v-for="(group, roundNum) in groupedMatchHistory" :key="roundNum">
                   <tr>
                     <td colspan="2"
-                      class="px-2 py-1 font-bold text-[9px] text-white/50 bg-black/80 uppercase tracking-widest border-b border-white/10">
+                      class="px-6 py-2 font-bold text-xs text-white/50 bg-black/80 uppercase tracking-widest border-b border-white/10">
                       Round {{ roundNum }}
                     </td>
                   </tr>
                   <tr v-for="(item, idx) in group" :key="`${roundNum}-${idx}`"
                     class="hover:bg-white/5 transition-colors">
-                    <td class="px-2 py-1.5 font-medium uppercase tracking-wider"
+                    <td class="px-6 py-3 font-medium uppercase tracking-wider"
                       :class="item.isCorrect ? 'text-green bg-green/10' : 'text-hexred bg-hexred/10'">
                       {{ item.submitted }}
                     </td>
-                    <td class="px-2 py-1.5 font-medium text-white uppercase tracking-wider border-l border-white/5">
+                    <td class="px-6 py-3 font-medium text-white uppercase tracking-wider border-l border-white/5">
                       {{ item.correct }}
                     </td>
                   </tr>
@@ -576,19 +577,19 @@
             </table>
           </div>
 
-          <p v-if="savingSession" class="text-[9px] text-gray-400 uppercase tracking-widest mb-3 flex-shrink-0"
+          <p v-if="savingSession" class="text-xs text-gray-400 uppercase tracking-widest mb-6 flex-shrink-0"
             :class="{ 'animate-pulse': settingsStore.vfxEnabled }">
-            <span class="inline-block w-1.5 h-1.5 bg-lightBlue rounded-full mr-1"></span>
+            <span class="inline-block w-2 h-2 bg-lightBlue rounded-full mr-2"></span>
             Syncing results...
           </p>
 
-          <div class="flex gap-3 justify-center flex-shrink-0 mt-2">
+          <div class="flex gap-4 justify-center flex-shrink-0 mt-6">
             <button v-if="!isMultiplayer" @click="router.push('/home')"
-              class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-xs tracking-widest uppercase transition-colors rounded-lg">Home</button>
+              class="flex-1 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-sm tracking-widest uppercase transition-colors rounded-lg">Home</button>
 
             <!-- Next Round (Rounds 1 & 2) -->
             <button v-if="!matchStore.isFinalRound()" :disabled="waitingForOpponent" @click="goToUpgrade"
-              class="flex-1 group relative px-4 py-3 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-xs tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed">
+              class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed">
               <div
                 class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
               </div>
@@ -600,7 +601,7 @@
             <!-- Skip Recap (Round 3) -->
             <template v-else>
               <button @click="skipRecapCountdown"
-                class="flex-1 group relative px-4 py-3 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-xs tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
+                class="flex-1 group relative px-6 py-4 bg-gradient-to-r from-orange to-hexred overflow-hidden font-black text-sm tracking-widest uppercase rounded-lg shadow-lg hover:shadow-[0_0_20px_rgba(230,57,70,0.5)] transition-shadow">
                 <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                 <span class="relative z-10 text-white">
                   Skip Recap ({{ timeoutCountdown }}s)
@@ -655,10 +656,7 @@
     <!-- US-24: input is disabled during the 15s timeout phase AND in the final timeout state -->
     <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
       spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay') || isRaceLocked"
-      :readonly="isTouchDevice"
       @keydown="handleKeydown" />
-
-    <VirtualKeyboard v-show="gameState !== 'upgrade'" @keypress="handleVirtualKey" />
 
     <!-- Match Result Overlay (Final Round) -->
     <MatchResultOverlay
@@ -716,12 +714,12 @@
     </transition>
 
     <!-- Opponent Toast Notifications Stack -->
-    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-full max-w-xs px-4">
+    <div class="fixed top-20 right-8 z-50 flex flex-col items-end gap-2 pointer-events-none">
       <transition-group name="toast-slide">
         <div v-for="toast in toasts" :key="toast.id"
-          class="bg-darkNavy/95 border border-white/20 shadow-2xl rounded-xl px-4 py-2.5 flex items-center gap-3 backdrop-blur-md w-full justify-center">
-          <span class="text-xl flex-shrink-0">{{ toast.icon }}</span>
-          <span class="text-xs md:text-sm font-black tracking-wider uppercase text-center" :class="toast.color">
+          class="bg-darkNavy/90 border border-white/10 shadow-lg rounded-lg px-4 py-3 flex items-center gap-3 backdrop-blur-sm min-w-[200px]">
+          <span class="text-xl">{{ toast.icon }}</span>
+          <span class="text-sm font-bold tracking-widest uppercase" :class="toast.color">
             {{ toast.message }}
           </span>
         </div>
@@ -735,11 +733,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { useScoreAnimation } from '../composables/game/useScoreAnimation'
-import { useMatchTimer } from '../composables/game/useMatchTimer'
-import { useQuestionQueue } from '../composables/game/useQuestionQueue'
-import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { useScoreAnimation } from '../../composables/game/useScoreAnimation.ts'
+import { useMatchTimer } from '../../composables/game/useMatchTimer.ts'
+import { useQuestionQueue } from '../../composables/game/useQuestionQueue.ts'
+import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../../services/multiplayerService.ts'
 import OpponentWidget from '../components/game/OpponentWidget.vue'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
 import AegisShieldIndicator from '../components/game/AegisShieldIndicator.vue'
@@ -757,13 +755,11 @@ import SpeedsterOverlay from '../components/game/SpeedsterOverlay.vue'
 import PandoraOverlay from '../components/game/PandoraOverlay.vue'
 import CoreVfxOverlay from '../components/game/CoreVfxOverlay.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
-import VirtualKeyboard from '../components/game/VirtualKeyboard.vue'
-import { useTutorial } from '../composables/useTutorial'
-import { useDeviceMode } from '../composables/useDeviceMode'
-import { useGameStore } from '../stores/gameStore'
-import { useMissionsStore } from '../stores/missionsStore'
-import { getCoreFamily } from '../game/cores/families'
-import { useMatchStore } from '../stores/matchStore'
+import { useTutorial } from '../../composables/useTutorial.ts'
+import { useGameStore } from '../../stores/gameStore.ts'
+import { useMissionsStore } from '../../stores/missionsStore.ts'
+import { getCoreFamily } from '../../game/cores/families.ts'
+import { useMatchStore } from '../../stores/matchStore.ts'
 
 const missionsStore = useMissionsStore()
 import {
@@ -780,7 +776,7 @@ import {
   playPandoraTransform,
   playOracleHint,
   playPhoenixRebirth
-} from '../composables/game/useAudioEngine'
+} from '../../composables/game/useAudioEngine.ts'
 import {
   getCoreModule,
   isComboCore as checkComboCore,
@@ -791,14 +787,13 @@ import {
   isPandoraCore as checkPandoraCore,
   getMaxShields as checkMaxShields,
   isPowerCore as checkPowerCore
-} from '../game/cores/registry'
-import { useSettingsStore } from '../stores/settingsStore'
+} from '../../game/cores/registry.ts'
+import { useSettingsStore } from '../../stores/settingsStore.ts'
 
 const settingsStore = useSettingsStore()
-const { isTouchDevice } = useDeviceMode()
-import { getCoreIconPath } from '../game/cores/icons'
-import { fetchWithAuth } from '../services/api'
-import { audioService } from '../services/audioService'
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { fetchWithAuth } from '../../services/api.ts'
+import { audioService } from '../../services/audioService.ts'
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
@@ -1691,17 +1686,6 @@ function handleKeydown(e: KeyboardEvent) {
     if (matchStore.currentRound !== 4 && typedLetters.value.length === maxLen) checkAnswer()
   }
 }
-
-function handleVirtualKey(key: string) {
-  if (key === 'Enter') {
-    handleKeydown(new KeyboardEvent('keydown', { key: 'Enter' }))
-  } else if (key === 'Backspace') {
-    handleKeydown(new KeyboardEvent('keydown', { key: 'Backspace' }))
-  } else {
-    handleKeydown(new KeyboardEvent('keydown', { key }))
-  }
-}
-
 async function sha256(message: string) {
   const msgBuffer = new TextEncoder().encode(message)
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
@@ -2570,8 +2554,6 @@ function setupRoomEventHandlers(room: any) {
   })
 }
 
-const isMounted = ref(true)
-
 onMounted(async () => {
   matchStore.maxRounds = 4
 
@@ -2617,6 +2599,8 @@ onMounted(async () => {
       return
     }
   }
+
+  const isMounted = ref(true)
 
   if (!isMounted.value) return
 

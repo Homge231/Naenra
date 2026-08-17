@@ -5,38 +5,40 @@
     <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
 
     <button @click="$router.push('/home')"
-      class="absolute top-4 left-4 text-xs text-white/50 hover:text-white transition-colors z-20 font-bold tracking-widest uppercase">
+      class="absolute top-8 left-8 text-white/50 hover:text-white transition-colors z-20 font-bold tracking-widest uppercase">
       &larr; Back
     </button>
 
-    <div class="absolute top-4 right-4 z-20 flex items-center gap-1.5"
+    <div class="absolute top-8 right-8 z-20 flex items-center gap-2"
       :class="timeLeft <= 5 ? 'text-hexred animate-pulse' : 'text-lightOrange'">
-      <svg class="w-4 h-4 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-6 h-6 drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
-      <span class="font-mono font-black text-2xl tabular-nums drop-shadow-lg leading-none mt-0.5">
+      <span class="font-mono font-black text-4xl tabular-nums drop-shadow-lg">
         {{ String(timeLeft).padStart(2, '0') }}
       </span>
     </div>
-    <main class="relative z-10 flex-1 flex flex-col items-center justify-center px-2 max-w-4xl mx-auto w-full">
+    <main class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 max-w-4xl mx-auto w-full">
       <h2
-        class="text-2xl font-black text-white mb-1 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] tracking-widest text-center uppercase">
+        class="text-4xl md:text-5xl font-black text-white mb-3 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] tracking-widest text-center uppercase">
         Tactical Support
       </h2>
-      <p class="text-lightBlue/80 mb-2 text-[9px] tracking-[0.2em] uppercase text-center font-bold">
+      <p class="text-lightBlue/80 mb-8 text-sm md:text-base tracking-[0.2em] uppercase text-center font-bold">
         Select a Support Core for this match
       </p>
 
       <!-- ⚔️ / 🔮 Core Type Legend (new player guide) -->
-      <div id="tutorial-core-legend" class="flex items-center justify-center gap-2 mb-2 flex-wrap">
-        <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30">
-          <span class="text-xs">⚔️</span>
-          <span class="text-[9px] font-black uppercase tracking-widest text-orange-400">Power Core</span>
+      <div id="tutorial-core-legend" class="flex items-center justify-center gap-4 mb-4 flex-wrap">
+        <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/30">
+          <span class="text-base">⚔️</span>
+          <span class="text-xs font-black uppercase tracking-widest text-orange-400">Power Core</span>
+          <span class="text-xs text-gray-400 hidden sm:inline">— Amplifies score</span>
         </div>
-        <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30">
-          <span class="text-xs">🔮</span>
-          <span class="text-[9px] font-black uppercase tracking-widest text-violet-400">Effect Core</span>
+        <div class="flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/30">
+          <span class="text-base">🔮</span>
+          <span class="text-xs font-black uppercase tracking-widest text-violet-400">Effect Core</span>
+          <span class="text-xs text-gray-400 hidden sm:inline">— Special mechanics</span>
         </div>
       </div>
 
@@ -54,14 +56,15 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </div>
+
       <div v-else-if="errorMsg" class="text-hexred font-bold py-8">
         {{ errorMsg }}
       </div>
 
-      <div v-else id="tutorial-core-cards" class="grid grid-cols-1 md:grid-cols-2 gap-2 w-full px-2 items-stretch"
+      <div v-else id="tutorial-core-cards" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full px-4 md:px-0 items-stretch"
         :class="{ 'pointer-events-none': loading }">
 
-        <div v-for="(core, index) in randomCores" :key="index" class="flex flex-col items-center gap-2 w-full h-full relative perspective-1000">
+        <div v-for="(core, index) in randomCores" :key="index" class="flex flex-col items-center gap-6 w-full h-full relative perspective-1000">
 
           <!-- Core detailed stats Tooltip (Floating Overlay - Zero Layout Impact) -->
           <transition name="fade">
@@ -71,7 +74,7 @@
           </transition>
 
           <div 
-            class="tech-border group flex-1 w-full relative backdrop-blur-xl rounded-2xl p-3 cursor-pointer transition-all duration-300 flex flex-col items-center text-center overflow-hidden"
+            class="tech-border group flex-1 w-full relative backdrop-blur-xl rounded-2xl p-8 md:p-12 cursor-pointer transition-all duration-300 flex flex-col items-center text-center overflow-hidden"
             :class="[
               selectedCore?.id === core.id
                 ? 'bg-white/15 border-2 border-lightBlue shadow-[0_0_45px_rgba(59,130,246,0.6)] ring-2 ring-lightBlue/40 -translate-y-2'
@@ -98,34 +101,34 @@
             </span>
 
             <div
-              class="relative w-10 h-10 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mt-3 mb-1 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] z-20"
+              class="relative w-24 h-24 rounded-full bg-gradient-to-br from-black/60 to-black/20 flex items-center justify-center mb-8 transition-all duration-500 border shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] z-20"
               :class="selectedCore?.id === core.id ? 'border-lightBlue text-lightBlue shadow-[0_0_25px_rgba(59,130,246,0.7)] from-blue/30 to-lightBlue/20' : 'border-white/10 text-gray-400 group-hover:border-lightBlue group-hover:text-lightBlue group-hover:from-blue/20 group-hover:to-lightBlue/10 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'">
               <img :src="core.icon" :alt="core.name"
                 @error="event => (event.currentTarget as HTMLImageElement).src = '/icons/cores/default.svg'"
-                class="w-6 h-6 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300" />
+                class="w-16 h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] transform transition-transform group-hover:scale-110 duration-300" />
             </div>
-            <h3 class="text-base font-black mb-0.5 tracking-wide transition-colors duration-500 z-20"
+            <h3 class="text-3xl font-black mb-4 tracking-wide transition-colors duration-500 z-20"
               :class="selectedCore?.id === core.id ? 'text-lightBlue' : 'text-white group-hover:text-lightBlue'">
               {{ core.name }}
             </h3>
-            <p class="text-[10px] text-gray-300/80 leading-tight max-w-[220px] mb-1 z-20">{{ core.description }}</p>
+            <p class="text-base text-gray-300/80 leading-relaxed max-w-[250px] mb-6 z-20">{{ core.description }}</p>
 
           </div>
 
           <button @click="triggerCardFlip(index); handleCardReroll(index)"
             :id="index === 0 ? 'tutorial-reroll' : undefined"
             :disabled="rerolledSlots[index] || rerollingIndex !== null || loading"
-            class="group relative px-4 py-1.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 shadow-lg disabled:cursor-not-allowed z-20"
+            class="group relative px-6 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-2 shadow-lg disabled:cursor-not-allowed z-20"
             :class="rerolledSlots[index]
               ? 'bg-black/60 border border-gray-700 opacity-40 blur-[1px] grayscale'
               : 'bg-black/40 backdrop-blur-md border border-white/20 hover:border-lightBlue hover:bg-white/10 cursor-pointer'">
-            <svg class="w-3 h-3 transition-transform duration-500 text-gray-400 group-hover:text-lightBlue"
+            <svg class="w-4 h-4 transition-transform duration-500 text-gray-400 group-hover:text-lightBlue"
               :class="{ 'animate-spin': rerollingIndex === index }" fill="none" stroke="currentColor"
               viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            <span class="font-bold tracking-widest text-[9px] uppercase transition-colors"
+            <span class="font-bold tracking-widest text-xs uppercase transition-colors"
               :class="rerolledSlots[index] ? 'text-gray-500' : 'text-gray-400 group-hover:text-lightBlue'">
               {{ rerolledSlots[index] ? 'Used' : 'Reroll' }}
             </span>
@@ -155,36 +158,24 @@
       @next="tutorial.next"
       @skip="tutorial.complete"
     />
-    <!-- Waiting for opponent next round overlay -->
-    <transition name="fade">
-      <div v-if="waitingForOpponent" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md">
-        <svg class="w-16 h-16 text-lightBlue animate-spin mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p class="text-xl font-black uppercase tracking-widest text-lightBlue animate-pulse">Waiting for opponent to select core...</p>
-      </div>
-    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { onBeforeRouteLeave } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { useGameStore } from '../stores/gameStore'
-import { useMatchStore } from '../stores/matchStore'
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { useGameStore } from '../../stores/gameStore.ts'
+import { useMatchStore } from '../../stores/matchStore.ts'
 import PhaserBackground from '../components/game/PhaserBackground.vue'
 import CoachMark from '../components/tutorial/CoachMark.vue'
-import { getCoreIconPath } from '../game/cores/icons'
-import { isPowerCore } from '../game/cores/families'
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { isPowerCore } from '../../game/cores/families.ts'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
-import { useTutorial } from '../composables/useTutorial'
-import { useCardTilt } from '../composables/useCardTilt'
-import { initAudio } from '../composables/game/useAudioEngine'
-import { audioService } from '../services/audioService'
-import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../services/multiplayerService'
+import { useTutorial } from '../../composables/useTutorial.ts'
+import { useCardTilt } from '../../composables/useCardTilt.ts'
+import { initAudio } from '../../composables/game/useAudioEngine.ts'
+import { audioService } from '../../services/audioService.ts'
 
 const getCoreCategory = (core: any): { label: string; icon: string; style: string } => {
   const isPower = core?.classification === 'power' || isPowerCore(core?.name || '')
@@ -209,7 +200,6 @@ const matchStore = useMatchStore()
 const tutorial = useTutorial()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
-const navigatingToGame = ref(false)
 
 // ── Hover & Touch-Hold Tooltip Logic ─────────────────────────────────────────
 const activeTooltipIndex = ref<number | null>(null)
@@ -224,7 +214,7 @@ function hideTooltip() {
   activeTooltipIndex.value = null
 }
 
-function handleTouchStart(index: number, _e: TouchEvent) {
+function handleTouchStart(index: number, e: TouchEvent) {
   isHolding = false
   if (touchTimeout) clearTimeout(touchTimeout)
   touchTimeout = setTimeout(() => {
@@ -297,6 +287,7 @@ const activeTimeouts = new Set<ReturnType<typeof setTimeout>>()
 function handleCardReroll(index: number) {
   if (rerolledSlots.value[index] || rerollingIndex.value !== null || loading.value) return
 
+  audioService.playReroll()
   rerolledSlots.value[index] = true
   rerollingIndex.value = index
 
@@ -324,9 +315,9 @@ function handleCardReroll(index: number) {
   }, 600)
   activeTimeouts.add(t2)
 }
-// ── Triggers & Handlers ─────────────────────────────────────────────────────
 const isMounted = ref(true)
 
+// ── Triggers & Handlers ─────────────────────────────────────────────────────
 function startTimer() {
   if (selectionTimer || !isMounted.value) return
   selectionTimer = setInterval(() => {
@@ -350,6 +341,13 @@ function stopTimer() {
     clearInterval(selectionTimer)
     selectionTimer = null
   }
+}
+
+function adminSkipCore() {
+  audioService.playClick()
+  stopTimer()
+  const coreToSubmit = selectedCore.value || randomCores.value[0] || { id: 'combo core', name: 'combo core', description: '', flat_buff: 0, multiplier_buff: 0, icon: '', classification: 'power' }
+  submitCore(coreToSubmit)
 }
 
 function triggerTimeout() {
@@ -395,12 +393,6 @@ async function fetchSupportCores() {
       tier: c.tier
     }))
 
-    if (currentRoom?.state?.metadata) {
-      const meta = currentRoom.state.metadata.toJSON()
-      const disabledIds = meta.disabledCores || []
-      supportCores.value = supportCores.value.filter(c => !disabledIds.includes(c.id))
-    }
-
     randomCores.value = getRandomCores(supportCores.value, 2)
     loading.value = false
 
@@ -428,26 +420,18 @@ async function createSession(coreId: string) {
     const data = await res.json()
 
     if (data.session_id) {
-      gameStore.setSessionId(data.session_id)
+      gameStore.sessionId = data.session_id
     }
     if (data.theme) {
       currentBgImage.value = getBackgroundImage(data.theme)
     }
     if (data.active_core) {
-      gameStore.setActiveCore(data.active_core.id, data.active_core.name)
+      gameStore.activeCoreId = data.active_core.id
+      gameStore.activeCoreName = data.active_core.name
     }
   } catch (err) {
     console.error('Error creating Session:', err)
   }
-}
-
-const waitingForOpponent = ref(false)
-
-function adminSkipCore() {
-  audioService.playClick()
-  stopTimer()
-  const coreToSubmit = selectedCore.value || randomCores.value[0] || { id: 'combo core', name: 'combo core', description: '', flat_buff: 0, multiplier_buff: 0, icon: '', classification: 'power' }
-  submitCore(coreToSubmit)
 }
 
 async function submitCore(core: CoreOption) {
@@ -457,129 +441,75 @@ async function submitCore(core: CoreOption) {
   selectedCore.value = core
   loading.value = true
   
+  audioService.playClick()
+  audioService.playCoreActivation(core.id)
+  
   // Unlock audio context on user interaction
   initAudio()
   
   stopTimer()
 
-  gameStore.setActiveCore(core.id, core.name)
+  gameStore.activeCoreId = core.id
+  gameStore.activeCoreName = core.name
   gameStore.coreHistory = [{ id: core.id, name: core.name, icon: core.icon }]
-  gameStore.setSessionId(null)
+  gameStore.sessionId = null
   
   const matchStore = useMatchStore()
-  matchStore.resetMatch(4)
+  matchStore.resetMatch(3)
 
   await createSession(core.id)
 
-  waitingForOpponent.value = true
-  if (currentRoom) {
-    currentRoom.send("update_core", { coreId: core.id })
-    currentRoom.send("ready_next_round", { round: 1 })
-  }
+  router.push('/game')
 }
 
 const handleBeforeUnload = (e: BeforeUnloadEvent) => {
   e.preventDefault()
-  e.returnValue = ''
+  e.returnValue = 'Selection in progress! Leaving or reloading will cancel your match.'
+  return e.returnValue
 }
 
-onMounted(async () => {
+const handlePreventRefreshKeys = (e: KeyboardEvent) => {
+  if (e.key === 'F5' || ((e.metaKey || e.ctrlKey) && (e.key === 'r' || e.key === 'R'))) {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+}
+
+const handlePopState = (_e: PopStateEvent) => {
+  gameStore.resetGame()
+  matchStore.resetMatch(3)
+  audioService.stopBGM()
+  router.replace('/home')
+}
+
+onBeforeRouteLeave((to, _from, next) => {
+  if (to.path !== '/game' && to.path !== '/home' && to.path !== '/') {
+    gameStore.resetGame()
+    matchStore.resetMatch(3)
+    audioService.stopBGM()
+    next('/home')
+  } else {
+    next()
+  }
+})
+
+onMounted(() => {
   audioService.playBGM('/audio/core_selection.mp3')
   fetchSupportCores()
   window.addEventListener('beforeunload', handleBeforeUnload)
-
-  if (!currentRoom) {
-    const token = getSavedReconnectionToken()
-    if (token) {
-      try {
-        console.log('[CoreSelectionMultiView] Reconnecting to active room...')
-        await reconnectMatchRoom(token)
-      } catch (e) {
-        console.warn('[CoreSelectionMultiView] Reconnection failed:', e)
-      }
-    }
-    
-    // If still no currentRoom after attempt, the player has forfeited
-    if (!currentRoom) {
-      console.warn('[CoreSelectionMultiView] No active room found. Kicking to home.')
-      router.replace('/home')
-      return
-    }
-  }
-
-  if (currentRoom) {
-    const handleStartGame = () => {
-      if (navigatingToGame.value) return
-      waitingForOpponent.value = false
-      navigatingToGame.value = true
-      router.replace('/game/multiplayer')
-    }
-
-    if (currentRoom.state && currentRoom.state.status === 'playing') {
-      console.log('[CoreSelectionMultiView] Match is already playing! Redirecting to gameplay...')
-      const myPlayer = currentRoom.state.players.get(currentRoom.sessionId)
-      if (myPlayer?.activeCoreId) {
-        gameStore.activeCoreId = myPlayer.activeCoreId
-      }
-      handleStartGame()
-      return
-    }
-
-    currentRoom.removeAllListeners()
-
-    currentRoom.onStateChange((state) => {
-      if (state) {
-        const players = state.players ? Array.from(state.players.values()) : []
-        const allCoresChosen = players.length === 2 && players.every(p => Boolean(p.activeCoreId))
-        if (state.status === 'playing' || allCoresChosen) {
-          handleStartGame()
-        }
-      }
-    })
-
-    const handleTermination = (msg: string) => {
-      if (navigatingToGame.value) return
-      waitingForOpponent.value = false
-      stopTimer()
-      if (msg) alert(msg)
-      leaveMatchRoom()
-      router.push('/lobby')
-    }
-
-    currentRoom.onMessage('start_next_round', () => {
-      handleStartGame()
-    })
-
-    currentRoom.onMessage('room_terminated', () => {
-      handleTermination("Trận đấu đã bị chấm dứt do hết thời gian hoặc sự cố kết nối!")
-    })
-    
-    currentRoom.onMessage('opponent_left', () => {
-      handleTermination("Đối thủ đã thoát trận đấu! Bạn sẽ được đưa về màn hình chính.")
-    })
-    
-    currentRoom.onMessage('opponent_forfeit', () => {
-      handleTermination("Đối thủ đã thoát. Trận đấu bị hủy!")
-    })
-  }
+  window.addEventListener('keydown', handlePreventRefreshKeys, true)
+  window.addEventListener('popstate', handlePopState)
 })
 
 onUnmounted(() => {
   isMounted.value = false
-  waitingForOpponent.value = false
   stopTimer()
   if (touchTimeout) clearTimeout(touchTimeout)
   for (const t of activeTimeouts) clearTimeout(t)
   activeTimeouts.clear()
   window.removeEventListener('beforeunload', handleBeforeUnload)
-})
-
-onBeforeRouteLeave((_to, _from, next) => {
-  const isMatchPlaying = currentRoom?.state?.status === 'playing'
-  if (!navigatingToGame.value && !isMatchPlaying) {
-    leaveMatchRoom()
-  }
-  next()
+  window.removeEventListener('keydown', handlePreventRefreshKeys, true)
+  window.removeEventListener('popstate', handlePopState)
 })
 </script>
 
@@ -650,7 +580,6 @@ onBeforeRouteLeave((_to, _from, next) => {
   }
 }
 
-
 .tech-border::after {
   content: '';
   position: absolute;
@@ -676,14 +605,12 @@ onBeforeRouteLeave((_to, _from, next) => {
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
   z-index: 10;
 }
+
 
 /* Speed up the animation when the user hovers over the card */
 .tech-border:hover::after {

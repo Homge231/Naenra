@@ -254,15 +254,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { audioService } from '../services/audioService'
-import { useCardTilt } from '../composables/useCardTilt'
-import { useDeviceMode } from '../composables/useDeviceMode'
+import { audioService } from '../../services/audioService.ts'
+import { useCardTilt } from '../../composables/useCardTilt.ts'
+import { useDeviceMode } from '../../composables/useDeviceMode.ts'
 
 const { isMobileScreen, isTouchDevice } = useDeviceMode()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
 import CoreTooltip from '../components/game/CoreTooltip.vue'
-import { useAuthStore } from '../stores/authStore'
-import { useMissionsStore } from '../stores/missionsStore'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { useMissionsStore } from '../../stores/missionsStore.ts'
 import ScrollToTopButton from '../components/ScrollToTopButton.vue'
 
 const authStore = useAuthStore()
@@ -457,8 +457,8 @@ const getCoreDescription = (core: any): string => {
   return CORE_DETAILS_MAP[key]?.description || 'Tactical core evolution providing enhanced performance in competitive typing matches.'
 }
 
-import { getCoreIconPath } from '../game/cores/icons'
-import { CORE_FAMILIES } from '../game/cores/families'
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { CORE_FAMILIES } from '../../game/cores/families.ts'
 
 const cleanName = (name: string) => name ? String(name).toLowerCase().replace(/[^a-z0-9]/g, '') : ''
 

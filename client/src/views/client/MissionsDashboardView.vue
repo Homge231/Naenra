@@ -334,11 +334,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMissionsStore } from '../stores/missionsStore'
-import { useAuthStore } from '../stores/authStore'
-import { audioService } from '../services/audioService'
+import { useMissionsStore } from '../../stores/missionsStore.ts'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { audioService } from '../../services/audioService.ts'
 import ScrollToTopButton from '../components/ScrollToTopButton.vue'
-import { getCoreIconPath, DEFAULT_ICON } from '../game/cores/icons'
+import { getCoreIconPath, DEFAULT_ICON } from '../../game/cores/icons.ts'
 
 const router = useRouter()
 const missionsStore = useMissionsStore()

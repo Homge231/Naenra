@@ -114,10 +114,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { audioService } from '../services/audioService'
+import { useAuthStore } from '../../stores/authStore'
+import { audioService } from '../../services/audioService'
 // @ts-ignore
-import { joinOrCreateQueueRoom, queueRoom, joinMatchRoomById, leaveMatchRoom } from '../services/multiplayerService'
+import { joinOrCreateQueueRoom, queueRoom, joinMatchRoomById, leaveMatchRoom } from '../../services/multiplayerService'
 
 const router = useRouter()
 const authStore = useAuthStore()

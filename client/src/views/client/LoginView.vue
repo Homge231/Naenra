@@ -233,7 +233,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
+import { useAuthStore } from '../../stores/authStore'
 
 const router = useRouter()
 const route = useRoute()

@@ -210,12 +210,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { useMissionsStore } from '../stores/missionsStore'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { useMissionsStore } from '../../stores/missionsStore.ts'
 import ScrollToTopButton from '../components/ScrollToTopButton.vue'
 import CoreTooltip from '../components/game/CoreTooltip.vue'
-import { useDeviceMode } from '../composables/useDeviceMode'
-import { CORE_FAMILIES } from '../game/cores/families'
+import { useDeviceMode } from '../../composables/useDeviceMode.ts'
+import { CORE_FAMILIES } from '../../game/cores/families.ts'
 
 const { isMobileScreen } = useDeviceMode()
 
@@ -344,8 +344,8 @@ const filteredCores = computed(() => {
     })
 })
 
-import { getCoreIconPath } from '../game/cores/icons'
-import { getCoreFamilyTheme } from '../game/cores/families'
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { getCoreFamilyTheme } from '../../game/cores/families.ts'
 
 const getCoreSlug = (core: any): string => {
     if (!core || !core.name) return String(core?.id || '')

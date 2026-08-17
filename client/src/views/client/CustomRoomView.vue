@@ -168,8 +168,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { createMatchRoom, joinMatchRoomById, leaveMatchRoom, currentRoom } from '../services/multiplayerService'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { createMatchRoom, joinMatchRoomById, leaveMatchRoom, currentRoom } from '../../services/multiplayerService.ts'
 import RoomSettingsOverlay from '../components/game/RoomSettingsOverlay.vue'
 
 const router = useRouter()

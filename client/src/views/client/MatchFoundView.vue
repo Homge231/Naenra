@@ -131,9 +131,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/authStore'
-import { audioService } from '../services/audioService'
-import { currentRoom } from '../services/multiplayerService'
+import { useAuthStore } from '../../stores/authStore'
+import { audioService } from '../../services/audioService'
+import { currentRoom } from '../../services/multiplayerService'
 
 const router = useRouter()
 const authStore = useAuthStore()
