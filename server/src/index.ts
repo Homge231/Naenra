@@ -4,6 +4,17 @@ import { createServer } from 'http'
 import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes'
 import userRoutes from './routes/userRoutes'
+import gameRoutes from './routes/gameRoutes'
+import aiRoutes from './routes/aiRoutes'
+import adminRoutes from './routes/adminRoutes'
+import rateLimit from 'express-rate-limit'
+import { initQuestionCron } from './cron/questionCron'
+import { initGuestCleanupCron } from './cron/guestCleanupCron'
+import { Server } from 'colyseus'
+import { WebSocketTransport } from '@colyseus/ws-transport'
+import { MatchRoom } from './rooms/MatchRoom'
+import { QueueRoom } from './rooms/QueueRoom'
+import { setupAiLiveGateway } from './services/aiLiveGateway'
 
 dotenv.config()
 
@@ -28,6 +39,9 @@ app.get('/health', (_, res) => {
 
 app.use('/auth', authRoutes)
 app.use('/api/user', userRoutes)
+app.use('/api/game', gameRoutes)
+app.use('/api/ai', aiRoutes)
+app.use('/api/admin', adminRoutes)
 
 
 httpServer.listen(3000, () => {

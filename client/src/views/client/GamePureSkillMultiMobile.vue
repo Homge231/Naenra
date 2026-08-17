@@ -1,0 +1,3048 @@
+<template>
+  <div
+    class="h-screen w-full overflow-hidden relative font-sans flex flex-col select-none text-white transition-all duration-75"
+    :class="{
+      'exodia-shake': showMissionCelebration && isExodia
+    }" @click="refocusInput">
+    <PhaserBackground :vfx-enabled="settingsStore.vfxEnabled" :image-url="currentBgImage" :active-core-name="activeCoreNameDynamic"
+      class="transition-opacity duration-500 ease-in-out"
+      :class="{ 'opacity-0': isBgFading, 'opacity-100': !isBgFading }" />
+
+    <div class="absolute inset-0 bg-black/45 pointer-events-none z-0"></div>
+
+    <div class="absolute inset-0 cyber-grid opacity-20 pointer-events-none z-0"></div>
+    <!-- Opponent Widget (self-positions at top-right, includes core icon + tooltip) -->
+    <OpponentWidget
+      v-if="isMultiplayer"
+      :visible="isMultiplayer"
+      :name="opponentName"
+      :avatar="opponentAvatar"
+      :score="opponentScore"
+      :core-icon="opponentCoreIconUrl"
+      :core-details="opponentCoreDetails"
+      :cores-history="opponentCoresHistory"
+    />
+    <!-- Dice Roll Shift Overlay  -->
+    <transition name="fade">
+      <div v-if="isShifting"
+        class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md">
+        <svg class="w-28 h-28 text-white animate-spin-fast drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] mb-6"
+          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+          <circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          <circle cx="8.5" cy="15.5" r="1.5" fill="currentColor" />
+          <circle cx="15.5" cy="8.5" r="1.5" fill="currentColor" />
+        </svg>
+        <p class="text-2xl font-black uppercase tracking-widest text-white animate-pulse">
+          Rolling Core...
+        </p>
+      </div>
+    </transition>
+    <!-- Prismatic Screen Flash -->
+    <div v-if="showPrismaticFlash && settingsStore.vfxEnabled"
+      class="absolute inset-0 bg-gradient-to-r from-pink-500/20 via-cyan-500/20 to-yellow-500/20 pointer-events-none z-10 mix-blend-screen animate-pulse">
+    </div>
+
+
+
+    <!-- Floating points popup container -->
+    <div class="fixed inset-0 z-50 pointer-events-none overflow-hidden">
+      <transition-group name="float-pts" tag="div">
+        <!-- Point Popups -->
+        <div v-for="popup in pointPopups" :key="popup.id"
+          class="fixed pointer-events-none z-[100] font-black uppercase tracking-wider transition-all" :class="[
+            popup.type === 'speedster' ? 'speedster-popup' :
+              popup.type === 'prismatic' ? 'prismatic-explosion' : 'point-popup-anim',
+            popup.type === 'typo' ? (settingsStore.vfxEnabled ? 'text-orange drop-shadow-[0_0_10px_rgba(255,165,0,0.8)]' : 'text-orange') :
+              popup.type === 'wrong' ? (settingsStore.vfxEnabled ? 'text-hexred drop-shadow-[0_0_10px_rgba(230,57,70,0.8)]' : 'text-hexred') :
+                popup.type === 'speedster' ? (settingsStore.vfxEnabled ? 'speedster-fast-text' : 'text-cyan-400') :
+                  popup.type === 'shield_blocked' ? (settingsStore.vfxEnabled ? 'text-gray-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'text-gray-300') :
+                    popup.type === 'prismatic' ? '' :
+                      (settingsStore.vfxEnabled ? 'text-success drop-shadow-[0_0_10px_rgba(34,197,94,0.8)]' : 'text-success')
+          ]" :style="{
+            left: `${popup.x}px`,
+            top: `${popup.y}px`
+          }">
+          {{ popup.type === 'shield_blocked' ? 'BLOCKED' : popup.type === 'custom' ? (popup.message || `+${Math.abs(popup.value)}`) : (popup.type === 'wrong' || popup.type === 'typo' ?
+            `-${Math.abs(popup.value)}` : `+${Math.abs(popup.value)}`) }}
+          <span v-if="popup.type === 'speedster'" class="ml-1">FAST!</span>
+          <span v-if="popup.type === 'prismatic'" class="ml-1">BOOM! 💥</span>
+        </div>
+      </transition-group>
+    </div>
+
+    <!-- Tutorial CoachMark -->
+    <CoachMark v-if="tutorial.isCurrentScreen('gameplay') || tutorial.isCurrentScreen('match-end')"
+      :targetId="tutorial.currentStepData.value?.targetId || ''"
+      :message="tutorial.currentStepData.value?.message || ''" :title="tutorial.currentStepData.value?.title"
+      :icon="tutorial.currentStepData.value?.icon" :step="tutorial.currentStepNumber.value"
+      :totalSteps="tutorial.totalSteps" :keyHints="tutorial.currentStepData.value?.keyHints"
+      :placement="tutorial.currentStepData.value?.placement" @next="tutorial.next" @skip="tutorial.complete" />
+
+    <!-- Pandora overlays: shift announcements and indicator (hidden in Race Round) -->
+    <PandoraOverlay v-if="false" :is-pandora-mode="isPandoraMode" :active-core-name="activeCoreNameDynamic"
+      :shift-announcement="shiftAnnouncement" />
+
+    <header v-show="gameState !== 'upgrade'"
+      class="relative z-30 flex justify-between items-center px-2 sm:px-8 py-2 sm:py-5 bg-darkNavy/30 backdrop-blur-md border-b border-white/10 shadow-lg">
+      <div class="relative" ref="menuRef">
+        <button @click.stop="menuOpen = !menuOpen"
+          class="flex items-center gap-1.5 sm:gap-3 focus:outline-none hover:opacity-80 transition-opacity">
+          <svg class="w-5 h-5 sm:w-8 sm:h-8 text-orange fill-current" viewBox="0 0 24 24">
+            <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
+          </svg>
+          <span
+            class="text-sm sm:text-xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-orange to-hexred uppercase drop-shadow-md">
+            NAENRA
+          </span>
+          <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-300 transition-transform duration-200" :class="menuOpen ? 'rotate-180' : ''"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <transition name="dropdown">
+          <div v-if="menuOpen"
+            class="absolute top-full left-0 mt-3 w-56 bg-darkNavy/90 backdrop-blur-xl border border-white/10 shadow-2xl z-50 rounded-b-lg overflow-hidden">
+            <div class="px-5 py-3 border-b border-white/10 bg-black/20">
+              <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Match in progress</p>
+              <p class="text-sm text-gray-200 font-mono mt-1">Score: <span class="text-white font-bold">{{ score }}</span></p>
+            </div>
+            <button @click.stop="settingsStore.isSettingsOpen = true; menuOpen = false"
+              class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-left border-b border-white/10">
+              <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              Settings
+            </button>
+            <button @click.stop="confirmQuit = true; menuOpen = false"
+              class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-hexred hover:bg-hexred/10 transition-colors text-left">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Quit Match
+            </button>
+            <button
+              v-if="authStore.isAdmin && !matchStore.isFinalRound() && (gameState === 'playing' || gameState === 'correct' || gameState === 'wrong')"
+              @click.stop="skipGameplay"
+              class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-yellow-400 hover:bg-yellow-400/10 transition-colors text-left border-t border-white/10">
+              <svg class="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+              ⚡ Admin: Skip to Core Selection
+            </button>
+            <button v-if="isDev" @click.stop="debugSkipRound"
+              class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-yellow-400 hover:bg-yellow-400/10 transition-colors text-left border-t border-white/10">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              </svg>
+              Debug: Skip Round
+            </button>
+          </div>
+        </transition>
+
+      </div>
+
+      <!-- Active Core History Badges in Center -->
+      <!-- Hide core badges in Race Round (Round 4 = pure skill, no core effects) -->
+      <div v-if="false" class="hidden md:flex flex-row items-center gap-2">
+        <div v-for="(core, index) in gameStore.coreHistory" :key="`${core.id}-${index}`"
+          class="relative flex flex-col items-center px-4 py-1.5 rounded-lg bg-black/20 shadow-md backdrop-blur-md transition-all duration-300 cursor-pointer hover:bg-black/40"
+          :class="[
+            index === gameStore.coreHistory.length - 1 ? 'border border-white/20 opacity-100 scale-105' : 'border border-white/5 opacity-60 scale-95'
+          ]"
+          @mouseenter="hoveredRoundCoreIndex = index"
+          @mouseleave="hoveredRoundCoreIndex = null"
+          @touchstart.passive="handleRoundCoreTouchStart(index)"
+          @touchend="handleRoundCoreTouchEnd"
+          @touchcancel="handleRoundCoreTouchEnd">
+          <span class="text-[8px] font-bold uppercase tracking-wider mb-0.5"
+            :class="[index === gameStore.coreHistory.length - 1 ? 'text-gray-300' : 'text-gray-500']">
+            {{ index === gameStore.coreHistory.length - 1 && isPandoraMode ? basePandoraCoreName : `Round ${index + 1}`
+            }}
+          </span>
+          <span class="text-xs font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"
+            :class="[index === gameStore.coreHistory.length - 1 ? (activeCoreModule.timerColor || 'text-lightBlue') : 'text-gray-400']">
+            <span>
+              <img
+                :src="(index === gameStore.coreHistory.length - 1 && isPandoraMode) ? activeCoreIconUrlDynamic : core.icon"
+                :alt="core.name" class="w-4 h-4 inline-block object-contain" />
+            </span> {{ (index === gameStore.coreHistory.length - 1 && isPandoraMode) ? 'Shifted: ' +
+              activeCoreNameDynamic : core.name }}
+          </span>
+
+          <transition name="fade">
+            <CoreTooltip
+              v-if="hoveredRoundCoreIndex === index && getCoreDetailsByItem(core)"
+              :core="getCoreDetailsByItem(core)!"
+              position="bottom"
+            />
+          </transition>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 sm:gap-6">
+        <div id="tutorial-score-area"
+          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
+          <span class="text-[9px] sm:text-xs font-bold text-orange tracking-[0.1em] uppercase hidden sm:inline">Score</span>
+          <span class="text-[9px] font-bold text-orange tracking-[0.1em] uppercase sm:hidden">Scr</span>
+          <span class="text-sm sm:text-xl font-black text-white tabular-nums">{{ score }}</span>
+        </div>
+
+        <div
+          class="flex items-center gap-1 sm:gap-2 bg-black/30 backdrop-blur-md border border-white/10 px-1.5 sm:px-4 py-1 sm:py-2 rounded shadow-inner">
+          <span class="text-[9px] sm:text-xs font-bold text-lightBlue tracking-[0.1em] uppercase">Q</span>
+          <span class="text-sm sm:text-xl font-black text-white">{{ questionsAnswered }}</span>
+        </div>
+
+        <div class="relative flex items-center gap-1 ml-0.5 sm:ml-1"
+          :class="timeLeft <= 10 ? 'text-hexred' : activeCoreModule.timerColor">
+          <svg class="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-md" :class="activeCoreModule.timerIconClass || undefined" fill="none"
+            stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="font-mono font-black text-xl sm:text-3xl tabular-nums drop-shadow-lg" :class="[
+            activeCoreModule?.timerColor,
+            timeLeft <= 10 && settingsStore.vfxEnabled ? 'animate-pulse' : '',
+            settingsStore.vfxEnabled ? (activeCoreModule?.timerClass || '') : ''
+          ]">
+            {{ String(timeLeft ?? 0).padStart(2, '0') }}
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Upgrade Selection Phase (Overlay on top of game board) -->
+    <!-- Moved out of the header's .relative wrapper: that wrapper is a descendant of a
+         backdrop-blur element, which creates a new containing block for `position: fixed`
+         children. That squashed this overlay's fixed inset-0 into the header's ~80px box
+         instead of the full viewport. Living as a direct sibling of header/main fixes it. -->
+    <transition name="fade">
+      <!-- Never show CoreUpgrade in Race Round (Round 4) even if gameState is upgrade somehow -->
+      <CoreUpgradeOverlay v-if="false" @selected="handleUpgradeSelected" />
+    </transition>
+
+    <main v-show="gameState !== 'upgrade'"
+      class="relative z-20 flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center py-2 pt-16 sm:pt-20 px-2 max-w-5xl mx-auto w-full">
+
+      <!-- Speedster wind streak overlay component -->
+      <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
+        :playing="gameState === 'playing'" />
+
+      <!-- Active Core UI VFX Micro-animations -->
+      <CoreVfxOverlay :activeCoreName="activeCoreNameDynamic" :playing="gameState === 'playing'" />
+
+      <section class="w-full max-w-4xl flex flex-col gap-3" style="perspective: 1500px;">
+
+        <div v-if="gameState === 'loading'" class="w-full flex flex-col gap-10">
+          <div class="bg-blue/10 backdrop-blur-xl border border-blue/20 rounded-2xl p-3 h-16 animate-pulse"></div>
+          <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 h-32 animate-pulse"></div>
+        </div>
+
+        <template v-else-if="matchStore.currentRound === 4">
+          <div v-if="!currentRaceQuestion" class="w-full text-center text-white/50 animate-pulse font-mono font-bold tracking-widest text-lg">
+            PREPARING RACE...
+          </div>
+          <div v-else class="w-full flex flex-col gap-6 relative" :key="currentRaceQuestion.id">
+             <!-- PURE SKILL BANNER -->
+             <div class="w-full bg-hexred text-white font-black text-center py-2 uppercase tracking-widest text-xs md:text-sm shadow-[0_0_15px_rgba(230,57,70,0.8)] z-50 animate-pulse rounded-md">
+               SUDDEN DEATH RACE - 500 PTS/WORD
+             </div>
+             
+             <!-- Shared Question -->
+             <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col items-center text-center w-full max-h-36 sm:max-h-44 overflow-y-auto custom-scrollbar transition-all duration-300">
+                <div v-if="currentRaceQuestion?.hint" class="mb-4 text-sm font-bold text-lightBlue uppercase tracking-widest bg-blue/10 px-4 py-1 rounded-full border border-blue/30 inline-block">
+                  HINT: {{ currentRaceQuestion.hint }}
+                </div>
+                <p class="text-base font-medium text-gray-200 leading-relaxed max-w-3xl">
+                   <span v-if="currentRaceQuestion?.question_text?.split(/_+/)[0]">
+                     {{ currentRaceQuestion.question_text?.split(/_+/)[0] }}
+                   </span>
+                   <span class="text-white/50 font-bold mx-2 tracking-widest">---</span>
+                   <span v-if="currentRaceQuestion?.question_text?.split(/_+/)[1]">
+                     {{ currentRaceQuestion.question_text?.split(/_+/)[1] }}
+                   </span>
+                </p>
+             </div>
+             
+             <!-- Split Screen Typing Area -->
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-4 mt-8 w-full max-w-4xl">
+                 <!-- Player (You) -->
+                 <div class="flex flex-col items-center gap-4 md:border-r border-white/20 md:pr-4 relative">
+                     <!-- Lock Overlay for Skipped/Failed Race Question -->
+                     <transition name="fade">
+                       <div v-if="isRaceLocked" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-xl transition-all duration-300 md:-mr-4">
+                         <div class="flex items-center gap-2 px-5 py-2.5 bg-black/80 border-2 border-red-500/50 rounded-lg shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                           <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                           </svg>
+                           <span class="text-red-400 font-bold tracking-widest uppercase text-sm">Locked</span>
+                         </div>
+                         <span class="text-xs text-gray-400 font-bold mt-2 uppercase tracking-widest">Waiting for opponent</span>
+                       </div>
+                     </transition>
+
+                     <div class="flex items-center gap-2">
+                         <span class="text-lightBlue font-black text-xl uppercase tracking-wider drop-shadow-md">YOU</span>
+                     </div>
+                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2" :class="{ 'opacity-30 blur-[1px]': isRaceLocked }">
+                        <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p1-'+i"
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-base px-1 py-0 font-black rounded-lg transition-all duration-200 bg-white/10 border-b-4 border-lightBlue/50 text-white shadow-inner">
+                           {{ typedLetters[i - 1] || '' }}
+                        </div>
+                     </div>
+                 </div>
+                 
+                 <!-- Opponent -->
+                 <div class="flex flex-col items-center gap-4 md:pl-4">
+                     <div class="flex items-center gap-2 h-7">
+                         <span class="text-orange font-black text-xl uppercase tracking-wider drop-shadow-md" v-if="!opponentTypingText.length">OPPONENT</span>
+                         <span class="text-orange font-bold uppercase border border-orange px-2 py-0.5 rounded text-xs bg-orange/20 animate-pulse shadow-[0_0_10px_rgba(255,165,0,0.5)]" v-else>Opponent is typing...</span>
+                     </div>
+                     <div class="flex flex-wrap items-center justify-center gap-1 md:gap-2 opacity-80">
+                        <div v-for="i in (currentRaceQuestion?.target_length || 0)" :key="'p2-'+i"
+                             class="w-10 h-14 md:w-12 md:h-16 flex items-center justify-center text-base px-1 py-0 font-black rounded-lg transition-all duration-200 bg-orange/10 border-b-4 border-orange/50 text-orange shadow-inner">
+                           {{ opponentTypingText[i - 1] ? '*' : '' }}
+                        </div>
+                     </div>
+                 </div>
+             </div>
+          </div>
+        </template>
+
+        <template v-else>
+          <transition name="card-flip" mode="out-in">
+            <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-10">
+              <!-- Top-half container for Hint and Question Text -->
+              <div class="w-full flex flex-col gap-3 sm:gap-6">
+                <div v-if="currentQuestion.hint"
+                  class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-3 md:p-6 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
+                  <div
+                    class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue to-transparent">
+                  </div>
+                  <div class="flex items-center justify-center gap-1.5 mb-1.5 opacity-90">
+                    <svg class="w-3 h-3 text-lightBlue" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+                    </svg>
+                    <span class="text-[9px] font-bold text-lightBlue tracking-[0.25em] uppercase">Hint</span>
+                  </div>
+                  <h1
+                    class="text-xs font-bold text-white tracking-widest drop-shadow-sm leading-tight break-words px-2">
+                    {{ currentQuestion.hint }}
+                  </h1>
+                </div>
+
+                <!-- Oracle: Click-to-reveal hint button (only for Oracle core) -->
+                <OracleCoreIndicator v-if="isOracleCore && gameState === 'playing'"
+                  :oracle-reveal-level="oracleRevealLevel" :oracle-max-allowed="oracleMaxAllowed"
+                  :oracle-hint-text="oracleHintText" :oracle-next-cost="oracleNextCost" @use-hint="useOracleHint" />
+
+                <div
+                  class="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-5 shadow-2xl flex flex-col items-center text-center w-full transition-all duration-300 transform-gpu"
+                  :class="{
+                    'burning-edge-active': isBurningComboActive,
+                    'shake-error': isTypingError,
+                    'combo-fire-5': currentCombo >= 5 && currentCombo < 10,
+                    'combo-fire-10': currentCombo >= 10 && currentCombo < 15,
+                    'combo-fire-15': currentCombo >= 15
+                  }">
+                  <p class="text-xl sm:text-2xl font-black text-white leading-snug max-w-3xl drop-shadow-md">
+                    <span v-if="currentQuestion?.question_text?.split(/_+/)[0]">
+                      {{ currentQuestion.question_text?.split(/_+/)[0] }}
+                    </span>
+                    <span class="text-white/50 font-bold mx-2 tracking-widest">---</span>
+                    <span v-if="currentQuestion?.question_text?.split(/_+/)[1]">
+                      {{ currentQuestion.question_text?.split(/_+/)[1] }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Letter slots (anchor for popup position) -->
+              <div id="tutorial-typing-area" class="w-full flex flex-col items-center gap-3 overflow-hidden relative"
+                ref="letterSlotsRef">
+
+                <!-- Lock Overlay for Skipped/Failed Race Question -->
+                <transition name="fade">
+                  <div v-if="isRaceLocked" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] rounded-xl transition-all duration-300">
+                    <div class="flex items-center gap-2 px-5 py-2.5 bg-black/80 border-2 border-gray-600 rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.8)]">
+                      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                      </svg>
+                      <span class="text-gray-300 font-bold tracking-widest uppercase text-sm">Input Locked</span>
+                    </div>
+                  </div>
+                </transition>
+                <div
+                  class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none"
+                  :class="{ 'speedster-slots-glow': isSpeedsterCore && gameState === 'playing' }">
+                  <div v-for="(_, idx) in currentQuestion.target_length" :key="idx" class="flex-shrink-0">
+                    <div
+                      class="relative w-10 h-14 md:w-14 md:h-20 bg-black/60 rounded-t-lg flex items-center justify-center border-b-4 transition-colors duration-200"
+                      :class="{
+                        'slot--active border-orange bg-black/60 shadow-[0_-4px_15px_rgba(255,165,0,0.25)]': idx === typedLetters.length && gameState === 'playing',
+                        'slot--correct border-success': gameState === 'correct',
+                        'slot--wrong border-hexred': gameState === 'wrong',
+                        'border-white/20': idx !== typedLetters.length || gameState !== 'playing'
+                      }">
+                      <span
+                        class="text-base px-1 py-0 font-black uppercase tracking-widest drop-shadow-md transition-all duration-100"
+                        :class="{
+                          'text-white': typedLetters[idx] !== undefined && gameState === 'playing',
+                          'glow-sweep': gameState === 'correct',
+                          'text-hexred drop-shadow-[0_0_10px_rgba(230,57,70,0.6)]': gameState === 'wrong',
+                          'opacity-0': typedLetters[idx] === undefined,
+                          'opacity-100': typedLetters[idx] !== undefined,
+                        }" :style="gameState === 'correct' ? { animationDelay: `${idx * 0.05}s` } : {}">
+                        {{ typedLetters[idx] ?? '_' }}
+                      </span>
+                      <span v-if="idx === typedLetters.length && gameState === 'playing'"
+                        class="absolute bottom-2 left-1/2 -translate-x-1/2 w-5 h-1 bg-orange animate-pulse rounded-full"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="gameState === 'playing'"
+                  class="text-xs md:text-sm font-semibold text-lightBlue/80 tracking-widest font-mono mt-1">
+                  ({{ currentQuestion.target_length }} letters)
+                </div>
+              </div>
+
+              <transition name="fade">
+                <div v-if="gameState === 'correct' || gameState === 'wrong'"
+                  class="relative z-10 flex items-center gap-3 px-8 py-3.5 border font-bold text-sm tracking-widest uppercase rounded-full shadow-2xl mx-auto w-fit backdrop-blur-lg"
+                  :class="{
+                    'border-success/50 bg-success/20 text-green-300': gameState === 'correct',
+                    'border-hexred/50 bg-hexred/20 text-red-300': gameState === 'wrong',
+                  }">
+                  <span v-if="gameState === 'correct'">★ Brilliant! +{{ pointsEarned }} pts</span>
+                  <span v-else>
+                    <span v-if="currentQuestion.correct_word">
+                      ✗ Correct word:
+                      <span class="uppercase text-white ml-1 font-black">{{ currentQuestion.correct_word }}</span>
+                      <span class="ml-3 text-hexred font-black">-{{ pointsDeducted }} pts</span>
+                    </span>
+                    <span v-else class="animate-pulse">
+                      ✗ Checking...
+                    </span>
+                  </span>
+                </div>
+              </transition>
+
+            </div>
+          </transition>
+        </template>
+
+      </section>
+    </main>
+
+    <!-- Timer progress bar -->
+    <div v-show="gameState !== 'upgrade'" class="relative z-20 h-2 w-full flex bg-black/50">
+      <div class="h-full rounded-r-full shadow-[0_0_10px_rgba(255,165,0,0.8)]" :class="[
+        timeLeft <= 10 ? 'bg-hexred shadow-[0_0_15px_rgba(230,57,70,0.8)]' : 'bg-gradient-to-r from-blue to-lightBlue'
+      ]" :style="{ width: `${tutorial.isCurrentScreen('gameplay') ? 0 : timerProgressPercent}%` }">
+      </div>
+    </div>
+
+    <!-- Right-Side Indicators Container -->
+    <div class="absolute top-16 right-2 sm:top-52 sm:right-8 z-20 flex flex-col items-end gap-4 scale-75 sm:scale-100 origin-top-right transition-all duration-300 pointer-events-none">
+      <!-- Combo indicator: only visible when active core is the Combo Core AND not Race Round -->
+      <transition name="fade-scale">
+        <div v-if="false">
+          <ComboCoreIndicator :current-combo="currentCombo" />
+        </div>
+      </transition>
+    </div>
+
+    <!-- Left-Side Indicators Container -->
+    <div class="absolute top-16 left-2 sm:top-52 sm:left-8 z-20 flex flex-col gap-4 scale-75 sm:scale-100 origin-top-left transition-all duration-300 pointer-events-none">
+      <!-- Aegis Shield Mode Indicator (hidden in Race Round) -->
+      <transition name="fade-scale">
+        <div v-if="false">
+          <AegisShieldIndicator :count="aegisShieldCount" :shattering="isShattering" :max-shields="maxShields" />
+        </div>
+      </transition>
+
+      <!-- Mission Tracker UI: only visible when active core is the Mission Core AND not Race Round -->
+      <transition name="fade-scale">
+        <div v-if="false" class="pointer-events-auto">
+          <MissionCoreIndicator :mission-progress="missionProgress" :show-celebration="showMissionCelebration" />
+        </div>
+      </transition>
+    </div>
+
+    <!-- Player Avatar -->
+
+    <Avatar :src="playerAvatarUrl" alt="Player Avatar" />
+
+
+
+    <transition name="timeout-overlay">
+      <div v-if="gameState === 'timeout' && !showMatchResult" class="absolute inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-darkNavy/80 backdrop-blur-xl"></div>
+        <div id="tutorial-match-result"
+          class="relative border border-hexred/50 bg-darkNavy/90 p-4 max-w-sm w-full mx-3 text-center timeout-panel rounded-2xl shadow-[0_0_50px_rgba(230,57,70,0.2)] flex flex-col max-h-[88vh]">
+          <p class="text-[9px] font-bold text-hexred tracking-[0.4em] uppercase mb-1 drop-shadow-md">
+            Match Ended
+          </p>
+          <h2
+            class="text-4xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(230,57,70,0.8)] mb-1 timeout-glitch">
+            TIME OUT
+          </h2>
+          <div class="w-12 h-0.5 bg-gradient-to-r from-transparent via-hexred to-transparent mx-auto mb-3 mt-2"></div>
+
+          <div v-if="isMultiplayer"
+            class="grid grid-cols-3 divide-x divide-white/10 mb-3 bg-black/30 py-2 rounded-xl border border-white/5 flex-shrink-0">
+            <div>
+              <p class="text-[9px] text-orange uppercase tracking-widest mb-0.5 font-bold">Your Score</p>
+              <p class="text-2xl font-black text-white drop-shadow-md">{{ score }}</p>
+            </div>
+            <div>
+              <p class="text-[9px] text-lightBlue uppercase tracking-widest mb-0.5 font-bold">Opponent</p>
+              <p class="text-2xl font-black text-white drop-shadow-md">{{ opponentScore }}</p>
+            </div>
+            <div>
+              <p class="text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Questions</p>
+              <p class="text-2xl font-black text-gray-300 drop-shadow-md">{{ questionsAnswered }}</p>
+            </div>
+          </div>
+          <div v-else
+            class="grid grid-cols-2 divide-x divide-white/10 mb-3 bg-black/30 py-2 rounded-xl border border-white/5 flex-shrink-0">
+            <div>
+              <p class="text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Final Score</p>
+              <p class="text-3xl font-black text-orange drop-shadow-md">{{ score }}</p>
+            </div>
+            <div>
+              <p class="text-[9px] text-gray-400 uppercase tracking-widest mb-0.5">Questions</p>
+              <p class="text-3xl font-black text-lightBlue drop-shadow-md">{{ questionsAnswered }}</p>
+            </div>
+          </div>
+
+          <!-- Recap Table -->
+          <div v-if="matchHistory.length > 0"
+            class="mb-3 bg-black/40 border border-white/10 rounded-xl overflow-hidden flex-1 overflow-y-auto custom-scrollbar max-h-36">
+            <table class="w-full text-left text-[10px] text-gray-300">
+              <thead class="bg-black/60 text-[9px] uppercase text-gray-500 sticky top-0 z-10">
+                <tr>
+                  <th class="px-2 py-1.5 font-bold tracking-widest">Your Answer</th>
+                  <th class="px-2 py-1.5 font-bold tracking-widest border-l border-white/5">Correct Answer</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-white/5">
+                <template v-for="(group, roundNum) in groupedMatchHistory" :key="roundNum">
+                  <tr>
+                    <td colspan="2"
+                      class="px-2 py-1 font-bold text-[9px] text-white/50 bg-black/80 uppercase tracking-widest border-b border-white/10">
+                      Round {{ roundNum }}
+                    </td>
+                  </tr>
+                  <tr v-for="(item, idx) in group" :key="`${roundNum}-${idx}`"
+                    class="hover:bg-white/5 transition-colors">
+                    <td class="px-2 py-1.5 font-medium uppercase tracking-wider"
+                      :class="item.isCorrect ? 'text-green bg-green/10' : 'text-hexred bg-hexred/10'">
+                      {{ item.submitted }}
+                    </td>
+                    <td class="px-2 py-1.5 font-medium text-white uppercase tracking-wider border-l border-white/5">
+                      {{ item.correct }}
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <p v-if="savingSession" class="text-[9px] text-gray-400 uppercase tracking-widest mb-3 flex-shrink-0"
+            :class="{ 'animate-pulse': settingsStore.vfxEnabled }">
+            <span class="inline-block w-1.5 h-1.5 bg-lightBlue rounded-full mr-1"></span>
+            Syncing results...
+          </p>
+
+          <div class="flex gap-3 justify-center flex-shrink-0 mt-2">
+            <button v-if="!isMultiplayer" @click="router.push('/home')"
+              class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-xs tracking-widest uppercase transition-colors rounded-lg">Home</button>
+            <div v-else-if="waitingForOpponent" class="text-white text-xs uppercase tracking-widest font-bold flex-1 text-center py-3">
+               Waiting for opponent...
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="overlay">
+      <div v-if="confirmQuit"
+        class="absolute inset-0 z-50 flex items-center justify-center bg-darkNavy/90 backdrop-blur-md">
+        <div
+          class="relative border border-white/10 bg-darkNavy/95 p-10 rounded-2xl shadow-2xl max-w-sm w-full mx-4 text-center">
+          <div class="w-16 h-16 bg-hexred/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-8 h-8 text-hexred" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <p class="text-xl text-white font-black uppercase mb-2">Abandon Match?</p>
+          <p class="text-gray-400 text-sm mb-8 leading-relaxed">Leaving this match counts as a forfeit. You will lose <span
+              class="text-hexred font-bold">-16 ELO</span> rating points and your current match score.</p>
+          <div class="flex gap-3">
+            <button @click="confirmQuit = false; refocusInput()"
+              class="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-bold text-xs tracking-widest uppercase transition-colors rounded-lg">Resume</button>
+            <button @click="goHome"
+              class="flex-1 px-4 py-3 bg-hexred hover:bg-red-600 text-white font-bold text-xs tracking-widest uppercase transition-colors rounded-lg shadow-lg">Quit</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Waiting for opponent next round overlay -->
+    <transition name="fade">
+      <div v-if="isWaitingForNextRound"
+        class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md">
+        <svg class="w-16 h-16 text-lightBlue animate-spin mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+          </path>
+        </svg>
+        <p class="text-xl font-black uppercase tracking-widest text-lightBlue animate-pulse">Waiting for opponent to
+          choose
+          upgrade...</p>
+      </div>
+    </transition>
+
+    <!-- US-24: input is disabled during the 15s timeout phase AND in the final timeout state -->
+    <input ref="inputRef" class="sr-only" type="text" autocomplete="off" autocorrect="off" autocapitalize="off"
+      spellcheck="false" :disabled="gameState === 'timeout' || tutorial.isCurrentScreen('gameplay') || isRaceLocked"
+      :readonly="isTouchDevice"
+      @keydown="handleKeydown" />
+
+    <VirtualKeyboard v-show="gameState !== 'upgrade'" @keypress="handleVirtualKey" />
+
+    <!-- Match Result Overlay (Final Round) -->
+    <MatchResultOverlay
+      :is-visible="showMatchResult"
+      :is-victory="matchResult?.isVictory ?? false"
+      :player-score="score"
+      :player-name="authStore.profile?.username ?? 'Player'"
+      :player-avatar="playerAvatarUrl"
+      :questions-answered="questionsAnswered"
+      :elo-change="matchResult?.eloChange ?? 0"
+      :new-elo="matchResult?.newElo ?? 0"
+      :old-elo="matchResult?.oldElo ?? 0"
+      :old-tier="matchResult?.oldTier"
+      :current-tier="matchResult?.currentTier"
+      :match-history="matchHistory"
+      :match-duration-ms="Date.now() - matchStartTime"
+      :opponent-score="isMultiplayer ? opponentScore : (matchResult?.expectedScore ?? 500)"
+      :opponent-name="isMultiplayer ? opponentName : 'EXPECTED'"
+      :opponent-avatar="isMultiplayer ? opponentAvatar : undefined"
+      :is-multiplayer="isMultiplayer"
+      @play-again="playAgain"
+      @go-home="goHome"
+      @show-feedback="showFeedback = true"
+    />
+
+    <FeedbackOverlay :is-visible="showFeedback" @close="showFeedback = false" @success="handleFeedbackSuccess" />
+
+    <!-- Reconnecting Overlay (Self Disconnected) -->
+    <transition name="fade">
+      <div v-if="isSelfReconnecting"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md">
+        <div class="bg-darkNavy/90 border border-hexred/40 p-8 rounded-2xl shadow-2xl max-w-sm w-full flex flex-col items-center text-center gap-4">
+          <div class="relative w-20 h-20 flex items-center justify-center">
+            <div class="absolute inset-0 rounded-full border-4 border-hexred/20 animate-ping"></div>
+            <div class="w-16 h-16 rounded-full border-4 border-hexred border-t-transparent animate-spin"></div>
+            <span class="absolute font-mono text-2xl font-black text-white">{{ selfReconnectTimerSeconds }}s</span>
+          </div>
+          <h2 class="text-xl font-black text-white tracking-wide uppercase">Network connection lost</h2>
+          <p class="text-xs text-gray-300">Automatically reconnecting to the room... (Grace period: 15s)</p>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Opponent Reconnecting Banner -->
+    <transition name="fade">
+      <div v-if="opponentReconnecting" class="fixed inset-x-0 top-20 z-40 flex justify-center px-4">
+        <div class="bg-yellow-500/20 backdrop-blur-md border border-yellow-500/40 px-6 py-3 rounded-xl shadow-xl flex items-center gap-3">
+          <span class="animate-spin text-yellow-400 text-xl">⏳</span>
+          <div class="flex flex-col">
+            <span class="text-xs font-bold text-yellow-400 uppercase tracking-widest">Opponent disconnected.</span>
+            <span class="text-xs text-gray-200">Waiting for opponent to reconnect... ({{ opponentReconnectTimerSeconds }}s)</span>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Opponent Toast Notifications Stack -->
+    <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-full max-w-xs px-4">
+      <transition-group name="toast-slide">
+        <div v-for="toast in toasts" :key="toast.id"
+          class="bg-darkNavy/95 border border-white/20 shadow-2xl rounded-xl px-4 py-2.5 flex items-center gap-3 backdrop-blur-md w-full justify-center">
+          <span class="text-xl flex-shrink-0">{{ toast.icon }}</span>
+          <span class="text-xs md:text-sm font-black tracking-wider uppercase text-center" :class="toast.color">
+            {{ toast.message }}
+          </span>
+        </div>
+      </transition-group>
+    </div>
+
+  </div>
+
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
+import { useAuthStore } from '../../stores/authStore.ts'
+import { useScoreAnimation } from '../../composables/game/useScoreAnimation.ts'
+import { useMatchTimer } from '../../composables/game/useMatchTimer.ts'
+import { useQuestionQueue } from '../../composables/game/useQuestionQueue.ts'
+import { currentRoom, leaveMatchRoom, reconnectMatchRoom, getSavedReconnectionToken } from '../../services/multiplayerService.ts'
+import OpponentWidget from '../../components/game/OpponentWidget.vue'
+import CoreTooltip from '../../components/game/CoreTooltip.vue'
+import AegisShieldIndicator from '../../components/game/AegisShieldIndicator.vue'
+import ComboCoreIndicator from '../../components/game/ComboCoreIndicator.vue'
+import MissionCoreIndicator from '../../components/game/MissionCoreIndicator.vue'
+import CoreUpgradeOverlay from '../../components/game/CoreUpgradeOverlay.vue'
+import OracleCoreIndicator from '../../components/game/OracleCoreIndicator.vue'
+
+const isForfeitWin = ref(false)
+import FeedbackOverlay from '../../components/game/FeedbackOverlay.vue'
+import MatchResultOverlay from '../../components/game/MatchResultOverlay.vue'
+import PhaserBackground from '../../components/game/PhaserBackground.vue'
+import Avatar from '../../components/Avatar.vue'
+import SpeedsterOverlay from '../../components/game/SpeedsterOverlay.vue'
+import PandoraOverlay from '../../components/game/PandoraOverlay.vue'
+import CoreVfxOverlay from '../../components/game/CoreVfxOverlay.vue'
+import CoachMark from '../../components/tutorial/CoachMark.vue'
+import VirtualKeyboard from '../../components/game/VirtualKeyboard.vue'
+import { useTutorial } from '../../composables/useTutorial.ts'
+import { useDeviceMode } from '../../composables/useDeviceMode.ts'
+import { useGameStore } from '../../stores/gameStore.ts'
+import { getCoreFamily } from '../../game/cores/families.ts'
+import { useMatchStore } from '../../stores/matchStore.ts'
+import {
+  initAudio,
+  playKeystroke,
+  playComboTone,
+  playComboBreak,
+  playFireBurst,
+  playJackpot,
+  playShieldGain,
+  playShieldBreak,
+  playSpeedWhoosh,
+  playPandoraWarp,
+  playPandoraTransform,
+  playOracleHint,
+  playPhoenixRebirth
+} from '../../composables/game/useAudioEngine.ts'
+import {
+  getCoreModule,
+  isComboCore as checkComboCore,
+  isOracleCore as checkOracleCore,
+  isSpeedsterCore as checkSpeedsterCore,
+  isMissionCore as checkMissionCore,
+  isAegisCore as checkAegisCore,
+  isPandoraCore as checkPandoraCore,
+  getMaxShields as checkMaxShields,
+  isPowerCore as checkPowerCore
+} from '../../game/cores/registry.ts'
+import { useSettingsStore } from '../../stores/settingsStore.ts'
+
+const settingsStore = useSettingsStore()
+const { isTouchDevice } = useDeviceMode()
+import { getCoreIconPath } from '../../game/cores/icons.ts'
+import { fetchWithAuth } from '../../services/api.ts'
+import { audioService } from '../../services/audioService.ts'
+const router = useRouter()
+const authStore = useAuthStore()
+const gameStore = useGameStore()
+const matchStore = useMatchStore()
+const showFeedback = ref(false);
+const matchResult = ref<{
+  isVictory: boolean
+  eloChange: number
+  newElo: number
+  oldElo: number
+  expectedScore: number
+  oldTier?: string
+  currentTier?: string
+} | null>(null)
+const showMatchResult = ref(false)
+const matchStartTime = ref(Date.now())
+
+const handleFeedbackSuccess = () => {
+  console.log('Feedback đã được gửi!');
+};
+
+// QuestionPayload and PointPopup used by composables — re-export so IDE recognises usage
+export interface QuestionPayload {
+  id: string
+  question_text: string
+  target_length: number
+  target_hash: string
+  oracle_hints: string[]
+  hint?: string
+  correct_word?: string
+  topic?: string
+}
+
+export interface PointPopup {
+  id: number
+  value: number
+  type: 'correct' | 'wrong' | 'typo' | 'speedster' | 'shield_blocked' | 'prismatic'
+  x: number
+  y: number
+}
+
+type GameState = 'loading' | 'playing' | 'correct' | 'wrong' | 'timeout' | 'upgrade'
+
+// MATCH_DURATION managed by useMatchTimer composable; kept here for documentation
+// const MATCH_DURATION = 60
+const TIMEOUT_PHASE_DURATION = 15
+const FEEDBACK_MS = 1000
+const REFETCH_THRESHOLD = 5
+
+// ── Toast Notifications Stack ──────────────────────────────────────────────
+interface Toast {
+  id: number
+  message: string
+  icon: string
+  color: string
+}
+const toasts = ref<Toast[]>([])
+let toastIdCounter = 0
+
+function addToast(message: string, icon: string, color: string) {
+  const id = ++toastIdCounter
+  if (toasts.value.length >= 3) {
+    toasts.value.shift()
+  }
+  toasts.value.push({ id, message, icon, color })
+  setTimeout(() => {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+  }, 2000)
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+const gameState = ref<GameState>('loading')
+const isRaceLocked = ref(false)
+const typedLetters = ref<string[]>([])
+const opponentTypingText = ref<string>('')
+const currentRaceQuestion = ref<any>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
+const menuRef = ref<HTMLElement | null>(null)
+const letterSlotsRef = ref<HTMLElement | null>(null)
+const menuOpen = ref(false)
+const confirmQuit = ref(false)
+const savingSession = ref(false)
+const sessionId = ref<string | null>(null)
+const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
+const isDev = import.meta.env.DEV
+
+// --- MULTIPLAYER CORE BINDINGS [US-51] ---
+const route = useRoute()
+const isMultiplayer = computed(() => route.path.includes('multiplayer'))
+const opponentName = ref('')
+const opponentAvatar = ref('')
+const opponentScore = ref(0)
+const opponentId = ref('')
+const allCores = ref<any[]>([])
+
+// --- OPPONENT CORE DATA ---
+const opponentActiveCoreId = ref<string | null>(null)
+
+const opponentCoreDetails = computed(() => {
+  if (!opponentActiveCoreId.value || allCores.value.length === 0) return null
+  return allCores.value.find(c => c.id === opponentActiveCoreId.value) || null
+})
+
+const opponentCoreIconUrl = computed(() => {
+  if (!opponentCoreDetails.value) return ''
+  return getCoreIconPath(opponentCoreDetails.value.name, opponentCoreDetails.value.icon_url)
+})
+
+const opponentCoresHistory = ref<any[]>([])
+
+watch([opponentActiveCoreId, () => allCores.value.length], ([newCoreId]) => {
+  if (!newCoreId || allCores.value.length === 0) return
+  const found = allCores.value.find((c: any) => c.id === newCoreId)
+  if (found && !opponentCoresHistory.value.some(c => c.id === found.id)) {
+    opponentCoresHistory.value.push({
+      ...found,
+      icon: getCoreIconPath(found.name, found.icon_url)
+    })
+  }
+}, { immediate: true })
+
+const waitingForOpponent = ref(false)
+const isWaitingForNextRound = ref(false)
+
+function updateOpponentData(state: any) {
+  if (!state || !state.players || !currentRoom) return
+
+  const currentSessionId = currentRoom?.sessionId
+  if (!currentSessionId) return
+
+  let foundOpponent = false
+
+  state.players.forEach((player: any, sId: string) => {
+    if (sId !== currentSessionId) {
+      opponentScore.value = player.score || 0
+      opponentName.value = player.name || 'Opponent'
+      opponentAvatar.value = player.avatar || ''
+      opponentId.value = player.id || player.userId || ''
+
+      opponentActiveCoreId.value = player.activeCoreId || player.active_core_id || null
+
+      foundOpponent = true
+    }
+  })
+
+  if (!foundOpponent) {
+    opponentName.value = 'Waiting...'
+    opponentScore.value = 0
+    opponentActiveCoreId.value = null
+  }
+}
+const tutorial = useTutorial()
+
+const questionsAnswered = ref(0)
+const oracleRevealLevel = ref(0)
+const oracleTotalPenalty = ref(0)
+const questionStartTime = ref<number>(Date.now())
+
+// Initialize custom composables
+const {
+  score,
+  pointsEarned,
+  pointsDeducted,
+  scoreFlash,
+  pointPopups,
+  triggerScoreFlash,
+  spawnPointPopup,
+  updateScoreAnimated
+} = useScoreAnimation(letterSlotsRef)
+
+function sendScoreUpdate(newScore: number) {
+  if (isMultiplayer.value && currentRoom) {
+    console.log(`[Multiplayer] Sending score update to server: ${newScore}`)
+    currentRoom.send('update_score', { score: newScore })
+  }
+}
+
+const getMatchDuration = () => {
+  const diff = currentRoom?.state.metadata.difficulty || "Standard"
+  const pure = currentRoom?.state.metadata.pureSkillMode || false
+  if (pure) {
+    if (diff === "Veteran") return 135;
+    if (diff === "Master") return 90;
+    return 180;
+  }
+  if (diff === "Veteran") return 45;
+  if (diff === "Master") return 30;
+  return 60;
+}
+
+const {
+  timeLeft,
+  timerProgressPercent,
+  startMatchTimer,
+  stopMatchTimer,
+  addTime,
+  pauseTimerFor,
+  resetTimer
+} = useMatchTimer({
+  matchDuration: getMatchDuration(),
+  showTutorial: () => tutorial.isCurrentScreen('gameplay'),
+  timerSpeedMultiplier: () => timerSpeedMultiplier.value,
+  isPandoraMode: () => isPandoraMode.value,
+  isTrickster: () => isTrickster.value,
+  isChaos: () => isChaos.value,
+  onShapeshift: () => triggerShapeshift(),
+  onTimeout: () => startTimeoutPhase()
+})
+
+const {
+  questionQueue,
+  currentQuestion,
+  fetchBatch,
+  loadQuestion,
+  clearQueue
+} = useQuestionQueue({
+  fetchWithAuth,
+  matchStore,
+  gameStore,
+  gameState,
+  typedLetters,
+  oracleRevealLevel,
+  oracleTotalPenalty,
+  questionStartTime,
+  inputRef,
+  refetchThreshold: REFETCH_THRESHOLD
+})
+
+const THEME_MAP: Record<string, string> = {
+  'daily-life': '/bg-daily-life.png',
+  'cafe': '/bg-cafe.png',
+  'travel': '/bg-travel.png'
+}
+
+const currentBgImage = ref<string>(THEME_MAP[matchStore.topics?.[matchStore.currentRound - 1] || 'daily-life'] || THEME_MAP['daily-life'])
+const isBgFading = ref(false)
+const activeBgTimeouts = new Set<ReturnType<typeof setTimeout>>()
+
+watch(() => matchStore.currentRound, (newRound, oldRound) => {
+  const newTopic = matchStore.topics?.[newRound - 1]
+  const newBg = THEME_MAP[newTopic] || THEME_MAP['daily-life']
+
+  if (oldRound === undefined) {
+    currentBgImage.value = newBg
+  }
+
+  else if (newRound && newRound !== oldRound) {
+    isBgFading.value = true
+
+    const t1 = setTimeout(() => {
+      currentBgImage.value = newBg
+      activeBgTimeouts.delete(t1)
+
+      const t2 = setTimeout(() => {
+        isBgFading.value = false
+        activeBgTimeouts.delete(t2)
+      }, 100)
+      activeBgTimeouts.add(t2)
+    }, 500)
+    activeBgTimeouts.add(t1)
+  }
+}, { immediate: true })
+
+
+const currentCombo = ref(0)
+const isBurningComboActive = computed(() => isComboCore.value && currentCombo.value >= 3)
+const missionProgress = ref(0)
+const isAegisMode = computed(() =>
+  checkAegisCore(activeCoreModule.value?.name || '') ||
+  effectiveCores.value.some(c => checkAegisCore(c.name)) ||
+  activeCoreModule.value?.name?.toLowerCase() === 'rebirth' ||
+  activeCoreModule.value?.name?.toLowerCase() === 'eternal rebirth' ||
+  effectiveCores.value.some(c => c.name.toLowerCase() === 'rebirth' || c.name.toLowerCase() === 'eternal rebirth')
+)
+const maxShields = computed(() => {
+  const activeName = activeCoreModule.value?.name?.toLowerCase() || ''
+  let activeMax = checkMaxShields(activeName)
+  if (activeName === 'rebirth') activeMax = 1
+  if (activeName === 'eternal rebirth') activeMax = 2
+
+  if (effectiveCores.value.length === 0) return activeMax
+
+  const effectiveMax = Math.max(...effectiveCores.value.map(c => {
+    const n = c.name.toLowerCase()
+    if (n === 'rebirth') return 1
+    if (n === 'eternal rebirth') return 2
+    return checkMaxShields(n)
+  }))
+  return Math.max(activeMax, effectiveMax)
+})
+// Aegis Shield State
+const aegisShieldCount = ref(0)
+
+const isShattering = ref(false)
+const showMissionCelebration = ref(false)
+const showPrismaticFlash = ref(false)
+
+// active_core_id / name sourced from gameStore (set in CoreSelectionView)
+const currentPandoraCoreId = ref<string | null>(null)
+const activeCoreId = computed<string | null>(() => {
+  return gameStore.activeCoreId
+})
+
+// ── Core registry ──────────────────────────────────────────────────────────
+const effectiveCores = computed(() => {
+  const activeName = gameStore.activeCoreName || ''
+  const activeFamily = getCoreFamily(activeName)
+
+  let history = [...gameStore.coreHistory]
+
+  if (activeFamily) {
+    history = history.filter(c => getCoreFamily(c.name) === activeFamily)
+  } else {
+    history = history.filter(c => c.name === activeName)
+  }
+
+  if (gameStore.activeCoreId && gameStore.activeCoreName && !history.some(c => c.id === gameStore.activeCoreId)) {
+    history.push({
+      id: gameStore.activeCoreId,
+      name: gameStore.activeCoreName,
+      icon: '⚙️'
+    })
+  }
+
+  if (isPandoraMode.value && currentPandoraCoreId.value) {
+    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
+    if (shiftedCore && !history.some(c => c.id === shiftedCore.id)) {
+      history.push(shiftedCore)
+    }
+  }
+
+  // Filter out older Power Cores in history if there is a more recent one
+  const getClassification = (name: string) => {
+    const found = allCores.value.find(c => c.name.toLowerCase() === name.toLowerCase())
+    return found?.classification || null
+  }
+
+  const powerCoresInHist = history.filter(c => getClassification(c.name) === 'power')
+  if (powerCoresInHist.length > 1) {
+    const latestPowerCore = powerCoresInHist[powerCoresInHist.length - 1]
+    history = history.filter(c => getClassification(c.name) !== 'power' || c.id === latestPowerCore.id)
+  }
+
+  return history
+})
+
+// ── Pandora's Box Logic ──────────────────────────────────────────────────
+const basePandoraCoreName = computed(() => {
+  return ''
+})
+const isPandoraMode = computed(() => checkPandoraCore(basePandoraCoreName.value))
+const isTrickster = computed(() => isPandoraMode.value && matchStore.currentRound === 2)
+const isChaos = computed(() => isPandoraMode.value && matchStore.currentRound === 3)
+
+const activeCoreNameDynamic = computed(() => {
+  return ''
+})
+
+const activeCoreIconUrlDynamic = computed(() => {
+  if (isPandoraMode.value && currentPandoraCoreId.value) {
+    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
+    return shiftedCore ? getCoreIconPath(shiftedCore.name, shiftedCore.icon_url) : getCoreIconPath(gameStore.activeCoreName || '')
+  }
+  return gameStore.activeCoreName ? getCoreIconPath(gameStore.activeCoreName) : ''
+})
+
+const activeCoreModule = computed(() => {
+  return getCoreModule(activeCoreNameDynamic.value)
+})
+
+// Convenience booleans
+const getActiveName = () => activeCoreNameDynamic.value?.toLowerCase() || ''
+
+const isComboCore = computed(() => {
+  const name = getActiveName()
+  if (checkComboCore(name)) return true
+  return gameStore.coreHistory.some(c => checkComboCore(c.name))
+})
+const isOracleCore = computed(() => {
+  const name = getActiveName()
+  return checkOracleCore(name)
+})
+const isSpeedsterCore = computed(() => {
+  const name = getActiveName()
+  if (checkSpeedsterCore(name)) return true
+  return gameStore.coreHistory.some(c => checkSpeedsterCore(c.name))
+})
+const isMissionCore = computed(() => {
+  const name = getActiveName()
+  if (checkMissionCore(name)) return true
+  return gameStore.coreHistory.some(c => checkMissionCore(c.name))
+})
+const isPowerCore = computed(() => {
+  const name = getActiveName()
+  if (checkPowerCore(name)) return true
+  return gameStore.coreHistory.some(c => checkPowerCore(c.name))
+})
+const isTypingError = ref(false)
+
+const isTimeWarp = computed(() => {
+  const name = getActiveName()
+  if (name === 'time warp') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'time warp')
+})
+const isChronobreak = computed(() => {
+  const name = getActiveName()
+  if (name === 'chronobreak') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'chronobreak')
+})
+
+const isPrismaticCombo = computed(() => {
+  const name = getActiveName()
+  if (name === 'prismatic combo') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'prismatic combo')
+})
+const isExodia = computed(() => {
+  const name = getActiveName()
+  if (name === 'exodia') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'exodia')
+})
+const isSpeedDemon = computed(() => {
+  const name = getActiveName()
+  if (name === 'speed demon') return true
+  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'speed demon')
+})
+
+
+const isOracleFree = computed(() => {
+  const name = getActiveName()
+  // Hints are free only for Oracle UPGRADE cores (not the base Argus Eyes itself)
+  if (name && checkOracleCore(name) && name !== 'argus eyes') return true
+  return gameStore.coreHistory.some(c => {
+    const family = getCoreFamily(c.name)
+    return family === 'oracle' && c.name.toLowerCase() !== 'argus eyes'
+  })
+})
+const timerSpeedMultiplier = computed(() => {
+  let mult = 1.0
+  const activeName = getActiveName()
+
+  const hasHypercharge = activeName === 'hypercharge'
+  const hasOverdrive = activeName === 'overdrive'
+  if (hasHypercharge) mult += 0.15
+  if (hasOverdrive) mult += 0.20
+
+  const hasDivineGuidance = activeName === 'divine guidance'
+  const hasOmniscienceCore = activeName === 'omniscience'
+  if (hasDivineGuidance) mult -= 0.10
+  if (hasOmniscienceCore) mult -= 0.20
+
+  return Math.max(0.1, mult)
+})
+
+const isShifting = ref(false)
+const shiftAnnouncement = ref('')
+const pandoraPool = ref<any[]>([])
+
+const hoveredRoundCoreIndex = ref<number | null>(null)
+let roundCoreHoldTimer: ReturnType<typeof setTimeout> | null = null
+
+function getCoreDetailsByItem(coreItem: { id: string; name: string }) {
+  if (!coreItem || allCores.value.length === 0) return null
+  const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
+  if (found) return found
+  return {
+    id: coreItem.id,
+    name: coreItem.name,
+    description: 'Core details not available.',
+    flat_buff: 0,
+    multiplier_buff: 1
+  }
+}
+
+function handleRoundCoreTouchStart(index: number) {
+  if (roundCoreHoldTimer) clearTimeout(roundCoreHoldTimer)
+  roundCoreHoldTimer = setTimeout(() => {
+    hoveredRoundCoreIndex.value = index
+  }, 500)
+}
+
+function handleRoundCoreTouchEnd() {
+  if (roundCoreHoldTimer) {
+    clearTimeout(roundCoreHoldTimer)
+    roundCoreHoldTimer = null
+  }
+  hoveredRoundCoreIndex.value = null
+}
+
+async function fetchPandoraPool() {
+  try {
+    const res = await fetchWithAuth(`/api/game/cores?all=true`)
+    if (!res.ok) return
+    const data = await res.json()
+    allCores.value = data.cores || []
+  } catch (err) {
+    console.error('Failed to fetch cores for Pandora', err)
+  }
+}
+
+function triggerShapeshift() {
+  if (allCores.value.length === 0) return
+
+  // Determine T1 names via upgradePaths — Pandora always shifts to T1 regardless of round
+  const upgradePaths: Record<string, string> = {
+    'Perfect Combo': 'Radiant Combo',
+    'Radiant Combo': 'Prismatic Combo',
+    'Speedster': 'Time Warp',
+    'Time Warp': 'Chronobreak',
+    'Argus Eyes': 'Clairvoyance',
+    'Clairvoyance': 'Omniscience',
+    'Mission Impossible': 'Bounty Hunter',
+    'Bounty Hunter': 'Exodia',
+    'Aegis Shield': 'Reflective Aegis',
+    'Reflective Aegis': 'Bastion of Light',
+    'Balance': 'Harmony Core',
+    'Harmony Core': 'Perfect Harmony',
+    'Power Strike': 'Overclock Core',
+    'Overclock Core': 'Supernova Core',
+    "Pandora's Box": "Trickster's Glass",
+    "Trickster's Glass": "Chaos Theory"
+  }
+  const tier1Names = Object.keys(upgradePaths).filter(k => !Object.values(upgradePaths).includes(k))
+  // tier2Names/tier3Names intentionally omitted — Pandora only shifts to tier1Names
+
+  // Pandora ALWAYS shifts between the 8 main (Tier 1) cores, regardless of round!
+  const validNames = tier1Names
+
+  pandoraPool.value = allCores.value.filter((c: any) =>
+    validNames.some(name => name.toLowerCase() === c.name.toLowerCase()) &&
+    c.id !== activeCoreId.value &&
+    !checkPandoraCore(c.name)
+  )
+
+  if (pandoraPool.value.length === 0) return
+
+  isShifting.value = true
+  playPandoraWarp()
+
+  const randomCore = pandoraPool.value[Math.floor(Math.random() * pandoraPool.value.length)]
+
+  setTimeout(() => {
+    playPandoraTransform()
+    currentPandoraCoreId.value = randomCore.id
+    shiftAnnouncement.value = randomCore.name
+    isShifting.value = false
+
+    // Clear flashy text after 2s
+    setTimeout(() => {
+      shiftAnnouncement.value = ''
+    }, 2000)
+  }, 1200)
+}
+// Oracle progressive reveal: 3 levels, increasing cost
+const ORACLE_MAX_LEVEL = 3
+const ORACLE_COSTS = [10, 20, 30] // cost per level: -10, -20, -30
+
+const oracleNextCost = computed(() => {
+  if (isOracleFree.value) return 0
+  return ORACLE_COSTS[oracleRevealLevel.value] ?? 0
+})
+
+const oracleHintText = computed(() => {
+  const level = oracleRevealLevel.value
+  if (level === 0) return ''
+  return currentQuestion.value.oracle_hints?.[level - 1] || ''
+})
+
+// ── Skip Question Logic  ───────────────────────────────────────────
+
+
+function useOracleHint() {
+  if (oracleRevealLevel.value >= oracleMaxAllowed.value) return
+  if (gameState.value !== 'playing') return
+
+  playOracleHint()
+
+  const cost = isOracleFree.value ? 0 : ORACLE_COSTS[oracleRevealLevel.value]
+  oracleRevealLevel.value++
+  oracleTotalPenalty.value += cost
+
+  // Score bar will update when submit-answer responds (server is source of truth).
+  // Oracle cost is shown on the hint button label — no separate popup needed.
+
+  // Re-focus the hidden input so the player can continue typing without clicking the screen
+  inputRef.value?.focus()
+}
+const oracleMaxAllowed = computed(() => {
+  const len = currentQuestion.value.target_length
+  if (len <= 5) return 2
+  return ORACLE_MAX_LEVEL
+})
+
+
+
+let submitAnswerSeq = 0   // increments per answer submitted; used to discard out-of-order responses
+
+const playerAvatarUrl = computed(() =>
+  authStore.profile?.avatar_url ||
+  `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(authStore.profile?.username || 'Player')}`
+)
+
+const matchHistory = ref<{ round: number, submitted: string, correct: string, isCorrect: boolean }[]>([])
+
+const groupedMatchHistory = computed(() => {
+  const groups: Record<number, typeof matchHistory.value> = {}
+  matchHistory.value.forEach(item => {
+    if (!groups[item.round]) groups[item.round] = []
+    groups[item.round].push(item)
+  })
+  return groups
+})
+
+// ── Timer ──────────────────────────────────────────────────────────────────
+let timeoutInterval: ReturnType<typeof setInterval> | null = null
+
+function stopTimeoutInterval() {
+  if (timeoutInterval) {
+    clearInterval(timeoutInterval)
+    timeoutInterval = null
+  }
+}
+
+// ── Session API ────────────────────────────────────────────────────────────
+async function createSession() {
+  try {
+    const res = await fetchWithAuth(`/api/game/session`, {
+      method: 'POST',
+      body: JSON.stringify({ active_core_id: null, is_pure_skill: true })
+    })
+    if (!res.ok) {
+      console.error('Failed to create session:', res.statusText)
+      return
+    }
+    const data = await res.json()
+    sessionId.value = data.session_id
+    gameStore.sessionId = data.session_id
+    if (data.active_core?.id) gameStore.activeCoreId = data.active_core.id
+    if (data.active_core?.name) gameStore.activeCoreName = data.active_core.name
+    // Theme is now managed by matchStore topics
+    if (data.aegis_shield_count !== undefined) aegisShieldCount.value = data.aegis_shield_count
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl: number) {
+  savingSession.value = true
+  try {
+    const res = await fetchWithAuth(`/api/game/timeout`, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: sid,
+        active_core_id: coreId,
+        oracle_reveal_level: oracleLvl,
+        is_multiplayer: isMultiplayer.value,
+        opponent_id: opponentId.value,
+        is_win: isForfeitWin.value || (score.value > opponentScore.value),
+        is_custom: currentRoom?.state?.isCustom ?? false
+      })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      score.value = data.score ?? score.value
+      sendScoreUpdate(score.value)
+      questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+      
+      // Store result for match result overlay
+      matchResult.value = {
+        isVictory: isForfeitWin.value || (isMultiplayer.value ? score.value > opponentScore.value : (data.is_win ?? false)),
+        eloChange: data.elo_change ?? 0,
+        newElo: data.new_elo ?? 0,
+        oldElo: data.old_elo ?? 0,
+        expectedScore: data.expected_score ?? 500,
+        oldTier: data.old_tier,
+        currentTier: data.current_tier
+      }
+      // Wait for runRecapCountdown to finish before showing result
+    }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    savingSession.value = false
+  }
+}
+
+
+
+// ── Skip Question Logic (Enter key) ───────────────────────────────────────
+async function skipQuestion() {
+  if (gameState.value === 'timeout') return
+  if (matchStore.currentRound === 4) {
+    typedLetters.value = []
+    if (currentRoom) currentRoom.send('player_typing', { text: '' })
+    if (inputRef.value) inputRef.value.value = ''
+    return
+  }
+
+  if (gameState.value !== 'playing') return
+  if (!sessionId.value || !currentQuestion.value.id) {
+    // No session (guest/mock): deduct locally only
+    if (isAegisMode.value && aegisShieldCount.value > 0) {
+      aegisShieldCount.value--
+      spawnPointPopup(0, 'shield_blocked')
+    } else {
+      score.value = Math.max(0, score.value - 50)
+      sendScoreUpdate(score.value)
+      spawnPointPopup(50, 'wrong')
+    }
+    currentCombo.value = 0
+    if (isMissionCore.value) missionProgress.value = 0
+    typedLetters.value = []
+    triggerScoreFlash('wrong')
+    loadQuestion()
+    return
+  }
+
+  // Capture state before reset
+  const questionId = currentQuestion.value.id
+  const capturedCombo = currentCombo.value
+  const capturedShields = aegisShieldCount.value
+  const capturedMission = missionProgress.value
+
+  // Immediate local feedback
+  audioService.playSkip()
+  if (currentRoom) {
+    currentRoom.send('player_skip')
+  }
+  gameState.value = 'wrong'
+  currentCombo.value = 0
+  if (isMissionCore.value) {
+    const isShieldMission = effectiveCores.value.some(c => c.name.toLowerCase() === 'shield mission')
+    if (isShieldMission && aegisShieldCount.value > 0) {
+      // Streak is protected by active shield
+    } else {
+      missionProgress.value = 0
+    }
+  }
+  typedLetters.value = []
+  triggerScoreFlash('wrong')
+
+  // Advance immediately (skip = instant move to next)
+  loadQuestion()
+
+  // Notify server: send empty string as answer (server treats it as a full skip/wrong)
+  const timeTaken = Date.now() - questionStartTime.value
+  const mySeq = ++submitAnswerSeq
+    ; (async () => {
+      try {
+        const res = await fetchWithAuth(`/api/game/submit-answer`, {
+          method: 'POST',
+          body: JSON.stringify({
+            session_id: sessionId.value,
+            question_id: questionId,
+            answer: '',            // empty = full skip
+            current_combo: capturedCombo,
+            active_core_id: null,  // Pure Skill: always null, no core used
+            secondary_core_id: undefined,
+            core_history_names: [],
+            oracle_reveal_level: 0,
+            is_pure_skill: true,
+            time_taken: timeTaken,
+            difficulty: currentRoom?.state.metadata.difficulty || 'Standard',
+            current_shields: capturedShields,
+            mission_progress: capturedMission
+          })
+        })
+        if (res.ok) {
+          const data = await res.json()
+
+          score.value = data.new_total_score ?? score.value
+          sendScoreUpdate(score.value)
+          questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+
+          if (data.breakdown?.final_shield_count !== undefined) {
+            aegisShieldCount.value = data.breakdown.final_shield_count
+          }
+          if (data.breakdown?.mission_streak !== undefined) {
+            missionProgress.value = data.breakdown.mission_streak
+          }
+
+          // --- Core Effect Engine (v2) Handlers ---
+          if (data.timer_delta) {
+            addTime(data.timer_delta)
+            if (data.timer_delta > 0) {
+              spawnPointPopup(0, 'custom', `+${data.timer_delta / 1000}s TIME!`)
+            }
+          }
+
+          if (data.forgive_mistake) {
+            // Restore proactive resets
+            currentCombo.value = capturedCombo
+            missionProgress.value = capturedMission
+
+            triggerScoreFlash('forgive')
+            spawnPointPopup(0, 'custom', 'FORGIVEN!')
+          }
+
+          // Only show popup if it's the latest question to avoid spam, but ALWAYS update history
+          if (mySeq === submitAnswerSeq) {
+            if (data.breakdown?.shield_blocked) {
+              spawnPointPopup(0, 'shield_blocked')
+            } else if (!data.forgive_mistake) {
+              spawnPointPopup(data.points_deducted, 'wrong')
+            }
+          }
+
+          matchHistory.value.push({
+            round: matchStore.currentRound,
+            submitted: '(Skipped)',
+            correct: data.correct_word || '???',
+            isCorrect: false
+          })
+        }
+      } catch (err) {
+        console.error('Failed to sync skip:', err)
+      }
+    })()
+}
+
+// ── Input handling ────────────────────────────────────────────────────────
+function handleKeydown(e: KeyboardEvent) {
+  initAudio()
+
+  if (gameState.value === 'timeout') return
+  if (menuOpen.value || confirmQuit.value) return
+
+  const isRaceMode = matchStore.currentRound === 4
+  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+
+  // Skip question when Enter is pressed
+  if (e.key === 'Enter') {
+    if (gameState.value === 'correct' || gameState.value === 'wrong') {
+      skipQuestion()
+      return
+    }
+    if (gameState.value !== 'playing') return
+    if (matchStore.currentRound === 4) {
+      if (typedLetters.value.length === 0 || (currentQ && typedLetters.value.length === currentQ.target_length)) {
+        checkAnswer()
+      }
+      return
+    }
+    skipQuestion()
+    return
+  }
+
+  if (gameState.value !== 'playing') return
+  
+  if (!currentQ) return
+
+  // Reset the input buffer on nextTick to prevent string accumulation memory bloat
+  nextTick(() => {
+    if (inputRef.value) inputRef.value.value = ''
+  })
+
+
+  if (e.key === 'Backspace') {
+    typedLetters.value = typedLetters.value.slice(0, -1)
+    if (matchStore.currentRound === 4 && currentRoom) {
+      currentRoom.send('player_typing', { text: typedLetters.value.join('') })
+    }
+    playKeystroke(isSpeedsterCore.value, 0.8, isPowerCore.value) // slightly lower pitch for backspace
+    return
+  }
+
+  if (/^[a-zA-Z0-9\- '".,!?]$/.test(e.key)) {
+    const maxLen = currentQ.target_length
+    if (typedLetters.value.length >= maxLen) return
+
+    typedLetters.value = [...typedLetters.value, e.key.toLowerCase()]
+
+    if (matchStore.currentRound === 4 && currentRoom) {
+      currentRoom.send('player_typing', { text: typedLetters.value.join('') })
+    }
+
+    // Play keystroke sound
+    playKeystroke(isSpeedsterCore.value, isSpeedsterCore.value ? 1.15 : 1.0, isPowerCore.value)
+
+    if (matchStore.currentRound !== 4 && typedLetters.value.length === maxLen) checkAnswer()
+  }
+}
+
+function handleVirtualKey(key: string) {
+  if (key === 'Enter') {
+    handleKeydown(new KeyboardEvent('keydown', { key: 'Enter' }))
+  } else if (key === 'Backspace') {
+    handleKeydown(new KeyboardEvent('keydown', { key: 'Backspace' }))
+  } else {
+    handleKeydown(new KeyboardEvent('keydown', { key }))
+  }
+}
+
+async function sha256(message: string) {
+  const msgBuffer = new TextEncoder().encode(message)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function checkAnswer() {
+  const isRaceMode = matchStore.currentRound === 4
+  const currentQ = isRaceMode ? currentRaceQuestion.value : currentQuestion.value
+  
+  if (!currentQ) return
+
+  const maxLen = currentQ.target_length
+  if (matchStore.currentRound === 4) {
+    if (typedLetters.value.length !== 0 && typedLetters.value.length !== maxLen) return
+  } else {
+    if (typedLetters.value.length < maxLen) return
+  }
+
+  const typed = typedLetters.value.join('')
+  const elapsed = Date.now() - questionStartTime.value
+
+  if (matchStore.currentRound === 4) {
+    if (currentRoom) {
+      currentRoom.send('submit_race_answer', { answer: typed, session_id: sessionId.value })
+    }
+    return
+  }
+
+  const questionId = currentQuestion.value.id
+  const capturedOracleLevel = oracleRevealLevel.value
+  const capturedCombo = currentCombo.value
+  const capturedShields = aegisShieldCount.value
+  const capturedMission = missionProgress.value
+
+  const hashVal = await sha256(typed)
+  const isCorrectLocal = hashVal === currentQuestion.value.target_hash
+
+  if (isCorrectLocal) {
+    audioService.playCorrect()
+    gameState.value = 'correct'
+    currentCombo.value++
+
+    if (currentRoom) {
+      // Pure Skill Mode has no cores, so no combo/oracle milestones are sent.
+      if (elapsed < 2500) {
+        currentRoom.send('player_milestone', { type: 'massive_hit', message: 'Opponent scored a massive hit!', icon: '🚀', color: 'text-lightBlue' })
+      }
+    }
+
+    // Core specific time modifiers
+    if (isTimeWarp.value) {
+      addTime(2000)
+    }
+    if (isSpeedDemon.value && elapsed < 1500) {
+      addTime(3000)
+    }
+    if (isChronobreak.value && currentCombo.value > 0 && currentCombo.value % 3 === 0) {
+      pauseTimerFor(3000)
+    }
+
+    // Mission logic has been removed from client prediction and moved entirely to the backend.
+
+    triggerScoreFlash('correct')
+  } else {
+    audioService.playSkip()
+    gameState.value = 'wrong'
+    currentCombo.value = 0
+    // Mission streak drop logic is now handled by the backend
+
+    triggerScoreFlash('wrong')
+  }
+
+  if (!sessionId.value || !questionId) {
+    setTimeout(() => {
+      if (gameState.value !== 'timeout') loadQuestion()
+    }, FEEDBACK_MS)
+    return
+  }
+
+  const timeTaken = elapsed
+  const mySeq = ++submitAnswerSeq
+
+  // If local check is correct, transition to next question immediately after feedback time
+  if (isCorrectLocal) {
+    let delay = FEEDBACK_MS
+    // BUG FIX #3: was hardcoded === 5, didn't account for Swift Mission (3) or Mission Master (3)
+    const missionTarget = effectiveCores.value.some(c =>
+      ['swift mission', 'mission master', 'daily quest'].includes(c.name.toLowerCase())
+    ) ? 3 : 5
+    if (isMissionCore.value && missionProgress.value === missionTarget) {
+      delay = 2000 // Wait for mission celebration animation
+    }
+    setTimeout(() => {
+      if (gameState.value !== 'timeout' && mySeq === submitAnswerSeq) loadQuestion()
+    }, delay)
+  }
+
+  ; (async () => {
+    let lockInputMs = 0
+    try {
+      const res = await fetchWithAuth(`/api/game/submit-answer`, {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: sessionId.value,
+          question_id: questionId,
+          answer: typed,
+          current_combo: capturedCombo,
+          active_core_id: null,
+          secondary_core_id: undefined,
+          core_history_names: gameStore.coreHistory.map(c => c.name),
+          core_history: gameStore.coreHistory.map(c => c.id),
+          oracle_reveal_level: capturedOracleLevel,
+          is_pure_skill: true,
+          time_taken: timeTaken,
+          difficulty: currentRoom?.state.metadata.difficulty || 'Standard',
+          current_shields: capturedShields,
+          mission_progress: capturedMission
+        })
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+
+        if (!data.correct) {
+          isTypingError.value = true
+          setTimeout(() => {
+            isTypingError.value = false
+          }, 300)
+        }
+
+        if (data.lock_input_ms) {
+          lockInputMs = data.lock_input_ms
+        }
+
+        const newScore = data.new_total_score ?? score.value
+        updateScoreAnimated(newScore)
+        sendScoreUpdate(newScore)
+
+        questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+        pointsEarned.value = data.points_earned ?? pointsEarned.value
+        pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
+
+        if (data.breakdown?.final_shield_count !== undefined) {
+          aegisShieldCount.value = data.breakdown.final_shield_count
+        }
+        if (data.breakdown?.mission_streak !== undefined) {
+          if (data.breakdown.mission_completed === 1) {
+            // Optimistically fill the last star for the celebration
+            missionProgress.value = missionProgress.value + 1
+          } else {
+            missionProgress.value = data.breakdown.mission_streak
+          }
+        }
+
+        // --- Core Effect Engine (v2) Handlers ---
+        if (data.timer_delta) {
+          addTime(data.timer_delta)
+          // Optional: spawn some text popup for +1s
+          if (data.timer_delta > 0) {
+            spawnPointPopup(0, 'custom', `+${data.timer_delta / 1000}s TIME!`)
+          }
+        }
+
+        if (data.pause_timer_ms) {
+          pauseTimerFor(data.pause_timer_ms)
+          spawnPointPopup(0, 'custom', 'TIME FROZEN!')
+        }
+
+        if (data.shield_delta && data.shield_delta > 0) {
+          // If Phoenix rebirth happened, the points popup already covers it — show REBIRTH! instead
+          if (data.breakdown?.phoenix_miss_count > 0) {
+            spawnPointPopup(0, 'custom', '🔥 REBIRTH!')
+            playPhoenixRebirth()
+          } else {
+            const shieldLabel = data.shield_delta >= 2 ? `+${data.shield_delta} SHIELDS!` : '+1 SHIELD!'
+            spawnPointPopup(0, 'custom', shieldLabel)
+          }
+        }
+
+        // Handle forgive_mistake (prevent streak loss)
+        if (!data.correct && data.forgive_mistake) {
+          // Restore proactive resets
+          currentCombo.value = capturedCombo
+          missionProgress.value = capturedMission
+
+          triggerScoreFlash('forgive')
+          spawnPointPopup(0, 'custom', 'FORGIVEN!')
+        }
+
+        if (mySeq === submitAnswerSeq && !data.correct && data.correct_word) {
+          currentQuestion.value.correct_word = data.correct_word
+        }
+
+        matchHistory.value.push({
+          round: matchStore.currentRound,
+          submitted: typed,
+          correct: data.correct ? typed : (data.correct_word || '???'),
+          isCorrect: data.correct
+        })
+
+        if (mySeq === submitAnswerSeq) {
+          if (data.breakdown?.mission_completed === 1) {
+            playJackpot(true)
+            showMissionCelebration.value = true
+            setTimeout(() => {
+              showMissionCelebration.value = false
+              missionProgress.value = 0
+            }, 2000)
+          }
+
+          // Note: Mission celebration is now handled locally for instant feedback
+          if (data.breakdown?.shield_blocked) {
+            spawnPointPopup(0, 'shield_blocked')
+          } else if (data.correct && isPrismaticCombo.value) {
+            spawnPointPopup(data.points_earned, 'prismatic')
+            showPrismaticFlash.value = true
+            playFireBurst() // Burst of fire for prismatic
+            setTimeout(() => {
+              showPrismaticFlash.value = false
+            }, 300)
+          } else if (data.correct && isSpeedsterCore.value) {
+            spawnPointPopup(data.points_earned, 'speedster')
+            if (timeTaken <= 2000) playSpeedWhoosh()
+          } else {
+            const popupType: 'correct' | 'wrong' | 'typo' | 'prismatic' = data.correct
+              ? 'correct'
+              : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
+            spawnPointPopup(
+              data.correct ? data.points_earned : data.points_deducted,
+              popupType
+            )
+          }
+        }
+
+      }
+    } catch (err) {
+      console.error('Failed to sync answer:', err)
+    } finally {
+      if (!isCorrectLocal && mySeq === submitAnswerSeq) {
+        const feedbackDelay = lockInputMs > 0 ? lockInputMs : FEEDBACK_MS
+
+        if (lockInputMs > 0) {
+          triggerScoreFlash('wrong') // Trigger a stronger flash or effect
+          spawnPointPopup(0, 'custom', 'SYSTEM OVERLOAD!')
+        }
+
+        setTimeout(() => {
+          if (gameState.value !== 'timeout') loadQuestion()
+        }, feedbackDelay)
+      }
+    }
+  })()
+}
+
+function resetTypingBoard() {
+  gameState.value = 'timeout'
+  stopTimeoutInterval()
+  // NOTE: intentionally NOT resetting score, questionsAnswered, pointsEarned, pointsDeducted
+  resetTimer()
+  typedLetters.value = []
+  currentCombo.value = 0
+  missionProgress.value = 0
+  // Aegis active shields are preserved between rounds
+  scoreFlash.value = null
+  pointPopups.value = []
+  oracleRevealLevel.value = 0
+  clearQueue()
+}
+
+// ── US-24: Start 15-second timeout phase countdown ───────────────────────
+// Called when the 1m30s gameplay timer reaches 0.
+// Initialises the countdown state and schedules callTimeoutEndpoint once the
+// 15s window has elapsed (or immediately completes the phase if it finishes).
+function startTimeoutPhase() {
+  gameState.value = "timeout"
+  inputRef.value?.blur()
+  stopTimeoutInterval()
+
+  if (isMultiplayer.value && !isForfeitWin.value) {
+    waitingForOpponent.value = true
+    if (currentRoom) {
+      currentRoom.send("finished_round")
+    }
+  } else {
+    waitingForOpponent.value = false
+    finalizeMatch()
+  }
+}
+
+async function finalizeMatch() {
+  const sid = sessionId.value
+  if (sid) {
+    await callTimeoutEndpoint(sid, activeCoreId.value, oracleRevealLevel.value)
+  }
+  showMatchResult.value = true
+}
+
+function goToUpgrade() {
+  stopTimeoutInterval()
+  if (matchStore.currentRound === 3) {
+    if (isMultiplayer.value && currentRoom) {
+      isWaitingForNextRound.value = true
+      currentRoom.send("ready_next_round", { round: 4 })
+    } else {
+      restartMatch() // fallback
+    }
+  } else if (!matchStore.isFinalRound()) {
+    gameState.value = 'upgrade'
+  }
+}
+
+function handleUpgradeSelected(newCoreId: string) {
+  const chosenCoreId = newCoreId || gameStore.activeCoreId || ''
+  if (isMultiplayer.value) {
+    isWaitingForNextRound.value = true
+    if (currentRoom) {
+      if (chosenCoreId) {
+        currentRoom.send("update_core", { coreId: chosenCoreId })
+      }
+      currentRoom.send("ready_next_round", { round: matchStore.currentRound + 1 })
+    }
+  } else {
+    // When upgrade is selected, restart match for the next round
+    restartMatch()
+  }
+}
+
+// ── Match control ──────────────────────────────────────────────────────────
+async function restartMatch() {
+  if (gameState.value === 'loading') return
+  if (matchStore.isFinalRound()) {
+    // If they manually click "Next Round" somehow, route to home as fallback
+    router.push('/home')
+    return
+  }
+
+  // Next Round
+  currentPandoraCoreId.value = null
+  resetTypingBoard()
+
+  // Pure Skill Mode: never broadcast a core to the Colyseus room.
+
+  // Transition to loading and fetch next batch
+  // Note: We DO NOT call createSession() here so the backend continues the same session!
+  gameState.value = 'loading'
+  await fetchBatch()
+
+  if (questionQueue.value.length > 0) {
+    await loadQuestion()
+    gameState.value = 'playing'
+    if (matchStore.currentRound !== 4) startMatchTimer()
+  } else {
+    // Fallback if fetch completely failed
+    gameState.value = 'playing'
+    if (matchStore.currentRound !== 4) startMatchTimer()
+  }
+}
+
+async function playAgain() {
+  showMatchResult.value = false
+  if (gameState.value === 'loading') return
+
+  if (isMultiplayer.value && currentRoom) {
+    const rId = currentRoom.roomId
+    if (currentRoom.state?.isCustom) {
+      // Tell server to reset to lobby state (server broadcasts to all players)
+      currentRoom.send('return_to_lobby')
+      // Reset local match state too
+      score.value = 0
+      questionsAnswered.value = 0
+      matchHistory.value = []
+      gameStore.coreHistory = []
+      gameStore.activeCoreId = null
+      gameStore.activeCoreName = null
+      gameStore.sessionId = null
+      matchStore.resetMatch(1)
+      matchStore.maxRounds = 1
+      isForfeitWin.value = false
+      matchResult.value = null
+      router.push(`/room/custom?id=${rId}`)
+    } else {
+      leaveMatchRoom()
+      router.push('/home')
+    }
+    return
+  }
+
+  // Hard reset of global state
+  score.value = 0
+  questionsAnswered.value = 0
+  currentCombo.value = 0
+  aegisShieldCount.value = 0
+  missionProgress.value = 0
+
+  matchStore.resetMatch(1)
+  matchHistory.value = []
+  gameStore.coreHistory = []
+  gameStore.activeCoreId = null
+  gameStore.activeCoreName = null
+  opponentCoresHistory.value = []
+
+  stopMatchTimer()
+  resetTypingBoard()
+
+  // Route back to core selection for a completely fresh match
+  router.push('/core')
+}
+
+function goHome() {
+  stopMatchTimer()
+  stopTimeoutInterval()
+  abandonCurrentSession()
+  gameStore.sessionId = null
+  matchStore.resetMatch(1)
+  if (isMultiplayer.value && currentRoom) {
+    leaveMatchRoom()
+  }
+  router.push('/lobby')
+}
+
+async function debugSkipRound() {
+  menuOpen.value = false
+  if (matchStore.isFinalRound()) {
+    startTimeoutPhase()
+  } else {
+    await restartMatch()
+  }
+}
+
+function skipGameplay() {
+  menuOpen.value = false
+  stopMatchTimer()
+  // Pure Skill mode has no upgrade phase — always go straight to match end
+  startTimeoutPhase()
+}
+
+async function abandonCurrentSession() {
+  // Note: intentionally NOT checking gameState === 'timeout' here.
+  // If the player quits mid-game, we still want to mark the session as abandoned
+  // even if the timer had already expired but the overlay hadn't been shown yet.
+  if (!sessionId.value) return
+  try {
+    await fetchWithAuth(`/api/game/abandon`, {
+      method: 'POST',
+      body: JSON.stringify({ session_id: sessionId.value })
+    })
+  } catch (err) {
+    console.error('Failed to abandon session:', err)
+  }
+}
+
+// ── Misc ───────────────────────────────────────────────────────────────────
+function handleOutsideClick(e: MouseEvent) {
+  if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
+    menuOpen.value = false
+  }
+}
+
+function refocusInput() {
+  if (gameState.value === 'timeout') return
+  if (!menuOpen.value && !confirmQuit.value) inputRef.value?.focus()
+}
+
+const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (gameState.value === 'playing') {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+
+watch(() => settingsStore.isSettingsOpen, (isOpen) => {
+  if (!isOpen && gameState.value === 'playing') {
+    nextTick(() => {
+      refocusInput()
+    })
+  }
+})
+
+// Audio watchers
+watch(aegisShieldCount, (newVal, oldVal) => {
+  if (newVal > oldVal) {
+    playShieldGain(newVal === maxShields.value)
+  } else if (newVal < oldVal) {
+    playShieldBreak()
+    if (currentRoom) {
+      const family = getCoreFamily(gameStore.activeCoreName || '')
+      if (family === 'aegis') {
+        currentRoom.send('player_milestone', { type: 'shield_break', message: "Opponent's shield broke!", icon: '🛡️', color: 'text-gray-400' })
+      }
+    }
+  }
+})
+
+watch(activeCoreModule, () => {
+  // BGM is handled elsewhere
+}, { immediate: true })
+
+watch(() => gameState.value, (newState) => {
+  if (newState === 'upgrade') {
+    audioService.playBGM('/audio/core_selection.mp3')
+  } else if (newState === 'playing') {
+    audioService.playBGM(audioService.getCoreBgmPath(''))
+  }
+})
+
+watch(() => currentCombo.value, (newVal) => {
+  const isComboActive = effectiveCores.value.some(c => c.name.toLowerCase().includes('combo') || c.name.toLowerCase().includes('strike') || c.name.toLowerCase().includes('power'))
+
+  if (!isComboActive) return
+
+  if (newVal >= 2) {
+    playComboTone(newVal)
+  } else if (newVal === 0) {
+    playComboBreak()
+  }
+})
+
+// ── RECONNECTION STATE & HANDLERS ──
+const isSelfReconnecting = ref(false)
+const selfReconnectTimerSeconds = ref(15)
+let selfReconnectInterval: ReturnType<typeof setInterval> | null = null
+
+const opponentReconnecting = ref(false)
+const opponentReconnectTimerSeconds = ref(15)
+let opponentReconnectInterval: ReturnType<typeof setInterval> | null = null
+
+// Hoisted to module scope so onUnmounted can cancel it
+let raceTimerFrame: number | null = null
+
+function startOpponentReconnectCountdown(timeout: number = 15) {
+  opponentReconnecting.value = true
+  opponentReconnectTimerSeconds.value = timeout
+  stopMatchTimer()
+
+  if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
+  opponentReconnectInterval = setInterval(() => {
+    if (opponentReconnectTimerSeconds.value > 1) {
+      opponentReconnectTimerSeconds.value--
+    } else {
+      if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
+    }
+  }, 1000)
+}
+
+function clearOpponentReconnectCountdown() {
+  opponentReconnecting.value = false
+  if (opponentReconnectInterval) {
+    clearInterval(opponentReconnectInterval)
+    opponentReconnectInterval = null
+  }
+}
+
+async function attemptSelfReconnect() {
+  const token = getSavedReconnectionToken()
+  if (!token) return
+
+  isSelfReconnecting.value = true
+  selfReconnectTimerSeconds.value = 15
+  stopMatchTimer()
+
+  if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+  selfReconnectInterval = setInterval(() => {
+    if (selfReconnectTimerSeconds.value > 1) {
+      selfReconnectTimerSeconds.value--
+    } else {
+      if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+      isSelfReconnecting.value = false
+      alert("Mất kết nối quá 15s. Bạn đã thua trận đấu (Forfeit).")
+      goHome()
+    }
+  }, 1000)
+
+  const tryConnect = async () => {
+    if (!isSelfReconnecting.value) return
+    try {
+      const room = await reconnectMatchRoom(token)
+      if (room) {
+        if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+        isSelfReconnecting.value = false
+        setupRoomEventHandlers(room)
+        startMatchTimer()
+        addToast("Đã khôi phục kết nối!", "⚡", "text-emerald-400")
+      }
+    } catch (e) {
+      console.warn("Reconnecting attempt failed, retrying...", e)
+      if (isSelfReconnecting.value && selfReconnectTimerSeconds.value > 0) {
+        setTimeout(tryConnect, 2000)
+      }
+    }
+  }
+
+  tryConnect()
+}
+
+function setupRoomEventHandlers(room: any) {
+  if (!room) return
+  
+  room.removeAllListeners()
+
+  // Pure Skill Mode: do NOT broadcast a core — there is no active core.
+  updateOpponentData(room.state)
+
+  room.onStateChange((state: any) => {
+    updateOpponentData(state)
+  })
+
+  room.onMessage('opponent_reconnecting', (data: { timeout: number }) => {
+    startOpponentReconnectCountdown(data?.timeout || 15)
+  })
+
+  room.onMessage('opponent_reconnected', () => {
+    clearOpponentReconnectCountdown()
+    startMatchTimer()
+    addToast('The opponent has reconnected!', '⚡', 'text-emerald-400')
+  })
+
+  room.onMessage('opponent_forfeit', () => {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
+      return // Match is effectively over, ignore
+    }
+    clearOpponentReconnectCountdown()
+    stopMatchTimer()
+    addToast('The opponent has timed out. You win (Forfeit)!', '🏆', 'text-yellow-400')
+    isForfeitWin.value = true
+    matchStore.currentRound = 3 // Force end of match
+    startTimeoutPhase()
+  })
+
+  room.onMessage('room_terminated', () => {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
+      return
+    }
+    clearOpponentReconnectCountdown()
+    stopMatchTimer()
+    leaveMatchRoom()
+    router.push('/lobby')
+  })
+
+  room.onMessage('opponent_left', () => {
+    if (gameState.value === 'timeout' || showMatchResult.value) {
+      return // Match is effectively over, ignore
+    }
+    alert("Your opponent has left the match! You will be returned to the main menu.")
+    goHome()
+  })
+
+  room.onMessage('start_recap_countdown', () => {
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    waitingForOpponent.value = false
+    gameState.value = 'timeout'
+    finalizeMatch()
+  })
+
+  room.onMessage('start_next_round', (data: any) => {
+    isWaitingForNextRound.value = false
+    if (data?.round) {
+      matchStore.currentRound = data.round
+    }
+    if (matchStore.currentRound === 4) {
+      gameState.value = 'loading'
+    } else {
+      restartMatch()
+    }
+  })
+
+  room.onMessage('opponent_milestone', (data: { type: string, message: string, icon: string, color: string }) => {
+    addToast(data.message, data.icon, data.color)
+  })
+
+  room.onMessage('opponent_skip', () => {
+    addToast('Opponent skipped a word!', '❌', 'text-hexred')
+  })
+
+  // --- Round 4 (Race Mode) Listeners ---
+
+  // raceTimerFrame is hoisted to module scope for cleanup on unmount
+
+  room.onMessage('next_race_question', (q: any) => {
+    currentRaceQuestion.value = q
+    typedLetters.value = []
+    opponentTypingText.value = ''
+    gameState.value = 'playing'
+    isRaceLocked.value = false
+    questionStartTime.value = Date.now()
+
+    timeLeft.value = 12
+    timerProgressPercent.value = 100
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    
+    const duration = 12000;
+    const start = performance.now();
+    
+    function updateRaceTimer(now: number) {
+      const elapsed = now - start;
+      const remainingMs = Math.max(0, duration - elapsed);
+      timeLeft.value = Math.ceil(remainingMs / 1000);
+      timerProgressPercent.value = (remainingMs / duration) * 100;
+      
+      if (remainingMs > 0 && gameState.value === 'playing') {
+        raceTimerFrame = requestAnimationFrame(updateRaceTimer);
+      }
+    }
+    raceTimerFrame = requestAnimationFrame(updateRaceTimer);
+    
+    // Auto focus
+    setTimeout(() => {
+      if (inputRef.value) {
+        inputRef.value.focus()
+      }
+    }, 50)
+  })
+
+  room.onMessage('opponent_typing', (data: { text: string }) => {
+    opponentTypingText.value = data.text
+  })
+
+  room.onMessage('race_won', (data: { winnerId: string, points: number }) => {
+    if (data.winnerId === currentRoom?.sessionId) {
+      triggerScoreFlash('correct')
+      spawnPointPopup(data.points, 'correct', 'RACE WON')
+      score.value += data.points
+    } else {
+      opponentScore.value += data.points
+      spawnPointPopup(0, 'typo', 'OPPONENT WON')
+    }
+  })
+
+  room.onMessage('race_wrong', (data: { playerId: string, penalty: number }) => {
+    if (data.playerId === currentRoom?.sessionId) {
+      triggerScoreFlash('wrong')
+      if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
+      else spawnPointPopup(0, 'custom', 'SKIPPED')
+      score.value = Math.max(0, score.value - data.penalty)
+      isRaceLocked.value = true // Lock input for this race question
+    } else {
+      opponentScore.value = Math.max(0, opponentScore.value - data.penalty)
+      addToast('Opponent answered incorrectly!', '⚠️', 'text-orange')
+    }
+  })
+
+  room.onMessage('race_timeout', () => {
+    if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+    opponentTypingText.value = ''
+    typedLetters.value = []
+    addToast('Time is up!', '⏱️', 'text-yellow-400')
+  })
+  // ------------------------------------
+
+  room.onLeave((code: number) => {
+    if (code !== 1000 && isMultiplayer.value) {
+      attemptSelfReconnect()
+    }
+  })
+}
+
+onMounted(async () => {
+  if (isMultiplayer.value && !currentRoom) {
+    const token = getSavedReconnectionToken()
+    if (token) {
+      try {
+        console.log('[GameMultiplayView] Reconnecting to room with saved token...')
+        await reconnectMatchRoom(token)
+      } catch (e) {
+        console.warn('[GameMultiplayView] Reconnection failed:', e)
+      }
+    }
+    
+    // If still no currentRoom after attempt, the player has forfeited
+    if (!currentRoom) {
+      console.warn('[GameMultiplayView] No active room found. Kicking to home.')
+      router.replace('/home')
+      return
+    }
+  }
+
+  if (isMultiplayer.value && currentRoom) {
+    setupRoomEventHandlers(currentRoom)
+  }
+
+  // Pure Skill Mode does not use cores — clear any stale core state that
+  // may have been loaded from localStorage by the gameStore initializer.
+  gameStore.activeCoreId = null
+  gameStore.activeCoreName = null
+  localStorage.removeItem('naenra_active_core_id')
+  localStorage.removeItem('naenra_active_core_name')
+
+  // Ensure we start a fresh match if navigating here from outside
+  if (!gameStore.sessionId) {
+    matchStore.resetMatch(1)
+    // Pure Skill mode is always 1 round, adjust maxRounds accordingly
+    matchStore.maxRounds = 1
+  }
+  resetTimer()
+
+  if (!gameStore.sessionId) {
+    await createSession()
+  } else {
+    sessionId.value = gameStore.sessionId
+  }
+
+  // Always fetch full cores list — needed for OpponentWidget history, core tooltips, and Pandora
+  await fetchPandoraPool()
+
+  await fetchBatch()
+  await loadQuestion()
+
+  if (gameState.value !== 'upgrade') {
+    audioService.playBGM(audioService.getCoreBgmPath(''))
+  }
+
+  sendScoreUpdate(0)
+  startMatchTimer()
+  document.addEventListener('click', handleOutsideClick)
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onUnmounted(() => {
+  if (selfReconnectInterval) clearInterval(selfReconnectInterval)
+  if (opponentReconnectInterval) clearInterval(opponentReconnectInterval)
+  if (raceTimerFrame) cancelAnimationFrame(raceTimerFrame)
+  stopMatchTimer()
+  stopTimeoutInterval()
+  document.removeEventListener('click', handleOutsideClick)
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  for (const t of activeBgTimeouts) clearTimeout(t)
+  activeBgTimeouts.clear()
+})
+
+onBeforeRouteLeave((to, _from, next) => {
+  if (to.path.includes('/room/custom') && currentRoom?.state?.isCustom === true) {
+    // Do not leave room, we are just returning to lobby
+  } else {
+    leaveMatchRoom()
+  }
+  next()
+})
+
+
+</script>
+
+<style scoped>
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.score-bar-fill {
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.float-pts-item {
+  text-shadow: 0 0 12px currentColor;
+  white-space: nowrap;
+}
+
+.float-pts-enter-active {
+  animation: floatUp 1.2s ease-out forwards;
+}
+
+.mission-celebration-enter-active {
+  animation: missionCelebIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.mission-celebration-leave-active {
+  transition: opacity 0.3s ease-in;
+}
+
+.mission-celebration-enter-from,
+.mission-celebration-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+@keyframes missionCelebIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.float-pts-leave-active {
+  display: none;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1.2);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translateY(-16px) scale(1.35);
+  }
+
+  80% {
+    opacity: 0.7;
+    transform: translateY(-56px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) scale(0.85);
+  }
+}
+
+/* ── Popups & Float Animations ──────────────────────────────────────────────── */
+.point-popup-anim {
+  animation: floatUp 1.2s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* ── Speedster FAST! popup ──────────────────────────────────────────────── */
+.speedster-popup {
+  animation: fastPopup 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+  will-change: transform, opacity;
+}
+
+.speedster-fast-text {
+  display: inline-block;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  background: linear-gradient(90deg, #67e8f9, #06b6d4, #ffffff, #06b6d4, #67e8f9);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.9)) drop-shadow(0 0 24px rgba(103, 232, 249, 0.6));
+  animation: shimmerFast 0.6s linear infinite;
+}
+
+@keyframes shimmerFast {
+  to {
+    background-position: 200% center;
+  }
+}
+
+@keyframes fastPopup {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6) skewX(-8deg);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.5) skewX(4deg);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translateY(-30px) scale(1.2) skewX(-2deg);
+  }
+
+  70% {
+    opacity: 0.9;
+    transform: translateY(-80px) scale(1.05) skewX(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) scale(0.8) skewX(0deg);
+  }
+}
+
+/* ── Speedster timer glow ───────────────────────────────────────────────── */
+.speedster-timer-glow {
+  animation: speedTimerPulse 0.8s ease-in-out infinite;
+  color: #67e8f9;
+}
+
+.speedster-timer-icon {
+  animation: speedTimerPulse 0.8s ease-in-out infinite;
+  color: #67e8f9;
+  filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.8));
+}
+
+@keyframes speedTimerPulse {
+
+  0%,
+  100% {
+    text-shadow: 0 0 8px rgba(6, 182, 212, 0.6), 0 0 16px rgba(103, 232, 249, 0.3);
+    filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.8));
+  }
+
+  50% {
+    text-shadow: 0 0 20px rgba(6, 182, 212, 1), 0 0 40px rgba(103, 232, 249, 0.8), 0 0 60px rgba(255, 255, 255, 0.3);
+    filter: drop-shadow(0 0 14px rgba(6, 182, 212, 1)) drop-shadow(0 0 28px rgba(103, 232, 249, 0.6));
+  }
+}
+
+
+
+.speedster-slots-glow {
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.35));
+  transition: filter 0.3s ease;
+}
+
+
+
+.score-pop-correct {
+  animation: scoreScaleCorrect 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.score-pop-wrong {
+  animation: scoreScaleWrong 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scoreScaleCorrect {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.6);
+    text-shadow: 0 0 15px rgba(255, 165, 0, 0.8);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes scoreScaleWrong {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.4);
+    text-shadow: 0 0 15px rgba(230, 57, 70, 0.9);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.slot--correct {
+  animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.slot--wrong {
+  animation: shake 0.4s ease;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-6px);
+  }
+
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+.timeout-glitch {
+  animation: glitch 0.8s ease forwards;
+}
+
+@keyframes glitch {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+    transform: skewX(-10deg) scale(1.1);
+    color: #fff;
+  }
+
+  30% {
+    clip-path: inset(0 0 0% 0);
+    opacity: 1;
+    transform: skewX(5deg);
+    color: #E63946;
+  }
+
+  60% {
+    transform: skewX(-2deg);
+    color: #fff;
+  }
+
+  100% {
+    transform: skewX(0);
+    color: #E63946;
+  }
+}
+
+.timeout-panel {
+  animation: panel-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes panel-in {
+  from {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* ── US-24: 15-second timeout phase banner ─────────────────────────────── */
+.timeout-phase-banner-enter-active {
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.timeout-phase-banner-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.timeout-phase-banner-enter-from,
+.timeout-phase-banner-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+/* Pulsing red ring around the countdown circle */
+.timeout-phase-ring {
+  animation: phaseRingPulse 1s ease-in-out infinite;
+}
+
+@keyframes phaseRingPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(230, 57, 70, 0.4), 0 0 40px rgba(230, 57, 70, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(230, 57, 70, 0.8), 0 0 80px rgba(230, 57, 70, 0.4), 0 0 120px rgba(230, 57, 70, 0.15);
+  }
+}
+
+/* Subtle scale-tick on every digit change */
+.timeout-phase-digits {
+  animation: phaseTick 1s steps(1, end) infinite;
+}
+
+@keyframes phaseTick {
+  0% {
+    transform: scale(1);
+  }
+
+  5% {
+    transform: scale(1.15);
+  }
+
+  15% {
+    transform: scale(1);
+  }
+}
+
+.timeout-overlay-enter-active,
+.timeout-overlay-leave-active {
+  transition: opacity 0.3s;
+}
+
+.timeout-overlay-enter-from,
+.timeout-overlay-leave-to {
+  opacity: 0;
+}
+
+.overlay-enter-active,
+.overlay-leave-active {
+  transition: opacity 0.2s;
+}
+
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.card-flip-enter-active,
+.card-flip-leave-active {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.card-flip-enter-from {
+  opacity: 0;
+  transform: rotateX(-90deg) scale(0.9);
+}
+
+.card-flip-leave-to {
+  opacity: 0;
+  transform: rotateX(90deg) scale(0.9);
+}
+
+.glow-sweep {
+  animation: sweepWave 1s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes sweepWave {
+
+  0%,
+  100% {
+    color: #22c55e;
+    text-shadow: 0 0 5px rgba(34, 197, 94, 0.3);
+    transform: scale(1) translateY(0);
+  }
+
+  50% {
+    color: #ffffff;
+    text-shadow: 0 0 15px rgba(34, 197, 94, 1), 0 0 25px rgba(34, 197, 94, 0.8), 0 0 35px rgba(255, 255, 255, 0.5);
+    transform: scale(1.15) translateY(-3px);
+  }
+}
+
+
+/* ── INTENSE WILDFIRE EFFECT ────────────────────────────── */
+.burning-edge-active {
+  position: relative;
+  border-color: rgba(255, 100, 0, 0.8) !important;
+}
+
+.burning-edge-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
+  animation: outerFlames 0.4s infinite alternate ease-in-out;
+}
+
+@keyframes outerFlames {
+  0% {
+    box-shadow:
+      0 -10px 15px rgba(255, 165, 0, 0.6),
+      0 10px 15px rgba(255, 69, 0, 0.5),
+      10px 0 15px rgba(255, 69, 0, 0.5),
+      -10px 0 15px rgba(255, 165, 0, 0.5);
+  }
+
+  100% {
+    box-shadow:
+      0 -40px 45px rgba(255, 100, 0, 0.9),
+      0 20px 30px rgba(255, 0, 0, 0.7),
+      25px 0 35px rgba(255, 100, 0, 0.8),
+      -25px 0 35px rgba(255, 0, 0, 0.8),
+      0 0 20px rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Chaos Theory Color Shift */
+@keyframes spin-fast {
+  from {
+    transform: rotate(0deg) scale(0.9);
+  }
+
+  50% {
+    transform: rotate(180deg) scale(1.1);
+  }
+
+  to {
+    transform: rotate(360deg) scale(0.9);
+  }
+}
+
+.animate-spin-fast {
+  animation: spin-fast 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}
+
+/* Exodia Shake */
+.exodia-shake {
+  animation: exodia-tremor 0.1s infinite;
+}
+
+@keyframes exodia-tremor {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(5px, 5px) rotate(1deg);
+  }
+
+  50% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  75% {
+    transform: translate(-5px, 5px) rotate(-1deg);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+/* Prismatic Explosion */
+.prismatic-explosion {
+  animation: prismatic-blast 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  will-change: transform, opacity;
+  color: #fff;
+  text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff, 0 0 30px #ffff00;
+}
+
+@keyframes prismatic-blast {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(2.5) rotate(10deg);
+    opacity: 0.8;
+    text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff, 0 0 60px #ffff00;
+  }
+
+  100% {
+    transform: scale(3) rotate(0deg) translateY(-50px);
+    opacity: 0;
+  }
+}
+
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-slide-enter-from {
+  opacity: 0;
+  transform: translateX(50px);
+}
+
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+</style>
