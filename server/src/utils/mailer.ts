@@ -3,10 +3,10 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 let _resend: Resend | null = null
-function getResend(): Resend {
+function getResend(): Resend | null {
   if (!_resend) {
     const key = process.env.RESEND_API_KEY
-    if (!key) throw new Error('RESEND_API_KEY is not set in .env')
+    if (!key) return null
     _resend = new Resend(key)
   }
   return _resend
@@ -15,7 +15,17 @@ function getResend(): Resend {
 const MAIL_FROM = process.env.MAIL_FROM || 'Naenra <onboarding@resend.dev>'
 
 export async function sendOTPEmail(email: string, otp: string): Promise<void> {
-  const { error } = await getResend().emails.send({
+  const resendClient = getResend()
+
+  if (!resendClient) {
+    console.log('\n========================================')
+    console.log(`🔑 [LOCAL DEV OTP] Email: ${email}`)
+    console.log(`🔑 [LOCAL DEV OTP] Code:  ${otp}`)
+    console.log('========================================\n')
+    return
+  }
+
+  const { error } = await resendClient.emails.send({
     from: MAIL_FROM,
     to: email,
     subject: 'Your ARENA.ENG Verification Code',
