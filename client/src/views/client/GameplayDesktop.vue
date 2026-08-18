@@ -929,13 +929,15 @@ const hoveredRoundCoreIndex = ref<number | null>(null)
 let roundCoreHoldTimer: ReturnType<typeof setTimeout> | null = null
 
 function getCoreDetailsByItem(coreItem: { id: string; name: string }) {
-  if (!coreItem || allCores.value.length === 0) return null
-  const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
-  if (found) return found
+  if (!coreItem) return null
+  if (allCores.value.length > 0) {
+    const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
+    if (found) return found
+  }
   return {
     id: coreItem.id,
     name: coreItem.name,
-    description: 'Core details not available.',
+    description: 'Support core ability active for this match.',
     flat_buff: 0,
     multiplier_buff: 1
   }
@@ -1838,9 +1840,8 @@ onMounted(async () => {
   } else {
     sessionId.value = gameStore.sessionId
   }
-  if (isPandoraMode.value) {
-    await fetchPandoraPool()
-  }
+  // Always fetch full cores pool for tooltips and details
+  await fetchPandoraPool()
   await fetchBatch()
   await loadQuestion()
   

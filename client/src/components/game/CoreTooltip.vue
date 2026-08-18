@@ -230,8 +230,9 @@ const stats = computed(() => {
 
 <template>
   <div 
-    class="relative z-[9999] w-full max-w-[320px] sm:max-w-[340px] p-3.5 sm:p-4 rounded-2xl border-2 text-left flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 select-none bg-slate-950 shadow-2xl overflow-hidden"
+    class="z-[9999] w-full max-w-[320px] sm:max-w-[340px] p-3.5 sm:p-4 rounded-2xl border-2 text-left flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 select-none bg-slate-950 shadow-2xl overflow-hidden"
     :class="[
+      isMobile ? 'relative' : 'absolute left-1/2 -translate-x-1/2 pointer-events-none',
       isCoreLocked ? 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.4)]' : currentConfig.border,
       !isMobile && position === 'bottom' ? 'top-full mt-3' : (!isMobile ? 'bottom-full mb-6' : '')
     ]"
