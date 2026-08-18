@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
 import { audioService } from '../services/audioService'
+import { fetchWithAuth } from '../services/api'
 
 export interface CoreMission {
   id: string
@@ -730,22 +731,22 @@ export const useMissionsStore = defineStore('missions', () => {
       if (!token || authStore.isGuest) return
 
       try {
-        const payload = missions.value.map(m => ({
-          coreName: m.unlockCoreName,
-          currentProgress: m.currentProgress,
-          isCompleted: m.isCompleted,
-          isClaimed: m.isClaimed,
-          isUnlocked: m.isClaimed || isCoreUnlocked(m.unlockCoreName)
-        }))
+        const payload = missions.value
+          .filter(m => m.currentProgress > 0 || m.isCompleted || m.isClaimed)
+          .map(m => ({
+            coreName: m.unlockCoreName,
+            currentProgress: m.currentProgress,
+            isCompleted: m.isCompleted,
+            isClaimed: m.isClaimed,
+            isUnlocked: m.isClaimed
+          }))
 
-        await fetch(`${SERVER_URL}/api/user/core-progress/sync`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ progressList: payload })
-        })
+        if (payload.length > 0) {
+          await fetchWithAuth('/api/user/core-progress/sync', {
+            method: 'POST',
+            body: JSON.stringify({ progressList: payload })
+          })
+        }
       } catch (err) {
         console.warn('[MissionsStore] Cloud progress sync error:', err)
       }
@@ -761,11 +762,7 @@ export const useMissionsStore = defineStore('missions', () => {
       if (authStore.isGuest) return
 
       isSyncing.value = true
-      const res = await fetch(`${SERVER_URL}/api/user/core-progress`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const res = await fetchWithAuth('/api/user/core-progress')
       if (!res.ok) return
 
       const data = await res.json()
@@ -953,12 +950,8 @@ export const useMissionsStore = defineStore('missions', () => {
       // Sync claim to Supabase cloud
       const token = localStorage.getItem('arena_token')
       if (token && !authStore.isGuest) {
-        fetch(`${SERVER_URL}/api/user/core-progress/claim`, {
+        fetchWithAuth('/api/user/core-progress/claim', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
           body: JSON.stringify({
             coreName: mission.unlockCoreName,
             missionId: mission.id,

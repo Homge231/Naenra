@@ -271,6 +271,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (localStorage.getItem('arena_token')) {
       startSessionPolling()
+      useMissionsStore().loadUserMissions()
     }
 
     supabase.auth.onAuthStateChange(async (event, session) => {
