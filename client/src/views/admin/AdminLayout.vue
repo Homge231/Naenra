@@ -212,7 +212,7 @@ const navItems: NavItem[] = [
   { name: 'Questions Bank', path: '/admin/questions', icon: '❓' },
   { name: 'Players Manager', path: '/admin/players', icon: '👥' },
   { name: 'Leaderboards', path: '/admin/leaderboard', icon: '🏆' },
-  { name: 'Matches History', path: '/admin/matches', icon: '⚔️' },
+  { name: 'Match Analytics', path: '/admin/matches', icon: '⚔️' },
   { name: 'Support Cores', path: '/admin/cores', icon: '⚡' },
   { name: 'AI Core Assistant', path: '/admin/ai', icon: '🤖' }
 ]

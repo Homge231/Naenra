@@ -12,7 +12,10 @@ import {
   getPlayers,
   banPlayer,
   unbanPlayer,
-  togglePlayerAdmin
+  togglePlayerAdmin,
+  getMatchAnalytics,
+  getLiveMatchMetrics,
+  getMatchHistory
 } from '../controllers/adminController'
 
 const router = Router()
@@ -56,5 +59,10 @@ router.get('/players', authMiddleware, requireAdmin, getPlayers)
 router.post('/players/:id/ban', authMiddleware, requireAdmin, banPlayer)
 router.post('/players/:id/unban', authMiddleware, requireAdmin, unbanPlayer)
 router.patch('/players/:id/admin', authMiddleware, requireAdmin, togglePlayerAdmin)
+
+// Protected Match Analytics & Telemetry endpoints (US-93)
+router.get('/matches/analytics', authMiddleware, requireAdmin, getMatchAnalytics)
+router.get('/matches/live', authMiddleware, requireAdmin, getLiveMatchMetrics)
+router.get('/matches/history', authMiddleware, requireAdmin, getMatchHistory)
 
 export default router

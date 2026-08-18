@@ -173,7 +173,7 @@ const router = createRouter({
         {
           path: 'matches',
           name: 'admin-matches',
-          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          component: () => import('../views/admin/MatchAnalyticsView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
