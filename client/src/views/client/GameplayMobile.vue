@@ -172,11 +172,15 @@
           </span>
 
           <transition name="fade">
-            <CoreTooltip
+            <div
               v-if="hoveredRoundCoreIndex === index && getCoreDetailsByItem(core)"
-              :core="getCoreDetailsByItem(core)!"
-              position="bottom"
-            />
+              class="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-[9999] pointer-events-none"
+            >
+              <CoreTooltip
+                :core="getCoreDetailsByItem(core)!"
+                position="bottom"
+              />
+            </div>
           </transition>
         </div>
       </div>
