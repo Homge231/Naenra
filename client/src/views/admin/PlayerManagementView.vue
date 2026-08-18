@@ -485,26 +485,8 @@ function openAdminModal(player: PlayerRecord) {
   isAdminModalOpen.value = true
 }
 
-async function handleAdminToggleConfirm({ id, is_admin }: { id: string; is_admin: boolean }) {
-  try {
-    const res = await fetchWithAuth(`/api/admin/players/${id}/admin`, {
-      method: 'PATCH',
-      body: JSON.stringify({ is_admin })
-    })
 
-    const data = await res.json()
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || 'Failed to update administrator status')
-    }
 
-    isAdminModalOpen.value = false
-    showToast(data.message || `Player role updated successfully!`, 'success')
-    await fetchPlayers()
-  } catch (err: any) {
-    console.error('Admin toggle confirm error:', err)
-    showToast(err.message || 'Action failed. Please try again.', 'error')
-  }
-}
 
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
@@ -523,35 +505,41 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+// Explicit map to avoid fragile string-split parsing (e.g. 'created_at_desc'.split('_') gives wrong results)
+const SORT_MAP: Record<string, { sortBy: string; sortOrder: string }> = {
+  'created_at_desc': { sortBy: 'created_at', sortOrder: 'desc' },
+  'created_at_asc':  { sortBy: 'created_at', sortOrder: 'asc' },
+  'elo_desc':        { sortBy: 'elo', sortOrder: 'desc' },
+  'elo_asc':         { sortBy: 'elo', sortOrder: 'asc' },
+  'total_matches_desc': { sortBy: 'total_matches', sortOrder: 'desc' },
+  'total_matches_asc':  { sortBy: 'total_matches', sortOrder: 'asc' },
+  'wins_desc':       { sortBy: 'wins', sortOrder: 'desc' },
+  'wins_asc':        { sortBy: 'wins', sortOrder: 'asc' },
+}
+
 async function fetchPlayers(isBackground = false) {
-  if (!isBackground) {
-    isLoading.value = true
-  }
+  if (!isBackground) isLoading.value = true
   try {
-    const [sortBy, sortOrder] = selectedSort.value.split('_')
+    const sort = SORT_MAP[selectedSort.value] ?? SORT_MAP['created_at_desc']
     const params = new URLSearchParams({
       page: String(currentPage.value),
       limit: String(pageLimit.value),
       search: searchQuery.value.trim(),
       status: selectedStatus.value,
-      sortBy: sortBy === 'created' ? 'created_at' : (sortBy === 'total' ? 'total_matches' : sortBy),
-      sortOrder: sortOrder || 'desc'
+      sortBy: sort.sortBy,
+      sortOrder: sort.sortOrder
     })
 
     const res = await fetchWithAuth(`/api/admin/players?${params.toString()}`)
     const json = await res.json()
 
-    if (!res.ok || !json.success) {
-      throw new Error(json.message || 'Failed to load player list')
-    }
+    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to load player list')
 
     if (json.data) {
       players.value = json.data.players || []
       totalPlayers.value = json.data.total || 0
       totalPages.value = json.data.totalPages || 1
-      if (json.data.stats) {
-        stats.value = json.data.stats
-      }
+      if (json.data.stats) stats.value = json.data.stats
     }
   } catch (err: any) {
     if (!isBackground) {
@@ -559,35 +547,33 @@ async function fetchPlayers(isBackground = false) {
       showToast(err.message || 'Failed to fetch players', 'error')
     }
   } finally {
-    if (!isBackground) {
-      isLoading.value = false
-    }
+    if (!isBackground) isLoading.value = false
   }
+}
+
+/** Reset to page 1 and refresh the player list. Used by filters, search clear, and limit change. */
+function resetAndFetch() {
+  currentPage.value = 1
+  fetchPlayers()
 }
 
 function handleSearchDebounced() {
   if (searchTimeout) clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    currentPage.value = 1
-    fetchPlayers()
-  }, 350)
+  searchTimeout = setTimeout(resetAndFetch, 350)
 }
 
 function clearSearch() {
   searchQuery.value = ''
-  currentPage.value = 1
-  fetchPlayers()
+  resetAndFetch()
 }
 
 function setStatusFilter(status: any) {
   selectedStatus.value = status
-  currentPage.value = 1
-  fetchPlayers()
+  resetAndFetch()
 }
 
 function handleLimitChange() {
-  currentPage.value = 1
-  fetchPlayers()
+  resetAndFetch()
 }
 
 function changePage(page: number) {
@@ -603,26 +589,41 @@ function openModal(mode: 'ban' | 'unban', player: PlayerRecord) {
   isModalOpen.value = true
 }
 
-async function handleModalConfirm({ id, mode, reason }: { id: string; mode: 'ban' | 'unban'; reason?: string }) {
+/**
+ * Generic handler for any admin action that calls an API endpoint and refreshes the list.
+ * Used by both the ban/unban modal and the admin toggle modal.
+ */
+async function performPlayerAction(
+  url: string,
+  method: string,
+  body: Record<string, any>,
+  onSuccess: () => void
+) {
   try {
-    const endpoint = mode === 'ban' ? `/api/admin/players/${id}/ban` : `/api/admin/players/${id}/unban`
-    const res = await fetchWithAuth(endpoint, {
-      method: 'POST',
-      body: JSON.stringify({ reason })
-    })
-
+    const res = await fetchWithAuth(url, { method, body: JSON.stringify(body) })
     const data = await res.json()
-    if (!res.ok || !data.success) {
-      throw new Error(data.message || `Failed to ${mode} player`)
-    }
-
-    isModalOpen.value = false
-    showToast(data.message || `Player ${mode === 'ban' ? 'suspended' : 'restored'} successfully!`, 'success')
+    if (!res.ok || !data.success) throw new Error(data.message || 'Action failed')
+    onSuccess()
+    showToast(data.message || 'Action completed successfully', 'success')
     await fetchPlayers()
   } catch (err: any) {
-    console.error('Modal confirm action error:', err)
+    console.error('Player action error:', err)
     showToast(err.message || 'Action failed. Please try again.', 'error')
   }
+}
+
+async function handleModalConfirm({ id, mode, reason }: { id: string; mode: 'ban' | 'unban'; reason?: string }) {
+  const endpoint = mode === 'ban' ? `/api/admin/players/${id}/ban` : `/api/admin/players/${id}/unban`
+  await performPlayerAction(endpoint, 'POST', { reason }, () => { isModalOpen.value = false })
+}
+
+async function handleAdminToggleConfirm({ id, is_admin }: { id: string; is_admin: boolean }) {
+  await performPlayerAction(
+    `/api/admin/players/${id}/admin`,
+    'PATCH',
+    { is_admin },
+    () => { isAdminModalOpen.value = false }
+  )
 }
 
 onMounted(() => {

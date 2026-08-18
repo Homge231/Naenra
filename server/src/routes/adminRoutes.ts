@@ -1,6 +1,7 @@
 import { Router, Response, NextFunction } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
+import { SUPER_ADMIN_EMAILS } from '../constants'
 import { 
   getAdminSummary,
   getQuestions,
@@ -24,18 +25,13 @@ async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction)
   }
 
   const email = (user.email || '').toLowerCase()
-  const isKnownAdminEmail = email === 'homge231@gmail.com' || 
-                           email === 'baonhggcd220259@fpt.edu.vn'
-
   const { data: player } = await supabase
     .from('players')
     .select('is_admin')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = player?.is_admin === true || isKnownAdminEmail
-
-  if (!isAdmin) {
+  if (!player?.is_admin && !SUPER_ADMIN_EMAILS.has(email)) {
     res.status(403).json({ success: false, error: 'Forbidden', message: 'Admin access required' })
     return
   }

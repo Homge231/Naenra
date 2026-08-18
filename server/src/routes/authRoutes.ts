@@ -39,6 +39,40 @@ function decryptPassword(text: string): string {
 
 const router = Router()
 
+// ── Session helper ────────────────────────────────────────────────────────────
+
+/**
+ * Increment session version, kick old sessions, and generate a new arena JWT.
+ * Used by both /auth/login (email) and /auth/token (OAuth) to avoid duplication.
+ * Returns null and writes a 500 response if the version RPC fails.
+ */
+async function establishNewSession(
+  res: Response,
+  player: { id: string; email: string; username: string; is_admin?: boolean }
+): Promise<{ token: string; newVersion: number } | null> {
+  const { data: newVersion, error: versionError } = await supabase
+    .rpc('increment_session_version', { player_id: player.id })
+
+  if (versionError || newVersion == null) {
+    console.error('session_version increment error:', versionError)
+    res.status(500).json({ error: 'Failed to establish session' })
+    return null
+  }
+
+  await broadcastSessionInvalidated(player.id, newVersion)
+  kickUserClients(player.id)
+
+  const token = generateToken({
+    id: player.id,
+    email: player.email,
+    username: player.username,
+    sessionVersion: newVersion,
+    is_admin: Boolean(player.is_admin)
+  })
+
+  return { token, newVersion }
+}
+
 interface PendingAction {
   email: string
   hashedPassword?: string
@@ -377,33 +411,12 @@ router.post('/login', async (req: Request, res: Response) => {
       return
     }
 
-    const { data: versionResult, error: versionError } = await supabase
-      .rpc('increment_session_version', { player_id: player.id })
-
-    if (versionError || versionResult === null || versionResult === undefined) {
-      console.error('session_version increment error:', versionError)
-      res.status(500).json({ error: 'Failed to establish session' })
-      return
-    }
-
-    const newSessionVersion = versionResult
-
-    // Instantly kick any other active session for this account via Realtime broadcast and Colyseus sockets.
-    await broadcastSessionInvalidated(player.id, newSessionVersion)
-    kickUserClients(player.id)
-
-    const isAdmin = Boolean(player.is_admin)
-    const token = generateToken({
-      id: player.id,
-      email: player.email || '',
-      username: player.username || '',
-      sessionVersion: newSessionVersion,
-      is_admin: isAdmin
-    })
+    const session = await establishNewSession(res, player)
+    if (!session) return
 
     res.json({
       message: 'Login successful',
-      token,
+      token: session.token,
       user: {
         id: player.id,
         email: player.email,
@@ -411,8 +424,8 @@ router.post('/login', async (req: Request, res: Response) => {
         avatar_url: player.avatar_url,
         elo: player.elo ?? 0,
         is_first_play: player.is_first_play ?? true,
-        session_version: newSessionVersion,
-        is_admin: isAdmin
+        session_version: session.newVersion,
+        is_admin: Boolean(player.is_admin)
       }
     })
 
@@ -605,31 +618,15 @@ router.post('/token', async (req: Request, res: Response) => {
       return
     }
 
-    const { data: versionResult, error: versionError } = await supabase
-      .rpc('increment_session_version', { player_id: user.id })
-
-    if (versionError || versionResult === null || versionResult === undefined) {
-      console.error('session_version increment error:', versionError)
-      res.status(500).json({ error: 'Failed to establish session' })
-      return
-    }
-
-    const newSessionVersion = versionResult
-
-    // Instantly kick any other active session for this account via Realtime broadcast and Colyseus sockets.
-    await broadcastSessionInvalidated(user.id, newSessionVersion)
-    kickUserClients(user.id)
-
-    const isAdmin = Boolean(freshProfile.is_admin)
-    const token = generateToken({
+    const session = await establishNewSession(res, {
       id: user.id,
       email: user.email || '',
       username: freshProfile.username || user.user_metadata?.full_name || '',
-      sessionVersion: newSessionVersion,
-      is_admin: isAdmin
+      is_admin: freshProfile.is_admin
     })
+    if (!session) return
 
-    res.json({ token, user: { ...freshProfile, session_version: newSessionVersion, is_admin: isAdmin } })
+    res.json({ token: session.token, user: { ...freshProfile, session_version: session.newVersion, is_admin: Boolean(freshProfile.is_admin) } })
   } catch (err) {
     console.error('token error:', err)
     res.status(500).json({ error: 'Internal server error' })

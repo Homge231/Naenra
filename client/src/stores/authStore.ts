@@ -100,6 +100,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  /**
+   * Store the session version and subscribe to real-time session-kick events.
+   * Called after every successful login (email or OAuth).
+   */
+  function _activateSession(token: string, userId: string, sessionVersion?: number) {
+    const version = sessionVersion ?? extractSessionVersionFromToken(token)
+    if (version !== null) {
+      currentSessionVersion.value = version
+      subscribeToSessionChanges(userId)
+    }
+  }
+
   function forceLogoutDueToNewSession() {
     stopSessionPolling()
     unsubscribeSessionChanges()
@@ -327,10 +339,8 @@ export const useAuthStore = defineStore('auth', () => {
         isGuest.value = false
         await fetchProfile()
 
-        const version = data.user?.session_version ?? extractSessionVersionFromToken(data.token)
-        if (version !== null && user.value?.id) {
-          currentSessionVersion.value = version
-          subscribeToSessionChanges(user.value.id)
+        if (user.value?.id) {
+          _activateSession(data.token, user.value.id, data.user?.session_version)
         }
       }
     } catch (err) {
@@ -392,11 +402,7 @@ export const useAuthStore = defineStore('auth', () => {
       await fetchProfile()
       startSessionPolling()
 
-      const version = data.user?.session_version ?? extractSessionVersionFromToken(data.token)
-      if (version !== null) {
-        currentSessionVersion.value = version
-        subscribeToSessionChanges(data.user.id)
-      }
+      _activateSession(data.token, data.user.id, data.user?.session_version)
 
       return { success: true }
     } catch {

@@ -4,6 +4,42 @@ import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
 import { kickUserClients, getOnlineUserIds } from '../utils/activeClients'
 
+// ── Shared admin helpers ──────────────────────────────────────────────────────
+
+/**
+ * Fetch a player by ID or send a 404 response and return null.
+ * Use at the top of any admin action that needs to validate the target player.
+ */
+async function fetchPlayerOrFail(
+  id: string,
+  res: Response
+): Promise<{ id: string; email: string; username: string; is_admin: boolean } | null> {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, email, username, is_admin')
+    .eq('id', id)
+    .single()
+  if (error || !data) {
+    res.status(404).json({ success: false, message: 'Player not found' })
+    return null
+  }
+  return data
+}
+
+/**
+ * Increment session_version, broadcast session invalidation, and optionally
+ * kick all active WebSocket connections for the player.
+ */
+async function invalidatePlayerSession(id: string, kick = false): Promise<void> {
+  const { data: newVersion } = await supabase.rpc('increment_session_version', { player_id: id })
+  try {
+    await broadcastSessionInvalidated(id, newVersion ?? Date.now())
+    if (kick) kickUserClients(id, 4003)
+  } catch (e) {
+    console.warn('Session invalidation warning:', e)
+  }
+}
+
 /**
  * GET /api/admin/summary
  * Returns lightweight COUNT() metrics across players, questions, matches, and system state.
@@ -505,54 +541,28 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
       return
     }
 
-    // Check if target player exists and prevent banning other admins
-    const { data: targetPlayer, error: fetchErr } = await supabase
-      .from('players')
-      .select('id, email, username, is_admin')
-      .eq('id', id)
-      .single()
-
-    if (fetchErr || !targetPlayer) {
-      res.status(404).json({ success: false, message: 'Player not found' })
-      return
-    }
+    const targetPlayer = await fetchPlayerOrFail(id, res)
+    if (!targetPlayer) return
 
     if (targetPlayer.is_admin) {
       res.status(403).json({ success: false, message: 'Administrator accounts cannot be banned.' })
       return
     }
 
-    // 1. Update player status in DB
     const { error: updateErr } = await supabase
       .from('players')
-      .update({
-        is_banned: true,
-        banned_at: new Date().toISOString()
-      })
+      .update({ is_banned: true, banned_at: new Date().toISOString() })
       .eq('id', id)
-
     if (updateErr) throw updateErr
 
-    // 2. Invalidate active session version
-    const { data: versionResult } = await supabase
-      .rpc('increment_session_version', { player_id: id })
-
-    const newVersion = versionResult ?? Date.now()
-
-    // 3. Abort active game sessions
+    // Abort any active game sessions
     await supabase
       .from('game_sessions')
       .update({ status: 'aborted' })
       .eq('player_id', id)
       .eq('status', 'active')
 
-    // 4. Broadcast session invalidation to kick client in real-time
-    try {
-      await broadcastSessionInvalidated(id, newVersion)
-      kickUserClients(id, 4003)
-    } catch (e) {
-      console.warn('Realtime kick warning:', e)
-    }
+    await invalidatePlayerSession(id, /* kick = */ true)
 
     res.json({
       success: true,
@@ -561,11 +571,7 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
     })
   } catch (error: any) {
     console.error('Error in banPlayer:', error)
-    res.status(500).json({
-      success: false,
-      error: 'InternalServerError',
-      message: 'Failed to ban player'
-    })
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to ban player' })
   }
 }
 
@@ -582,27 +588,20 @@ export async function unbanPlayer(req: AuthRequest, res: Response): Promise<void
       return
     }
 
+    // Verify player exists before updating
+    const targetPlayer = await fetchPlayerOrFail(id, res)
+    if (!targetPlayer) return
+
     const { error: updateErr } = await supabase
       .from('players')
-      .update({
-        is_banned: false,
-        banned_at: null
-      })
+      .update({ is_banned: false, banned_at: null })
       .eq('id', id)
-
     if (updateErr) throw updateErr
 
-    res.json({
-      success: true,
-      message: 'Player account has been restored successfully.'
-    })
+    res.json({ success: true, message: 'Player account has been restored successfully.' })
   } catch (error: any) {
     console.error('Error in unbanPlayer:', error)
-    res.status(500).json({
-      success: false,
-      error: 'InternalServerError',
-      message: 'Failed to restore player account'
-    })
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to restore player account' })
   }
 }
 
@@ -619,63 +618,35 @@ export async function togglePlayerAdmin(req: AuthRequest, res: Response): Promis
       res.status(400).json({ success: false, message: 'Player ID is required' })
       return
     }
-
     if (typeof is_admin !== 'boolean') {
       res.status(400).json({ success: false, message: 'is_admin (boolean) is required' })
       return
     }
-
     // Prevent an admin from removing admin rights from their own account
     if (req.user?.id === id && !is_admin) {
       res.status(400).json({ success: false, message: 'You cannot remove admin privileges from your own account.' })
       return
     }
 
-    // Check if target player exists
-    const { data: targetPlayer, error: fetchErr } = await supabase
-      .from('players')
-      .select('id, email, username, is_admin')
-      .eq('id', id)
-      .single()
+    const targetPlayer = await fetchPlayerOrFail(id, res)
+    if (!targetPlayer) return
 
-    if (fetchErr || !targetPlayer) {
-      res.status(404).json({ success: false, message: 'Player not found' })
-      return
-    }
-
-    // Update is_admin in Supabase
     const { error: updateErr } = await supabase
       .from('players')
       .update({ is_admin })
       .eq('id', id)
-
     if (updateErr) throw updateErr
 
-    // Invalidate active session version so the target player's JWT refreshes
-    const { data: versionResult } = await supabase
-      .rpc('increment_session_version', { player_id: id })
-
-    const newVersion = versionResult ?? Date.now()
-    try {
-      await broadcastSessionInvalidated(id, newVersion)
-    } catch (e) {
-      console.warn('Realtime session update warning:', e)
-    }
+    // Invalidate session so the player's JWT refreshes with the new is_admin value
+    await invalidatePlayerSession(id)
 
     res.json({
       success: true,
       message: `Admin privileges ${is_admin ? 'granted to' : 'revoked from'} ${targetPlayer.username || targetPlayer.email}.`,
-      data: {
-        id,
-        is_admin
-      }
+      data: { id, is_admin }
     })
   } catch (error: any) {
     console.error('Error in togglePlayerAdmin:', error)
-    res.status(500).json({
-      success: false,
-      error: 'InternalServerError',
-      message: 'Failed to update admin status'
-    })
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to update admin status' })
   }
 }

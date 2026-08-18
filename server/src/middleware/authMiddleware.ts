@@ -21,21 +21,12 @@ export async function authMiddleware(
   next: NextFunction
 ): Promise<void> {
   const authHeader = req.headers.authorization
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({
-      error: 'Unauthorized',
-      message: 'Missing or malformed token'
-    })
-    return
-  }
-
-  const token = authHeader.split(' ')[1]
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : ''
 
   if (!token) {
     res.status(401).json({
       error: 'Unauthorized',
-      message: 'Token is missing'
+      message: 'Missing or malformed token'
     })
     return
   }

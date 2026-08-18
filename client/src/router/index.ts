@@ -1,6 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
 
+// Admin emails that always have admin access (mirrors server/src/constants.ts)
+const SUPER_ADMIN_EMAILS = new Set(['homge231@gmail.com', 'baonhggcd220259@fpt.edu.vn'])
+
+// Routes that guests cannot access — defined once as a Set for O(1) lookup
+const GUEST_RESTRICTED = new Set([
+  'matchmaking', 'CustomRoom', 'leaderboard', 'missions', 'profile',
+  'admin-dashboard', 'admin-questions', 'admin-players',
+  'admin-leaderboard', 'admin-matches', 'admin-cores', 'admin-ai'
+])
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -210,24 +220,15 @@ router.beforeEach(async (to) => {
       tokenEmail = payload.email || ''
     } catch {}
 
-    const guestRestrictedRoutes = [
-      'matchmaking', 'CustomRoom', 'leaderboard', 'missions', 'profile',
-      'admin-dashboard', 'admin-questions', 'admin-players', 'admin-leaderboard', 'admin-matches', 'admin-cores', 'admin-ai'
-    ]
-    if (isGuestToken && (guestRestrictedRoutes.includes(String(to.name)) || to.path.startsWith('/admin'))) {
+    if (isGuestToken && (GUEST_RESTRICTED.has(String(to.name)) || to.path.startsWith('/admin'))) {
       return { name: 'login', query: { locked: '1' } }
     }
 
     const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
     if (requiresAdmin) {
       const isManualAdmin = localStorage.getItem('arena_admin_mode') === 'true'
-      const emailIsAdmin = tokenEmail.toLowerCase() === 'homge231@gmail.com' || 
-                           tokenEmail.toLowerCase() === 'baonhggcd220259@fpt.edu.vn'
-      const userIsAdmin = tokenIsAdmin || isManualAdmin || emailIsAdmin
-
-      if (!userIsAdmin) {
-        return { name: 'home' }
-      }
+      const userIsAdmin = tokenIsAdmin || isManualAdmin || SUPER_ADMIN_EMAILS.has(tokenEmail.toLowerCase())
+      if (!userIsAdmin) return { name: 'home' }
     }
 
     return true
@@ -239,10 +240,7 @@ router.beforeEach(async (to) => {
     const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
     if (requiresAdmin) {
       const email = session.user.email?.toLowerCase() || ''
-      const isGoogleAdmin = email === 'homge231@gmail.com' || email === 'baonhggcd220259@fpt.edu.vn'
-      if (!isGoogleAdmin) {
-        return { name: 'home' }
-      }
+      if (!SUPER_ADMIN_EMAILS.has(email)) return { name: 'home' }
     }
     return true
   }
