@@ -199,7 +199,6 @@ router.beforeEach(async (to) => {
 
   const token = localStorage.getItem('arena_token')
   let isGuestToken = false
-  let tokenRole = 'user'
   let tokenIsAdmin = false
   let tokenEmail = ''
 
@@ -207,8 +206,7 @@ router.beforeEach(async (to) => {
     try {
       const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
       isGuestToken = !!payload.isGuest
-      tokenRole = payload.role || 'user'
-      tokenIsAdmin = !!payload.is_admin || payload.role === 'admin'
+      tokenIsAdmin = payload.is_admin === true
       tokenEmail = payload.email || ''
     } catch {}
 
@@ -223,10 +221,9 @@ router.beforeEach(async (to) => {
     const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
     if (requiresAdmin) {
       const isManualAdmin = localStorage.getItem('arena_admin_mode') === 'true'
-      const emailIsAdmin = tokenEmail.toLowerCase().includes('admin') || 
-                           tokenEmail.toLowerCase() === 'homge231@gmail.com' || 
-                           tokenEmail.toLowerCase() === 'tumychung2004@gmail.com'
-      const userIsAdmin = tokenIsAdmin || tokenRole === 'admin' || isManualAdmin || emailIsAdmin
+      const emailIsAdmin = tokenEmail.toLowerCase() === 'homge231@gmail.com' || 
+                           tokenEmail.toLowerCase() === 'baonhggcd220259@fpt.edu.vn'
+      const userIsAdmin = tokenIsAdmin || isManualAdmin || emailIsAdmin
 
       if (!userIsAdmin) {
         return { name: 'home' }
@@ -242,7 +239,7 @@ router.beforeEach(async (to) => {
     const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
     if (requiresAdmin) {
       const email = session.user.email?.toLowerCase() || ''
-      const isGoogleAdmin = email === 'homge231@gmail.com' || email === 'tumychung2004@gmail.com' || email.includes('admin')
+      const isGoogleAdmin = email === 'homge231@gmail.com' || email === 'baonhggcd220259@fpt.edu.vn'
       if (!isGoogleAdmin) {
         return { name: 'home' }
       }

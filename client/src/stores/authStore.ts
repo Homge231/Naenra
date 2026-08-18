@@ -28,9 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAdmin = computed(() => {
     if (localStorage.getItem('arena_admin_mode') === 'true') return true
-    if (profile.value?.role === 'admin' || profile.value?.is_admin === true) return true
-    if (user.value?.email?.toLowerCase().includes('admin')) return true
-    if (profile.value?.username?.toLowerCase().includes('admin')) return true
+    if (profile.value?.is_admin === true) return true
     return false
   })
 

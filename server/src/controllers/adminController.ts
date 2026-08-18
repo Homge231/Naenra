@@ -459,8 +459,7 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
         win_rate: winRate,
         is_banned: isBanned,
         banned_at: p.banned_at || null,
-        is_admin: p.is_admin === true || p.role === 'admin',
-        role: p.role || 'user',
+        is_admin: p.is_admin === true,
         status: isBanned ? 'banned' : isOnline ? 'online' : 'offline',
         created_at: p.created_at
       }
@@ -509,7 +508,7 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
     // Check if target player exists and prevent banning other admins
     const { data: targetPlayer, error: fetchErr } = await supabase
       .from('players')
-      .select('id, email, username, is_admin, role')
+      .select('id, email, username, is_admin')
       .eq('id', id)
       .single()
 
@@ -518,7 +517,7 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
       return
     }
 
-    if (targetPlayer.is_admin || targetPlayer.role === 'admin') {
+    if (targetPlayer.is_admin) {
       res.status(403).json({ success: false, message: 'Administrator accounts cannot be banned.' })
       return
     }
@@ -603,6 +602,80 @@ export async function unbanPlayer(req: AuthRequest, res: Response): Promise<void
       success: false,
       error: 'InternalServerError',
       message: 'Failed to restore player account'
+    })
+  }
+}
+
+/**
+ * PATCH /api/admin/players/:id/admin
+ * Updates a player's is_admin status (grant or revoke admin privileges).
+ */
+export async function togglePlayerAdmin(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = String(req.params.id || '')
+    const { is_admin } = req.body
+
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Player ID is required' })
+      return
+    }
+
+    if (typeof is_admin !== 'boolean') {
+      res.status(400).json({ success: false, message: 'is_admin (boolean) is required' })
+      return
+    }
+
+    // Prevent an admin from removing admin rights from their own account
+    if (req.user?.id === id && !is_admin) {
+      res.status(400).json({ success: false, message: 'You cannot remove admin privileges from your own account.' })
+      return
+    }
+
+    // Check if target player exists
+    const { data: targetPlayer, error: fetchErr } = await supabase
+      .from('players')
+      .select('id, email, username, is_admin')
+      .eq('id', id)
+      .single()
+
+    if (fetchErr || !targetPlayer) {
+      res.status(404).json({ success: false, message: 'Player not found' })
+      return
+    }
+
+    // Update is_admin in Supabase
+    const { error: updateErr } = await supabase
+      .from('players')
+      .update({ is_admin })
+      .eq('id', id)
+
+    if (updateErr) throw updateErr
+
+    // Invalidate active session version so the target player's JWT refreshes
+    const { data: versionResult } = await supabase
+      .rpc('increment_session_version', { player_id: id })
+
+    const newVersion = versionResult ?? Date.now()
+    try {
+      await broadcastSessionInvalidated(id, newVersion)
+    } catch (e) {
+      console.warn('Realtime session update warning:', e)
+    }
+
+    res.json({
+      success: true,
+      message: `Admin privileges ${is_admin ? 'granted to' : 'revoked from'} ${targetPlayer.username || targetPlayer.email}.`,
+      data: {
+        id,
+        is_admin
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in togglePlayerAdmin:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to update admin status'
     })
   }
 }

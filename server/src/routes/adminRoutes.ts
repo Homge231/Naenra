@@ -10,7 +10,8 @@ import {
   importQuestions,
   getPlayers,
   banPlayer,
-  unbanPlayer
+  unbanPlayer,
+  togglePlayerAdmin
 } from '../controllers/adminController'
 
 const router = Router()
@@ -24,16 +25,15 @@ async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction)
 
   const email = (user.email || '').toLowerCase()
   const isKnownAdminEmail = email === 'homge231@gmail.com' || 
-                           email === 'tumychung2004@gmail.com' || 
-                           email.includes('admin')
+                           email === 'baonhggcd220259@fpt.edu.vn'
 
   const { data: player } = await supabase
     .from('players')
-    .select('is_admin, role')
+    .select('is_admin')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = player?.is_admin === true || player?.role === 'admin' || isKnownAdminEmail
+  const isAdmin = player?.is_admin === true || isKnownAdminEmail
 
   if (!isAdmin) {
     res.status(403).json({ success: false, error: 'Forbidden', message: 'Admin access required' })
@@ -59,5 +59,6 @@ router.post('/questions/import', authMiddleware, requireAdmin, importQuestions)
 router.get('/players', authMiddleware, requireAdmin, getPlayers)
 router.post('/players/:id/ban', authMiddleware, requireAdmin, banPlayer)
 router.post('/players/:id/unban', authMiddleware, requireAdmin, unbanPlayer)
+router.patch('/players/:id/admin', authMiddleware, requireAdmin, togglePlayerAdmin)
 
 export default router

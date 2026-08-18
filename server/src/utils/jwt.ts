@@ -12,7 +12,6 @@ export function generateToken(payload: {
   username: string
   sessionVersion: number
   is_admin?: boolean
-  role?: string
 }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
 }

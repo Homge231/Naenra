@@ -357,7 +357,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const { data: player } = await supabase
       .from('players')
-      .select('id, email, username, avatar_url, hashed_password, is_first_play, elo, is_admin, role, is_banned')
+      .select('id, email, username, avatar_url, hashed_password, is_first_play, elo, is_admin, is_banned')
       .eq('email', email)
       .single()
 
@@ -392,14 +392,13 @@ router.post('/login', async (req: Request, res: Response) => {
     await broadcastSessionInvalidated(player.id, newSessionVersion)
     kickUserClients(player.id)
 
-    const isAdmin = Boolean(player.is_admin) || player.role === 'admin'
+    const isAdmin = Boolean(player.is_admin)
     const token = generateToken({
       id: player.id,
       email: player.email || '',
       username: player.username || '',
       sessionVersion: newSessionVersion,
-      is_admin: isAdmin,
-      role: player.role || 'user'
+      is_admin: isAdmin
     })
 
     res.json({
@@ -413,8 +412,7 @@ router.post('/login', async (req: Request, res: Response) => {
         elo: player.elo ?? 0,
         is_first_play: player.is_first_play ?? true,
         session_version: newSessionVersion,
-        is_admin: isAdmin,
-        role: player.role || 'user'
+        is_admin: isAdmin
       }
     })
 
@@ -622,14 +620,13 @@ router.post('/token', async (req: Request, res: Response) => {
     await broadcastSessionInvalidated(user.id, newSessionVersion)
     kickUserClients(user.id)
 
-    const isAdmin = Boolean(freshProfile.is_admin) || freshProfile.role === 'admin'
+    const isAdmin = Boolean(freshProfile.is_admin)
     const token = generateToken({
       id: user.id,
       email: user.email || '',
       username: freshProfile.username || user.user_metadata?.full_name || '',
       sessionVersion: newSessionVersion,
-      is_admin: isAdmin,
-      role: freshProfile.role || 'user'
+      is_admin: isAdmin
     })
 
     res.json({ token, user: { ...freshProfile, session_version: newSessionVersion, is_admin: isAdmin } })

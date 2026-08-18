@@ -16,7 +16,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
   try {
     const { data: profile, error } = await supabase
       .from('players')
-      .select('username, avatar_url, elo, wins, losses, total_matches, is_first_play, role, is_admin')
+      .select('username, avatar_url, elo, wins, losses, total_matches, is_first_play, is_admin')
       .eq('id', req.user!.id)
       .maybeSingle()
 
@@ -81,14 +81,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
     // Merge unique unlocked core IDs
     const unlockedCoreIds = Array.from(new Set([...baseCoreIds, ...userUnlockedIds]))
 
-    const isAdmin = (profile as any)?.is_admin === true || 
-                    (profile as any)?.role === 'admin' || 
-                    userMeta.is_admin === true || 
-                    userMeta.role === 'admin' || 
-                    user?.email?.toLowerCase().includes('admin') ||
-                    username.toLowerCase().includes('admin') || false
-
-    const role = isAdmin ? 'admin' : ((profile as any)?.role || 'user')
+    const isAdmin = profile?.is_admin === true
 
     return res.status(200).json({
       id: req.user!.id,
@@ -100,7 +93,6 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       losses: profile?.losses ?? 0,
       total_matches: profile?.total_matches ?? 0,
       is_first_play: profile?.is_first_play ?? true,
-      role,
       is_admin: isAdmin,
       unlocked_core_ids: unlockedCoreIds
     })

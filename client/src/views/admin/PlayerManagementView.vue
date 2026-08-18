@@ -298,6 +298,20 @@
               <!-- Actions Column -->
               <td class="py-3 px-4 text-right">
                 <div class="flex items-center justify-end gap-2">
+                  <!-- Toggle Admin Role Button -->
+                  <button 
+                    @click="openAdminModal(p)"
+                    :disabled="p.id === currentUserId"
+                    class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm active:scale-95 flex items-center gap-1 border disabled:opacity-30 disabled:cursor-not-allowed"
+                    :class="p.is_admin 
+                      ? 'bg-amber-500/10 hover:bg-amber-500 text-amber-400 hover:text-white border-amber-500/30 hover:border-amber-400' 
+                      : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700/60'"
+                    :title="p.id === currentUserId ? 'You cannot change your own admin role' : (p.is_admin ? 'Demote admin to normal user' : 'Promote to administrator')"
+                  >
+                    <span>{{ p.is_admin ? '👑' : '🛡️' }}</span>
+                    <span class="hidden xl:inline">{{ p.is_admin ? 'Demote' : 'Make Admin' }}</span>
+                  </button>
+
                   <!-- Unban Button -->
                   <button 
                     v-if="p.is_banned"
@@ -385,14 +399,24 @@
       @close="isModalOpen = false"
       @confirm="handleModalConfirm"
     />
+
+    <!-- ADMIN ROLE TOGGLE CONFIRMATION MODAL -->
+    <AdminToggleModal 
+      :is-open="isAdminModalOpen" 
+      :player="adminSelectedPlayer"
+      @close="isAdminModalOpen = false"
+      @confirm="handleAdminToggleConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { fetchWithAuth } from '../../services/api'
+import { useAuthStore } from '../../stores/authStore'
 import { getTierForElo, getRankFromElo } from '../../utils/ranks'
 import BanConfirmationModal from '../../components/admin/BanConfirmationModal.vue'
+import AdminToggleModal from '../../components/admin/AdminToggleModal.vue'
 
 interface PlayerRecord {
   id: string
@@ -407,7 +431,6 @@ interface PlayerRecord {
   is_banned: boolean
   banned_at: string | null
   is_admin: boolean
-  role: string
   status: 'online' | 'offline' | 'banned'
   created_at: string
 }
@@ -447,9 +470,41 @@ const statusTabs = computed(() => [
   { label: 'Banned', value: 'banned', count: stats.value.bannedPlayers }
 ])
 
+const authStore = useAuthStore()
+const currentUserId = computed(() => authStore.user?.id || '')
+
 const isModalOpen = ref(false)
 const modalMode = ref<'ban' | 'unban'>('ban')
 const selectedPlayer = ref<PlayerRecord | null>(null)
+
+const isAdminModalOpen = ref(false)
+const adminSelectedPlayer = ref<PlayerRecord | null>(null)
+
+function openAdminModal(player: PlayerRecord) {
+  adminSelectedPlayer.value = player
+  isAdminModalOpen.value = true
+}
+
+async function handleAdminToggleConfirm({ id, is_admin }: { id: string; is_admin: boolean }) {
+  try {
+    const res = await fetchWithAuth(`/api/admin/players/${id}/admin`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_admin })
+    })
+
+    const data = await res.json()
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Failed to update administrator status')
+    }
+
+    isAdminModalOpen.value = false
+    showToast(data.message || `Player role updated successfully!`, 'success')
+    await fetchPlayers()
+  } catch (err: any) {
+    console.error('Admin toggle confirm error:', err)
+    showToast(err.message || 'Action failed. Please try again.', 'error')
+  }
+}
 
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
