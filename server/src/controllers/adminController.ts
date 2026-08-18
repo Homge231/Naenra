@@ -332,3 +332,99 @@ export async function importQuestions(req: AuthRequest, res: Response): Promise<
     })
   }
 }
+
+/**
+ * GET /api/admin/leaderboard
+ * Returns Top 100 players by ELO score with summary stats.
+ */
+export async function getLeaderboard(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string || '100')))
+    const search = (req.query.search as string || '').trim()
+
+    let query = supabase
+      .from('players')
+      .select('id, username, elo, avatar_url, created_at, is_first_play')
+
+    if (search) {
+      query = query.ilike('username', `%${search}%`)
+    }
+
+    const { data: players, error } = await query
+      .order('elo', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+
+    // Fetch aggregate statistics
+    const { count: totalPlayers } = await supabase
+      .from('players')
+      .select('*', { count: 'exact', head: true })
+
+    const playerList = players || []
+    const eloSum = playerList.reduce((acc, p) => acc + (p.elo || 0), 0)
+    const averageElo = playerList.length > 0 ? Math.round(eloSum / playerList.length) : 1000
+    const highestElo = playerList.length > 0 ? Math.max(...playerList.map(p => p.elo || 0)) : 1000
+
+    res.json({
+      success: true,
+      data: {
+        players: playerList,
+        totalPlayers: totalPlayers ?? playerList.length,
+        averageElo,
+        highestElo,
+        currentSeason: 'Season 1 (Active)'
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in getLeaderboard:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to fetch leaderboard data'
+    })
+  }
+}
+
+/**
+ * POST /api/admin/season/reset
+ * Bulk updates all players' ELO scores to default baseline (1000).
+ * Requires exact confirmation string "CONFIRM RESET".
+ */
+export async function resetSeason(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { confirmText } = req.body
+
+    if (confirmText !== 'CONFIRM RESET') {
+      res.status(400).json({
+        success: false,
+        message: 'Security validation failed: Confirmation string must be exactly "CONFIRM RESET".'
+      })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('players')
+      .update({ elo: 1000 })
+      .gte('elo', 0)
+      .select('id')
+
+    if (error) throw error
+
+    const resetCount = data ? data.length : 0
+
+    res.json({
+      success: true,
+      resetCount,
+      message: `Season reset executed successfully. ${resetCount} player ELO ratings reset to 1000.`
+    })
+  } catch (error: any) {
+    console.error('Error in resetSeason:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to execute season reset'
+    })
+  }
+}
+

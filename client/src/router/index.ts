@@ -149,7 +149,7 @@ const router = createRouter({
         {
           path: 'leaderboard',
           name: 'admin-leaderboard',
-          component: () => import('../views/admin/AdminPlaceholderView.vue')
+          component: () => import('../views/admin/AdminLeaderboardView.vue')
         },
         {
           path: 'matches',

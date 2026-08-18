@@ -17,15 +17,24 @@
       <!-- BRAND HEADER -->
       <div>
         <div class="p-6 border-b border-slate-800/80 flex items-center justify-between">
-          <router-link to="/admin/dashboard" class="flex items-center gap-3 group">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 via-rose-500 to-amber-500 flex items-center justify-center shadow-[0_0_15px_rgba(225,29,72,0.4)] group-hover:scale-105 transition-transform">
-              <span class="text-white font-black text-xl tracking-tighter">N</span>
+          <router-link to="/admin/dashboard" class="flex items-center gap-2.5 group cursor-pointer">
+            <div class="w-9 h-9 flex items-center justify-center shrink-0">
+              <svg class="w-full h-full text-[#FF7B00] fill-current drop-shadow-[0_0_8px_rgba(255,123,0,0.4)] group-hover:scale-105 transition-transform" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M7 3 L7 21 L12 21 L12 9 L17 21 L17 3 L12 3 L12 15 L7 3 Z" />
+              </svg>
             </div>
-            <div>
-              <h1 class="text-lg font-bold tracking-wider text-white group-hover:text-red-400 transition-colors">
-                NAENRA<span class="text-red-500 text-xs font-mono ml-1 px-1.5 py-0.5 rounded bg-red-950/60 border border-red-800/50">HQ</span>
-              </h1>
-              <p class="text-[10px] uppercase font-mono text-slate-400 tracking-widest">Admin Command Core</p>
+            <div class="leading-none">
+              <div class="flex items-center gap-1.5 mb-1">
+                <h1 class="text-xl font-black tracking-wider uppercase drop-shadow-sm" style="background: linear-gradient(90deg, #FF7B00 0%, #E63946 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; color: transparent;">
+                  NAENRA
+                </h1>
+                <span class="text-[10px] font-mono font-black px-1.5 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/60 shadow-xs">
+                  HQ
+                </span>
+              </div>
+              <p class="text-[8px] text-[#60A5FA] font-bold tracking-[0.25em] uppercase">
+                ADMIN COMMAND CORE
+              </p>
             </div>
           </router-link>
 

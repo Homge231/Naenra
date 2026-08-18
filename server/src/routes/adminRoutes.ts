@@ -6,7 +6,9 @@ import {
   createQuestion,
   updateQuestion,
   deleteQuestion,
-  importQuestions
+  importQuestions,
+  getLeaderboard,
+  resetSeason
 } from '../controllers/adminController'
 
 const router = Router()
@@ -22,5 +24,9 @@ router.delete('/questions/:id', authMiddleware, deleteQuestion)
 
 // Bulk Import CSV/JSON endpoint
 router.post('/questions/import', authMiddleware, importQuestions)
+
+// Leaderboard & Season Management endpoints (US-92)
+router.get('/leaderboard', authMiddleware, getLeaderboard)
+router.post('/season/reset', authMiddleware, resetSeason)
 
 export default router
