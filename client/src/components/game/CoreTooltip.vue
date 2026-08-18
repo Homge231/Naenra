@@ -230,7 +230,7 @@ const stats = computed(() => {
 
 <template>
   <div 
-    class="relative z-[9999] w-[320px] sm:w-[340px] max-w-[90vw] p-3.5 sm:p-4 rounded-2xl border-2 text-left flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 select-none bg-slate-950 shadow-2xl overflow-hidden box-border"
+    class="relative z-[9999] w-80 min-w-[320px] max-w-[340px] shrink-0 p-3.5 sm:p-4 rounded-2xl border-2 text-left flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 select-none bg-slate-950 shadow-2xl overflow-hidden box-border"
     :class="[
       isCoreLocked ? 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.4)]' : currentConfig.border
     ]"

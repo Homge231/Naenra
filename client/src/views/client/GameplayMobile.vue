@@ -174,7 +174,7 @@
           <transition name="fade">
             <div
               v-if="hoveredRoundCoreIndex === index && getCoreDetailsByItem(core)"
-              class="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-[9999] pointer-events-none"
+              class="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-[9999] pointer-events-none w-80 min-w-[320px] flex justify-center"
             >
               <CoreTooltip
                 :core="getCoreDetailsByItem(core)!"
