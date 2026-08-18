@@ -653,7 +653,7 @@ async function fetchLiveMetrics() {
 async function fetchAnalytics() {
   isLoadingAnalytics.value = true
   try {
-    const res = await fetchWithAuth()
+    const res = await fetchWithAuth(`/api/admin/matches/analytics?timeframe=${selectedTimeframe.value}`)
     const json = await res.json()
     if (res.ok && json.success && json.data) {
       analyticsSummary.value = json.data.summary
@@ -681,7 +681,7 @@ async function fetchMatchHistory() {
       status: selectedStatus.value
     })
 
-    const res = await fetchWithAuth()
+    const res = await fetchWithAuth(`/api/admin/matches/history?${params.toString()}`)
     const json = await res.json()
     if (res.ok && json.success && json.data) {
       matches.value = json.data.matches || []
