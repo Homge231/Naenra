@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import { fetchWithAuth } from '../services/api'
+import { useMissionsStore } from './missionsStore'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const SESSION_POLL_INTERVAL_MS = 20000
@@ -110,6 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
       currentSessionVersion.value = version
       subscribeToSessionChanges(userId)
     }
+    useMissionsStore().loadUserMissions()
   }
 
   function forceLogoutDueToNewSession() {
@@ -429,6 +431,7 @@ export const useAuthStore = defineStore('auth', () => {
         isGuest: true
       }
       isGuest.value = true
+      useMissionsStore().loadUserMissions()
       return { success: true }
     } catch (err) {
       console.error('loginAsGuest error:', err)
@@ -445,6 +448,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     profile.value = null
     isGuest.value = false
+    useMissionsStore().resetToInitial()
   }
 
   async function fetchProfile() {

@@ -28,8 +28,36 @@ export interface MissionToast {
 }
 
 export const useMissionsStore = defineStore('missions', () => {
-  const STORAGE_KEY = 'naenra_core_missions_v5'
-  const UNLOCKED_CORES_KEY = 'naenra_unlocked_cores_v5'
+  function getCurrentUserId(): string {
+    try {
+      const token = localStorage.getItem('arena_token')
+      if (!token) return 'guest'
+      const base64Url = token.split('.')[1]
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const payload = JSON.parse(atob(base64))
+      return payload.id || payload.sub || (payload.isGuest ? `guest_${payload.username || 'anon'}` : 'guest')
+    } catch {
+      return 'guest'
+    }
+  }
+
+  function getStorageKey(): string {
+    return `naenra_core_missions_v6_${getCurrentUserId()}`
+  }
+
+  function getUnlockedKey(): string {
+    return `naenra_unlocked_cores_v6_${getCurrentUserId()}`
+  }
+
+  // Purge legacy un-scoped storage keys
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem('naenra_core_missions_v5')
+      localStorage.removeItem('naenra_unlocked_cores_v5')
+      localStorage.removeItem('naenra_core_missions_v4')
+      localStorage.removeItem('naenra_unlocked_cores_v4')
+    } catch {}
+  }
 
   const activeToasts = ref<MissionToast[]>([])
   let toastIdCounter = 0
@@ -631,12 +659,9 @@ export const useMissionsStore = defineStore('missions', () => {
     }
   ]
 
-  const missions = ref<CoreMission[]>(loadSavedMissions())
-  const unlockedCoreNames = ref<string[]>(loadUnlockedCores())
-
   function loadSavedMissions(): CoreMission[] {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY)
+      const saved = localStorage.getItem(getStorageKey())
       if (saved) {
         const parsed = JSON.parse(saved)
         if (Array.isArray(parsed)) {
@@ -649,17 +674,48 @@ export const useMissionsStore = defineStore('missions', () => {
     } catch (e) {
       console.warn('Failed to load saved core missions:', e)
     }
-    return initialMissions
+    return initialMissions.map(m => ({ ...m }))
   }
 
   function loadUnlockedCores(): string[] {
     try {
-      const saved = localStorage.getItem(UNLOCKED_CORES_KEY)
+      const saved = localStorage.getItem(getUnlockedKey())
       if (saved) return JSON.parse(saved)
     } catch (e) {
       console.warn('Failed to load unlocked cores:', e)
     }
     return []
+  }
+
+  const missions = ref<CoreMission[]>(loadSavedMissions())
+  const unlockedCoreNames = ref<string[]>(loadUnlockedCores())
+
+  function loadUserMissions() {
+    missions.value = loadSavedMissions()
+    unlockedCoreNames.value = loadUnlockedCores()
+    fetchCloudProgress()
+  }
+
+  function resetToInitial() {
+    if (syncTimeout) {
+      clearTimeout(syncTimeout)
+      syncTimeout = null
+    }
+    missions.value = initialMissions.map(m => ({
+      ...m,
+      currentProgress: 0,
+      isCompleted: false,
+      isClaimed: false
+    }))
+    unlockedCoreNames.value = []
+    try {
+      localStorage.removeItem(getStorageKey())
+      localStorage.removeItem(getUnlockedKey())
+      localStorage.removeItem('naenra_core_missions_v5')
+      localStorage.removeItem('naenra_unlocked_cores_v5')
+      localStorage.removeItem('naenra_core_missions_v4')
+      localStorage.removeItem('naenra_unlocked_cores_v4')
+    } catch (e) {}
   }
 
   const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
@@ -715,24 +771,39 @@ export const useMissionsStore = defineStore('missions', () => {
       const data = await res.json()
 
       // Server is source of truth — fully override unlockedCoreNames from server
-      if (data.unlockedCoreNames && Array.isArray(data.unlockedCoreNames)) {
-        unlockedCoreNames.value = Array.from(new Set([...unlockedCoreNames.value, ...data.unlockedCoreNames]))
-      }
+      unlockedCoreNames.value = Array.isArray(data.unlockedCoreNames) ? [...data.unlockedCoreNames] : []
 
+      const cloudMissionMap = new Map<string, any>()
       if (data.missions && Array.isArray(data.missions)) {
         for (const cloudM of data.missions) {
-          const localM = missions.value.find(m =>
-            m.unlockCoreName.toLowerCase() === String(cloudM.coreName || '').toLowerCase() ||
-            m.id.toLowerCase() === String(cloudM.coreName || '').toLowerCase()
-          )
-          if (localM) {
-            // Keep the maximum progress achieved between local and cloud
-            localM.currentProgress = Math.min(localM.targetCount, Math.max(localM.currentProgress, Number(cloudM.currentProgress || 0)))
-            localM.isCompleted = cloudM.isCompleted || cloudM.isUnlocked || (localM.currentProgress >= localM.targetCount) || false
-            localM.isClaimed = cloudM.isUnlocked || localM.isClaimed || false
-          }
+          const nameKey = String(cloudM.coreName || '').toLowerCase().trim()
+          const idKey = String(cloudM.missionId || '').toLowerCase().trim()
+          if (nameKey) cloudMissionMap.set(nameKey, cloudM)
+          if (idKey) cloudMissionMap.set(idKey, cloudM)
         }
       }
+
+      // Reconstruct missions based strictly on current user's cloud data
+      missions.value = initialMissions.map(initM => {
+        const cloudM = cloudMissionMap.get(initM.unlockCoreName.toLowerCase()) || cloudMissionMap.get(initM.id.toLowerCase())
+        if (cloudM) {
+          const isUnlocked = Boolean(cloudM.isUnlocked)
+          const currentProg = isUnlocked ? initM.targetCount : Math.min(initM.targetCount, Number(cloudM.currentProgress || 0))
+          const isComp = isUnlocked || Boolean(cloudM.isCompleted) || (currentProg >= initM.targetCount)
+          return {
+            ...initM,
+            currentProgress: currentProg,
+            isCompleted: isComp,
+            isClaimed: isUnlocked
+          }
+        }
+        return {
+          ...initM,
+          currentProgress: 0,
+          isCompleted: false,
+          isClaimed: false
+        }
+      })
 
       saveState(false)
     } catch (err) {
@@ -751,8 +822,8 @@ export const useMissionsStore = defineStore('missions', () => {
 
   function saveState(shouldSyncToCloud: boolean = true) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(missions.value))
-      localStorage.setItem(UNLOCKED_CORES_KEY, JSON.stringify(unlockedCoreNames.value))
+      localStorage.setItem(getStorageKey(), JSON.stringify(missions.value))
+      localStorage.setItem(getUnlockedKey(), JSON.stringify(unlockedCoreNames.value))
       if (shouldSyncToCloud) {
         debouncedCloudSync()
       }
@@ -1094,6 +1165,8 @@ export const useMissionsStore = defineStore('missions', () => {
     showToast,
     dismissToast,
     resetMissions,
+    resetToInitial,
+    loadUserMissions,
     fetchCloudProgress,
     isSyncing
   }

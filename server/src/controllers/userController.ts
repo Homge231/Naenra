@@ -511,7 +511,7 @@ export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise
       const existingProgressVal = existing ? Number(existing.current_progress || 0) : 0
       const finalProgress = Math.max(existingProgressVal, incomingProgress)
       
-      const isUnlocked = Boolean(existing?.is_unlocked) || Boolean(item.isClaimed || item.isUnlocked)
+      const isUnlocked = Boolean(existing?.is_unlocked)
 
       upserts.push({
         user_id: userId,
