@@ -43,13 +43,13 @@ export class BalancedCoreStrategy extends BaseCore {
     let forgiveMistake = false
 
     if (this.coreName === 'zenith') {
-      penalty = 30 // Fixed -30 for Zenith
+      penalty = ctx.penaltyType === 'typo' ? Math.min(30, ctx.wrongPenalty) : 30
     } else if (this.coreName === 'equilibrium') {
       penalty = Math.floor(penalty * 0.3) // 30% of normal penalty
     } else if (this.coreName === 'yin yang') {
-      penalty = 5 // Fixed -5
+      penalty = ctx.penaltyType === 'typo' ? Math.min(5, ctx.wrongPenalty) : 5
     } else if (this.coreName === 'cosmic balance') {
-      penalty = 10 // Fixed -10
+      penalty = ctx.penaltyType === 'typo' ? Math.min(10, ctx.wrongPenalty) : 10
     } else if (this.coreName === 'harmony wave') {
       // first 2 wrong answers are blocked and don't break streak
       const totalWrongs = ctx.answerHistory.filter(a => !a).length

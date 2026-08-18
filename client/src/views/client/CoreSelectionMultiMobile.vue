@@ -284,6 +284,7 @@ const errorMsg = ref('')
 // ── Reroll State (Independent per card) ─────────────────────────────────────
 const rerolledSlots = ref([false, false])
 const rerollingIndex = ref<number | null>(null)
+const discardedCoreIds = ref<Set<string>>(new Set())
 
 // ── Timer State ─────────────────────────────────────────────────────────────
 const SELECTION_DURATION = 15
@@ -297,23 +298,38 @@ const activeTimeouts = new Set<ReturnType<typeof setTimeout>>()
 function handleCardReroll(index: number) {
   if (rerolledSlots.value[index] || rerollingIndex.value !== null || loading.value) return
 
+  audioService.playReroll()
   rerolledSlots.value[index] = true
   rerollingIndex.value = index
+
+  const currentReplacedCore = randomCores.value[index]
+  if (currentReplacedCore) {
+    discardedCoreIds.value.add(currentReplacedCore.id)
+  }
 
   if (selectedCore.value?.id === randomCores.value[index].id) {
     selectedCore.value = null
   }
 
   const t1 = setTimeout(() => {
-    const currentIds = randomCores.value.map(c => c.id)
-    let availableCores = supportCores.value.filter(c => !currentIds.includes(c.id))
+    const currentOnScreenIds = randomCores.value.map(c => c.id)
+    // Filter out cores currently on screen AND all cores previously seen/discarded
+    let availableCores = supportCores.value.filter(
+      c => !currentOnScreenIds.includes(c.id) && !discardedCoreIds.value.has(c.id)
+    )
 
+    if (availableCores.length < 1) {
+      availableCores = supportCores.value.filter(c => !currentOnScreenIds.includes(c.id))
+    }
     if (availableCores.length < 1) {
       availableCores = [...supportCores.value]
     }
 
     const newCore = getRandomCores(availableCores, 1)[0]
-    randomCores.value.splice(index, 1, newCore)
+    if (newCore) {
+      discardedCoreIds.value.add(newCore.id)
+      randomCores.value.splice(index, 1, newCore)
+    }
     activeTimeouts.delete(t1)
   }, 300)
   activeTimeouts.add(t1)
@@ -402,6 +418,8 @@ async function fetchSupportCores() {
     }
 
     randomCores.value = getRandomCores(supportCores.value, 2)
+    discardedCoreIds.value.clear()
+    randomCores.value.forEach(c => discardedCoreIds.value.add(c.id))
     loading.value = false
 
     startTimer()

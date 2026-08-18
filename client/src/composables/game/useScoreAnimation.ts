@@ -38,9 +38,18 @@ export function useScoreAnimation(letterSlotsRef: any) {
       y = rect.top - 10
     }
 
-    // Add jitter so simultaneous popups don't overlap completely
-    x += (Math.random() - 0.5) * 40
-    y += (Math.random() - 0.5) * 40
+    // Offset vertically based on active popups so multiple popups cascade clearly without overlapping
+    const currentCount = pointPopups.value.length
+    if (currentCount >= 3) {
+      // Remove oldest popup if exceeding limit
+      pointPopups.value.shift()
+    }
+
+    const verticalOffset = Math.min(currentCount, 2) * 36
+    const horizontalJitter = (Math.random() - 0.5) * 20
+
+    x += horizontalJitter
+    y -= verticalOffset
 
     const id = popupIdCounter++
     pointPopups.value.push({ id, value, type, x, y, message })

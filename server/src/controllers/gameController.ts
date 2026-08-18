@@ -20,7 +20,7 @@ const PANDORA_CORE_ID = '00000000-0000-0000-0000-000000000010' // Pandora's Box
 // In-memory timer store for Anti-Cheat (time_taken validation)
 const sessionTimers = new Map<string, number>()
 
-const TYPO_ACCURACY_THRESHOLD = 0.8   // >= 80% similarity counts as a "typo"
+const TYPO_ACCURACY_THRESHOLD = 0.70   // >= 70% similarity counts as a "typo"
 const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misses
 const DEFAULT_WRONG_PENALTY = 50      // Default penalty for wrong answers or skips (-50 pts)
 
@@ -113,22 +113,40 @@ function calculateAccuracy(typed: string, target: string): { distance: number; a
  *                                                     totally unrelated guess or a full
  *                                                     skip doesn't wipe out the score.
  */
+/**
+ * Determines the penalty for a wrong answer, distinguishing between minor typos (1-2 characters off)
+ * and completely wrong answers or skips.
+ *
+ * - Typo (edit distance <= 1 on words >= 2 chars, or edit distance <= 2 on words >= 4 chars, or accuracy >= 70%):
+ *   Proportional penalty = distance * TYPO_PENALTY_PER_LETTER (e.g. -2 pts for 1 typo, -4 pts for 2 typos).
+ * - Full Wrong / Skip:
+ *   Standard wrong penalty = DEFAULT_WRONG_PENALTY (50 pts).
+ */
 function getWrongAnswerPenalty(
   typed: string,
   target: string
 ): { penalty: number; penaltyType: PenaltyType; accuracy: number; distance: number } {
-  const { distance, accuracy } = calculateAccuracy(typed, target)
-
   const isSkip = typed.length === 0
-  if (!isSkip && accuracy >= TYPO_ACCURACY_THRESHOLD) {
-    const penalty = Math.max(1, distance * TYPO_PENALTY_PER_LETTER)
+  if (isSkip) {
+    return { penalty: DEFAULT_WRONG_PENALTY, penaltyType: 'wrong', accuracy: 0, distance: target.length }
+  }
+
+  const { distance, accuracy } = calculateAccuracy(typed, target)
+  const maxLen = Math.max(typed.length, target.length)
+
+  // Typo condition:
+  // 1. Missing/wrong 1 character on words >= 2 chars (e.g. "iron" vs "aron", "cat" vs "cot")
+  // 2. Missing/wrong 2 characters on words >= 4 chars (e.g. "towns" vs "tovns", "effervescence" vs "efervescence")
+  // 3. Or accuracy >= 70% similarity
+  const isTypo = (distance === 1 && maxLen >= 2) || (distance === 2 && maxLen >= 4) || (accuracy >= TYPO_ACCURACY_THRESHOLD)
+
+  if (isTypo) {
+    const penalty = Math.max(2, distance * TYPO_PENALTY_PER_LETTER)
     return { penalty, penaltyType: 'typo', accuracy, distance }
   }
 
-  // Default penalty for wrong answer or skip is 50 points
-  const effectiveDistance = isSkip ? target.length : distance
-  const penalty = DEFAULT_WRONG_PENALTY
-  return { penalty, penaltyType: 'wrong', accuracy, distance: effectiveDistance }
+  // Default penalty for full wrong answer is 50 points
+  return { penalty: DEFAULT_WRONG_PENALTY, penaltyType: 'wrong', accuracy, distance }
 }
 
 // NOTE: calculateScore() has been removed.

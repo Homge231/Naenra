@@ -1504,8 +1504,10 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
 async function skipQuestion() {
   if (gameState.value === 'timeout') return
   if (matchStore.currentRound === 4) {
+    if (currentRoom && !isRaceLocked.value) {
+      currentRoom.send('submit_race_answer', { answer: '', session_id: sessionId.value })
+    }
     typedLetters.value = []
-    if (currentRoom) currentRoom.send('player_typing', { text: '' })
     if (inputRef.value) inputRef.value.value = ''
     return
   }
@@ -1643,17 +1645,20 @@ function handleKeydown(e: KeyboardEvent) {
 
   // Skip question when Enter is pressed
   if (e.key === 'Enter') {
+    if (matchStore.currentRound === 4) {
+      if (currentRoom && !isRaceLocked.value) {
+        currentRoom.send('submit_race_answer', {
+          answer: typedLetters.value.join(''),
+          session_id: sessionId.value
+        })
+      }
+      return
+    }
     if (gameState.value === 'correct' || gameState.value === 'wrong') {
       skipQuestion()
       return
     }
     if (gameState.value !== 'playing') return
-    if (matchStore.currentRound === 4) {
-      if (typedLetters.value.length === 0 || (currentQ && typedLetters.value.length === currentQ.target_length)) {
-        checkAnswer()
-      }
-      return
-    }
     skipQuestion()
     return
   }
@@ -2522,9 +2527,6 @@ function setupRoomEventHandlers(room: any) {
       if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
       else spawnPointPopup(0, 'custom', 'SKIPPED')
       score.value = Math.max(0, score.value - data.penalty)
-      if (currentRoom) {
-        currentRoom.send('update_score', { score: score.value })
-      }
       isRaceLocked.value = true // Lock input for this race question
     } else {
       if (data.penalty > 0) {

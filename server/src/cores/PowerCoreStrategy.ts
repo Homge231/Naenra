@@ -29,21 +29,32 @@ export class PowerCoreStrategy extends BaseCore {
   }
 
   calculateWrong(ctx: ScoringContext): ScoringResult {
+    // Universal Aegis shield protection
+    const currentShields = ctx.currentShields || 0
+    if (currentShields > 0) {
+      return super.calculateWrong(ctx)
+    }
+
     const oraclePenalty = this._oraclePenalty(ctx)
+    const isTypo = ctx.penaltyType === 'typo'
     let penalty = Math.floor(ctx.wrongPenalty * this.penaltyMultiplier)
     let lockInputMs = 0
     let timerDelta = 0
     
-    if (this.coreName === 'brute force') {
-      penalty = 50
-    } else if (this.coreName === 'supermassive') {
-      penalty = 200
-    } else if (this.coreName === 'absolute power') {
-      penalty = 100
-    } else if (this.coreName === 'overload') {
-      lockInputMs = 2000
-    } else if (this.coreName === 'desperado') {
-      penalty = 150
+    // On typos (1-2 letters off), scale the small typo penalty by penaltyMultiplier
+    // instead of applying crushing flat penalties (e.g. Supernova deducting only typo penalty).
+    if (!isTypo) {
+      if (this.coreName === 'brute force') {
+        penalty = 50
+      } else if (this.coreName === 'supermassive') {
+        penalty = 200
+      } else if (this.coreName === 'absolute power') {
+        penalty = 100
+      } else if (this.coreName === 'overload') {
+        lockInputMs = 2000
+      } else if (this.coreName === 'desperado') {
+        penalty = 150
+      }
     }
 
     return {

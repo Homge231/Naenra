@@ -1819,8 +1819,8 @@ watch(() => gameState.value, (newState) => {
 })
 
 onMounted(async () => {
-  // Single-player is always 1 round; isFinalRound() must return true on timeout
-  matchStore.maxRounds = 1
+  // Single-player mode consists of 3 rounds with upgrade phases in between
+  matchStore.maxRounds = 3
 
   if (!activeCoreId.value) {
     router.replace('/core')
@@ -1829,7 +1829,7 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
-    matchStore.resetMatch(1)
+    matchStore.resetMatch(3)
   }
   resetTimer()
 
