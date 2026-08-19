@@ -1,18 +1,58 @@
 import { Server as HttpServer } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import dotenv from 'dotenv'
+import { verifyToken } from '../utils/jwt'
+import { supabase } from '../config/supabase'
+import { getRankFromElo } from '../utils/ranks'
 
 dotenv.config()
 
 export function setupAiLiveGateway(): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true })
 
-  wss.on('connection', (clientWs: WebSocket) => {
+  wss.on('connection', async (clientWs: WebSocket, req: any) => {
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
       clientWs.send(JSON.stringify({ error: 'GEMINI_API_KEY is missing on server env.' }))
       clientWs.close()
       return
+    }
+
+    // 1. Resolve player identity & live career stats from query token
+    let playerName = 'Player'
+    let playerElo = 0
+    let playerRank = 'Bronze'
+    let playerWins = 0
+    let playerLosses = 0
+    let totalMatches = 0
+    let winRate = '0%'
+
+    try {
+      const requestUrl = new URL(req?.url || '', 'http://localhost')
+      const token = requestUrl.searchParams.get('token')
+      if (token) {
+        const decoded = verifyToken(token)
+        if (decoded?.id) {
+          playerName = decoded.username || decoded.email?.split('@')[0] || 'Player'
+          const { data: dbPlayer } = await supabase
+            .from('players')
+            .select('username, elo, wins, losses, total_matches')
+            .eq('id', decoded.id)
+            .maybeSingle()
+
+          if (dbPlayer) {
+            playerName = dbPlayer.username || playerName
+            playerElo = dbPlayer.elo ?? 0
+            playerRank = getRankFromElo(playerElo)
+            playerWins = dbPlayer.wins ?? 0
+            playerLosses = dbPlayer.losses ?? 0
+            totalMatches = dbPlayer.total_matches ?? (playerWins + playerLosses)
+            winRate = totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%'
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[GeminiLiveProxy] Could not resolve player token:', err)
     }
 
     const host = 'generativelanguage.googleapis.com'
@@ -24,7 +64,7 @@ export function setupAiLiveGateway(): WebSocketServer {
     const pendingClientMessages: (Buffer | string)[] = []
 
     geminiWs.on('open', () => {
-      // 1. Send Setup Message to Gemini 3.1 Flash Live
+      // 2. Send Setup Message to Gemini 3.1 Flash Live with player identity & stats injected
       const setupMsg = {
         setup: {
           model: 'models/gemini-3.1-flash-live-preview',
@@ -44,10 +84,21 @@ export function setupAiLiveGateway(): WebSocketServer {
           systemInstruction: {
             parts: [
               {
-                text: `You are Naenra AI Coach, an energetic, friendly real-time voice AI coach in Naenra typing game (live at naenra.xyz).
-You talk directly to players via real-time audio.
+                text: `You are Naenra AI Coach, the official energetic, friendly real-time voice AI guide in Naenra typing game (live at naenra.xyz).
+You talk directly to the player via real-time audio.
 Detect the language of the player (Vietnamese, English, Spanish, Japanese, French, etc.) and speak naturally, fluently, and concisely in that exact language.
 Keep voice responses compact (under 40 words) for fast, natural in-game audio listening.
+
+CURRENT PLAYER IDENTITY & LIVE STATS:
+- In-Game Player Name / Username: "${playerName}"
+- ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
+- Career Record: ${playerWins} Wins / ${playerLosses} Losses (${totalMatches} Total Matches, Win Rate: ${winRate})
+
+PLAYER IDENTITY & STATS AUTHORIZATION:
+You HAVE FULL, DIRECT AUTHORIZED ACCESS to this player's in-game account.
+If the player asks "What is my username?", "Who am I?", "What is my rank?", "Tên của tôi là gì?", "Tôi tên là gì?", "Tài khoản của tôi là gì?", "Tôi là ai?", or asks about their ELO, rank, or career performance:
+YOU MUST STATE THEIR EXACT IN-GAME USERNAME ("${playerName}") AND LIVE STATS DIRECTLY!
+NEVER say "I don't have access to your username" or "I cannot access personal info" — you are their personal in-game coach and you know their exact username "${playerName}".
 
 Key Game Facts:
 - Naenra is a 60s timed vocabulary typing game with 3-Round loop.

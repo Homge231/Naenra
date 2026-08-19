@@ -22,7 +22,8 @@ export function useGeminiLive() {
     envUrl = envUrl || 'http://localhost:3000'
     const wsProto = envUrl.startsWith('https') ? 'wss' : 'ws'
     const host = envUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
-    return `${wsProto}://${host}/api/ai/live`
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('arena_token') || '') : ''
+    return `${wsProto}://${host}/api/ai/live?token=${encodeURIComponent(token)}`
   }
 
   // Linear interpolation downsampler to 16kHz
