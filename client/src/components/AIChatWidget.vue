@@ -346,48 +346,15 @@ function toggleLiveSession() {
 const isChatOpen = ref(false)
 const currentAiLiveMsgIdx = ref(-1)
 const currentUserLiveMsgIdx = ref(-1)
-let hasPushedLiveAckForTurn = false
-let liveTurnAckMsgIdx = -1
-
-function getAckPhrase(promptText: string = ''): string {
-  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(promptText)
-  const enAcks = [
-    "Alright, let me look into that for you! 🔍",
-    "Got it! Give me a second to check your question... ✨",
-    "Sure thing! Let me analyze that right now for you... ⚡",
-    "Hold on a moment, checking the best answer for you! 🎯",
-    "Okay, let me check that for you right away! 💡"
-  ]
-  const viAcks = [
-    "Được rồi, để mình kiểm tra câu trả lời cho bạn nhé! 🔍",
-    "Đã nhận câu hỏi! Chờ mình một chút nhé... ✨",
-    "Được chứ! Để mình phân tích thông tin ngay cho bạn... ⚡",
-    "Chờ một giây nhé, mình đang tìm câu trả lời chính xác nhất! 🎯",
-    "Hiểu rồi, để mình kiểm tra và giải đáp ngay cho bạn nhé! 💡"
-  ]
-  return isVi
-    ? viAcks[Math.floor(Math.random() * viAcks.length)]
-    : enAcks[Math.floor(Math.random() * enAcks.length)]
-}
 
 // Real-time transcript from Gemini Live AI Output
 onAiTranscript((text: string) => {
   if (!text || !isChatOpen.value) return
 
-  // 1️⃣ Ensure Phase 1 Acknowledgment bubble exists before AI answer starts
-  if (!hasPushedLiveAckForTurn && currentAiLiveMsgIdx.value === -1) {
-    hasPushedLiveAckForTurn = true
-    const ack = getAckPhrase(text)
-    messages.value.push({ role: 'model', content: ack })
-    liveTurnAckMsgIdx = messages.value.length - 1
-  }
-
-  // 2️⃣ Stream AI response into Phase 2 bubble
   if (
     currentAiLiveMsgIdx.value === -1 ||
     currentAiLiveMsgIdx.value >= messages.value.length ||
-    messages.value[currentAiLiveMsgIdx.value]?.role !== 'model' ||
-    currentAiLiveMsgIdx.value === liveTurnAckMsgIdx
+    messages.value[currentAiLiveMsgIdx.value]?.role !== 'model'
   ) {
     messages.value.push({ role: 'model', content: text })
     currentAiLiveMsgIdx.value = messages.value.length - 1
@@ -408,14 +375,6 @@ onUserTranscript((text: string) => {
   if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
     messages.value.push({ role: 'user', content: text })
     currentUserLiveMsgIdx.value = messages.value.length - 1
-
-    // Always push 1st Phase Acknowledgment bubble immediately when user talks
-    if (!hasPushedLiveAckForTurn) {
-      hasPushedLiveAckForTurn = true
-      const ack = getAckPhrase(text)
-      messages.value.push({ role: 'model', content: ack })
-      liveTurnAckMsgIdx = messages.value.length - 1
-    }
   } else {
     messages.value[currentUserLiveMsgIdx.value].content = text
   }
@@ -426,16 +385,12 @@ onUserTranscript((text: string) => {
 onTurnComplete(() => {
   currentAiLiveMsgIdx.value = -1
   currentUserLiveMsgIdx.value = -1
-  hasPushedLiveAckForTurn = false
-  liveTurnAckMsgIdx = -1
 })
 
 watch(isLiveConnected, (connected) => {
   if (!connected) {
     currentAiLiveMsgIdx.value = -1
     currentUserLiveMsgIdx.value = -1
-    hasPushedLiveAckForTurn = false
-    liveTurnAckMsgIdx = -1
   }
 })
 
@@ -741,13 +696,6 @@ async function sendMessage() {
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
 
-  // 1️⃣ PHASE 1: Immediate Natural Conversational Acknowledgment (Instant 1st Bubble)
-  const ackPhrase = getAckPhrase(text)
-  messages.value.push({ role: 'model', content: ackPhrase })
-  hasPushedLiveAckForTurn = true
-  liveTurnAckMsgIdx = messages.value.length - 1
-  scrollToBottom()
-
   // Route text prompt directly into active Gemini 3.1 Live session if connected
   if (isLiveConnected.value) {
     sendTextMessage(text)
@@ -768,19 +716,14 @@ async function sendMessage() {
   isStreaming.value = false
   streamingMsgIdx.value = -1
 
-  // Speak the acknowledgment aloud immediately if voice is enabled and chat is open
-  if (isChatOpen.value) {
-    speakText(ackPhrase, { rate: 1.22 })
-  }
-
-  // 2️⃣ PHASE 2: Fetch & Stream Detailed Answer into 2nd Bubble
-  let answerMsgIdx = -1
   let incomingBuffer = ''
   let displayedText = ''
   let isStreamClosed = false
   let timeoutId: any = null
 
-  // Helper to start the incremental typewriter effect for the 2nd bubble
+  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
+
+  // Helper to start the incremental typewriter effect for the response bubble
   const startTypewriterLoop = (targetIdx: number) => {
     if (streamTickerTimer) clearInterval(streamTickerTimer)
 
@@ -833,9 +776,8 @@ async function sendMessage() {
   }
 
   try {
-    // Send previous history excluding the newly pushed ackPhrase
     const history = messages.value
-      .slice(0, -2)
+      .slice(0, -1)
       .slice(-10)
       .map(m => ({ role: m.role, message: m.content }))
 
@@ -888,9 +830,9 @@ async function sendMessage() {
       throw new Error(err.message || (isVi ? 'Không thể kết nối đến AI Assistant' : 'Failed to connect to AI Assistant'))
     }
 
-    // Push placeholder message for Phase 2 detailed answer
+    // Push placeholder message for AI answer
     messages.value.push({ role: 'model', content: '' })
-    answerMsgIdx = messages.value.length - 1
+    const answerMsgIdx = messages.value.length - 1
 
     // Launch incremental typewriter loop
     startTypewriterLoop(answerMsgIdx)
