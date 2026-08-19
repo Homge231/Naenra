@@ -408,19 +408,38 @@ export async function generateChatResponseStream(
   playerHistory?: { coreHistory?: any[]; unlockedCores?: string[]; elo?: number; activeCoreName?: string }
 ): Promise<void> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
-  if (!apiKey) {
-    res.write(`data: ${JSON.stringify({ chunk: 'API key not configured.' })}\n\n`)
-    res.write('data: [DONE]\n\n')
-    res.end()
-    return
-  }
 
   // Set up SSE headers
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-cache, no-transform')
   res.setHeader('Connection', 'keep-alive')
   res.setHeader('X-Accel-Buffering', 'no')
-  res.flushHeaders()
+  if (typeof res.flushHeaders === 'function') {
+    res.flushHeaders()
+  }
+
+  let isClientDisconnected = false
+  res.on('close', () => {
+    isClientDisconnected = true
+  })
+
+  const safeWrite = (data: string): boolean => {
+    if (isClientDisconnected || res.writableEnded || res.destroyed) return false
+    return res.write(data)
+  }
+
+  const safeEnd = () => {
+    if (!res.writableEnded && !res.destroyed) {
+      res.end()
+    }
+  }
+
+  if (!apiKey) {
+    safeWrite(`data: ${JSON.stringify({ chunk: 'API key not configured.' })}\n\n`)
+    safeWrite('data: [DONE]\n\n')
+    safeEnd()
+    return
+  }
 
   try {
     if (!ai) ai = new GoogleGenAI({ apiKey })
@@ -482,10 +501,11 @@ RULES:
     if (streamResult) {
       try {
         for await (const chunk of streamResult) {
+          if (isClientDisconnected) break
           const text = chunk.text
           if (text) {
             emittedChars += text.length
-            res.write(`data: ${JSON.stringify({ chunk: text })}\n\n`)
+            safeWrite(`data: ${JSON.stringify({ chunk: text })}\n\n`)
           }
         }
       } catch (streamErr) {
@@ -494,31 +514,32 @@ RULES:
     }
 
     // If API stream didn't yield any text, use generateChatResponse (with Smart Fallback Engine)
-    if (emittedChars === 0) {
+    if (emittedChars === 0 && !isClientDisconnected) {
       console.log('Gemini stream emitted 0 chars, fetching full response from generateChatResponse...')
       const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
-      // Stream fallback response word-by-word with tiny delay for smooth typing animation
+      // Stream fallback response word-by-word with small delay for smooth typing animation
       const words = fallbackReply.split(' ')
       for (let i = 0; i < words.length; i += 2) {
+        if (isClientDisconnected) break
         const chunk = words.slice(i, i + 2).join(' ') + (i + 2 < words.length ? ' ' : '')
-        res.write(`data: ${JSON.stringify({ chunk })}\n\n`)
-        await new Promise(r => setTimeout(r, 25))
+        safeWrite(`data: ${JSON.stringify({ chunk })}\n\n`)
+        await new Promise(r => setTimeout(r, 20))
       }
     }
 
-    res.write('data: [DONE]\n\n')
-    res.end()
+    safeWrite('data: [DONE]\n\n')
+    safeEnd()
   } catch (error: any) {
     console.error('generateChatResponseStream error:', error)
     try {
       const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
-      res.write(`data: ${JSON.stringify({ chunk: fallbackReply })}\n\n`)
-      res.write('data: [DONE]\n\n')
-      res.end()
+      safeWrite(`data: ${JSON.stringify({ chunk: fallbackReply })}\n\n`)
+      safeWrite('data: [DONE]\n\n')
+      safeEnd()
     } catch (finalErr) {
-      res.write(`data: ${JSON.stringify({ chunk: 'I am your Naenra AI Assistant. Ask me anything about Support Cores, game rules, or ELO ranks!' })}\n\n`)
-      res.write('data: [DONE]\n\n')
-      res.end()
+      safeWrite(`data: ${JSON.stringify({ chunk: 'I am your Naenra AI Assistant. Ask me anything about Support Cores, game rules, or ELO ranks!' })}\n\n`)
+      safeWrite('data: [DONE]\n\n')
+      safeEnd()
     }
   }
 }
