@@ -247,7 +247,7 @@ export const useAuthStore = defineStore('auth', () => {
               id: payload.id,
               username: payload.username,
               avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(payload.username)}`,
-              elo: 1000,
+              elo: 0,
               isGuest: true
             }
           }

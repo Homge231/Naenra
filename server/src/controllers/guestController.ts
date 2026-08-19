@@ -36,7 +36,7 @@ export async function loginAsGuest(req: Request, res: Response): Promise<void> {
       email: guestEmail,
       username,
       avatar_url: avatarUrl,
-      elo: 1000,
+      elo: 0,
       session_version: 0
     })
 
@@ -62,7 +62,7 @@ export async function loginAsGuest(req: Request, res: Response): Promise<void> {
         email: guestEmail,
         isGuest: true,
         avatar_url: avatarUrl,
-        elo: 1000
+        elo: 0
       }
     })
   } catch (error: any) {

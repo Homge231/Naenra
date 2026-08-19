@@ -77,7 +77,7 @@ export async function authMiddleware(
           email: decoded.email || `${decoded.id}@guest.naenra.xyz`,
           username: decoded.username || 'Guest',
           avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(decoded.username || 'Guest')}`,
-          elo: 1000,
+          elo: 0,
           session_version: 0
         })
       }

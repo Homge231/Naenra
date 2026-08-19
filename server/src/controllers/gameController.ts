@@ -399,7 +399,7 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
         email: req.user?.email || `${playerId}@guest.naenra.xyz`,
         username: req.user?.username || 'Guest',
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(req.user?.username || 'Guest')}`,
-        elo: 1000,
+        elo: req.user?.isGuest ? 0 : 1000,
         session_version: 0
       })
     }

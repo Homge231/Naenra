@@ -518,6 +518,10 @@ export async function getLeaderboard(req: AuthRequest, res: Response): Promise<v
     let query = supabase
       .from('players')
       .select('id, username, elo, avatar_url, created_at, is_first_play')
+      .not('email', 'ilike', '%@guest.naenra.xyz%')
+      .not('email', 'ilike', 'guest_%')
+      .not('username', 'ilike', 'Guest #%')
+      .not('username', 'ilike', 'Guest_%')
 
     if (search) {
       query = query.ilike('username', `%${search}%`)
@@ -532,6 +536,8 @@ export async function getLeaderboard(req: AuthRequest, res: Response): Promise<v
     const { count: totalPlayers } = await supabase
       .from('players')
       .select('*', { count: 'exact', head: true })
+      .not('email', 'ilike', '%@guest.naenra.xyz%')
+      .not('email', 'ilike', 'guest_%')
 
     const playerList = players || []
     const eloSum = playerList.reduce((acc, p) => acc + (p.elo || 0), 0)
