@@ -255,15 +255,18 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
   try {
     const previous_core_id = req.query.previous_core_id as string | undefined
 
-    const { data: allCores, error } = await supabase
+    const { data: rawCores, error } = await supabase
       .from('cores')
-      .select('id, name, description, flat_buff, multiplier_buff, tier, upgrades_to, core_type, classification, icon_url')
+      .select('id, name, description, flat_buff, multiplier_buff, tier, upgrades_to, core_type, classification, icon_url, is_active')
 
     if (error) throw error
-    if (!allCores || allCores.length === 0) {
+    if (!rawCores || rawCores.length === 0) {
       res.status(200).json({ cores: [] })
       return
     }
+
+    // Filter active cores for match drop pool
+    const allCores = req.query.all === 'true' ? rawCores : rawCores.filter(c => (c as any).is_active !== false)
 
     if (req.query.all === 'true') {
       res.status(200).json({ cores: allCores })

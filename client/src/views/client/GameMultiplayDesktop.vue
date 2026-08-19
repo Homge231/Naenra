@@ -744,9 +744,6 @@ import AegisShieldIndicator from '../../components/game/AegisShieldIndicator.vue
 import ComboCoreIndicator from '../../components/game/ComboCoreIndicator.vue'
 import MissionCoreIndicator from '../../components/game/MissionCoreIndicator.vue'
 import CoreUpgradeOverlay from '../../components/game/CoreUpgradeOverlay.vue'
-import OracleCoreIndicator from '../../components/game/OracleCoreIndicator.vue'
-
-const isForfeitWin = ref(false)
 import FeedbackOverlay from '../../components/game/FeedbackOverlay.vue'
 import MatchResultOverlay from '../../components/game/MatchResultOverlay.vue'
 import PhaserBackground from '../../components/game/PhaserBackground.vue'
@@ -760,8 +757,6 @@ import { useGameStore } from '../../stores/gameStore.ts'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
 import { getCoreFamily } from '../../game/cores/families.ts'
 import { useMatchStore } from '../../stores/matchStore.ts'
-
-const missionsStore = useMissionsStore()
 import {
   initAudio,
   playKeystroke,
@@ -789,11 +784,15 @@ import {
   isPowerCore as checkPowerCore
 } from '../../game/cores/registry.ts'
 import { useSettingsStore } from '../../stores/settingsStore.ts'
-
-const settingsStore = useSettingsStore()
 import { getCoreIconPath } from '../../game/cores/icons.ts'
 import { fetchWithAuth } from '../../services/api.ts'
 import { audioService } from '../../services/audioService.ts'
+
+const isForfeitWin = ref(false)
+
+const missionsStore = useMissionsStore()
+
+const settingsStore = useSettingsStore()
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
@@ -2660,6 +2659,7 @@ onBeforeRouteLeave((to, _from, next) => {
   }
   next()
 })
+
 
 
 </script>

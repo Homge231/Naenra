@@ -11,7 +11,14 @@ import {
   getPlayers,
   banPlayer,
   unbanPlayer,
-  togglePlayerAdmin
+  togglePlayerAdmin,
+  getLeaderboard,
+  resetSeason,
+  getAdminCores,
+  createCore,
+  updateCore,
+  toggleCoreActive,
+  deleteCore
 } from '../controllers/adminController'
 
 const router = Router()
@@ -25,7 +32,10 @@ async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction)
 
   const email = (user.email || '').toLowerCase()
   const isKnownAdminEmail = email === 'homge231@gmail.com' || 
-                           email === 'baonhggcd220259@fpt.edu.vn'
+                           email === 'baonhggcd220259@fpt.edu.vn' ||
+                           email === 'myctgcd220094@fpt.edu.vn' ||
+                           email === 'tumychung2004@gmail.com' ||
+                           email === 'mychung.dev@gmail.com'
 
   const { data: player } = await supabase
     .from('players')
@@ -60,5 +70,16 @@ router.get('/players', authMiddleware, requireAdmin, getPlayers)
 router.post('/players/:id/ban', authMiddleware, requireAdmin, banPlayer)
 router.post('/players/:id/unban', authMiddleware, requireAdmin, unbanPlayer)
 router.patch('/players/:id/admin', authMiddleware, requireAdmin, togglePlayerAdmin)
+
+// Leaderboard & Season Management endpoints (US-92)
+router.get('/leaderboard', authMiddleware, requireAdmin, getLeaderboard)
+router.post('/season/reset', authMiddleware, requireAdmin, resetSeason)
+
+// Support Core & Configs Management endpoints (US-94)
+router.get('/cores', authMiddleware, requireAdmin, getAdminCores)
+router.post('/cores', authMiddleware, requireAdmin, createCore)
+router.put('/cores/:id', authMiddleware, requireAdmin, updateCore)
+router.patch('/cores/:id/toggle', authMiddleware, requireAdmin, toggleCoreActive)
+router.delete('/cores/:id', authMiddleware, requireAdmin, deleteCore)
 
 export default router

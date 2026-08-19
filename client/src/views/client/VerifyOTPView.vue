@@ -186,4 +186,5 @@ async function handleResend() {
     resendLoading.value = false
   }
 }
+
 </script>

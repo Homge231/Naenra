@@ -17,8 +17,7 @@ const router = createRouter({
       path: '/home',
       alias: '/lobby',
       name: 'home',
-      component: () => import('../views/client/HomeView.vue'),
-      meta: { requiresAuth: true }
+      component: () => import('../views/client/HomeView.vue')
     },
     { 
       path: '/core', 
@@ -74,10 +73,6 @@ const router = createRouter({
       path: '/reset-password',
       name: 'reset-password',
       component: () => import('../views/client/ResetPasswordView.vue')
-    },
-    {
-      path: '/:pathMatch(.*)*',
-      redirect: '/' 
     },
     {
       path: '/profile',
@@ -157,7 +152,7 @@ const router = createRouter({
         {
           path: 'leaderboard',
           name: 'admin-leaderboard',
-          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          component: () => import('../views/admin/AdminLeaderboardView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
@@ -169,7 +164,7 @@ const router = createRouter({
         {
           path: 'cores',
           name: 'admin-cores',
-          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          component: () => import('../views/admin/CoreManagementView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
@@ -180,6 +175,11 @@ const router = createRouter({
         }
       ]
     },
+    // Catch-all MUST be at the very end
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/' 
+    }
   ]
 })
 
@@ -189,7 +189,7 @@ router.beforeEach(async (to) => {
     return true;
   }
 
-  if (to.name === 'login' || to.name === 'reset-password' || to.name === 'forgot-password') {
+  if (to.name === 'login' || to.name === 'reset-password' || to.name === 'forgot-password' || to.name === 'home') {
     return true
   }
 
@@ -222,7 +222,8 @@ router.beforeEach(async (to) => {
     if (requiresAdmin) {
       const isManualAdmin = localStorage.getItem('arena_admin_mode') === 'true'
       const emailIsAdmin = tokenEmail.toLowerCase() === 'homge231@gmail.com' || 
-                           tokenEmail.toLowerCase() === 'baonhggcd220259@fpt.edu.vn'
+                           tokenEmail.toLowerCase() === 'baonhggcd220259@fpt.edu.vn' ||
+                           tokenEmail.toLowerCase() === 'myctgcd220094@fpt.edu.vn'
       const userIsAdmin = tokenIsAdmin || isManualAdmin || emailIsAdmin
 
       if (!userIsAdmin) {
@@ -234,18 +235,20 @@ router.beforeEach(async (to) => {
   }
 
   // Fallback for Google OAuth users
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) {
-    const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
-    if (requiresAdmin) {
-      const email = session.user.email?.toLowerCase() || ''
-      const isGoogleAdmin = email === 'homge231@gmail.com' || email === 'baonhggcd220259@fpt.edu.vn'
-      if (!isGoogleAdmin) {
-        return { name: 'home' }
+  try {
+    const { data } = await supabase.auth.getSession()
+    if (data?.session) {
+      const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
+      if (requiresAdmin) {
+        const email = data.session.user.email?.toLowerCase() || ''
+        const isGoogleAdmin = email === 'homge231@gmail.com' || email === 'baonhggcd220259@fpt.edu.vn' || email === 'myctgcd220094@fpt.edu.vn'
+        if (!isGoogleAdmin) {
+          return { name: 'home' }
+        }
       }
+      return true
     }
-    return true
-  }
+  } catch {}
 
   return { name: 'login' }
 })

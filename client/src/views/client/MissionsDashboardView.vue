@@ -398,4 +398,5 @@ function handleReset() {
   audioService.playClick()
   missionsStore.resetMissions()
 }
+
 </script>

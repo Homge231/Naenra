@@ -511,6 +511,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handlePreventRefreshKeys, true)
   window.removeEventListener('popstate', handlePopState)
 })
+
 </script>
 
 <style scoped>

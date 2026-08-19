@@ -344,7 +344,7 @@
 
           <div 
             class="border-2 border-dashed border-slate-700 hover:border-red-500 rounded-2xl p-8 text-center transition-colors bg-slate-950/50 cursor-pointer"
-            @click="fileInput?.click()"
+            @click="$refs.fileInput.click()"
           >
             <div class="text-4xl mb-2">📄</div>
             <p class="font-semibold text-white">Click to select CSV file</p>
@@ -416,7 +416,6 @@ const isModalOpen = ref(false)
 const isEditMode = ref(false)
 const isImportModalOpen = ref(false)
 const selectedFile = ref<File | null>(null)
-const fileInput = ref<HTMLInputElement | null>(null)
 const formData = ref<QuestionItem>({
   target_word: '',
   question_text: '',

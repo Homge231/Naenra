@@ -176,11 +176,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 
 const route = useRoute()
-const router = useRouter()
 const authStore = useAuthStore()
 
 const isMobileMenuOpen = ref(false)
