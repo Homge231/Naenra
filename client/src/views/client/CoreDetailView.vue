@@ -438,6 +438,7 @@ const floatingLetters = alphabet.map((char, index) => ({
   delay: Math.random() * 15,
   duration: 15 + Math.random() * 20
 }))
+
 </script>
 
 <style scoped>

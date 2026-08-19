@@ -103,6 +103,7 @@ async function handleSubmit() {
 function goToReset() {
   router.push(`/reset-password?email=${encodeURIComponent(email.value)}`)
 }
+
 </script>
 
 <style scoped>

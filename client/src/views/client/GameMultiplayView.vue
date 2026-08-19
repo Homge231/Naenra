@@ -9,4 +9,5 @@ import GameMultiplayDesktop from './GameMultiplayDesktop.vue';
 import GameMultiplayMobile from './GameMultiplayMobile.vue';
 
 const { isMobileScreen } = useDeviceMode();
+
 </script>

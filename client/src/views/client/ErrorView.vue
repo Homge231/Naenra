@@ -53,4 +53,5 @@ function goHome() {
 function reloadPage() {
   window.location.reload()
 }
+
 </script>

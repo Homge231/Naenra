@@ -713,8 +713,6 @@ import ComboCoreIndicator from '../../components/game/ComboCoreIndicator.vue'
 import MissionCoreIndicator from '../../components/game/MissionCoreIndicator.vue'
 import CoreUpgradeOverlay from '../../components/game/CoreUpgradeOverlay.vue'
 import OracleCoreIndicator from '../../components/game/OracleCoreIndicator.vue'
-
-const isForfeitWin = ref(false)
 import FeedbackOverlay from '../../components/game/FeedbackOverlay.vue'
 import MatchResultOverlay from '../../components/game/MatchResultOverlay.vue'
 import PhaserBackground from '../../components/game/PhaserBackground.vue'
@@ -756,12 +754,14 @@ import {
   isPowerCore as checkPowerCore
 } from '../../game/cores/registry.ts'
 import { useSettingsStore } from '../../stores/settingsStore.ts'
-
-const settingsStore = useSettingsStore()
-const { isTouchDevice } = useDeviceMode()
 import { getCoreIconPath } from '../../game/cores/icons.ts'
 import { fetchWithAuth } from '../../services/api.ts'
 import { audioService } from '../../services/audioService.ts'
+
+const isForfeitWin = ref(false)
+
+const settingsStore = useSettingsStore()
+const { isTouchDevice } = useDeviceMode()
 const router = useRouter()
 const authStore = useAuthStore()
 const gameStore = useGameStore()
@@ -2494,6 +2494,7 @@ onBeforeRouteLeave((to, _from, next) => {
   }
   next()
 })
+
 
 
 </script>

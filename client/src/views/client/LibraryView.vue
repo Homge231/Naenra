@@ -171,6 +171,7 @@ const floatingLetters = alphabet.map((char, index) => ({
     duration: 15 + Math.random() * 20,
     color: colors[index % colors.length]
 }))
+
 </script>
 
 <style scoped>

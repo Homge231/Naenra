@@ -101,11 +101,11 @@ export async function getAdminSummary(_req: AuthRequest, res: Response): Promise
  */
 export async function getQuestions(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const page = Math.max(1, parseInt(req.query.page as string || '1'))
-    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string || '10')))
-    const search = (req.query.search as string || '').trim()
-    const topic = (req.query.topic as string || req.query.theme as string || '').trim()
-    const difficulty = (req.query.difficulty as string || '').trim()
+    const page = Math.max(1, parseInt((req.query.page as string) || '1'))
+    const limit = Math.max(1, Math.min(100, parseInt((req.query.limit as string) || '10')))
+    const search = ((req.query.search as string) || '').trim()
+    const topic = ((req.query.topic as string) || (req.query.theme as string) || '').trim()
+    const difficulty = ((req.query.difficulty as string) || '').trim()
 
     let query = supabase.from('questions').select('*', { count: 'exact' })
 
@@ -310,7 +310,6 @@ export async function importQuestions(req: AuthRequest, res: Response): Promise<
           const line = lines[i].trim()
           if (!line) continue
           
-          // Regex to parse CSV line respecting quotes
           const row = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',')
           const cleanRow = row.map(cell => cell.trim().replace(/^["']|["']$/g, ''))
 
@@ -346,7 +345,6 @@ export async function importQuestions(req: AuthRequest, res: Response): Promise<
       return
     }
 
-    // Insert in batches of 100
     const batchSize = 100
     let insertedCount = 0
 
@@ -374,8 +372,7 @@ export async function importQuestions(req: AuthRequest, res: Response): Promise<
 
 /**
  * GET /api/admin/players
- * Returns paginated players with search, status filtering (all/online/offline/banned),
- * sorting (elo/matches/wins/created_at), and KPI stats.
+ * Returns paginated players with search, status filtering, sorting, and KPI stats.
  */
 export async function getPlayers(req: AuthRequest, res: Response): Promise<void> {
   try {
@@ -386,7 +383,6 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
     const sortBy = ((req.query.sortBy as string) || 'created_at')
     const sortOrder = ((req.query.sortOrder as string) || 'desc').toLowerCase() === 'asc'
 
-    // 1. Identify currently active / online player IDs
     const onlinePlayerIds = getOnlineUserIds()
 
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
@@ -402,86 +398,55 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
         .gte('updated_at', fiveMinutesAgo)
     ])
 
-    if (activeSessionsRes.data) {
-      activeSessionsRes.data.forEach((s: any) => {
-        if (s.player_id) onlinePlayerIds.add(s.player_id)
-      })
-    }
-    if (recentPlayersRes.data) {
-      recentPlayersRes.data.forEach((p: any) => {
-        if (p.id) onlinePlayerIds.add(p.id)
-      })
-    }
+    const sessionPlayerIds = (activeSessionsRes.data || []).map(s => s.player_id).filter(Boolean)
+    const recentPlayerIds = (recentPlayersRes.data || []).map(p => p.id).filter(Boolean)
 
-    // 2. Fetch global player KPI stats (strictly registered accounts)
-    const [totalRes, bannedRes] = await Promise.all([
-      supabase
-        .from('players')
-        .select('*', { count: 'exact', head: true })
-        .not('email', 'ilike', '%@guest.naenra.xyz%')
-        .not('email', 'ilike', 'guest_%'),
-      supabase
-        .from('players')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_banned', true)
-        .not('email', 'ilike', '%@guest.naenra.xyz%')
-        .not('email', 'ilike', 'guest_%')
-    ])
+    const allOnlineIds = new Set([...onlinePlayerIds, ...sessionPlayerIds, ...recentPlayerIds])
 
-    const totalPlayers = totalRes.count ?? 0
-    const bannedPlayers = bannedRes.count ?? 0
-    const onlinePlayers = onlinePlayerIds.size
-    const activeRate = totalPlayers > 0 ? Math.round(((totalPlayers - bannedPlayers) / totalPlayers) * 100) : 100
-
-    // 3. Build filtered player query (strictly registered accounts)
-    let query = supabase
+    let baseQuery = supabase
       .from('players')
       .select('*', { count: 'exact' })
       .not('email', 'ilike', '%@guest.naenra.xyz%')
       .not('email', 'ilike', 'guest_%')
 
     if (search) {
-      query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
+      baseQuery = baseQuery.or(`username.ilike.%${search}%,email.ilike.%${search}%`)
     }
 
     if (status === 'banned') {
-      query = query.eq('is_banned', true)
+      baseQuery = baseQuery.eq('is_banned', true)
     } else if (status === 'online') {
-      query = query.eq('is_banned', false)
-      if (onlinePlayerIds.size > 0) {
-        query = query.in('id', Array.from(onlinePlayerIds))
+      const activeIdsList = Array.from(allOnlineIds)
+      if (activeIdsList.length > 0) {
+        baseQuery = baseQuery.in('id', activeIdsList).eq('is_banned', false)
       } else {
-        // No one online -> match impossible id to return empty list
-        query = query.eq('id', '00000000-0000-0000-0000-000000000000')
+        baseQuery = baseQuery.eq('id', '00000000-0000-0000-0000-000000000000')
       }
     } else if (status === 'offline') {
-      query = query.eq('is_banned', false)
-      if (onlinePlayerIds.size > 0) {
-        query = query.not('id', 'in', `(${Array.from(onlinePlayerIds).join(',')})`)
+      baseQuery = baseQuery.eq('is_banned', false)
+      const activeIdsList = Array.from(allOnlineIds)
+      if (activeIdsList.length > 0) {
+        baseQuery = baseQuery.not('id', 'in', `(${activeIdsList.join(',')})`)
       }
     }
 
-    const sortColumn = ['elo', 'wins', 'losses', 'total_matches', 'created_at'].includes(sortBy)
-      ? sortBy
-      : 'created_at'
+    const validSortFields = ['created_at', 'elo', 'wins', 'losses', 'total_matches']
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
 
     const fromIndex = (page - 1) * limit
     const toIndex = fromIndex + limit - 1
 
-    query = query.order(sortColumn, { ascending: sortOrder }).range(fromIndex, toIndex)
+    baseQuery = baseQuery.range(fromIndex, toIndex).order(sortField, { ascending: sortOrder })
 
-    const { data: playersData, count, error } = await query
+    const { data: rawPlayers, count: totalCount, error: fetchErr } = await baseQuery
 
-    if (error) throw error
+    if (fetchErr) throw fetchErr
 
-    const total = count ?? 0
-    const totalPages = Math.ceil(total / limit) || 1
-
-    const mappedPlayers = (playersData || []).map((p: any) => {
-      const isBanned = p.is_banned === true
-      const isOnline = !isBanned && onlinePlayerIds.has(p.id)
-      const totalMatches = p.total_matches ?? 0
+    const mappedPlayers = (rawPlayers || []).map(p => {
+      const isBanned = !!p.is_banned
+      const isOnline = !isBanned && allOnlineIds.has(p.id)
       const wins = p.wins ?? 0
+      const totalMatches = p.total_matches ?? 0
       const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0
 
       return {
@@ -489,18 +454,31 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
         username: p.username || 'Anonymous',
         email: p.email || '',
         avatar_url: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.username || 'Player')}`,
-        elo: p.elo ?? 0,
+        elo: p.elo ?? 1000,
         wins,
         losses: p.losses ?? 0,
         total_matches: totalMatches,
         win_rate: winRate,
         is_banned: isBanned,
         banned_at: p.banned_at || null,
-        is_admin: p.is_admin === true,
-        status: isBanned ? 'banned' : isOnline ? 'online' : 'offline',
-        created_at: p.created_at
+        is_admin: !!p.is_admin,
+        status: isBanned ? 'banned' : (isOnline ? 'online' : 'offline'),
+        created_at: p.created_at || new Date().toISOString()
       }
     })
+
+    const [totalStatsRes, bannedStatsRes] = await Promise.all([
+      supabase.from('players').select('*', { count: 'exact', head: true }).not('email', 'ilike', '%@guest.naenra.xyz%').not('email', 'ilike', 'guest_%'),
+      supabase.from('players').select('*', { count: 'exact', head: true }).eq('is_banned', true).not('email', 'ilike', '%@guest.naenra.xyz%').not('email', 'ilike', 'guest_%')
+    ])
+
+    const totalPlayers = totalStatsRes.count ?? totalCount ?? 0
+    const bannedPlayers = bannedStatsRes.count ?? 0
+    const onlinePlayers = allOnlineIds.size
+    const activeRate = totalPlayers > 0 ? Math.round(((totalPlayers - bannedPlayers) / totalPlayers) * 100) : 100
+
+    const total = totalCount ?? 0
+    const totalPages = Math.ceil(total / limit) || 1
 
     res.json({
       success: true,
@@ -529,6 +507,100 @@ export async function getPlayers(req: AuthRequest, res: Response): Promise<void>
 }
 
 /**
+ * GET /api/admin/leaderboard
+ * Returns Top 100 players by ELO score with summary stats.
+ */
+export async function getLeaderboard(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const limit = Math.max(1, Math.min(100, parseInt((req.query.limit as string) || '100')))
+    const search = ((req.query.search as string) || '').trim()
+
+    let query = supabase
+      .from('players')
+      .select('id, username, elo, avatar_url, created_at, is_first_play')
+
+    if (search) {
+      query = query.ilike('username', `%${search}%`)
+    }
+
+    const { data: players, error } = await query
+      .order('elo', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+
+    const { count: totalPlayers } = await supabase
+      .from('players')
+      .select('*', { count: 'exact', head: true })
+
+    const playerList = players || []
+    const eloSum = playerList.reduce((acc, p) => acc + (p.elo || 0), 0)
+    const averageElo = playerList.length > 0 ? Math.round(eloSum / playerList.length) : 1000
+    const highestElo = playerList.length > 0 ? Math.max(...playerList.map(p => p.elo || 0)) : 1000
+
+    res.json({
+      success: true,
+      data: {
+        players: playerList,
+        totalPlayers: totalPlayers ?? playerList.length,
+        averageElo,
+        highestElo,
+        currentSeason: 'Season 1 (Active)'
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in getLeaderboard:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to fetch leaderboard data'
+    })
+  }
+}
+
+/**
+ * POST /api/admin/season/reset
+ * Bulk updates all players' ELO scores to default baseline (1000).
+ * Requires exact confirmation string "CONFIRM RESET".
+ */
+export async function resetSeason(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { confirmText } = req.body
+
+    if (confirmText !== 'CONFIRM RESET') {
+      res.status(400).json({
+        success: false,
+        message: 'Security validation failed: Confirmation string must be exactly "CONFIRM RESET".'
+      })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('players')
+      .update({ elo: 1000 })
+      .gte('elo', 0)
+      .select('id')
+
+    if (error) throw error
+
+    const resetCount = data ? data.length : 0
+
+    res.json({
+      success: true,
+      resetCount,
+      message: `Season reset executed successfully. ${resetCount} player ELO ratings reset to 1000.`
+    })
+  } catch (error: any) {
+    console.error('Error in resetSeason:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to execute season reset'
+    })
+  }
+}
+
+/**
  * POST /api/admin/players/:id/ban
  * Bans a player, revokes their active JWT session, aborts ongoing matches, and disconnects them.
  */
@@ -542,8 +614,16 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
       return
     }
 
-    const targetPlayer = await fetchPlayerOrFail(id, res)
-    if (!targetPlayer) return
+    const { data: targetPlayer, error: fetchErr } = await supabase
+      .from('players')
+      .select('id, email, username, is_admin')
+      .eq('id', id)
+      .single()
+
+    if (fetchErr || !targetPlayer) {
+      res.status(404).json({ success: false, message: 'Player not found' })
+      return
+    }
 
     if (targetPlayer.is_admin) {
       res.status(403).json({ success: false, message: 'Administrator accounts cannot be banned.' })
@@ -556,14 +636,23 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
       .eq('id', id)
     if (updateErr) throw updateErr
 
-    // Abort any active game sessions
+    const { data: versionResult } = await supabase
+      .rpc('increment_session_version', { player_id: id })
+
+    const newVersion = versionResult ?? Date.now()
+
     await supabase
       .from('game_sessions')
       .update({ status: 'aborted' })
       .eq('player_id', id)
       .eq('status', 'active')
 
-    await invalidatePlayerSession(id, /* kick = */ true)
+    try {
+      await broadcastSessionInvalidated(id, newVersion)
+      kickUserClients(id, 4003)
+    } catch (e) {
+      console.warn('Realtime kick warning:', e)
+    }
 
     res.json({
       success: true,
@@ -623,14 +712,21 @@ export async function togglePlayerAdmin(req: AuthRequest, res: Response): Promis
       res.status(400).json({ success: false, message: 'is_admin (boolean) is required' })
       return
     }
-    // Prevent an admin from removing admin rights from their own account
     if (req.user?.id === id && !is_admin) {
       res.status(400).json({ success: false, message: 'You cannot remove admin privileges from your own account.' })
       return
     }
 
-    const targetPlayer = await fetchPlayerOrFail(id, res)
-    if (!targetPlayer) return
+    const { data: targetPlayer, error: fetchErr } = await supabase
+      .from('players')
+      .select('id, email, username, is_admin')
+      .eq('id', id)
+      .single()
+
+    if (fetchErr || !targetPlayer) {
+      res.status(404).json({ success: false, message: 'Player not found' })
+      return
+    }
 
     const { error: updateErr } = await supabase
       .from('players')
@@ -638,8 +734,15 @@ export async function togglePlayerAdmin(req: AuthRequest, res: Response): Promis
       .eq('id', id)
     if (updateErr) throw updateErr
 
-    // Invalidate session so the player's JWT refreshes with the new is_admin value
-    await invalidatePlayerSession(id)
+    const { data: versionResult } = await supabase
+      .rpc('increment_session_version', { player_id: id })
+
+    const newVersion = versionResult ?? Date.now()
+    try {
+      await broadcastSessionInvalidated(id, newVersion)
+    } catch (e) {
+      console.warn('Realtime session update warning:', e)
+    }
 
     res.json({
       success: true,
@@ -880,37 +983,298 @@ export async function getMatchAnalytics(req: AuthRequest, res: Response): Promis
 }
 
 /**
- * GET /api/admin/matches/live
- * Real-time counter of active matches (Colyseus live match rooms + DB active sessions).
+ * GET /api/admin/cores
+ * Returns list of all cores with optional filtering and KPI metrics.
  */
-export async function getLiveMatchMetrics(_req: AuthRequest, res: Response): Promise<void> {
+export async function getAdminCores(req: AuthRequest, res: Response): Promise<void> {
   try {
-    let colyseusRoomsCount = 0
-    try {
-      const matchRooms = await matchMaker.query({ name: 'match_room' })
-      colyseusRoomsCount = matchRooms.length
-    } catch {
-      // In standalone dev or when matchMaker query is unsupported
+    const search = ((req.query.search as string) || '').trim()
+    const classification = ((req.query.classification as string) || '').trim()
+    const tier = req.query.tier ? parseInt(req.query.tier as string) : null
+    const status = ((req.query.status as string) || 'all').toLowerCase()
+
+    let query = supabase.from('cores').select('*')
+
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`)
     }
 
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { count: dbActiveSessions } = await supabase
-      .from('game_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active')
-      .gte('updated_at', fiveMinutesAgo)
+    if (classification && classification !== 'all') {
+      query = query.ilike('classification', `%${classification}%`)
+    }
 
-    const onlineUserIds = getOnlineUserIds()
-    const liveActiveMatches = Math.max(colyseusRoomsCount, dbActiveSessions ?? 0)
+    if (tier && tier >= 1 && tier <= 3) {
+      query = query.eq('tier', tier)
+    }
+
+    if (status === 'active') {
+      query = query.or('is_active.eq.true,is_active.is.null')
+    } else if (status === 'disabled') {
+      query = query.eq('is_active', false)
+    }
+
+    const { data: coresData, error } = await query.order('tier', { ascending: true }).order('name', { ascending: true })
+
+    if (error) throw error
+
+    const coresList = (coresData || []).map(c => ({
+      id: c.id,
+      name: c.name,
+      description: c.description || 'No description provided.',
+      classification: c.classification || c.core_type || 'Special',
+      core_type: c.core_type || 'sub',
+      tier: c.tier || 1,
+      flat_buff: c.flat_buff ?? c.flat_bonus ?? 0,
+      multiplier_buff: c.multiplier_buff ?? c.multipliers ?? 1.0,
+      duration: c.duration ?? c.duration_seconds ?? 0,
+      is_active: c.is_active !== false,
+      icon_url: c.icon_url || null,
+      upgrades_to: c.upgrades_to || null,
+      created_at: c.created_at || new Date().toISOString()
+    }))
+
+    // Calculate metrics
+    const totalCores = coresList.length
+    const activeCores = coresList.filter(c => c.is_active).length
+    const disabledCores = totalCores - activeCores
+
+    const activeMultipliers = coresList.filter(c => c.is_active && c.multiplier_buff > 1)
+    const avgMultiplier = activeMultipliers.length > 0
+      ? Number((activeMultipliers.reduce((acc, c) => acc + c.multiplier_buff, 0) / activeMultipliers.length).toFixed(2))
+      : 1.25
 
     res.json({
       success: true,
       data: {
-        liveMatches: liveActiveMatches,
-        colyseusRooms: colyseusRoomsCount,
-        dbActiveSessions: dbActiveSessions ?? 0,
-        onlinePlayers: onlineUserIds.size,
-        timestamp: new Date().toISOString()
+        cores: coresList,
+        stats: {
+          totalCores,
+          activeCores,
+          disabledCores,
+          avgMultiplier
+        }
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in getAdminCores:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to retrieve core configurations'
+    })
+  }
+}
+
+/**
+ * POST /api/admin/cores
+ * Creates a new Core configuration.
+ */
+export async function createCore(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { name, description, classification, tier, flat_buff, multiplier_buff, duration, is_active, icon_url, upgrades_to } = req.body
+
+    if (!name || typeof name !== 'string') {
+      res.status(400).json({ success: false, message: 'Core name is required' })
+      return
+    }
+
+    const newCorePayload = {
+      name: name.trim(),
+      description: description || '',
+      classification: classification || 'Attack',
+      core_type: Number(tier) === 1 ? 'main' : 'sub',
+      tier: Number(tier) || 1,
+      flat_buff: Number(flat_buff) || 0,
+      multiplier_buff: Number(multiplier_buff) || 1.0,
+      duration: Number(duration) || 0,
+      is_active: is_active !== false,
+      icon_url: icon_url || null,
+      upgrades_to: upgrades_to || null
+    }
+
+    const { data, error } = await supabase
+      .from('cores')
+      .insert(newCorePayload)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    res.status(201).json({
+      success: true,
+      data,
+      message: `Core "${name}" created successfully.`
+    })
+  } catch (error: any) {
+    console.error('Error in createCore:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to create core configuration'
+    })
+  }
+}
+
+/**
+ * PUT /api/admin/cores/:id
+ * Updates an existing Core configuration.
+ */
+export async function updateCore(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = String(req.params.id || '')
+    const { name, description, classification, tier, flat_buff, multiplier_buff, duration, is_active, icon_url, upgrades_to } = req.body
+
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Core ID is required' })
+      return
+    }
+
+    const updatePayload: Record<string, any> = {}
+    if (name !== undefined) updatePayload.name = name.trim()
+    if (description !== undefined) updatePayload.description = description
+    if (classification !== undefined) updatePayload.classification = classification
+    if (tier !== undefined) {
+      updatePayload.tier = Number(tier)
+      updatePayload.core_type = Number(tier) === 1 ? 'main' : 'sub'
+    }
+    if (flat_buff !== undefined) updatePayload.flat_buff = Number(flat_buff)
+    if (multiplier_buff !== undefined) updatePayload.multiplier_buff = Number(multiplier_buff)
+    if (duration !== undefined) updatePayload.duration = Number(duration)
+    if (is_active !== undefined) updatePayload.is_active = Boolean(is_active)
+    if (icon_url !== undefined) updatePayload.icon_url = icon_url
+    if (upgrades_to !== undefined) updatePayload.upgrades_to = upgrades_to
+
+    const { data, error } = await supabase
+      .from('cores')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    res.json({
+      success: true,
+      data,
+      message: `Core configuration updated successfully.`
+    })
+  } catch (error: any) {
+    console.error('Error in updateCore:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to update core configuration'
+    })
+  }
+}
+
+/**
+ * PATCH /api/admin/cores/:id/toggle
+ * Instantly toggles a Core's active status (is_active).
+ */
+export async function toggleCoreActive(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = String(req.params.id || '')
+    const { is_active } = req.body
+
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Core ID is required' })
+      return
+    }
+
+    let newStatus = Boolean(is_active)
+    if (is_active === undefined) {
+      const { data: existingCore } = await supabase
+        .from('cores')
+        .select('is_active')
+        .eq('id', id)
+        .single()
+      newStatus = existingCore?.is_active === false ? true : false
+    }
+
+    const { data, error } = await supabase
+      .from('cores')
+      .update({ is_active: newStatus })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    res.json({
+      success: true,
+      data,
+      message: `Core status updated: ${newStatus ? 'ENABLED' : 'DISABLED'} from drop pool.`
+    })
+  } catch (error: any) {
+    console.error('Error in toggleCoreActive:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to toggle core active status'
+    })
+  }
+}
+
+/**
+ * DELETE /api/admin/cores/:id
+ * Deletes a core configuration from the catalog.
+ */
+export async function deleteCore(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const id = String(req.params.id || '')
+
+    if (!id) {
+      res.status(400).json({ success: false, message: 'Core ID is required' })
+      return
+    }
+
+    const { error } = await supabase
+      .from('cores')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+
+    res.json({
+      success: true,
+      message: 'Core configuration deleted successfully.'
+    })
+  } catch (error: any) {
+    console.error('Error in deleteCore:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to delete core configuration'
+    })
+  }
+}
+
+/**
+ * GET /api/admin/matches/live
+ * Returns live active match sessions & concurrency stats.
+ */
+export async function getLiveMatchMetrics(_req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: activeSessions, error } = await supabase
+      .from('game_sessions')
+      .select('id, player_id, score, questions_answered, started_at, updated_at, active_core_id, room_id')
+      .eq('status', 'active')
+      .gte('updated_at', fiveMinutesAgo)
+
+    if (error) throw error
+
+    const liveMatches = (activeSessions || []).length
+    const colyseusRooms = new Set((activeSessions || []).map(s => s.room_id).filter(Boolean)).size || (liveMatches > 0 ? 1 : 0)
+
+    res.json({
+      success: true,
+      data: {
+        liveMatches,
+        colyseusRooms,
+        onlinePlayers: getOnlineUserIds().size,
+        activeSessions: activeSessions || []
       }
     })
   } catch (error: any) {
@@ -925,141 +1289,44 @@ export async function getLiveMatchMetrics(_req: AuthRequest, res: Response): Pro
 
 /**
  * GET /api/admin/matches/history
- * Returns paginated list of match logs joining player profile and equipped core.
- * Query params: ?page=1&limit=10&search=&status=&sortBy=started_at&sortOrder=desc
+ * Returns paginated match history with search, status filtering, and player info.
  */
 export async function getMatchHistory(req: AuthRequest, res: Response): Promise<void> {
   try {
     const page = Math.max(1, parseInt((req.query.page as string) || '1'))
     const limit = Math.max(1, Math.min(100, parseInt((req.query.limit as string) || '10')))
-    const search = ((req.query.search as string) || '').trim()
     const status = ((req.query.status as string) || 'all').toLowerCase()
-    const sortBy = ((req.query.sortBy as string) || 'started_at')
-    const sortOrder = ((req.query.sortOrder as string) || 'desc').toLowerCase() === 'asc'
-
-    let matchingPlayerIds: string[] | null = null
-    let matchById: string | null = null
-
-    if (search) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(search)
-      if (isUuid) {
-        matchById = search
-      } else {
-        const { data: matchedPlayers } = await supabase
-          .from('players')
-          .select('id')
-          .or(`username.ilike.%${search}%,email.ilike.%${search}%`)
-          .limit(50)
-
-        matchingPlayerIds = (matchedPlayers || []).map(p => p.id)
-      }
-    }
 
     let query = supabase
       .from('game_sessions')
-      .select('*', { count: 'exact' })
+      .select('*, players(username, email, avatar_url)', { count: 'exact' })
 
-    if (matchById) {
-      query = query.or(`id.eq.${matchById},player_id.eq.${matchById}`)
-    } else if (matchingPlayerIds !== null) {
-      if (matchingPlayerIds.length > 0) {
-        query = query.in('player_id', matchingPlayerIds)
+    if (status !== 'all') {
+      if (status === 'completed') {
+        query = query.or('status.eq.completed,status.eq.timeout')
+      } else if (status === 'aborted') {
+        query = query.or('status.eq.aborted,status.eq.abandoned')
       } else {
-        query = query.eq('id', '00000000-0000-0000-0000-000000000000')
+        query = query.eq('status', status)
       }
     }
-
-    if (status === 'completed' || status === 'timeout') {
-      query = query.in('status', ['timeout', 'completed'])
-    } else if (status === 'active') {
-      query = query.eq('status', 'active')
-    } else if (status === 'aborted' || status === 'abandoned') {
-      query = query.in('status', ['aborted', 'abandoned'])
-    }
-
-    const sortColumn = ['started_at', 'score', 'questions_answered'].includes(sortBy)
-      ? sortBy
-      : 'started_at'
 
     const fromIndex = (page - 1) * limit
     const toIndex = fromIndex + limit - 1
 
-    query = query.order(sortColumn, { ascending: sortOrder }).range(fromIndex, toIndex)
+    query = query.range(fromIndex, toIndex).order('started_at', { ascending: false })
 
-    const { data: sessionsData, count, error } = await query
+    const { data: matches, count, error } = await query
 
     if (error) throw error
 
     const total = count ?? 0
     const totalPages = Math.ceil(total / limit) || 1
-    const rawSessions = sessionsData || []
-
-    const playerIds = Array.from(new Set(rawSessions.map(s => s.player_id).filter(Boolean)))
-    const coreIds = Array.from(new Set(rawSessions.map(s => s.active_core_id).filter(Boolean)))
-
-    const [playersRes, coresRes] = await Promise.all([
-      playerIds.length > 0
-        ? supabase.from('players').select('id, username, email, avatar_url, elo').in('id', playerIds)
-        : Promise.resolve({ data: [] }),
-      coreIds.length > 0
-        ? supabase.from('cores').select('id, name, classification, tier, icon_url').in('id', coreIds)
-        : Promise.resolve({ data: [] })
-    ])
-
-    const playerMap = new Map<string, any>()
-    for (const p of playersRes.data || []) {
-      playerMap.set(p.id, p)
-    }
-
-    const coreMap = new Map<string, any>()
-    for (const c of coresRes.data || []) {
-      coreMap.set(c.id, c)
-    }
-
-    const mappedMatches = rawSessions.map(s => {
-      const player = playerMap.get(s.player_id)
-      const core = s.active_core_id ? coreMap.get(s.active_core_id) : null
-
-      let durationSec = 0
-      if (s.started_at) {
-        const start = new Date(s.started_at).getTime()
-        const end = s.ended_at ? new Date(s.ended_at).getTime() : (s.updated_at ? new Date(s.updated_at).getTime() : Date.now())
-        durationSec = Math.max(0, Math.round((end - start) / 1000))
-      }
-
-      const isCompleted = s.status === 'timeout' || s.status === 'completed'
-      const displayStatus = isCompleted ? 'completed' : s.status
-
-      return {
-        id: s.id,
-        score: s.score ?? 0,
-        questions_answered: s.questions_answered ?? 0,
-        status: displayStatus,
-        raw_status: s.status,
-        duration_seconds: durationSec,
-        started_at: s.started_at,
-        ended_at: s.ended_at,
-        player: {
-          id: s.player_id,
-          username: player?.username || 'Anonymous Player',
-          email: player?.email || '',
-          avatar_url: player?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(player?.username || 'Player')}`,
-          elo: player?.elo ?? 1000
-        },
-        core: core ? {
-          id: core.id,
-          name: core.name,
-          classification: core.classification,
-          tier: core.tier,
-          icon_url: core.icon_url
-        } : null
-      }
-    })
 
     res.json({
       success: true,
       data: {
-        matches: mappedMatches,
+        matches: matches || [],
         total,
         page,
         limit,
@@ -1075,4 +1342,5 @@ export async function getMatchHistory(req: AuthRequest, res: Response): Promise<
     })
   }
 }
+
 

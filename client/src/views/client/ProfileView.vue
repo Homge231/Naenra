@@ -351,6 +351,7 @@ onMounted(async () => {
   form.value.username = profile.value.username
   loading.value = false
 })
+
 </script>
 
 <style scoped>

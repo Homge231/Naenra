@@ -5,5 +5,8 @@
  */
 export const SUPER_ADMIN_EMAILS = new Set([
   'homge231@gmail.com',
-  'baonhggcd220259@fpt.edu.vn'
+  'baonhggcd220259@fpt.edu.vn',
+  'myctgcd220094@fpt.edu.vn',
+  'tumychung2004@gmail.com',
+  'mychung.dev@gmail.com'
 ])

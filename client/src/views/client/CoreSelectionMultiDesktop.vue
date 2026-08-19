@@ -601,6 +601,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   }
   next()
 })
+
 </script>
 
 <style scoped>

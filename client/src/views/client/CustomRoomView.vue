@@ -364,6 +364,7 @@ onUnmounted(() => {
         leaveMatchRoom()
     }
 })
+
 </script>
 
 <style scoped>

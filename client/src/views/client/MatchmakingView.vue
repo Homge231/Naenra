@@ -116,8 +116,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore'
 import { audioService } from '../../services/audioService'
-// @ts-ignore
 import { joinOrCreateQueueRoom, queueRoom, joinMatchRoomById, leaveMatchRoom } from '../../services/multiplayerService'
+
+// @ts-ignore
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -230,6 +231,7 @@ onUnmounted(() => {
     }
   }
 })
+
 </script>
 
 <style scoped>

@@ -9,4 +9,5 @@ import GamePureSkillMultiDesktop from './GamePureSkillMultiDesktop.vue';
 import GamePureSkillMultiMobile from './GamePureSkillMultiMobile.vue';
 
 const { isMobileScreen } = useDeviceMode();
+
 </script>

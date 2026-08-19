@@ -9,4 +9,5 @@ import CoreSelectionDesktop from './CoreSelectionDesktop.vue';
 import CoreSelectionMobile from './CoreSelectionMobile.vue';
 
 const { isMobileScreen } = useDeviceMode();
+
 </script>
