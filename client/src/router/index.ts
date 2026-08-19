@@ -179,7 +179,7 @@ const router = createRouter({
         {
           path: 'cores',
           name: 'admin-cores',
-          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          component: () => import('../views/admin/SupportCoresManagementView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true }
         },
         {

@@ -2706,7 +2706,7 @@ onBeforeRouteLeave((to, _from, next) => {
 }
 
 .float-pts-enter-active {
-  animation: floatUp 1.2s ease-out forwards;
+  pointer-events: none;
 }
 
 .mission-celebration-enter-active {
@@ -2741,29 +2741,34 @@ onBeforeRouteLeave((to, _from, next) => {
 
 @keyframes floatUp {
   0% {
-    opacity: 1;
-    transform: translateY(0) scale(1.2);
+    opacity: 0;
+    transform: translateY(6px) scale(0.85);
   }
 
-  20% {
+  15% {
     opacity: 1;
-    transform: translateY(-16px) scale(1.35);
+    transform: translateY(-8px) scale(1.12);
   }
 
-  80% {
-    opacity: 0.7;
-    transform: translateY(-56px) scale(1);
+  30% {
+    opacity: 1;
+    transform: translateY(-22px) scale(1);
+  }
+
+  75% {
+    opacity: 0.85;
+    transform: translateY(-54px) scale(1);
   }
 
   100% {
     opacity: 0;
-    transform: translateY(-80px) scale(0.85);
+    transform: translateY(-80px) scale(0.9);
   }
 }
 
 /* ── Popups & Float Animations ──────────────────────────────────────────────── */
 .point-popup-anim {
-  animation: floatUp 1.2s ease-out forwards;
+  animation: floatUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform, opacity;
 }
 

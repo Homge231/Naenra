@@ -349,7 +349,7 @@ const currentUserLiveMsgIdx = ref(-1)
 
 // Real-time transcript from Gemini Live AI Output
 onAiTranscript((text: string) => {
-  if (!text) return
+  if (!text || !isChatOpen.value) return
 
   if (currentAiLiveMsgIdx.value === -1 || currentAiLiveMsgIdx.value >= messages.value.length || messages.value[currentAiLiveMsgIdx.value]?.role !== 'model') {
     messages.value.push({ role: 'model', content: text })
@@ -367,7 +367,7 @@ onAiTranscript((text: string) => {
 
 // Real-time transcript from Gemini Live Server User Input (if sent by server)
 onUserTranscript((text: string) => {
-  if (!text) return
+  if (!text || !isChatOpen.value) return
   if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
     messages.value.push({ role: 'user', content: text })
     currentUserLiveMsgIdx.value = messages.value.length - 1
@@ -387,6 +387,43 @@ watch(isLiveConnected, (connected) => {
   if (!connected) {
     currentAiLiveMsgIdx.value = -1
     currentUserLiveMsgIdx.value = -1
+  }
+})
+
+// Lifecycle: Ensure chatbox ONLY responds and speaks when and only when open
+watch(isChatOpen, (open) => {
+  if (!open) {
+    // 1. Immediately cancel any voice TTS readouts
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
+    speechQueue = []
+    isSpeaking.value = false
+
+    // 2. Stop voice speech-to-text if active
+    if (isListening.value) {
+      stopVoiceInput()
+    }
+
+    // 3. Stop real-time Gemini Live audio session
+    if (isLiveConnected.value || isLiveConnecting.value) {
+      stopLiveSession()
+    }
+
+    // 4. Abort any active streaming request
+    if (currentAbortController) {
+      currentAbortController.abort()
+      currentAbortController = null
+    }
+    if (streamTickerTimer) {
+      clearInterval(streamTickerTimer)
+      streamTickerTimer = null
+    }
+    isStreaming.value = false
+    streamingMsgIdx.value = -1
+    isLoading.value = false
+  } else {
+    nextTick(() => scrollToBottom())
   }
 })
 const inputText = ref('')
@@ -503,7 +540,8 @@ function getBestVoice(isVi: boolean): SpeechSynthesisVoice | null {
 let speechQueue: SpeechSynthesisUtterance[] = []
 
 function speakText(text: string, options?: { rate?: number; pitch?: number }) {
-  if (!isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
+  // STRICT: Only speak if chat window is actively open and voice is unmuted
+  if (!isChatOpen.value || !isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
 
   window.speechSynthesis.cancel()
   speechQueue = []
@@ -519,7 +557,7 @@ function speakText(text: string, options?: { rate?: number; pitch?: number }) {
     .replace(/https?:\/\/\S+/g, '')
     .trim()
 
-  if (!cleanText) {
+  if (!cleanText || !isChatOpen.value) {
     isSpeaking.value = false
     return
   }
@@ -533,7 +571,7 @@ function speakText(text: string, options?: { rate?: number; pitch?: number }) {
     .map(s => s.trim())
     .filter(s => s.length > 0)
 
-  if (sentences.length === 0) return
+  if (sentences.length === 0 || !isChatOpen.value) return
 
   isSpeaking.value = true
 
@@ -557,7 +595,9 @@ function speakText(text: string, options?: { rate?: number; pitch?: number }) {
     }
 
     speechQueue.push(utterance)
-    window.speechSynthesis.speak(utterance)
+    if (isChatOpen.value) {
+      window.speechSynthesis.speak(utterance)
+    }
   })
 }
 
@@ -626,12 +666,16 @@ function scrollToBottom() {
 
 // ── Quick hints ──────────────────────────────────────────────────────
 function sendQuick(text: string) {
+  if (!isChatOpen.value) return
   inputText.value = text
   sendMessage()
 }
 
 // ── Send message with 2-Phase Natural Interaction (Instant Acknowledgment -> Streaming Answer) ──
 async function sendMessage() {
+  // STRICT: Only send if chat window is actively open
+  if (!isChatOpen.value) return
+
   const text = inputText.value.trim()
   if (!text || isLoading.value || isStreaming.value) return
 
@@ -689,8 +733,10 @@ async function sendMessage() {
   messages.value.push({ role: 'model', content: ackPhrase })
   scrollToBottom()
 
-  // Speak the acknowledgment aloud immediately if voice is enabled
-  speakText(ackPhrase, { rate: 1.22 })
+  // Speak the acknowledgment aloud immediately if voice is enabled and chat is open
+  if (isChatOpen.value) {
+    speakText(ackPhrase, { rate: 1.22 })
+  }
 
   // 2️⃣ PHASE 2: Fetch & Stream Detailed Answer into 2nd Bubble
   let answerMsgIdx = -1
@@ -704,6 +750,16 @@ async function sendMessage() {
     if (streamTickerTimer) clearInterval(streamTickerTimer)
 
     streamTickerTimer = setInterval(() => {
+      // Abort immediately if chat was closed
+      if (!isChatOpen.value) {
+        if (streamTickerTimer) clearInterval(streamTickerTimer)
+        streamTickerTimer = null
+        isStreaming.value = false
+        streamingMsgIdx.value = -1
+        isLoading.value = false
+        return
+      }
+
       if (displayedText.length < incomingBuffer.length) {
         if (!isStreaming.value) {
           isStreaming.value = true
@@ -727,7 +783,7 @@ async function sendMessage() {
         streamingMsgIdx.value = -1
         isLoading.value = false
 
-        if (displayedText.trim()) {
+        if (displayedText.trim() && isChatOpen.value) {
           speakText(displayedText)
         } else {
           // If no content ever arrived, remove empty placeholder
@@ -809,6 +865,12 @@ async function sendMessage() {
     let buffer = ''
 
     while (true) {
+      if (!isChatOpen.value) {
+        reader.cancel().catch(() => {})
+        isStreamClosed = true
+        break
+      }
+
       const { done, value } = await reader.read()
       if (done) break
 
