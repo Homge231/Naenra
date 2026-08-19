@@ -291,7 +291,7 @@
             You are about to trigger a global season reset for all registered competitors.
           </p>
           <p>
-            This action will execute a bulk query resetting <strong class="text-white font-mono">ALL player ELO scores back to 1000</strong>. Current leaderboard ranks will be reset.
+            This action will execute a bulk query resetting <strong class="text-white font-mono">ALL player ELO scores back to 0</strong>. Current leaderboard ranks will be reset.
           </p>
         </div>
 
@@ -400,8 +400,8 @@ interface Player {
 const players = ref<Player[]>([])
 const summary = ref({
   totalPlayers: 0,
-  averageElo: 1000,
-  highestElo: 1000,
+  averageElo: 0,
+  highestElo: 0,
   currentSeason: 'Season 1 (Active)'
 })
 
@@ -455,8 +455,8 @@ async function fetchLeaderboard() {
       players.value = json.data.players || []
       summary.value = {
         totalPlayers: json.data.totalPlayers || players.value.length,
-        averageElo: json.data.averageElo || 1000,
-        highestElo: json.data.highestElo || 1000,
+        averageElo: json.data.averageElo ?? 0,
+        highestElo: json.data.highestElo ?? 0,
         currentSeason: json.data.currentSeason || 'Season 1 (Active)'
       }
     }

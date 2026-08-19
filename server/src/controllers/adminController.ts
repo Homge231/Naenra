@@ -583,7 +583,7 @@ export async function resetSeason(req: AuthRequest, res: Response): Promise<void
 
     const { data, error } = await supabase
       .from('players')
-      .update({ elo: 1000 })
+      .update({ elo: 0 })
       .gte('elo', 0)
       .select('id')
 
@@ -594,7 +594,7 @@ export async function resetSeason(req: AuthRequest, res: Response): Promise<void
     res.json({
       success: true,
       resetCount,
-      message: `Season reset executed successfully. ${resetCount} player ELO ratings reset to 1000.`
+      message: `Season reset executed successfully. ${resetCount} player ELO ratings reset to 0.`
     })
   } catch (error: any) {
     console.error('Error in resetSeason:', error)
