@@ -638,6 +638,9 @@ onBeforeUnmount(() => {
 function toggleChat() {
   isChatOpen.value = !isChatOpen.value
   if (isChatOpen.value) {
+    if (!authStore.profile) {
+      void authStore.fetchProfile()
+    }
     nextTick(() => scrollToBottom())
   } else {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {

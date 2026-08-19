@@ -196,7 +196,7 @@ export const getAiChatResponse = async (req: AuthRequest, res: Response): Promis
     }
 
     let enrichedStats = playerHistory || {}
-    const username = req.user?.username || req.user?.email?.split('@')[0] || 'Player'
+    let username = req.user?.username || req.user?.email?.split('@')[0] || enrichedStats.username || 'Player'
 
     // Enrich player statistics from database if user is authenticated
     if (req.user?.id) {
@@ -208,6 +208,7 @@ export const getAiChatResponse = async (req: AuthRequest, res: Response): Promis
           .maybeSingle()
 
         if (dbPlayer) {
+          username = dbPlayer.username || username
           const elo = dbPlayer.elo ?? enrichedStats.elo ?? 1000
           const wins = dbPlayer.wins ?? enrichedStats.wins ?? 0
           const losses = dbPlayer.losses ?? enrichedStats.losses ?? 0
@@ -216,7 +217,7 @@ export const getAiChatResponse = async (req: AuthRequest, res: Response): Promis
 
           enrichedStats = {
             ...enrichedStats,
-            username: dbPlayer.username || enrichedStats.username || username,
+            username,
             elo,
             rank: getRankFromElo(elo),
             wins,
@@ -247,7 +248,7 @@ export const getAiChatResponseStream = async (req: AuthRequest, res: Response): 
     }
 
     let enrichedStats = playerHistory || {}
-    const username = req.user?.username || req.user?.email?.split('@')[0] || 'Player'
+    let username = req.user?.username || req.user?.email?.split('@')[0] || enrichedStats.username || 'Player'
 
     // Enrich player statistics from database if user is authenticated
     if (req.user?.id) {
@@ -259,6 +260,7 @@ export const getAiChatResponseStream = async (req: AuthRequest, res: Response): 
           .maybeSingle()
 
         if (dbPlayer) {
+          username = dbPlayer.username || username
           const elo = dbPlayer.elo ?? enrichedStats.elo ?? 1000
           const wins = dbPlayer.wins ?? enrichedStats.wins ?? 0
           const losses = dbPlayer.losses ?? enrichedStats.losses ?? 0
@@ -267,7 +269,7 @@ export const getAiChatResponseStream = async (req: AuthRequest, res: Response): 
 
           enrichedStats = {
             ...enrichedStats,
-            username: dbPlayer.username || enrichedStats.username || username,
+            username,
             elo,
             rank: getRankFromElo(elo),
             wins,

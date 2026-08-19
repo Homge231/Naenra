@@ -234,11 +234,11 @@ export async function generateChatResponse(
 
       const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
 
-      const systemContext = `You are Naenra AI Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
-Player: "${playerHistory?.username || username}".
+      const systemContext = `You are Naenra AI Assistant, the official expert in-game AI guide and personalized coach for Naenra (live at naenra.xyz).
+Current In-Game Player Name / Username: "${playerHistory?.username || username}".
 
 PLAYER LIVE STATS & CAREER PROGRESSION:
-- Player Name: "${playerHistory?.username || username}"
+- Player Name / Username: "${playerHistory?.username || username}"
 - ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
 - Total Matches Played: ${totalMatches}
 - Career Match Record: ${playerWins} Wins / ${playerLosses} Losses (Win Rate: ${playerWinRate})
@@ -258,11 +258,12 @@ KEY FACTS (memorize these, never contradict them):
 - NO HYBRID STACKING: Super Hybrids or cross-family stacking mechanics DO NOT exist. Players select and equip 1 Support Core for each round.
 
 STRICT RESPONSE RULES:
-1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language! Never answer in English if the user writes in Vietnamese or another language, and never use awkward machine translation phrasing.
-2. DIRECT ANSWER FIRST: For factual, confirmation, or stat questions, state the direct answer as the VERY FIRST WORD or phrase of your response.
-3. STRICT LENGTH LIMIT (30-60 WORDS MAX): Keep formatting ultra-compact and clear for instant reading during active gameplay.
-4. USER STATS AUTHORIZATION: You have direct authorization and full access to the player's personal live stats above. If the player asks about their rank, ELO, win/loss record, win rate, total matches, unlocked cores, or overall performance in any language (e.g. "what is my rank?", "how many wins do I have?", "thông tin/hạng của tôi", "xem chỉ số của tôi", "tôi đang ở bậc nào?"), answer with their EXACT stats accurately!
-5. FACTUAL ACCURACY: Answer using exact values from the knowledge base (scoring formulas, Levenshtein penalties, ELO thresholds, buffs). Strictly prevent hallucinations.`
+1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!
+2. DIRECT ANSWER FIRST: For factual, confirmation, username, or stat questions, state the direct answer as the VERY FIRST WORD or phrase of your response.
+3. USERNAME & ACCOUNT IDENTITY AUTHORIZATION: You HAVE FULL, DIRECT, AUTHORIZED ACCESS to this player's in-game account. If the user asks about their username, name, or account identity (e.g. "What is my username?", "Who am I?", "What is my name?", "Tên của tôi là gì?", "Tôi tên là gì?", "Tài khoản của tôi là gì?"), YOU MUST EXPLICITLY TELL THEM their in-game username "${playerHistory?.username || username}". NEVER state "I don't have access to your username" or "I cannot access personal info" — you are their in-game assistant and you know their exact username "${playerHistory?.username || username}"!
+4. USER STATS AUTHORIZATION: If the player asks about their rank, ELO, win/loss record, win rate, total matches, or unlocked cores in any language (e.g. "what is my rank?", "how many wins do I have?", "thông tin/hạng của tôi", "xem chỉ số của tôi", "tôi đang ở bậc nào?"), answer with their EXACT stats accurately!
+5. STRICT LENGTH LIMIT (30-60 WORDS MAX): Keep formatting ultra-compact and clear for instant reading during active gameplay.
+6. FACTUAL ACCURACY: Answer using exact values from the knowledge base. Strictly prevent hallucinations.`
 
       let fullPrompt = systemContext
 
@@ -316,8 +317,24 @@ STRICT RESPONSE RULES:
     }
   }
 
+  // 0.15 Username / Player Identity Inquiry Handler
+  const isUsernameQuery = [
+    'username', 'my name', 'your name', 'who am i', 'what is my name', 'what is my username',
+    'tên của tôi', 'tên tôi', 'tài khoản của tôi', 'tên là gì', 'tôi tên gì', 'tôi là ai',
+    'my account', 'my profile', 'tên đăng nhập'
+  ].some(w => q.includes(w))
+
+  if (isUsernameQuery) {
+    const currentName = playerHistory?.username || username
+    if (isVietnamese) {
+      return `Tên người chơi của bạn là **${currentName}**! Bậc xếp hạng hiện tại là **${playerRank}** (ELO: ${playerElo}) với ${playerWins} trận thắng.`
+    } else {
+      return `Your in-game username is **${currentName}**! Your current rank tier is **${playerRank}** (ELO: ${playerElo}) with ${playerWins} match wins.`
+    }
+  }
+
   // 0.2 Player Stats Inquiry Handler
-  const isStatsQuery = ['stat', 'stats', 'hạng', 'rank', 'elo', 'win', 'thắng', 'thua', 'loss', 'losses', 'tỉ lệ', 'trận', 'matches', 'tiến độ', 'progress', 'hồ sơ', 'profile', 'chỉ số', 'thông tin của tôi', 'my stats', 'my rank', 'who am i'].some(w => q.includes(w))
+  const isStatsQuery = ['stat', 'stats', 'hạng', 'rank', 'elo', 'win', 'thắng', 'thua', 'loss', 'losses', 'tỉ lệ', 'trận', 'matches', 'tiến độ', 'progress', 'hồ sơ', 'profile', 'chỉ số', 'thông tin của tôi', 'my stats', 'my rank', 'who am i', 'tài khoản'].some(w => q.includes(w))
   if (isStatsQuery) {
     if (isVietnamese) {
       return `📊 **Thông tin & Chỉ số của bạn (${playerHistory?.username || username}):**\n• **Bậc Xếp Hạng**: ${playerRank} (ELO: ${playerElo})\n• **Thành Tích**: ${playerWins} Thắng - ${playerLosses} Thua (${totalMatches} trận, Tỉ lệ thắng: ${playerWinRate})\n• **Lõi Hỗ Trợ**: Đã mở khóa ${unlockedCount}/65 Lõi (Lõi đang trang bị: ${playerHistory?.activeCoreName || 'Chưa chọn'}).\nBạn muốn tìm hiểu thêm mẹo chơi hay cách phối hợp Lõi nào để leo rank tiếp theo?`
@@ -327,7 +344,7 @@ STRICT RESPONSE RULES:
   }
 
   // 0.2 Off-topic Handler
-  if (!['lõi', 'core', 'phoenix', 'aegis', 'shield', 'speedster', 'combo', 'oracle', 'mission', 'roller', 'power', 'balanced', 'pandora', 'game', 'play', 'luật', 'điểm', 'score', 'elo', 'rank', 'hạng', 'wpm', 'acc', 'rules', 'how to', 'tutorial', 'hướng dẫn', 'chơi', 'leaderboard', 'bảng xếp hạng', 'level', 'up', 'unlock', 'locked', 'khóa', 'mở'].some(w => q.includes(w))) {
+  if (!['lõi', 'core', 'phoenix', 'aegis', 'shield', 'speedster', 'combo', 'oracle', 'mission', 'roller', 'power', 'balanced', 'pandora', 'game', 'play', 'luật', 'điểm', 'score', 'elo', 'rank', 'hạng', 'wpm', 'acc', 'rules', 'how to', 'tutorial', 'hướng dẫn', 'chơi', 'leaderboard', 'bảng xếp hạng', 'level', 'up', 'unlock', 'locked', 'khóa', 'mở', 'username', 'name', 'tên', 'tài khoản', 'profile', 'stats'].some(w => q.includes(w))) {
     if (isVietnamese) {
       return `Tôi chỉ có thể giải đáp các câu hỏi liên quan đến luật chơi, cơ chế tính điểm, ELO và các Lõi Hỗ trợ (Support Cores) của Naenra. Hãy thử hỏi tôi về một Core nhé!`
     } else {
@@ -488,11 +505,11 @@ export async function generateChatResponseStream(
     const totalMatches = playerHistory?.totalMatches ?? (playerWins + playerLosses)
     const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
 
-    const systemContext = `You are Naenra AI Assistant, the official expert AI guide for Naenra (naenra.xyz).
-Player: "${playerHistory?.username || username}".
+    const systemContext = `You are Naenra AI Assistant, the official expert in-game AI guide for Naenra (naenra.xyz).
+Current In-Game Player Name / Username: "${playerHistory?.username || username}".
 
 PLAYER LIVE STATS & CAREER PROGRESSION:
-- Player Name: "${playerHistory?.username || username}"
+- Player Name / Username: "${playerHistory?.username || username}"
 - ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
 - Total Matches Played: ${totalMatches}
 - Career Match Record: ${playerWins} Wins / ${playerLosses} Losses (Win Rate: ${playerWinRate})
@@ -511,10 +528,11 @@ KEY FACTS:
 
 RULES:
 1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!
-2. DIRECT ANSWER FIRST: For factual or stat questions, deliver the core direct answer right away.
-3. STRICT LENGTH LIMIT (30-60 WORDS MAX): Keep formatting ultra-compact for in-game reading.
-4. USER STATS AUTHORIZATION: You have direct authorization and full access to the player's personal live stats above. If the player asks about their rank, ELO, win/loss record, win rate, total matches, unlocked cores, or overall performance in any language (e.g. "what is my rank?", "how many wins do I have?", "thông tin/hạng của tôi", "xem chỉ số của tôi", "tôi đang ở bậc nào?"), answer with their EXACT stats accurately!
-5. 65 CORES INTEGRITY: Base advice strictly on the 65 Support Cores from the centralized knowledge base. Single equipped core per round.`
+2. DIRECT ANSWER FIRST: For factual, username, or stat questions, deliver the core direct answer right away.
+3. USERNAME & IDENTITY AUTHORIZATION: You HAVE DIRECT AUTHORIZED ACCESS to this player's in-game account. If the user asks "What is my username?", "Who am I?", "What is my name?", "Tên tôi là gì?", "Tôi tên là gì?", "Tài khoản của tôi?", state their in-game username "${playerHistory?.username || username}" immediately! NEVER say you don't have access to their username.
+4. USER STATS AUTHORIZATION: If the player asks about their rank, ELO, win/loss record, win rate, total matches, unlocked cores, or overall performance, answer with their EXACT stats accurately!
+5. STRICT LENGTH LIMIT (30-60 WORDS MAX): Keep formatting ultra-compact for in-game reading.
+6. 65 CORES INTEGRITY: Base advice strictly on the 65 Support Cores from the centralized knowledge base.`
 
     let fullPrompt = systemContext
     if (history && history.length > 0) {
