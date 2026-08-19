@@ -20,7 +20,7 @@ server/src/
   controllers/    # gameController.ts, userController.ts, feedbackController.ts, guestController.ts
   middleware/     # authMiddleware (JWT + session_version single active session check)
   rooms/          # Colyseus rooms: MatchRoom.ts, QueueRoom.ts
-  services/       # aiService.ts (Gemini question generator, coach, cyber assistant chat & stream), botGeneratorService.ts, missionEvaluatorService.ts, aiLiveGateway.ts
+  services/       # aiService.ts (Gemini question generator, coach, AI assistant chat & stream), botGeneratorService.ts, missionEvaluatorService.ts, aiLiveGateway.ts
   utils/          # jwt.ts, otp.ts, mailer.ts, ranks.ts
   data/           # naenra_knowledge.json, naenra_knowledge_base.md
   cores/          # BE scoring strategy system: BaseCore.ts, families.ts, index.ts (65 Cores across 10 Families)
@@ -133,7 +133,7 @@ Timer hits 0 → POST /api/game/timeout → status = 'timeout', session score lo
 | POST | `/api/game/session` | JWT | Initialize single-player session |
 | POST | `/api/game/submit-answer` | JWT | Process typing submission & scoring |
 | POST | `/api/game/timeout` | JWT | End & lock session on timer expiry |
-| GET | `/api/ai/chat/stream` | JWT | SSE stream for Cyber Assistant chat |
+| GET | `/api/ai/chat/stream` | JWT | SSE stream for AI Assistant chat |
 | GET | `/health` | None | Server status check |
 
 ## Environment Variables

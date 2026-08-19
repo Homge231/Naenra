@@ -30,8 +30,8 @@
 ### AI Integration & Real-time Streaming (US-95 / IN-423 Completed)
 - AI Question Generator (`generateQuestions`) using `gemini-3.5-flash` with structured JSON schema (`____` blanks, lowercase `target_word`).
 - AI Performance Coach (`generateCoachAnalysis`) for personalized vocabulary analytics reports.
-- AI Cyber Assistant (`generateChatResponse` & `generateChatResponseStream`) using injected knowledge base (`naenra_knowledge_base.md`) and offline multi-lingual fallback NLP engine.
-- Real-time Typewriter Streaming: Adaptive buffer draining at 14ms intervals for ChatGPT-style character-by-character rendering, glowing cyber cursor (`.chat-cursor`), mascot lip-sync animation during stream, auto-scrolling, and `AbortController` 25s timeout resilience.
+- AI Assistant (`generateChatResponse` & `generateChatResponseStream`) using injected knowledge base (`naenra_knowledge_base.md`) and offline multi-lingual fallback NLP engine.
+- 2-Phase Real-time Streaming: Immediate conversational acknowledgment phase followed by adaptive character-by-character typewriter streaming, glowing cursor (`.chat-cursor`), mascot lip-sync animation, auto-scrolling, and `AbortController` 25s timeout resilience.
 - AI Server Startup Fix: Resolved `.env` typo and `dotenv.config()` race condition; primary model `gemini-3.5-flash`, fallback `gemini-3.1-flash-lite`.
 
 ### Cross-Device Responsiveness & Virtual Keyboard (Sprint 6 Completed)
