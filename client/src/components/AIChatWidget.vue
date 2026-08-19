@@ -428,6 +428,7 @@ const mascotStatusText = computed(() => {
 
 // Quick Action Hints in English
 const quickHints = [
+  '📊 What are my player stats & rank?',
   '🎯 Which Support Core fits me best?',
   '⚡ Which Core is strongest right now?',
   '🔮 How do I use Argus Eyes?',
@@ -747,11 +748,23 @@ async function sendMessage() {
       .slice(-10)
       .map(m => ({ role: m.role, message: m.content }))
 
+    const wins = authStore.profile?.wins ?? 0
+    const losses = authStore.profile?.losses ?? 0
+    const totalMatches = authStore.profile?.total_matches ?? (wins + losses)
+    const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
+
     const playerHistory = {
-      coreHistory: gameStore.coreHistory || [],
+      username: authStore.profile?.username || username.value,
+      elo: authStore.profile?.elo ?? 1000,
+      rank: authStore.profile?.rank || 'Novice',
+      wins,
+      losses,
+      totalMatches,
+      winRate,
       unlockedCores: authStore.profile?.unlocked_core_ids || [],
-      elo: authStore.profile?.elo || 1000,
-      activeCoreName: gameStore.activeCoreName
+      activeCoreName: gameStore.activeCoreName || 'None',
+      coreHistory: gameStore.coreHistory || [],
+      score: gameStore.score || 0
     }
 
     // ── Setup SSE Request with AbortController & 25s Timeout ──────────

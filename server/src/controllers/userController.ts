@@ -195,8 +195,42 @@ export const getAiChatResponse = async (req: AuthRequest, res: Response): Promis
       return res.status(400).json({ error: 'prompt is required' })
     }
 
+    let enrichedStats = playerHistory || {}
     const username = req.user?.username || req.user?.email?.split('@')[0] || 'Player'
-    const reply = await generateChatResponse(username, prompt.trim(), history, playerHistory)
+
+    // Enrich player statistics from database if user is authenticated
+    if (req.user?.id) {
+      try {
+        const { data: dbPlayer } = await supabase
+          .from('players')
+          .select('username, elo, wins, losses, total_matches')
+          .eq('id', req.user.id)
+          .maybeSingle()
+
+        if (dbPlayer) {
+          const elo = dbPlayer.elo ?? enrichedStats.elo ?? 1000
+          const wins = dbPlayer.wins ?? enrichedStats.wins ?? 0
+          const losses = dbPlayer.losses ?? enrichedStats.losses ?? 0
+          const totalMatches = dbPlayer.total_matches ?? enrichedStats.totalMatches ?? (wins + losses)
+          const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
+
+          enrichedStats = {
+            ...enrichedStats,
+            username: dbPlayer.username || enrichedStats.username || username,
+            elo,
+            rank: getRankFromElo(elo),
+            wins,
+            losses,
+            totalMatches,
+            winRate
+          }
+        }
+      } catch (err) {
+        console.warn('Enriching player stats from DB error:', err)
+      }
+    }
+
+    const reply = await generateChatResponse(username, prompt.trim(), history, enrichedStats)
     return res.status(200).json({ reply })
   } catch (error: any) {
     console.error('getAiChatResponse error:', error)
@@ -212,9 +246,43 @@ export const getAiChatResponseStream = async (req: AuthRequest, res: Response): 
       return res.status(400).json({ error: 'prompt is required' })
     }
 
+    let enrichedStats = playerHistory || {}
     const username = req.user?.username || req.user?.email?.split('@')[0] || 'Player'
+
+    // Enrich player statistics from database if user is authenticated
+    if (req.user?.id) {
+      try {
+        const { data: dbPlayer } = await supabase
+          .from('players')
+          .select('username, elo, wins, losses, total_matches')
+          .eq('id', req.user.id)
+          .maybeSingle()
+
+        if (dbPlayer) {
+          const elo = dbPlayer.elo ?? enrichedStats.elo ?? 1000
+          const wins = dbPlayer.wins ?? enrichedStats.wins ?? 0
+          const losses = dbPlayer.losses ?? enrichedStats.losses ?? 0
+          const totalMatches = dbPlayer.total_matches ?? enrichedStats.totalMatches ?? (wins + losses)
+          const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
+
+          enrichedStats = {
+            ...enrichedStats,
+            username: dbPlayer.username || enrichedStats.username || username,
+            elo,
+            rank: getRankFromElo(elo),
+            wins,
+            losses,
+            totalMatches,
+            winRate
+          }
+        }
+      } catch (err) {
+        console.warn('Enriching player stats from DB error:', err)
+      }
+    }
+
     // generateChatResponseStream manages SSE headers and response lifecycle internally
-    await generateChatResponseStream(username, prompt.trim(), res, history, playerHistory)
+    await generateChatResponseStream(username, prompt.trim(), res, history, enrichedStats)
   } catch (error: any) {
     console.error('getAiChatResponseStream error:', error)
     if (!res.headersSent) {
