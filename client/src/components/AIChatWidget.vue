@@ -23,8 +23,8 @@
               @click="handleMascotClick"
               :class="{
                 'mascot-pulse-listening': isListening,
-                'mascot-glow-thinking': isLoading,
-                'mascot-talk-speaking': isSpeaking,
+                'mascot-glow-thinking': isLoading && !isStreaming,
+                'mascot-talk-speaking': isSpeaking || isStreaming,
                 'mascot-interactive-click': isInteracting
               }"
               title="Click to interact with Cyber Mascot!"
@@ -37,7 +37,7 @@
                     'eye-blink': isBlinking, 
                     'eye-wide': isListening, 
                     'eye-happy': isInteracting,
-                    'eye-think': isLoading 
+                    'eye-think': isLoading && !isStreaming 
                   }"
                 ></div>
                 <div 
@@ -46,15 +46,15 @@
                     'eye-blink': isBlinking, 
                     'eye-wide': isListening, 
                     'eye-happy': isInteracting,
-                    'eye-think': isLoading 
+                    'eye-think': isLoading && !isStreaming 
                   }"
                 ></div>
               </div>
 
-              <!-- Animated Talking Mouth (Lip Sync to Speech Readout & Audio) -->
+              <!-- Animated Talking Mouth (Lip Sync to Speech Readout, Audio & Real-time Text Streaming) -->
               <div class="cyber-mouth mt-1 z-10 flex items-center justify-center h-3.5">
-                <!-- When Speaking: Animated Real-Time Mouth Bars (Lip Sync) -->
-                <div v-if="isSpeaking || isLiveSpeaking" class="talking-mouth flex items-center gap-0.5 h-3">
+                <!-- When Speaking or Streaming: Animated Real-Time Mouth Bars (Lip Sync) -->
+                <div v-if="isSpeaking || isLiveSpeaking || isStreaming" class="talking-mouth flex items-center gap-0.5 h-3">
                   <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
                   <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(6, audioAmplitude * 16)}px` } : {}"></span>
                   <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
@@ -130,9 +130,9 @@
             :key="idx"
             :class="['chat-bubble-wrap', msg.role === 'user' ? 'chat-bubble-wrap--user' : 'chat-bubble-wrap--ai']"
           >
-            <!-- AI bubble: only render once content starts arriving (hides empty streaming placeholder) -->
+            <!-- AI bubble: render if user, or if content started or currently streaming into this index -->
             <div
-              v-if="msg.role === 'user' || msg.content.length > 0"
+              v-if="msg.role === 'user' || msg.content.length > 0 || (isStreaming && streamingMsgIdx === idx)"
               :class="['chat-bubble', msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--ai']"
             >
               <div class="flex items-center justify-between gap-2 mb-1.5 border-b border-orange-100 pb-1" v-if="msg.role !== 'user'">
@@ -140,7 +140,7 @@
                   <span>🤖</span> Naenra Cyber Guide
                 </span>
                 <button 
-                  v-if="msg.content" 
+                  v-if="msg.content && (!isStreaming || streamingMsgIdx !== idx)" 
                   @click="speakText(msg.content)" 
                   class="text-[10px] font-bold text-orange-600 hover:text-white hover:bg-orange-500 transition-colors flex items-center gap-1 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full cursor-pointer"
                   title="Read aloud using Voice TTS"
@@ -151,15 +151,22 @@
 
               <div
                 v-if="msg.role !== 'user'"
-                class="chat-bubble-text leading-relaxed"
-                v-html="renderMarkdown(msg.content)"
-              ></div>
+                class="chat-bubble-text leading-relaxed relative"
+              >
+                <span v-html="renderMarkdown(msg.content)"></span>
+                <!-- ChatGPT-style Real-time Blinking Cyber Cursor while streaming -->
+                <span
+                  v-if="isStreaming && streamingMsgIdx === idx"
+                  class="chat-cursor"
+                  aria-hidden="true"
+                ></span>
+              </div>
               <p v-else class="chat-bubble-text">{{ msg.content }}</p>
             </div>
           </div>
 
-          <!-- Typing indicator -->
-          <div v-if="isLoading" class="chat-typing">
+          <!-- Typing indicator (only shown before stream chunks start arriving) -->
+          <div v-if="isLoading && !isStreaming" class="chat-typing">
             <span class="text-xs text-orange-600 font-bold mr-2">Cyber AI thinking...</span>
             <span></span><span></span><span></span>
           </div>
@@ -376,6 +383,8 @@ watch(isLiveConnected, (connected) => {
 const inputText = ref('')
 const messages = ref<ChatMessage[]>([])
 const isLoading = ref(false)
+const isStreaming = ref(false)
+const streamingMsgIdx = ref(-1)
 const errorMsg = ref('')
 const isListening = ref(false)
 const isSpeaking = ref(false)
@@ -389,6 +398,8 @@ const rootRef = ref<HTMLElement | null>(null)
 let recognition: any = null
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let blinkInterval: ReturnType<typeof setInterval> | null = null
+let streamTickerTimer: any = null
+let currentAbortController: AbortController | null = null
 
 const username = computed(() =>
   authStore.profile?.username ||
@@ -402,6 +413,7 @@ const mascotStatusText = computed(() => {
   if (isLiveSpeaking.value) return 'Gemini 3.1 Live speaking...'
   if (isLiveConnected.value) return '🔴 Gemini 3.1 Live Active (Listening)'
   if (isListening.value) return 'Listening to your voice...'
+  if (isStreaming.value) return 'Streaming response in real-time...'
   if (isLoading.value) return 'Just a moment, finding your answer...'
   if (isSpeaking.value) return 'Speaking response aloud...'
   return 'Ready to guide & recommend Cores'
@@ -571,6 +583,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
   if (blinkInterval) clearInterval(blinkInterval)
+  if (streamTickerTimer) clearInterval(streamTickerTimer)
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     window.speechSynthesis.cancel()
   }
@@ -612,10 +629,10 @@ function sendQuick(text: string) {
   sendMessage()
 }
 
-// ── Send message with Player History Injection ───────────────────────
+// ── Send message with Player History Injection & Real-Time Character Streaming ────────
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || isLoading.value) return
+  if (!text || isLoading.value || isStreaming.value) return
 
   inputText.value = ''
   errorMsg.value = ''
@@ -632,14 +649,71 @@ async function sendMessage() {
     return
   }
 
+  // Cancel any prior active stream ticker or controller
+  if (streamTickerTimer) {
+    clearInterval(streamTickerTimer)
+    streamTickerTimer = null
+  }
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
+
   isLoading.value = true
+  isStreaming.value = false
+  streamingMsgIdx.value = -1
 
   // Immediately speak a quick, friendly acknowledgment phrase so the user gets instant voice feedback
   const ack = quickAckPhrases[Math.floor(Math.random() * quickAckPhrases.length)]
   speakText(ack, { rate: 1.22 })
 
-  // Hoisted so catch block can clean up empty placeholder on failure
   let msgIdx = -1
+  let incomingBuffer = ''
+  let displayedText = ''
+  let isStreamClosed = false
+  let timeoutId: any = null
+
+  // Helper to start the incremental typewriter effect
+  const startTypewriterLoop = (targetIdx: number) => {
+    if (streamTickerTimer) clearInterval(streamTickerTimer)
+
+    streamTickerTimer = setInterval(() => {
+      if (displayedText.length < incomingBuffer.length) {
+        if (!isStreaming.value) {
+          isStreaming.value = true
+          streamingMsgIdx.value = targetIdx
+        }
+
+        const backlog = incomingBuffer.length - displayedText.length
+        // Adaptive rate: step size 1 if close to buffer, up to 5 if chunk accumulated
+        const step = backlog > 80 ? 5 : backlog > 30 ? 3 : backlog > 12 ? 2 : 1
+        displayedText += incomingBuffer.slice(displayedText.length, displayedText.length + step)
+
+        if (targetIdx >= 0 && targetIdx < messages.value.length) {
+          messages.value[targetIdx] = { role: 'model', content: displayedText }
+        }
+        scrollToBottom()
+      } else if (isStreamClosed) {
+        // Stream completed and buffer fully rendered!
+        clearInterval(streamTickerTimer)
+        streamTickerTimer = null
+        isStreaming.value = false
+        streamingMsgIdx.value = -1
+        isLoading.value = false
+
+        if (displayedText.trim()) {
+          speakText(displayedText)
+        } else {
+          // If no content ever arrived, remove empty placeholder
+          if (targetIdx >= 0 && targetIdx < messages.value.length && !messages.value[targetIdx].content) {
+            messages.value.splice(targetIdx, 1)
+            errorMsg.value = 'No response from AI. Please try again.'
+          }
+        }
+        scrollToBottom()
+      }
+    }, 14)
+  }
 
   try {
     const history = messages.value
@@ -654,13 +728,21 @@ async function sendMessage() {
       activeCoreName: gameStore.activeCoreName
     }
 
-    // ── SSE Streaming: AI types response token by token ──────────────
+    // ── Setup SSE Request with AbortController & 25s Timeout ──────────
+    currentAbortController = new AbortController()
+    timeoutId = setTimeout(() => {
+      if (currentAbortController) {
+        currentAbortController.abort()
+      }
+    }, 25000)
+
     const token = localStorage.getItem('arena_token') || ''
     let apiBase = import.meta.env.VITE_SERVER_URL
     if (!apiBase && typeof window !== 'undefined') {
       apiBase = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
     }
     apiBase = apiBase || 'http://localhost:3000'
+
     const res = await fetch(`${apiBase}/api/ai/chat/stream`, {
       method: 'POST',
       headers: {
@@ -668,6 +750,7 @@ async function sendMessage() {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ prompt: text, history, playerHistory }),
+      signal: currentAbortController.signal
     })
 
     if (!res.ok || !res.body) {
@@ -679,9 +762,11 @@ async function sendMessage() {
     messages.value.push({ role: 'model', content: '' })
     msgIdx = messages.value.length - 1
 
+    // Launch incremental typewriter loop
+    startTypewriterLoop(msgIdx)
+
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
-    let fullText = ''
     let buffer = ''
 
     while (true) {
@@ -695,34 +780,44 @@ async function sendMessage() {
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue
         const payload = line.slice(6).trim()
-        if (payload === '[DONE]') break
+        if (payload === '[DONE]') {
+          isStreamClosed = true
+          break
+        }
         try {
           const parsed = JSON.parse(payload)
           if (parsed.chunk) {
-            fullText += parsed.chunk
-            messages.value[msgIdx] = { role: 'model', content: fullText }
-            scrollToBottom()
+            incomingBuffer += parsed.chunk
           }
         } catch { /* skip malformed chunk */ }
       }
     }
 
-    // Auto voice readout once full response is assembled
-    if (fullText) {
-      speakText(fullText)
-    } else {
-      // Stream ended with no content — remove empty placeholder and show error
-      messages.value.splice(msgIdx, 1)
-      errorMsg.value = 'No response from AI. Please try again.'
-    }
+    isStreamClosed = true
   } catch (err: any) {
-    // Remove empty placeholder bubble if stream failed before any content arrived
-    if (msgIdx >= 0 && messages.value[msgIdx]?.content === '') {
-      messages.value.splice(msgIdx, 1)
+    isStreamClosed = true
+
+    // If stream failed before any text arrived, clean up placeholder
+    if (incomingBuffer.length === 0) {
+      if (streamTickerTimer) {
+        clearInterval(streamTickerTimer)
+        streamTickerTimer = null
+      }
+      if (msgIdx >= 0 && messages.value[msgIdx]?.content === '') {
+        messages.value.splice(msgIdx, 1)
+      }
+      if (err.name === 'AbortError') {
+        errorMsg.value = 'AI connection timed out (25s). Please try again.'
+      } else {
+        errorMsg.value = err.message || 'An error occurred. Please try again.'
+      }
+      isLoading.value = false
+      isStreaming.value = false
+      streamingMsgIdx.value = -1
     }
-    errorMsg.value = err.message || 'An error occurred. Please try again.'
   } finally {
-    isLoading.value = false
+    if (timeoutId) clearTimeout(timeoutId)
+    currentAbortController = null
     scrollToBottom()
   }
 }
@@ -1092,6 +1187,24 @@ function renderMarkdown(raw: string): string {
   font-size: 12px;
   color: #c2410c;
   font-weight: 700;
+}
+
+/* ── ChatGPT-style Streaming Blinking Cursor ─── */
+.chat-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 14px;
+  background-color: #ea580c;
+  margin-left: 3px;
+  vertical-align: -1.5px;
+  border-radius: 1px;
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.6);
+  animation: cursor-blink 0.75s infinite ease-in-out;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0; transform: scaleY(0.85); }
 }
 
 /* ── Typing Indicator ────────────────────────── */

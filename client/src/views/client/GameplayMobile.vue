@@ -172,11 +172,15 @@
           </span>
 
           <transition name="fade">
-            <CoreTooltip
+            <div
               v-if="hoveredRoundCoreIndex === index && getCoreDetailsByItem(core)"
-              :core="getCoreDetailsByItem(core)!"
-              position="bottom"
-            />
+              class="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-[9999] pointer-events-none w-80 min-w-[320px] flex justify-center"
+            >
+              <CoreTooltip
+                :core="getCoreDetailsByItem(core)!"
+                position="bottom"
+              />
+            </div>
           </transition>
         </div>
       </div>
@@ -945,13 +949,15 @@ const hoveredRoundCoreIndex = ref<number | null>(null)
 let roundCoreHoldTimer: ReturnType<typeof setTimeout> | null = null
 
 function getCoreDetailsByItem(coreItem: { id: string; name: string }) {
-  if (!coreItem || allCores.value.length === 0) return null
-  const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
-  if (found) return found
+  if (!coreItem) return null
+  if (allCores.value.length > 0) {
+    const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
+    if (found) return found
+  }
   return {
     id: coreItem.id,
     name: coreItem.name,
-    description: 'Core details not available.',
+    description: 'Support core ability active for this match.',
     flat_buff: 0,
     multiplier_buff: 1
   }
@@ -1846,8 +1852,8 @@ watch(() => gameState.value, (newState) => {
 })
 
 onMounted(async () => {
-  // Single-player is always 1 round; isFinalRound() must return true on timeout
-  matchStore.maxRounds = 1
+  // Single-player mode consists of 3 rounds with upgrade phases in between
+  matchStore.maxRounds = 3
 
   if (!activeCoreId.value) {
     router.replace('/core')
@@ -1856,7 +1862,7 @@ onMounted(async () => {
 
   // Ensure we start a fresh match if navigating here from outside
   if (!gameStore.sessionId) {
-    matchStore.resetMatch(1)
+    matchStore.resetMatch(3)
   }
   resetTimer()
 
@@ -1865,9 +1871,8 @@ onMounted(async () => {
   } else {
     sessionId.value = gameStore.sessionId
   }
-  if (isPandoraMode.value) {
-    await fetchPandoraPool()
-  }
+  // Always fetch full cores pool for tooltips and details
+  await fetchPandoraPool()
   await fetchBatch()
   await loadQuestion()
   

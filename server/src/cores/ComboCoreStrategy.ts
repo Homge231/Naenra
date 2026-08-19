@@ -86,7 +86,7 @@ export class ComboCoreStrategy extends BaseCore {
   calculateWrong(ctx: ScoringContext): ScoringResult {
     const oraclePenalty = this._oraclePenalty(ctx)
     
-    if (this.coreName === 'combo focus') {
+    if (this.coreName === 'combo focus' && ctx.penaltyType !== 'typo') {
       return {
         pointsDelta: -(ctx.wrongPenalty + 30 + oraclePenalty),
         breakdown: {

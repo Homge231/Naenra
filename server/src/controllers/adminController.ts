@@ -1,8 +1,45 @@
 import { Response } from 'express'
+import { matchMaker } from 'colyseus'
 import { AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
 import { kickUserClients, getOnlineUserIds } from '../utils/activeClients'
+
+// ── Shared admin helpers ──────────────────────────────────────────────────────
+
+/**
+ * Fetch a player by ID or send a 404 response and return null.
+ * Use at the top of any admin action that needs to validate the target player.
+ */
+async function fetchPlayerOrFail(
+  id: string,
+  res: Response
+): Promise<{ id: string; email: string; username: string; is_admin: boolean } | null> {
+  const { data, error } = await supabase
+    .from('players')
+    .select('id, email, username, is_admin')
+    .eq('id', id)
+    .single()
+  if (error || !data) {
+    res.status(404).json({ success: false, message: 'Player not found' })
+    return null
+  }
+  return data
+}
+
+/**
+ * Increment session_version, broadcast session invalidation, and optionally
+ * kick all active WebSocket connections for the player.
+ */
+async function invalidatePlayerSession(id: string, kick = false): Promise<void> {
+  const { data: newVersion } = await supabase.rpc('increment_session_version', { player_id: id })
+  try {
+    await broadcastSessionInvalidated(id, newVersion ?? Date.now())
+    if (kick) kickUserClients(id, 4003)
+  } catch (e) {
+    console.warn('Session invalidation warning:', e)
+  }
+}
 
 /**
  * GET /api/admin/summary
@@ -595,12 +632,8 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
 
     const { error: updateErr } = await supabase
       .from('players')
-      .update({
-        is_banned: true,
-        banned_at: new Date().toISOString()
-      })
+      .update({ is_banned: true, banned_at: new Date().toISOString() })
       .eq('id', id)
-
     if (updateErr) throw updateErr
 
     const { data: versionResult } = await supabase
@@ -628,11 +661,7 @@ export async function banPlayer(req: AuthRequest, res: Response): Promise<void> 
     })
   } catch (error: any) {
     console.error('Error in banPlayer:', error)
-    res.status(500).json({
-      success: false,
-      error: 'InternalServerError',
-      message: 'Failed to ban player'
-    })
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to ban player' })
   }
 }
 
@@ -649,27 +678,20 @@ export async function unbanPlayer(req: AuthRequest, res: Response): Promise<void
       return
     }
 
+    // Verify player exists before updating
+    const targetPlayer = await fetchPlayerOrFail(id, res)
+    if (!targetPlayer) return
+
     const { error: updateErr } = await supabase
       .from('players')
-      .update({
-        is_banned: false,
-        banned_at: null
-      })
+      .update({ is_banned: false, banned_at: null })
       .eq('id', id)
-
     if (updateErr) throw updateErr
 
-    res.json({
-      success: true,
-      message: 'Player account has been restored successfully.'
-    })
+    res.json({ success: true, message: 'Player account has been restored successfully.' })
   } catch (error: any) {
     console.error('Error in unbanPlayer:', error)
-    res.status(500).json({
-      success: false,
-      error: 'InternalServerError',
-      message: 'Failed to restore player account'
-    })
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to restore player account' })
   }
 }
 
@@ -686,12 +708,10 @@ export async function togglePlayerAdmin(req: AuthRequest, res: Response): Promis
       res.status(400).json({ success: false, message: 'Player ID is required' })
       return
     }
-
     if (typeof is_admin !== 'boolean') {
       res.status(400).json({ success: false, message: 'is_admin (boolean) is required' })
       return
     }
-
     if (req.user?.id === id && !is_admin) {
       res.status(400).json({ success: false, message: 'You cannot remove admin privileges from your own account.' })
       return
@@ -712,7 +732,6 @@ export async function togglePlayerAdmin(req: AuthRequest, res: Response): Promis
       .from('players')
       .update({ is_admin })
       .eq('id', id)
-
     if (updateErr) throw updateErr
 
     const { data: versionResult } = await supabase
@@ -728,17 +747,237 @@ export async function togglePlayerAdmin(req: AuthRequest, res: Response): Promis
     res.json({
       success: true,
       message: `Admin privileges ${is_admin ? 'granted to' : 'revoked from'} ${targetPlayer.username || targetPlayer.email}.`,
-      data: {
-        id,
-        is_admin
-      }
+      data: { id, is_admin }
     })
   } catch (error: any) {
     console.error('Error in togglePlayerAdmin:', error)
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to update admin status' })
+  }
+}
+
+// ── US-93: Match Analytics, Live Telemetry & Match History Endpoints ──────────
+
+/**
+ * GET /api/admin/matches/analytics
+ * Returns aggregated match telemetry for visual charts and KPI metrics.
+ * Query param: ?timeframe=7d | 30d | 12m (default: 7d)
+ */
+export async function getMatchAnalytics(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const timeframe = (req.query.timeframe as string || '7d').toLowerCase()
+
+    // 1. Calculate time window
+    const now = new Date()
+    const startDate = new Date()
+    let bucketFormat: 'day' | 'month' = 'day'
+    let numberOfBuckets = 7
+
+    if (timeframe === '30d') {
+      startDate.setDate(now.getDate() - 30)
+      bucketFormat = 'day'
+      numberOfBuckets = 30
+    } else if (timeframe === '12m') {
+      startDate.setFullYear(now.getFullYear() - 1)
+      bucketFormat = 'month'
+      numberOfBuckets = 12
+    } else {
+      // default: 7d
+      startDate.setDate(now.getDate() - 7)
+      bucketFormat = 'day'
+      numberOfBuckets = 7
+    }
+
+    // 2. Fetch match sessions within window
+    const { data: sessions, error } = await supabase
+      .from('game_sessions')
+      .select('id, player_id, score, questions_answered, status, started_at, ended_at, active_core_id')
+      .gte('started_at', startDate.toISOString())
+      .order('started_at', { ascending: true })
+
+    if (error) throw error
+
+    const sessionList = sessions || []
+
+    // 3. Fetch cores to map active_core_id to core names
+    const { data: coresData } = await supabase
+      .from('cores')
+      .select('id, name, classification, tier')
+
+    const coreMap = new Map<string, any>()
+    for (const c of coresData || []) {
+      coreMap.set(String(c.id), c)
+    }
+
+    // 4. Generate continuous time buckets so charts have complete X-axis intervals
+    const bucketsMap = new Map<string, {
+      date: string
+      label: string
+      totalMatches: number
+      completedMatches: number
+      abortedMatches: number
+      activeMatches: number
+      totalScore: number
+      totalDurationSeconds: number
+      durationCount: number
+    }>()
+
+    if (bucketFormat === 'day') {
+      for (let i = numberOfBuckets - 1; i >= 0; i--) {
+        const d = new Date(now)
+        d.setDate(d.getDate() - i)
+        const key = d.toISOString().split('T')[0]
+        const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        bucketsMap.set(key, {
+          date: key,
+          label,
+          totalMatches: 0,
+          completedMatches: 0,
+          abortedMatches: 0,
+          activeMatches: 0,
+          totalScore: 0,
+          totalDurationSeconds: 0,
+          durationCount: 0
+        })
+      }
+    } else {
+      // 12 months
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        const label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        bucketsMap.set(key, {
+          date: key,
+          label,
+          totalMatches: 0,
+          completedMatches: 0,
+          abortedMatches: 0,
+          activeMatches: 0,
+          totalScore: 0,
+          totalDurationSeconds: 0,
+          durationCount: 0
+        })
+      }
+    }
+
+    // Status breakdown & core popularity
+    const statusCounts = {
+      completed: 0,
+      active: 0,
+      aborted: 0,
+      abandoned: 0
+    }
+
+    const coreUsageMap = new Map<string, { id: string; name: string; tier: number; count: number }>()
+
+    let grandTotalScore = 0
+    let grandTotalDurationSec = 0
+    let grandDurationCount = 0
+
+    for (const s of sessionList) {
+      const sDate = new Date(s.started_at)
+      let bucketKey = ''
+      if (bucketFormat === 'day') {
+        bucketKey = sDate.toISOString().split('T')[0]
+      } else {
+        bucketKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`
+      }
+
+      const bucket = bucketsMap.get(bucketKey)
+
+      const isCompleted = s.status === 'timeout' || s.status === 'completed'
+      const isAborted = s.status === 'aborted' || s.status === 'abandoned'
+      const isActive = s.status === 'active'
+
+      if (isCompleted) statusCounts.completed++
+      else if (isAborted) {
+        if (s.status === 'aborted') statusCounts.aborted++
+        else statusCounts.abandoned++
+      } else if (isActive) {
+        statusCounts.active++
+      }
+
+      // Duration calculation in seconds
+      let durationSec = 0
+      if (s.ended_at && s.started_at) {
+        const diff = (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 1000
+        if (diff > 0 && diff < 3600) {
+          durationSec = Math.round(diff)
+        }
+      }
+
+      const score = Number(s.score) || 0
+      grandTotalScore += score
+      if (durationSec > 0) {
+        grandTotalDurationSec += durationSec
+        grandDurationCount++
+      }
+
+      if (bucket) {
+        bucket.totalMatches++
+        if (isCompleted) bucket.completedMatches++
+        if (isAborted) bucket.abortedMatches++
+        if (isActive) bucket.activeMatches++
+        bucket.totalScore += score
+        if (durationSec > 0) {
+          bucket.totalDurationSeconds += durationSec
+          bucket.durationCount++
+        }
+      }
+
+      // Track Core Popularity
+      if (s.active_core_id) {
+        const coreInfo = coreMap.get(String(s.active_core_id))
+        const coreName = coreInfo?.name || 'Unknown Core'
+        const tier = coreInfo?.tier || 1
+        const existing = coreUsageMap.get(coreName) || { id: s.active_core_id, name: coreName, tier, count: 0 }
+        existing.count++
+        coreUsageMap.set(coreName, existing)
+      }
+    }
+
+    const timeline = Array.from(bucketsMap.values()).map(b => ({
+      date: b.date,
+      label: b.label,
+      totalMatches: b.totalMatches,
+      completedMatches: b.completedMatches,
+      abortedMatches: b.abortedMatches,
+      activeMatches: b.activeMatches,
+      avgScore: b.totalMatches > 0 ? Math.round(b.totalScore / b.totalMatches) : 0,
+      avgDurationSeconds: b.durationCount > 0 ? Math.round(b.totalDurationSeconds / b.durationCount) : 0
+    }))
+
+    const topCores = Array.from(coreUsageMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8)
+
+    const totalMatchesInPeriod = sessionList.length
+    const avgScoreInPeriod = totalMatchesInPeriod > 0 ? Math.round(grandTotalScore / totalMatchesInPeriod) : 0
+    const avgDurationInPeriod = grandDurationCount > 0 ? Math.round(grandTotalDurationSec / grandDurationCount) : 60
+    const completionRate = totalMatchesInPeriod > 0
+      ? Math.round((statusCounts.completed / totalMatchesInPeriod) * 100)
+      : 100
+
+    res.json({
+      success: true,
+      data: {
+        timeframe,
+        summary: {
+          totalMatches: totalMatchesInPeriod,
+          avgScore: avgScoreInPeriod,
+          avgDurationSeconds: avgDurationInPeriod,
+          completionRate,
+          statusBreakdown: statusCounts
+        },
+        timeline,
+        topCores
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in getMatchAnalytics:', error)
     res.status(500).json({
       success: false,
       error: 'InternalServerError',
-      message: 'Failed to update admin status'
+      message: 'Failed to retrieve match analytics'
     })
   }
 }
@@ -1010,4 +1249,98 @@ export async function deleteCore(req: AuthRequest, res: Response): Promise<void>
     })
   }
 }
+
+/**
+ * GET /api/admin/matches/live
+ * Returns live active match sessions & concurrency stats.
+ */
+export async function getLiveMatchMetrics(_req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { data: activeSessions, error } = await supabase
+      .from('game_sessions')
+      .select('id, player_id, score, questions_answered, started_at, updated_at, active_core_id, room_id')
+      .eq('status', 'active')
+      .gte('updated_at', fiveMinutesAgo)
+
+    if (error) throw error
+
+    const liveMatches = (activeSessions || []).length
+    const colyseusRooms = new Set((activeSessions || []).map(s => s.room_id).filter(Boolean)).size || (liveMatches > 0 ? 1 : 0)
+
+    res.json({
+      success: true,
+      data: {
+        liveMatches,
+        colyseusRooms,
+        onlinePlayers: getOnlineUserIds().size,
+        activeSessions: activeSessions || []
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in getLiveMatchMetrics:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to retrieve live match metrics'
+    })
+  }
+}
+
+/**
+ * GET /api/admin/matches/history
+ * Returns paginated match history with search, status filtering, and player info.
+ */
+export async function getMatchHistory(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const page = Math.max(1, parseInt((req.query.page as string) || '1'))
+    const limit = Math.max(1, Math.min(100, parseInt((req.query.limit as string) || '10')))
+    const status = ((req.query.status as string) || 'all').toLowerCase()
+
+    let query = supabase
+      .from('game_sessions')
+      .select('*, players(username, email, avatar_url)', { count: 'exact' })
+
+    if (status !== 'all') {
+      if (status === 'completed') {
+        query = query.or('status.eq.completed,status.eq.timeout')
+      } else if (status === 'aborted') {
+        query = query.or('status.eq.aborted,status.eq.abandoned')
+      } else {
+        query = query.eq('status', status)
+      }
+    }
+
+    const fromIndex = (page - 1) * limit
+    const toIndex = fromIndex + limit - 1
+
+    query = query.range(fromIndex, toIndex).order('started_at', { ascending: false })
+
+    const { data: matches, count, error } = await query
+
+    if (error) throw error
+
+    const total = count ?? 0
+    const totalPages = Math.ceil(total / limit) || 1
+
+    res.json({
+      success: true,
+      data: {
+        matches: matches || [],
+        total,
+        page,
+        limit,
+        totalPages
+      }
+    })
+  } catch (error: any) {
+    console.error('Error in getMatchHistory:', error)
+    res.status(500).json({
+      success: false,
+      error: 'InternalServerError',
+      message: 'Failed to retrieve match history'
+    })
+  }
+}
+
 

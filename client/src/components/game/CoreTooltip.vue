@@ -162,8 +162,8 @@ const traitConfig = computed(() => {
     return {
       label: 'Score Multiplier',
       icon: '🔥',
-      color: 'text-orange-400',
-      bg: 'bg-orange-950/60 border-orange-800',
+      color: 'text-orange-300 font-bold',
+      bg: 'bg-orange-500/20 border-orange-500/50 shadow-[0_0_12px_rgba(249,115,22,0.2)]',
       desc: 'Amplifies base typing score per correct word.'
     }
   }
@@ -171,16 +171,16 @@ const traitConfig = computed(() => {
     return {
       label: 'Special Mechanic',
       icon: '🔮',
-      color: 'text-violet-400',
-      bg: 'bg-violet-950/60 border-violet-800',
+      color: 'text-violet-300 font-bold',
+      bg: 'bg-violet-500/20 border-violet-500/50 shadow-[0_0_12px_rgba(139,92,246,0.2)]',
       desc: 'Grants unique tactical abilities in battle.'
     }
   }
   return {
     label: 'Standard Buff',
     icon: '⚡',
-    color: 'text-blue-400',
-    bg: 'bg-blue-950/60 border-blue-800',
+    color: 'text-sky-300 font-bold',
+    bg: 'bg-sky-500/20 border-sky-500/50 shadow-[0_0_12px_rgba(14,165,233,0.2)]',
     desc: 'Provides steady performance boost.'
   }
 })
@@ -230,10 +230,9 @@ const stats = computed(() => {
 
 <template>
   <div 
-    class="relative z-[9999] w-full max-w-[320px] sm:max-w-[340px] p-3.5 sm:p-4 rounded-2xl border-2 text-left flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 select-none bg-slate-950 shadow-2xl overflow-hidden"
+    class="relative z-[9999] w-80 min-w-[320px] max-w-[340px] shrink-0 p-3.5 sm:p-4 rounded-2xl border-2 text-left flex flex-col gap-2.5 sm:gap-3 transition-all duration-300 select-none bg-slate-950 text-slate-100 shadow-2xl overflow-hidden box-border"
     :class="[
-      isCoreLocked ? 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.4)]' : currentConfig.border,
-      !isMobile && position === 'bottom' ? 'top-full mt-3' : (!isMobile ? 'bottom-full mb-6' : '')
+      isCoreLocked ? 'border-red-500 shadow-[0_20px_50px_rgba(239,68,68,0.4)]' : currentConfig.border
     ]"
   >
     <!-- Close Button (Visible when isMobile or showClose is true) -->
@@ -310,10 +309,11 @@ const stats = computed(() => {
             Tier {{ tierRoman }} Core
           </span>
           <span
-            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[8px] font-black uppercase tracking-widest w-fit mt-0.5"
+            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider w-fit mt-0.5"
             :class="[traitConfig.color, traitConfig.bg]"
           >
-            {{ traitConfig.icon }} {{ traitConfig.label }}
+            <span>{{ traitConfig.icon }}</span>
+            <span :class="traitConfig.color">{{ traitConfig.label }}</span>
           </span>
         </div>
         <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[8px] font-bold uppercase tracking-widest text-gray-300">
@@ -341,19 +341,19 @@ const stats = computed(() => {
       </div>
 
       <div
-        class="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg border text-[9px] leading-snug"
+        class="flex items-start gap-2 px-3 py-2 rounded-xl border text-[10px] leading-snug"
         :class="[traitConfig.color, traitConfig.bg]"
       >
-        <span class="shrink-0">{{ traitConfig.icon }}</span>
-        <span class="text-gray-200">{{ traitConfig.desc }}</span>
+        <span class="shrink-0 text-xs">{{ traitConfig.icon }}</span>
+        <span class="text-slate-100 font-medium">{{ traitConfig.desc }}</span>
       </div>
 
-      <div class="flex flex-col gap-1 text-[11px] text-gray-300 leading-snug">
-        <p class="font-bold text-[8px] text-gray-400 uppercase tracking-widest">Tactical Description</p>
-        <p class="italic text-gray-400 text-[10px]">
+      <div class="flex flex-col gap-1 text-[11px] text-slate-200 leading-snug">
+        <p class="font-bold text-[9px] text-slate-400 uppercase tracking-widest">Tactical Description</p>
+        <p class="italic text-slate-300 text-[11px] leading-relaxed">
           "{{ core.description }}"
         </p>
-        <div v-if="stats.mechanic" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[10px] leading-snug text-blue-300">
+        <div v-if="stats.mechanic" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[10px] leading-snug text-sky-300 font-medium">
           {{ stats.mechanic }}
         </div>
       </div>

@@ -176,11 +176,15 @@
           </span>
 
           <transition name="fade">
-            <CoreTooltip
+            <div
               v-if="hoveredRoundCoreIndex === index && getCoreDetailsByItem(core)"
-              :core="getCoreDetailsByItem(core)!"
-              position="bottom"
-            />
+              class="absolute top-full left-1/2 -translate-x-1/2 mt-3 z-[9999] pointer-events-none w-80 min-w-[320px] flex justify-center"
+            >
+              <CoreTooltip
+                :core="getCoreDetailsByItem(core)!"
+                position="bottom"
+              />
+            </div>
           </transition>
         </div>
       </div>
@@ -1264,13 +1268,15 @@ const hoveredRoundCoreIndex = ref<number | null>(null)
 let roundCoreHoldTimer: ReturnType<typeof setTimeout> | null = null
 
 function getCoreDetailsByItem(coreItem: { id: string; name: string }) {
-  if (!coreItem || allCores.value.length === 0) return null
-  const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
-  if (found) return found
+  if (!coreItem) return null
+  if (allCores.value.length > 0) {
+    const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
+    if (found) return found
+  }
   return {
     id: coreItem.id,
     name: coreItem.name,
-    description: 'Core details not available.',
+    description: 'Support core ability active for this match.',
     flat_buff: 0,
     multiplier_buff: 1
   }
@@ -1503,8 +1509,10 @@ async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl
 async function skipQuestion() {
   if (gameState.value === 'timeout') return
   if (matchStore.currentRound === 4) {
+    if (currentRoom && !isRaceLocked.value) {
+      currentRoom.send('submit_race_answer', { answer: '', session_id: sessionId.value })
+    }
     typedLetters.value = []
-    if (currentRoom) currentRoom.send('player_typing', { text: '' })
     if (inputRef.value) inputRef.value.value = ''
     return
   }
@@ -1642,17 +1650,20 @@ function handleKeydown(e: KeyboardEvent) {
 
   // Skip question when Enter is pressed
   if (e.key === 'Enter') {
+    if (matchStore.currentRound === 4) {
+      if (currentRoom && !isRaceLocked.value) {
+        currentRoom.send('submit_race_answer', {
+          answer: typedLetters.value.join(''),
+          session_id: sessionId.value
+        })
+      }
+      return
+    }
     if (gameState.value === 'correct' || gameState.value === 'wrong') {
       skipQuestion()
       return
     }
     if (gameState.value !== 'playing') return
-    if (matchStore.currentRound === 4) {
-      if (typedLetters.value.length === 0 || (currentQ && typedLetters.value.length === currentQ.target_length)) {
-        checkAnswer()
-      }
-      return
-    }
     skipQuestion()
     return
   }
@@ -2521,9 +2532,6 @@ function setupRoomEventHandlers(room: any) {
       if (data.penalty > 0) spawnPointPopup(-data.penalty, 'wrong')
       else spawnPointPopup(0, 'custom', 'SKIPPED')
       score.value = Math.max(0, score.value - data.penalty)
-      if (currentRoom) {
-        currentRoom.send('update_score', { score: score.value })
-      }
       isRaceLocked.value = true // Lock input for this race question
     } else {
       if (data.penalty > 0) {

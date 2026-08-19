@@ -1,6 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
 
+// Admin emails that always have admin access (mirrors server/src/constants.ts)
+const SUPER_ADMIN_EMAILS = new Set(['homge231@gmail.com', 'baonhggcd220259@fpt.edu.vn'])
+
+// Routes that guests cannot access — defined once as a Set for O(1) lookup
+const GUEST_RESTRICTED = new Set([
+  'matchmaking', 'CustomRoom', 'leaderboard', 'missions', 'profile',
+  'admin-dashboard', 'admin-questions', 'admin-players',
+  'admin-leaderboard', 'admin-matches', 'admin-cores', 'admin-ai'
+])
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -158,7 +168,7 @@ const router = createRouter({
         {
           path: 'matches',
           name: 'admin-matches',
-          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          component: () => import('../views/admin/MatchAnalyticsView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
@@ -210,11 +220,7 @@ router.beforeEach(async (to) => {
       tokenEmail = payload.email || ''
     } catch {}
 
-    const guestRestrictedRoutes = [
-      'matchmaking', 'CustomRoom', 'leaderboard', 'missions', 'profile',
-      'admin-dashboard', 'admin-questions', 'admin-players', 'admin-leaderboard', 'admin-matches', 'admin-cores', 'admin-ai'
-    ]
-    if (isGuestToken && (guestRestrictedRoutes.includes(String(to.name)) || to.path.startsWith('/admin'))) {
+    if (isGuestToken && (GUEST_RESTRICTED.has(String(to.name)) || to.path.startsWith('/admin'))) {
       return { name: 'login', query: { locked: '1' } }
     }
 

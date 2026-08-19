@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabase'
 import { fetchWithAuth } from '../services/api'
+import { useMissionsStore } from './missionsStore'
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 const SESSION_POLL_INTERVAL_MS = 20000
@@ -98,6 +99,19 @@ export const useAuthStore = defineStore('auth', () => {
       supabase.removeChannel(realtimeChannel)
       realtimeChannel = null
     }
+  }
+
+  /**
+   * Store the session version and subscribe to real-time session-kick events.
+   * Called after every successful login (email or OAuth).
+   */
+  function _activateSession(token: string, userId: string, sessionVersion?: number) {
+    const version = sessionVersion ?? extractSessionVersionFromToken(token)
+    if (version !== null) {
+      currentSessionVersion.value = version
+      subscribeToSessionChanges(userId)
+    }
+    useMissionsStore().loadUserMissions()
   }
 
   function forceLogoutDueToNewSession() {
@@ -257,6 +271,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (localStorage.getItem('arena_token')) {
       startSessionPolling()
+      useMissionsStore().loadUserMissions()
     }
 
     supabase.auth.onAuthStateChange(async (event, session) => {
@@ -327,10 +342,8 @@ export const useAuthStore = defineStore('auth', () => {
         isGuest.value = false
         await fetchProfile()
 
-        const version = data.user?.session_version ?? extractSessionVersionFromToken(data.token)
-        if (version !== null && user.value?.id) {
-          currentSessionVersion.value = version
-          subscribeToSessionChanges(user.value.id)
+        if (user.value?.id) {
+          _activateSession(data.token, user.value.id, data.user?.session_version)
         }
       }
     } catch (err) {
@@ -392,11 +405,7 @@ export const useAuthStore = defineStore('auth', () => {
       await fetchProfile()
       startSessionPolling()
 
-      const version = data.user?.session_version ?? extractSessionVersionFromToken(data.token)
-      if (version !== null) {
-        currentSessionVersion.value = version
-        subscribeToSessionChanges(data.user.id)
-      }
+      _activateSession(data.token, data.user.id, data.user?.session_version)
 
       return { success: true }
     } catch {
@@ -423,6 +432,7 @@ export const useAuthStore = defineStore('auth', () => {
         isGuest: true
       }
       isGuest.value = true
+      useMissionsStore().loadUserMissions()
       return { success: true }
     } catch (err) {
       console.error('loginAsGuest error:', err)
@@ -439,6 +449,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     profile.value = null
     isGuest.value = false
+    useMissionsStore().resetToInitial()
   }
 
   async function fetchProfile() {

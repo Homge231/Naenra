@@ -78,26 +78,6 @@
         </nav>
       </div>
 
-      <!-- SIDEBAR FOOTER / SYSTEM INFO -->
-      <div class="p-4 border-t border-slate-800/80">
-        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800/60 flex items-center justify-between">
-          <div class="flex items-center gap-2.5">
-            <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <div>
-              <p class="text-xs font-medium text-slate-300 font-mono">v2.4-STABLE</p>
-              <p class="text-[10px] text-slate-500">Core Engine Online</p>
-            </div>
-          </div>
-          <router-link to="/home" class="p-2 text-slate-400 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors" title="Return to Main Game">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </router-link>
-        </div>
-      </div>
     </aside>
 
     <!-- MAIN CONTENT WRAPPER -->
@@ -211,7 +191,7 @@ const navItems: NavItem[] = [
   { name: 'Questions Bank', path: '/admin/questions', icon: '❓' },
   { name: 'Players Manager', path: '/admin/players', icon: '👥' },
   { name: 'Leaderboards', path: '/admin/leaderboard', icon: '🏆' },
-  { name: 'Matches History', path: '/admin/matches', icon: '⚔️' },
+  { name: 'Match Analytics', path: '/admin/matches', icon: '⚔️' },
   { name: 'Support Cores', path: '/admin/cores', icon: '⚡' },
   { name: 'AI Core Assistant', path: '/admin/ai', icon: '🤖' }
 ]

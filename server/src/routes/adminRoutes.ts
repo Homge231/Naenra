@@ -1,6 +1,7 @@
 import { Router, Response, NextFunction } from 'express'
 import { authMiddleware, AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
+import { SUPER_ADMIN_EMAILS } from '../constants'
 import { 
   getAdminSummary,
   getQuestions,
@@ -18,7 +19,10 @@ import {
   createCore,
   updateCore,
   toggleCoreActive,
-  deleteCore
+  deleteCore,
+  getMatchAnalytics,
+  getLiveMatchMetrics,
+  getMatchHistory
 } from '../controllers/adminController'
 
 const router = Router()
@@ -31,11 +35,6 @@ async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction)
   }
 
   const email = (user.email || '').toLowerCase()
-  const isKnownAdminEmail = email === 'homge231@gmail.com' || 
-                           email === 'baonhggcd220259@fpt.edu.vn' ||
-                           email === 'myctgcd220094@fpt.edu.vn' ||
-                           email === 'tumychung2004@gmail.com' ||
-                           email === 'mychung.dev@gmail.com'
 
   const { data: player } = await supabase
     .from('players')
@@ -43,9 +42,7 @@ async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction)
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = player?.is_admin === true || isKnownAdminEmail
-
-  if (!isAdmin) {
+  if (!player?.is_admin && !SUPER_ADMIN_EMAILS.has(email)) {
     res.status(403).json({ success: false, error: 'Forbidden', message: 'Admin access required' })
     return
   }
@@ -81,5 +78,10 @@ router.post('/cores', authMiddleware, requireAdmin, createCore)
 router.put('/cores/:id', authMiddleware, requireAdmin, updateCore)
 router.patch('/cores/:id/toggle', authMiddleware, requireAdmin, toggleCoreActive)
 router.delete('/cores/:id', authMiddleware, requireAdmin, deleteCore)
+
+// Protected Match Analytics & Telemetry endpoints (US-93)
+router.get('/matches/analytics', authMiddleware, requireAdmin, getMatchAnalytics)
+router.get('/matches/live', authMiddleware, requireAdmin, getLiveMatchMetrics)
+router.get('/matches/history', authMiddleware, requireAdmin, getMatchHistory)
 
 export default router

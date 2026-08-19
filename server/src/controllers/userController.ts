@@ -1,31 +1,46 @@
 import { Response } from 'express'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '../config/supabase'
 import { AuthRequest } from '../middleware/authMiddleware'
 import { generateCoachAnalysis, generateChatResponse, generateChatResponseStream } from '../services/aiService'
-import dotenv from 'dotenv'
-dotenv.config()
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_KEY || ''
-)
 
 import { getRankFromElo } from '../utils/ranks'
 
+// Cores that are locked behind gameplay missions — built once at startup, not per request.
+const DEFAULT_LOCKED_CORES = new Set([
+  'combo burst', 'combo shield', 'hyper combo', 'super combo',
+  'velocity shield', 'speed demon', 'hyperdrive', 'sonic boom',
+  'inner eye', 'future sight', 'prophecy', 'cosmic wisdom',
+  'contract hunter', 'bounty hunter', 'mission legend', 'apex predator',
+  'reflective barrier', 'fortress aegis', 'aegis sanctuary', 'spiked shield',
+  'zen momentum', 'equilibrium', 'serenity', 'nirvana',
+  'overcharge', 'power surge', 'cataclysm', 'absolute power',
+  'wild card', 'chaos prism', 'pandora overdrive', 'chaos theory',
+  'feather shield', 'rebirth', 'phoenix overlord', 'eternal rebirth',
+  'high stakes', 'safe bet', 'casino empire', 'russian roulette'
+])
+
 export const getUserProfile = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
-    const { data: profile, error } = await supabase
-      .from('players')
-      .select('username, avatar_url, elo, wins, losses, total_matches, is_first_play, is_admin')
-      .eq('id', req.user!.id)
-      .maybeSingle()
+    // Fetch profile, auth metadata, and all cores in parallel
+    const [
+      { data: profile, error: profileError },
+      { data: { user } },
+      { data: allDBCores }
+    ] = await Promise.all([
+      supabase
+        .from('players')
+        .select('username, avatar_url, elo, wins, losses, total_matches, is_first_play, is_admin')
+        .eq('id', req.user!.id)
+        .maybeSingle(),
+      supabase.auth.admin.getUserById(req.user!.id),
+      supabase.from('cores').select('id, name, tier, core_type')
+    ])
 
-    if (error) {
-      console.error('getUserProfile query error:', error)
-      return res.status(400).json({ error: error.message })
+    if (profileError) {
+      console.error('getUserProfile query error:', profileError)
+      return res.status(400).json({ error: profileError.message })
     }
 
-    const { data: { user } } = await supabase.auth.admin.getUserById(req.user!.id)
     const userMeta = user?.user_metadata || {}
     const gmailAvatar = userMeta.avatar_url || userMeta.picture || ''
 
@@ -36,40 +51,15 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
 
     const elo = profile?.elo ?? 0
 
-    // Fetch all cores to filter by default locked list
-    const { data: allDBCores } = await supabase
-      .from('cores')
-      .select('id, name, tier, core_type')
-
-    const DEFAULT_LOCKED_CORES = new Set([
-      // 40 Support Cores strictly locked behind gameplay missions (4 per family across 10 families = 1/3 of all upgrades)
-      'combo burst', 'combo shield', 'hyper combo', 'super combo',
-      'velocity shield', 'speed demon', 'hyperdrive', 'sonic boom',
-      'inner eye', 'future sight', 'prophecy', 'cosmic wisdom',
-      'contract hunter', 'bounty hunter', 'mission legend', 'apex predator',
-      'reflective barrier', 'fortress aegis', 'aegis sanctuary', 'spiked shield',
-      'zen momentum', 'equilibrium', 'serenity', 'nirvana',
-      'overcharge', 'power surge', 'cataclysm', 'absolute power',
-      'wild card', 'chaos prism', 'pandora overdrive', 'chaos theory',
-      'feather shield', 'rebirth', 'phoenix overlord', 'eternal rebirth',
-      'high stakes', 'safe bet', 'casino empire', 'russian roulette'
-    ])
-
     const baseCoreIds = (allDBCores || [])
       .filter((c: any) => {
         const isBaseCore = c.tier === 1 || c.core_type === 'main'
-        const nameKey = String(c.name || '').trim().toLowerCase()
-        
-        // Tier 1 / Main is always unlocked
         if (isBaseCore) return true
-        
-        // Otherwise, unlock if it is NOT in DEFAULT_LOCKED_CORES
-        return !DEFAULT_LOCKED_CORES.has(nameKey)
+        return !DEFAULT_LOCKED_CORES.has(String(c.name || '').trim().toLowerCase())
       })
       .map((c: any) => String(c.id))
 
-
-    // Fetch user unlocked cores from user_core_progress table
+    // Fetch user-unlocked cores (after we have the base set)
     const { data: userUnlockedProgress } = await supabase
       .from('user_core_progress')
       .select('core_id')
@@ -77,11 +67,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       .eq('is_unlocked', true)
 
     const userUnlockedIds = (userUnlockedProgress || []).map((p: any) => String(p.core_id))
-
-    // Merge unique unlocked core IDs
     const unlockedCoreIds = Array.from(new Set([...baseCoreIds, ...userUnlockedIds]))
-
-    const isAdmin = profile?.is_admin === true
 
     return res.status(200).json({
       id: req.user!.id,
@@ -93,7 +79,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response): Promise<a
       losses: profile?.losses ?? 0,
       total_matches: profile?.total_matches ?? 0,
       is_first_play: profile?.is_first_play ?? true,
-      is_admin: isAdmin,
+      is_admin: profile?.is_admin === true,
       unlocked_core_ids: unlockedCoreIds
     })
   } catch (error) {
@@ -525,7 +511,7 @@ export const syncCoreProgress = async (req: AuthRequest, res: Response): Promise
       const existingProgressVal = existing ? Number(existing.current_progress || 0) : 0
       const finalProgress = Math.max(existingProgressVal, incomingProgress)
       
-      const isUnlocked = Boolean(existing?.is_unlocked) || Boolean(item.isClaimed || item.isUnlocked)
+      const isUnlocked = Boolean(existing?.is_unlocked)
 
       upserts.push({
         user_id: userId,

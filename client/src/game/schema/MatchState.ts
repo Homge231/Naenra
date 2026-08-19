@@ -9,9 +9,9 @@ export class RoomMetadata extends Schema {
 }
 
 export class RaceQuestion extends Schema {
-  @type("string") id: string;
-  @type("string") question_text: string;
-  @type("number") target_length: number;
+  @type("string") id: string = "";
+  @type("string") question_text: string = "";
+  @type("number") target_length: number = 0;
   @type(["string"]) oracle_hints = new ArraySchema<string>();
 }
 

@@ -171,7 +171,7 @@ export class SpeedsterCoreStrategy extends BaseCore {
       }
     }
 
-    if (this.coreName === 'sonic boom') {
+    if (this.coreName === 'sonic boom' && ctx.penaltyType !== 'typo') {
       return {
         pointsDelta: -(ctx.wrongPenalty + oraclePenalty),
         timerDelta: -5000,
