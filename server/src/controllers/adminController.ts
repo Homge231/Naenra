@@ -874,7 +874,10 @@ export async function getMatchAnalytics(req: AuthRequest, res: Response): Promis
     let grandDurationCount = 0
 
     for (const s of sessionList) {
+      if (!s.started_at) continue
       const sDate = new Date(s.started_at)
+      if (isNaN(sDate.getTime())) continue
+
       let bucketKey = ''
       if (bucketFormat === 'day') {
         bucketKey = sDate.toISOString().split('T')[0]
@@ -899,9 +902,13 @@ export async function getMatchAnalytics(req: AuthRequest, res: Response): Promis
       // Duration calculation in seconds
       let durationSec = 0
       if (s.ended_at && s.started_at) {
-        const diff = (new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 1000
-        if (diff > 0 && diff < 3600) {
-          durationSec = Math.round(diff)
+        const startT = new Date(s.started_at).getTime()
+        const endT = new Date(s.ended_at).getTime()
+        if (!isNaN(startT) && !isNaN(endT)) {
+          const diff = (endT - startT) / 1000
+          if (diff > 0 && diff < 3600) {
+            durationSec = Math.round(diff)
+          }
         }
       }
 
