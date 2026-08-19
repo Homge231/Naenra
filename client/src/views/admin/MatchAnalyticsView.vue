@@ -463,39 +463,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { fetchWithAuth } from '../../services/api'
-import {
-  Chart,
-  LineController,
-  BarController,
-  DoughnutController,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js'
-
-// Register Chart.js components
-Chart.register(
-  LineController,
-  BarController,
-  DoughnutController,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-)
+import Chart from 'chart.js/auto'
 
 interface LiveMetrics {
   liveMatches: number

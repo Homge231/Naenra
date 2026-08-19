@@ -1259,21 +1259,21 @@ export async function getLiveMatchMetrics(_req: AuthRequest, res: Response): Pro
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
     const { data: activeSessions, error } = await supabase
       .from('game_sessions')
-      .select('id, player_id, score, questions_answered, started_at, updated_at, active_core_id, room_id')
+      .select('id, player_id, score, questions_answered, started_at, active_core_id')
       .eq('status', 'active')
-      .gte('updated_at', fiveMinutesAgo)
+      .gte('started_at', fiveMinutesAgo)
 
     if (error) throw error
 
     const liveMatches = (activeSessions || []).length
-    const colyseusRooms = new Set((activeSessions || []).map(s => s.room_id).filter(Boolean)).size || (liveMatches > 0 ? 1 : 0)
+    const onlineCount = getOnlineUserIds().size
 
     res.json({
       success: true,
       data: {
         liveMatches,
-        colyseusRooms,
-        onlinePlayers: getOnlineUserIds().size,
+        colyseusRooms: liveMatches > 0 ? Math.ceil(liveMatches / 2) : 0,
+        onlinePlayers: onlineCount,
         activeSessions: activeSessions || []
       }
     })
@@ -1296,10 +1296,11 @@ export async function getMatchHistory(req: AuthRequest, res: Response): Promise<
     const page = Math.max(1, parseInt((req.query.page as string) || '1'))
     const limit = Math.max(1, Math.min(100, parseInt((req.query.limit as string) || '10')))
     const status = ((req.query.status as string) || 'all').toLowerCase()
+    const search = ((req.query.search as string) || '').trim()
 
     let query = supabase
       .from('game_sessions')
-      .select('*, players(username, email, avatar_url)', { count: 'exact' })
+      .select('*', { count: 'exact' })
 
     if (status !== 'all') {
       if (status === 'completed') {
@@ -1316,17 +1317,90 @@ export async function getMatchHistory(req: AuthRequest, res: Response): Promise<
 
     query = query.range(fromIndex, toIndex).order('started_at', { ascending: false })
 
-    const { data: matches, count, error } = await query
+    const { data: sessions, count, error } = await query
 
     if (error) throw error
 
+    const sessionList = sessions || []
     const total = count ?? 0
     const totalPages = Math.ceil(total / limit) || 1
+
+    // Collect all player IDs and core IDs to fetch their details without PostgREST foreign key join errors
+    const playerIds = [...new Set(sessionList.map(s => s.player_id).filter(Boolean))]
+    const coreIds = [...new Set(sessionList.map(s => s.active_core_id).filter(Boolean))]
+
+    const playerMap = new Map<string, any>()
+    if (playerIds.length > 0) {
+      const { data: playersData } = await supabase
+        .from('players')
+        .select('id, username, email, avatar_url, elo')
+        .in('id', playerIds)
+
+      for (const p of playersData || []) {
+        playerMap.set(String(p.id), p)
+      }
+    }
+
+    const coreMap = new Map<string, any>()
+    if (coreIds.length > 0) {
+      const { data: coresData } = await supabase
+        .from('cores')
+        .select('id, name, classification, tier, icon_url')
+        .in('id', coreIds)
+
+      for (const c of coresData || []) {
+        coreMap.set(String(c.id), c)
+      }
+    }
+
+    // Format match records for client table display
+    let matches = sessionList.map(s => {
+      const player = playerMap.get(String(s.player_id)) || {
+        id: s.player_id,
+        username: 'Arena Player',
+        email: '—',
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.player_id || 'Player'}`,
+        elo: 1000
+      }
+
+      const core = s.active_core_id ? coreMap.get(String(s.active_core_id)) || null : null
+
+      const startMs = s.started_at ? new Date(s.started_at).getTime() : 0
+      const endMs = s.ended_at ? new Date(s.ended_at).getTime() : Date.now()
+      const durationSeconds = startMs > 0 ? Math.max(0, Math.round((endMs - startMs) / 1000)) : 60
+
+      let displayStatus = 'Completed'
+      if (s.status === 'active') displayStatus = 'Active'
+      else if (s.status === 'aborted' || s.status === 'abandoned') displayStatus = 'Aborted'
+      else if (s.status === 'timeout') displayStatus = 'Timeout'
+
+      return {
+        id: s.id,
+        score: s.score || 0,
+        questions_answered: s.questions_answered || 0,
+        status: displayStatus,
+        raw_status: s.status,
+        duration_seconds: durationSeconds,
+        started_at: s.started_at,
+        ended_at: s.ended_at,
+        player,
+        core
+      }
+    })
+
+    if (search) {
+      const q = search.toLowerCase()
+      matches = matches.filter(m => 
+        m.id.toLowerCase().includes(q) ||
+        m.player.username.toLowerCase().includes(q) ||
+        m.player.email.toLowerCase().includes(q)
+      )
+    }
 
     res.json({
       success: true,
       data: {
-        matches: matches || [],
+        matches,
         total,
         page,
         limit,
