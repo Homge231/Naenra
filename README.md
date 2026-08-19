@@ -12,7 +12,7 @@ Naenra is a high-speed, competitive vocabulary typing game where players compete
 - **65 Support Cores across 10 Families**: Tactical abilities integrated via the Strategy Pattern (Combo, Speedster, Argus Eyes / Oracle, Aegis Shield, Mission, Pandora, Phoenix Rebirth, High Roller, Power, Balanced).
 - **Levenshtein Penalty & Anti-Cheat Engine**: Proportional score deductions based on character edit distance ($\ge 80\%$ similarity $\rightarrow$ typo penalty, $<80\%$ $\rightarrow$ wrong penalty). Server-side `time_taken` and `active_core_id` anti-cheat verification.
 - **1v1 Colyseus Multiplayer & Race Mode**: Automated matchmaking via `QueueRoom` and 4-round matches in `MatchRoom` (Rounds 1–3 Core Mode, Round 4 Race Mode with 12s fast timeouts).
-- **Gemini AI Cyber Assistant & Coach**: Integrated AI powered by `gemini-3.5-flash` (fallback `gemini-3.1-flash-lite`) providing custom question generation, player performance analytics, and live in-game cyber chat streaming.
+- **Gemini AI Assistant & Coach**: Integrated AI powered by `gemini-3.5-flash` (fallback `gemini-3.1-flash-lite`) providing custom question generation, player performance analytics, and live 2-phase in-game chat streaming.
 - **Cross-Device & Cyber Virtual Keyboard**: Fully responsive UI supporting desktop keyboard play as well as mobile/tablet touch devices via an interactive Cyberpunk Virtual Keyboard (`VirtualKeyboard.vue`).
 
 ---
@@ -126,7 +126,7 @@ Open `http://localhost:5173` in your browser.
 | `POST` | `/api/game/session` | JWT | Initialize single-player game session |
 | `POST` | `/api/game/submit-answer` | JWT | Submit answer, process strategy scoring, & check anti-cheat |
 | `POST` | `/api/game/timeout` | JWT | Lock game session upon timer expiry |
-| `GET` | `/api/ai/chat/stream` | JWT | SSE real-time stream for Cyber Assistant chat |
+| `GET` | `/api/ai/chat/stream` | JWT | SSE real-time stream for AI Assistant chat |
 
 ---
 

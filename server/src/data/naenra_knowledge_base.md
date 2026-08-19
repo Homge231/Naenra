@@ -1,6 +1,6 @@
 # Naenra (ARENA.ENG) Centralized Game Knowledge Base
 
-This document details all game rules, core parameters, scoring calculations, match flow, synergies, and unlock conditions for Naenra (live at naenra.xyz). It serves as the single source of truth for the AI Cyber Assistant to prevent hallucinations.
+This document details all game rules, core parameters, scoring calculations, match flow, synergies, and unlock conditions for Naenra (live at naenra.xyz). It serves as the single source of truth for the AI Assistant to prevent hallucinations.
 
 ---
 

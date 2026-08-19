@@ -212,7 +212,7 @@ export async function generateChatResponse(
       const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
       const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
 
-      const systemContext = `You are Naenra Cyber Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
+      const systemContext = `You are Naenra AI Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
 Player username: "${username}".
 
 PLAYER CORE UNLOCK PROGRESSION & HISTORY:
@@ -246,10 +246,10 @@ STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
 
       if (history && history.length > 0) {
         fullPrompt += `\n\nCONVERSATION HISTORY:\n` +
-          history.map(h => `${h.role === 'user' ? username : 'Cyber Assistant'}: ${h.message}`).join('\n')
+          history.map(h => `${h.role === 'user' ? username : 'AI Assistant'}: ${h.message}`).join('\n')
       }
 
-      fullPrompt += `\n\n${username}: ${prompt}\nCyber Assistant:`
+      fullPrompt += `\n\n${username}: ${prompt}\nAI Assistant:`
 
       let responseText = ''
       try {
@@ -286,11 +286,11 @@ STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
                       ['lõi', 'chọn', 'điểm', 'đeimr', 'mạnh', 'tôi', 'đạt', 'cao', 'nào', 'hoạt động'].some(w => q.includes(w))
 
   // 0.1 Greeting Handler
-  if (['hello', 'hi', 'hey', 'xin chào', 'chào', 'chào bạn', 'greetings', 'hello guide', 'cyber guide'].some(w => q === w || q.startsWith(w + ' ') || q.endsWith(' ' + w))) {
+  if (['hello', 'hi', 'hey', 'xin chào', 'chào', 'chào bạn', 'greetings', 'hello guide', 'ai guide'].some(w => q === w || q.startsWith(w + ' ') || q.endsWith(' ' + w))) {
     if (isVietnamese) {
-      return `Xin chào ${username}! Tôi là Naenra Cyber Guide. Bạn muốn tìm hiểu về luật chơi, cơ chế tính điểm hay cách hoạt động của các Lõi Hỗ trợ (Support Cores) nào?`
+      return `Xin chào ${username}! Tôi là Naenra AI Guide. Bạn muốn tìm hiểu về luật chơi, cơ chế tính điểm hay cách hoạt động của các Lõi Hỗ trợ (Support Cores) nào?`
     } else {
-      return `Hello ${username}! I am the Naenra Cyber Guide. What would you like to know about the game rules, scoring formulas, or Support Cores today?`
+      return `Hello ${username}! I am the Naenra AI Guide. What would you like to know about the game rules, scoring formulas, or Support Cores today?`
     }
   }
 
@@ -450,7 +450,7 @@ export async function generateChatResponseStream(
     const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
     const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
 
-    const systemContext = `You are Naenra Cyber Assistant, the official expert AI guide for Naenra (naenra.xyz).
+    const systemContext = `You are Naenra AI Assistant, the official expert AI guide for Naenra (naenra.xyz).
 Player username: "${username}".
 
 PLAYER STATE:
@@ -473,9 +473,9 @@ RULES:
 
     let fullPrompt = systemContext
     if (history && history.length > 0) {
-      fullPrompt += `\n\nCONVERSATION:\n` + history.map(h => `${h.role === 'user' ? username : 'Assistant'}: ${h.message}`).join('\n')
+      fullPrompt += `\n\nCONVERSATION:\n` + history.map(h => `${h.role === 'user' ? username : 'AI Assistant'}: ${h.message}`).join('\n')
     }
-    fullPrompt += `\n\n${username}: ${prompt}\nCyber Assistant:`
+    fullPrompt += `\n\n${username}: ${prompt}\nAI Assistant:`
 
     let streamResult: any = null
     try {

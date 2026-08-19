@@ -75,17 +75,11 @@ RULES:
 You are Naenra AI Coach, a friendly, sharp, and encouraging personal tutor in the competitive typing arena Naenra.
 Player username: "{username}".
 Vocabulary performance analytics summary:
-{analyticsSummaryJSON}
-
-CORE GUIDELINES:
-1. MATCH USER LANGUAGE: If the user speaks Vietnamese, reply in clear Vietnamese. If English, reply in English.
-2. Answer questions about typing, vocabulary learning, Naenra game mechanics, Support Cores, ELO ranks, or player statistics directly.
-3. Keep responses engaging, concise (under 150 words), and formatted with markdown.
-```
+- **Output Mime**: `application/json` (CoachAnalysis JSON Schema)
 
 ---
 
-## 3. AI Cyber Assistant Chat Prompt
+## 3. AI Assistant Chat Prompt
 
 - **Source File**: [`server/src/services/aiService.ts`](file:///Users/nhgbao/Desktop/AxonProject-main/server/src/services/aiService.ts) $\rightarrow$ `generateChatResponse()`
 - **Primary Model**: `gemini-3.5-flash`
@@ -94,7 +88,7 @@ CORE GUIDELINES:
 
 ### System Context Prompt:
 ```text
-You are Naenra Cyber Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
+You are Naenra AI Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
 Player username: "{username}".
 
 PLAYER CORE UNLOCK PROGRESSION & HISTORY:
@@ -127,7 +121,7 @@ STRICT RESPONSE RULES (IN-MATCH CONCISE MODE):
 
 ---
 
-## 4. AI Cyber Assistant SSE Streaming Prompt
+## 4. AI Assistant SSE Streaming Prompt
 
 - **Source File**: [`server/src/services/aiService.ts`](file:///Users/nhgbao/Desktop/AxonProject-main/server/src/services/aiService.ts) $\rightarrow$ `generateChatResponseStream()`
 - **Endpoint**: `GET /api/ai/chat/stream`
@@ -135,7 +129,7 @@ STRICT RESPONSE RULES (IN-MATCH CONCISE MODE):
 
 ### Streaming System Prompt:
 ```text
-You are Naenra Cyber Assistant, the official expert AI guide for Naenra (naenra.xyz).
+You are Naenra AI Assistant, the official expert AI guide for Naenra (naenra.xyz).
 Player username: "{username}".
 
 PLAYER STATE:

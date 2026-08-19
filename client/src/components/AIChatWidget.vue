@@ -8,18 +8,18 @@
         v-if="isChatOpen"
         class="chat-window shadow-2xl"
         role="dialog"
-        aria-label="Naenra Cyber AI Assistant"
+        aria-label="Naenra AI Assistant"
       >
         <!-- Top gradient accent bar -->
         <div class="chat-accent-bar"></div>
 
-        <!-- Header: Featuring Interactive Glowing Cyber Avatar (Eyes & Animated Talking Mouth) -->
+        <!-- Header: Featuring Interactive Glowing AI Avatar (Eyes & Animated Talking Mouth) -->
         <div class="chat-header">
           <div class="chat-header-info">
             
-            <!-- 🤖 INTERACTIVE CYBER MASCOT AVATAR (Glowing Eyes + Lip-Synced Mouth) -->
+            <!-- 🤖 INTERACTIVE AI MASCOT AVATAR (Glowing Eyes + Lip-Synced Mouth) -->
             <div 
-              class="cyber-mascot-box relative flex flex-col items-center justify-center cursor-pointer select-none transition-all duration-300 group"
+              class="ai-mascot-box relative flex flex-col items-center justify-center cursor-pointer select-none transition-all duration-300 group"
               @click="handleMascotClick"
               :class="{
                 'mascot-pulse-listening': isListening,
@@ -27,12 +27,12 @@
                 'mascot-talk-speaking': isSpeaking || isStreaming,
                 'mascot-interactive-click': isInteracting
               }"
-              title="Click to interact with Cyber Mascot!"
+              title="Click to interact with AI Mascot!"
             >
-              <!-- Glowing Cyber Eyes -->
-              <div class="cyber-eyes flex items-center gap-2 z-10">
+              <!-- Glowing AI Eyes -->
+              <div class="ai-eyes flex items-center gap-2 z-10">
                 <div 
-                  class="cyber-eye left-eye" 
+                  class="ai-eye left-eye" 
                   :class="{ 
                     'eye-blink': isBlinking, 
                     'eye-wide': isListening, 
@@ -41,7 +41,7 @@
                   }"
                 ></div>
                 <div 
-                  class="cyber-eye right-eye" 
+                  class="ai-eye right-eye" 
                   :class="{ 
                     'eye-blink': isBlinking, 
                     'eye-wide': isListening, 
@@ -52,7 +52,7 @@
               </div>
 
               <!-- Animated Talking Mouth (Lip Sync to Speech Readout, Audio & Real-time Text Streaming) -->
-              <div class="cyber-mouth mt-1 z-10 flex items-center justify-center h-3.5">
+              <div class="ai-mouth mt-1 z-10 flex items-center justify-center h-3.5">
                 <!-- When Speaking or Streaming: Animated Real-Time Mouth Bars (Lip Sync) -->
                 <div v-if="isSpeaking || isLiveSpeaking || isStreaming" class="talking-mouth flex items-center gap-0.5 h-3">
                   <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
@@ -67,15 +67,15 @@
                 <div v-else class="idle-mouth w-3.5 h-[2px] bg-amber-400 rounded-full group-hover:w-4.5 transition-all shadow-xs"></div>
               </div>
 
-              <!-- Cyber Aura Glow Ring -->
-              <div class="cyber-mascot-aura" :class="{ 'mascot-live-aura': isLiveConnected }"></div>
+              <!-- AI Aura Glow Ring -->
+              <div class="ai-mascot-aura" :class="{ 'mascot-live-aura': isLiveConnected }"></div>
             </div>
 
             <div>
               <h3 class="chat-title flex items-center gap-1.5">
                 Naenra Assistant
                 <span class="chat-badge">
-                  CYBER AI
+                  AI
                 </span>
               </h3>
               <p class="chat-subtitle">
@@ -85,6 +85,18 @@
           </div>
 
           <div class="flex items-center gap-1.5">
+            <!-- Voice TTS Toggle Button -->
+            <button
+              @click="toggleVoiceOutput"
+              class="chat-icon-btn"
+              :class="{ 'chat-icon-btn--active': isVoiceOutputEnabled }"
+              :title="isVoiceOutputEnabled ? 'Voice TTS Enabled (Click to mute)' : 'Voice TTS Muted (Click to enable)'"
+              aria-label="Toggle Voice Audio"
+            >
+              <span v-if="isVoiceOutputEnabled" class="text-xs">🔊</span>
+              <span v-else class="text-xs opacity-60">🔇</span>
+            </button>
+
             <!-- Close Button -->
             <button
               @click="closeChat"
@@ -107,7 +119,7 @@
               <span class="text-4xl animate-bounce-slow inline-block">🤖</span>
             </div>
             <p class="text-xs text-gray-700 font-medium leading-relaxed">
-              Welcome <strong class="chat-username text-orange-600 font-extrabold">{{ username }}</strong> to **Naenra Cyber Assistant**!<br/>
+              Welcome <strong class="chat-username text-orange-600 font-extrabold">{{ username }}</strong> to **Naenra AI Assistant**!<br/>
               Select a quick prompt below or click **Microphone 🎙️** to speak hands-free!
             </p>
             
@@ -137,7 +149,7 @@
             >
               <div class="flex items-center justify-between gap-2 mb-1.5 border-b border-orange-100 pb-1" v-if="msg.role !== 'user'">
                 <span class="chat-bubble-label flex items-center gap-1 text-orange-600 font-bold">
-                  <span>🤖</span> Naenra Cyber Guide
+                  <span>🤖</span> Naenra AI Guide
                 </span>
                 <button 
                   v-if="msg.content && (!isStreaming || streamingMsgIdx !== idx)" 
@@ -154,7 +166,7 @@
                 class="chat-bubble-text leading-relaxed relative"
               >
                 <span v-html="renderMarkdown(msg.content)"></span>
-                <!-- ChatGPT-style Real-time Blinking Cyber Cursor while streaming -->
+                <!-- ChatGPT-style Real-time Blinking Cursor while streaming -->
                 <span
                   v-if="isStreaming && streamingMsgIdx === idx"
                   class="chat-cursor"
@@ -167,7 +179,7 @@
 
           <!-- Typing indicator (only shown before stream chunks start arriving) -->
           <div v-if="isLoading && !isStreaming" class="chat-typing">
-            <span class="text-xs text-orange-600 font-bold mr-2">Cyber AI thinking...</span>
+            <span class="text-xs text-orange-600 font-bold mr-2">AI thinking...</span>
             <span></span><span></span><span></span>
           </div>
 
@@ -261,7 +273,7 @@
       </div>
     </Transition>
 
-    <!-- Floating Toggle Button featuring Cyber Eyes Mascot -->
+    <!-- Floating Toggle Button featuring AI Eyes Mascot -->
     <button
       @click="toggleChat"
       class="chat-fab shadow-2xl"
@@ -278,7 +290,7 @@
         <svg v-if="isChatOpen" key="close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
         </svg>
-        <div v-else key="fab-eyes" class="fab-cyber-eyes flex items-center gap-1.5">
+        <div v-else key="fab-eyes" class="fab-ai-eyes flex items-center gap-1.5">
           <div class="fab-eye left-eye"></div>
           <div class="fab-eye right-eye"></div>
         </div>
@@ -298,7 +310,6 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
-import { fetchWithAuth } from '../services/api'
 import { useGeminiLive } from '../composables/useGeminiLive'
 
 interface ChatMessage {
@@ -319,7 +330,6 @@ const {
   startLiveSession,
   stopLiveSession,
   sendTextMessage,
-  speakTextViaLive,
   onAiTranscript,
   onUserTranscript,
   onTurnComplete
@@ -336,7 +346,6 @@ function toggleLiveSession() {
 const isChatOpen = ref(false)
 const currentAiLiveMsgIdx = ref(-1)
 const currentUserLiveMsgIdx = ref(-1)
-let liveSpeechRec: any = null
 
 // Real-time transcript from Gemini Live AI Output
 onAiTranscript((text: string) => {
@@ -395,8 +404,6 @@ const isInteracting = ref(false)
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
 
-let recognition: any = null
-let currentUtterance: SpeechSynthesisUtterance | null = null
 let blinkInterval: ReturnType<typeof setInterval> | null = null
 let streamTickerTimer: any = null
 let currentAbortController: AbortController | null = null
@@ -425,13 +432,6 @@ const quickHints = [
   '⚡ Which Core is strongest right now?',
   '🔮 How do I use Argus Eyes?',
   '🏆 How can I rank up ELO fast?',
-]
-
-// Quick spoken phrases when user sends a question
-const quickAckPhrases = [
-  'Just a moment, let me check that for you!',
-  'Got it! Give me a second to find your answer...',
-  'Hold on a moment, getting your response ready...'
 ]
 
 // Mascot Interactive Click Handler
@@ -629,7 +629,7 @@ function sendQuick(text: string) {
   sendMessage()
 }
 
-// ── Send message with Player History Injection & Real-Time Character Streaming ────────
+// ── Send message with 2-Phase Natural Interaction (Instant Acknowledgment -> Streaming Answer) ──
 async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isLoading.value || isStreaming.value) return
@@ -640,10 +640,11 @@ async function sendMessage() {
   currentUserLiveMsgIdx.value = -1
   currentAiLiveMsgIdx.value = -1
 
+  // Push user prompt bubble
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
 
-  // Route text prompt directly into active Gemini 3.1 Live session
+  // Route text prompt directly into active Gemini 3.1 Live session if connected
   if (isLiveConnected.value) {
     sendTextMessage(text)
     return
@@ -663,17 +664,41 @@ async function sendMessage() {
   isStreaming.value = false
   streamingMsgIdx.value = -1
 
-  // Immediately speak a quick, friendly acknowledgment phrase so the user gets instant voice feedback
-  const ack = quickAckPhrases[Math.floor(Math.random() * quickAckPhrases.length)]
-  speakText(ack, { rate: 1.22 })
+  // 1️⃣ PHASE 1: Immediate Natural Conversational Acknowledgment (Instant 1st Bubble)
+  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
+  const enAcks = [
+    "Alright, let me look into that for you! 🔍",
+    "Got it! Give me a second to check your question... ✨",
+    "Sure thing! Let me analyze that right now for you... ⚡",
+    "Hold on a moment, checking the best answer for you! 🎯",
+    "Okay, let me check that for you right away! 💡"
+  ]
+  const viAcks = [
+    "Được rồi, để mình kiểm tra câu trả lời cho bạn nhé! 🔍",
+    "Đã nhận câu hỏi! Chờ mình một chút nhé... ✨",
+    "Được chứ! Để mình phân tích thông tin ngay cho bạn... ⚡",
+    "Chờ một giây nhé, mình đang tìm câu trả lời chính xác nhất! 🎯",
+    "Hiểu rồi, để mình kiểm tra và giải đáp ngay cho bạn nhé! 💡"
+  ]
+  const ackPhrase = isVi
+    ? viAcks[Math.floor(Math.random() * viAcks.length)]
+    : enAcks[Math.floor(Math.random() * enAcks.length)]
 
-  let msgIdx = -1
+  // Add the 1st bubble immediately
+  messages.value.push({ role: 'model', content: ackPhrase })
+  scrollToBottom()
+
+  // Speak the acknowledgment aloud immediately if voice is enabled
+  speakText(ackPhrase, { rate: 1.22 })
+
+  // 2️⃣ PHASE 2: Fetch & Stream Detailed Answer into 2nd Bubble
+  let answerMsgIdx = -1
   let incomingBuffer = ''
   let displayedText = ''
   let isStreamClosed = false
   let timeoutId: any = null
 
-  // Helper to start the incremental typewriter effect
+  // Helper to start the incremental typewriter effect for the 2nd bubble
   const startTypewriterLoop = (targetIdx: number) => {
     if (streamTickerTimer) clearInterval(streamTickerTimer)
 
@@ -707,7 +732,7 @@ async function sendMessage() {
           // If no content ever arrived, remove empty placeholder
           if (targetIdx >= 0 && targetIdx < messages.value.length && !messages.value[targetIdx].content) {
             messages.value.splice(targetIdx, 1)
-            errorMsg.value = 'No response from AI. Please try again.'
+            errorMsg.value = isVi ? 'Không nhận được phản hồi từ AI. Vui lòng thử lại.' : 'No response from AI. Please try again.'
           }
         }
         scrollToBottom()
@@ -716,8 +741,9 @@ async function sendMessage() {
   }
 
   try {
+    // Send previous history excluding the newly pushed ackPhrase
     const history = messages.value
-      .slice(0, -1)
+      .slice(0, -2)
       .slice(-10)
       .map(m => ({ role: m.role, message: m.content }))
 
@@ -755,15 +781,15 @@ async function sendMessage() {
 
     if (!res.ok || !res.body) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.message || 'Failed to connect to AI Assistant')
+      throw new Error(err.message || (isVi ? 'Không thể kết nối đến AI Assistant' : 'Failed to connect to AI Assistant'))
     }
 
-    // Push placeholder message, updated chunk-by-chunk as AI streams
+    // Push placeholder message for Phase 2 detailed answer
     messages.value.push({ role: 'model', content: '' })
-    msgIdx = messages.value.length - 1
+    answerMsgIdx = messages.value.length - 1
 
     // Launch incremental typewriter loop
-    startTypewriterLoop(msgIdx)
+    startTypewriterLoop(answerMsgIdx)
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -803,13 +829,13 @@ async function sendMessage() {
         clearInterval(streamTickerTimer)
         streamTickerTimer = null
       }
-      if (msgIdx >= 0 && messages.value[msgIdx]?.content === '') {
-        messages.value.splice(msgIdx, 1)
+      if (answerMsgIdx >= 0 && messages.value[answerMsgIdx]?.content === '') {
+        messages.value.splice(answerMsgIdx, 1)
       }
       if (err.name === 'AbortError') {
-        errorMsg.value = 'AI connection timed out (25s). Please try again.'
+        errorMsg.value = isVi ? 'Kết nối AI bị quá thời gian (25s). Vui lòng thử lại.' : 'AI connection timed out (25s). Please try again.'
       } else {
-        errorMsg.value = err.message || 'An error occurred. Please try again.'
+        errorMsg.value = err.message || (isVi ? 'Đã xảy ra lỗi. Vui lòng thử lại.' : 'An error occurred. Please try again.')
       }
       isLoading.value = false
       isStreaming.value = false
@@ -890,7 +916,7 @@ function renderMarkdown(raw: string): string {
   background: linear-gradient(90deg, #ff7b00, #e63946, #f59e0b);
 }
 
-/* ── Header & Cyber Mascot Avatar ────────────── */
+/* ── Header & AI Mascot Avatar ────────────── */
 .chat-header {
   display: flex;
   align-items: center;
@@ -906,7 +932,8 @@ function renderMarkdown(raw: string): string {
   gap: 12px;
 }
 
-/* Cyber Mascot Avatar Box (Eyes + Mouth) */
+/* AI Mascot Avatar Box (Eyes + Mouth) */
+.ai-mascot-box,
 .cyber-mascot-box {
   width: 44px;
   height: 44px;
@@ -916,13 +943,15 @@ function renderMarkdown(raw: string): string {
   box-shadow: 0 0 14px rgba(234, 88, 12, 0.45);
   position: relative;
 }
+.ai-mascot-box:hover,
 .cyber-mascot-box:hover {
   transform: scale(1.06);
   border-color: #ff7b00;
   box-shadow: 0 0 20px rgba(255, 123, 0, 0.6);
 }
 
-/* Glowing Cyber Eyes */
+/* Glowing AI Eyes */
+.ai-eye,
 .cyber-eye {
   width: 10px;
   height: 10px;
@@ -1402,7 +1431,8 @@ function renderMarkdown(raw: string): string {
   cursor: not-allowed;
 }
 
-/* FAB Floating Cyber Eyes */
+/* FAB Floating AI Eyes */
+.fab-ai-eyes,
 .fab-cyber-eyes {
   display: flex;
   align-items: center;
