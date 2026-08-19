@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type, Schema } from '@google/genai'
 import fs from 'fs'
 import path from 'path'
+import { getRankFromElo } from '../utils/ranks'
 
 // We instantiate it dynamically inside the function to ensure dotenv is loaded
 let ai: GoogleGenAI | null = null;
@@ -193,13 +194,38 @@ CORE GUIDELINES:
   return `Hey **${username}**! Ready for your personalized Naenra coaching report! Ask me anything about Support Core strategies or how to climb ranks!`
 }
 
+export interface PlayerGameStats {
+  username?: string
+  elo?: number
+  rank?: string
+  wins?: number
+  losses?: number
+  totalMatches?: number
+  winRate?: string
+  unlockedCores?: string[]
+  activeCoreName?: string
+  coreHistory?: any[]
+  score?: number
+}
+
 export async function generateChatResponse(
   username: string,
   prompt: string,
   history?: { role: 'user' | 'model'; message: string }[],
-  playerHistory?: { coreHistory?: any[]; unlockedCores?: string[]; elo?: number; activeCoreName?: string }
+  playerHistory?: PlayerGameStats
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+  const totalCoresCount = 65
+  const unlockedList = playerHistory?.unlockedCores || []
+  const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
+  const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
+  const playerElo = playerHistory?.elo ?? 1000
+  const playerRank = playerHistory?.rank || getRankFromElo(playerElo)
+  const playerWins = playerHistory?.wins ?? 0
+  const playerLosses = playerHistory?.losses ?? 0
+  const totalMatches = playerHistory?.totalMatches ?? (playerWins + playerLosses)
+  const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
+
   if (apiKey) {
     try {
       if (!ai) {
@@ -207,21 +233,18 @@ export async function generateChatResponse(
       }
 
       const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-      const totalCoresCount = 65
-      const unlockedList = playerHistory?.unlockedCores || []
-      const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
-      const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
 
       const systemContext = `You are Naenra AI Assistant, the official expert AI guide and personalized coach for Naenra (live at naenra.xyz).
-Player username: "${username}".
+Player: "${playerHistory?.username || username}".
 
-PLAYER CORE UNLOCK PROGRESSION & HISTORY:
-- Total Support Cores in Game: ${totalCoresCount} (across 10 families)
-- Player Unlocked Cores Count: ${unlockedCount}
-- Player Locked Cores Count: ${lockedCount}
-- Unlocked Core IDs: ${JSON.stringify(unlockedList)}
-- Player ELO Rating: ${playerHistory?.elo || 1000}
-- Currently Selected Active Core: "${playerHistory?.activeCoreName || 'None'}"
+PLAYER LIVE STATS & CAREER PROGRESSION:
+- Player Name: "${playerHistory?.username || username}"
+- ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
+- Total Matches Played: ${totalMatches}
+- Career Match Record: ${playerWins} Wins / ${playerLosses} Losses (Win Rate: ${playerWinRate})
+- Unlocked Support Cores: ${unlockedCount} / ${totalCoresCount} (Unlocked IDs: ${JSON.stringify(unlockedList)})
+- Locked Support Cores: ${lockedCount} / ${totalCoresCount}
+- Currently Equipped Support Core: "${playerHistory?.activeCoreName || 'None'}"
 - Match Core Selection History: ${JSON.stringify(playerHistory?.coreHistory || [], null, 2)}
 
 CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
@@ -234,12 +257,12 @@ KEY FACTS (memorize these, never contradict them):
 - Players select 1 Support Core during a 15-second prep phase before each round. The active core provides tactical buffs/effects for that round.
 - NO HYBRID STACKING: Super Hybrids or cross-family stacking mechanics DO NOT exist. Players select and equip 1 Support Core for each round.
 
-STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
+STRICT RESPONSE RULES:
 1. MATCH USER LANGUAGE EXACTLY: If the user asks in Vietnamese, YOU MUST RESPOND IN VIETNAMESE! If in English, respond in English!
-2. NO CONVERSATIONAL FILLER OR GREETINGS: Never start with intros or conversational filler like "Hello", "Hi", "Sure", "Yes, the answer is", "Here is the explanation", or "Xin chào".
-3. DIRECT ANSWER FIRST: For factual, confirmation, or yes/no questions, state the direct answer (e.g., "65", "Argus Eyes", "True", "False", "Power Core") as the VERY FIRST WORD of your response.
-4. STRICT LENGTH LIMIT (30-50 WORDS MAX): Limit output strictly to 2-3 short sentences. Keep formatting ultra-compact for instant reading in active gameplay.
-5. CORE COUNT & UNLOCK STATUS: Total cores: 65 across 10 families. Accurate player state: ${unlockedCount} unlocked, ${lockedCount} locked (out of 65 total cores).
+2. NO CONVERSATIONAL FILLER OR GREETINGS: Direct answer first.
+3. DIRECT ANSWER FIRST: For factual, confirmation, or stat questions, state the direct answer as the VERY FIRST WORD of your response.
+4. STRICT LENGTH LIMIT (30-60 WORDS MAX): Keep formatting ultra-compact for instant reading in active gameplay.
+5. USER STATS AUTHORIZATION: You have direct authorization and full access to the player's personal stats above. If the player asks about their rank, ELO, win/loss record, win rate, total matches, unlocked cores, or overall performance (e.g. "what is my rank?", "how many wins do I have?", "thông tin/hạng của tôi", "xem chỉ số của tôi", "tôi đang ở bậc nào?"), answer with their EXACT stats accurately!
 6. FACTUAL ACCURACY: Answer using exact values from the knowledge base (scoring, Levenshtein penalties, ELO thresholds, buffs). Prevent hallucinations.`
 
       let fullPrompt = systemContext
@@ -288,9 +311,19 @@ STRICT RESPONSE RULES (US-83 IN-MATCH CONCISE MODE):
   // 0.1 Greeting Handler
   if (['hello', 'hi', 'hey', 'xin chào', 'chào', 'chào bạn', 'greetings', 'hello guide', 'ai guide'].some(w => q === w || q.startsWith(w + ' ') || q.endsWith(' ' + w))) {
     if (isVietnamese) {
-      return `Xin chào ${username}! Tôi là Naenra AI Guide. Bạn muốn tìm hiểu về luật chơi, cơ chế tính điểm hay cách hoạt động của các Lõi Hỗ trợ (Support Cores) nào?`
+      return `Xin chào ${username}! Tôi là Naenra AI Guide. Bạn muốn xem chỉ số cá nhân, tìm hiểu về luật chơi hay cách hoạt động của các Lõi Hỗ trợ (Support Cores) nào?`
     } else {
-      return `Hello ${username}! I am the Naenra AI Guide. What would you like to know about the game rules, scoring formulas, or Support Cores today?`
+      return `Hello ${username}! I am the Naenra AI Guide. What would you like to know about your player stats, game rules, or Support Cores today?`
+    }
+  }
+
+  // 0.2 Player Stats Inquiry Handler
+  const isStatsQuery = ['stat', 'stats', 'hạng', 'rank', 'elo', 'win', 'thắng', 'thua', 'loss', 'losses', 'tỉ lệ', 'trận', 'matches', 'tiến độ', 'progress', 'hồ sơ', 'profile', 'chỉ số', 'thông tin của tôi', 'my stats', 'my rank', 'who am i'].some(w => q.includes(w))
+  if (isStatsQuery) {
+    if (isVietnamese) {
+      return `📊 **Thông tin & Chỉ số của bạn (${playerHistory?.username || username}):**\n• **Bậc Xếp Hạng**: ${playerRank} (ELO: ${playerElo})\n• **Thành Tích**: ${playerWins} Thắng - ${playerLosses} Thua (${totalMatches} trận, Tỉ lệ thắng: ${playerWinRate})\n• **Lõi Hỗ Trợ**: Đã mở khóa ${unlockedCount}/65 Lõi (Lõi đang trang bị: ${playerHistory?.activeCoreName || 'Chưa chọn'}).\nBạn muốn tìm hiểu thêm mẹo chơi hay cách phối hợp Lõi nào để leo rank tiếp theo?`
+    } else {
+      return `📊 **Your Player Stats & Career Profile (${playerHistory?.username || username}):**\n• **Rank Tier**: ${playerRank} (ELO: ${playerElo})\n• **Match Record**: ${playerWins}W - ${playerLosses}L (${totalMatches} matches, Win Rate: ${playerWinRate})\n• **Support Cores**: ${unlockedCount}/65 Unlocked (Active Core: ${playerHistory?.activeCoreName || 'None'}).\nWould you like tactical tips or Core synergy recommendations to climb higher?`
     }
   }
 
@@ -405,7 +438,7 @@ export async function generateChatResponseStream(
   prompt: string,
   res: import('express').Response,
   history?: { role: 'user' | 'model'; message: string }[],
-  playerHistory?: { coreHistory?: any[]; unlockedCores?: string[]; elo?: number; activeCoreName?: string }
+  playerHistory?: PlayerGameStats
 ): Promise<void> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
 
@@ -449,27 +482,39 @@ export async function generateChatResponseStream(
     const unlockedList = playerHistory?.unlockedCores || []
     const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
     const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
+    const playerElo = playerHistory?.elo ?? 1000
+    const playerRank = playerHistory?.rank || getRankFromElo(playerElo)
+    const playerWins = playerHistory?.wins ?? 0
+    const playerLosses = playerHistory?.losses ?? 0
+    const totalMatches = playerHistory?.totalMatches ?? (playerWins + playerLosses)
+    const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
 
     const systemContext = `You are Naenra AI Assistant, the official expert AI guide for Naenra (naenra.xyz).
-Player username: "${username}".
+Player: "${playerHistory?.username || username}".
 
-PLAYER STATE:
-- ELO: ${playerHistory?.elo || 1000}
-- Active Core: "${playerHistory?.activeCoreName || 'None'}"
-- Unlocked: ${unlockedCount}/65 Cores
+PLAYER LIVE STATS & CAREER PROGRESSION:
+- Player Name: "${playerHistory?.username || username}"
+- ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
+- Total Matches Played: ${totalMatches}
+- Career Match Record: ${playerWins} Wins / ${playerLosses} Losses (Win Rate: ${playerWinRate})
+- Unlocked Support Cores: ${unlockedCount} / ${totalCoresCount} (Unlocked IDs: ${JSON.stringify(unlockedList)})
+- Locked Support Cores: ${lockedCount} / ${totalCoresCount}
+- Currently Equipped Support Core: "${playerHistory?.activeCoreName || 'None'}"
+- Match Core Selection History: ${JSON.stringify(playerHistory?.coreHistory || [], null, 2)}
 
-NAENRA KNOWLEDGE:
+CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
 ${knowledgeString}
 
 KEY FACTS:
 - 65+ Cores across 10 families: Combo, Speedster, Aegis, Oracle, Mission, Pandora, Phoenix, High Roller, Power, Balanced.
-- HYBRID CORE SYSTEM: Round 2 offers 1 same-family Tier 2 upgrade + 1 cross-family Hybrid Core. Round 3 offers a 3rd-family Super Hybrid Core. Hybrid Matrix stacks effects from both cores.
-- PANDORA EXCEPTION: Pandora family cannot hybridize — evolves only within Pandora variants.
+- Single equipped Support Core per round (15s prep phase). Buffs score/time/hints.
+- NO HYBRID STACKING: Players select 1 Support Core per round.
 
 RULES:
 1. Match user language exactly (Vietnamese → Vietnamese, English → English).
-2. No filler words or greetings. Direct answer first.
-3. Max 50 words. Ultra-compact for in-game reading.`
+2. Direct answer first. No conversational filler or greetings.
+3. Max 60 words. Ultra-compact for in-game reading.
+4. USER STATS AUTHORIZATION: You have direct authorization and full access to the player's personal stats above. If the player asks about their rank, ELO, win/loss record, win rate, total matches, unlocked cores, or overall performance (e.g. "what is my rank?", "how many wins do I have?", "thông tin/hạng của tôi", "xem chỉ số của tôi", "tôi đang ở bậc nào?"), answer with their EXACT stats accurately!`
 
     let fullPrompt = systemContext
     if (history && history.length > 0) {
