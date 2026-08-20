@@ -191,19 +191,29 @@
         </div>
 
         <!-- Voice Live Wavebar Visualizer -->
-        <div v-if="isListening || isSpeaking" class="voice-wave-bar">
-          <div class="voice-status-info">
+        <div v-if="isListening || isSpeaking" class="voice-wave-bar flex items-center justify-between">
+          <div class="voice-status-info flex items-center gap-2">
             <span class="pulse-dot" :class="{ 'pulse-dot--active': isListening || isSpeaking }"></span>
             <span class="voice-status-text font-bold text-xs">
               {{ isListening ? '🎙️ Listening to your voice...' : '🔊 Speaking response aloud...' }}
             </span>
           </div>
-          <div class="waveform-anim" :class="{ 'waveform-anim--active': isListening || isSpeaking }">
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
-            <span class="wave-bar"></span>
+          <div class="flex items-center gap-2">
+            <button
+              v-if="isSpeaking"
+              @click="stopSpeaking"
+              class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-300 cursor-pointer transition-colors"
+              title="Stop voice audio"
+            >
+              ⏹ Stop
+            </button>
+            <div class="waveform-anim" :class="{ 'waveform-anim--active': isListening || isSpeaking }">
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+            </div>
           </div>
         </div>
 
@@ -335,6 +345,16 @@ const {
 } = geminiLive
 
 function toggleLiveSession() {
+  stopSpeaking()
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
+  if (streamTickerTimer) {
+    clearInterval(streamTickerTimer)
+    streamTickerTimer = null
+  }
+
   if (isLiveConnected.value || isLiveConnecting.value) {
     stopLiveSession()
   } else {
@@ -371,6 +391,8 @@ onAiTranscript((text: string) => {
 // Real-time transcript from Gemini Live Server User Input (if sent by server)
 onUserTranscript((text: string) => {
   if (!text || !isChatOpen.value) return
+  // Interrupt any previous AI TTS speech immediately when user begins speaking
+  stopSpeaking()
   if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
     messages.value.push({ role: 'user', content: text })
     currentUserLiveMsgIdx.value = messages.value.length - 1
@@ -542,15 +564,23 @@ function getBestVoice(isVi: boolean): SpeechSynthesisVoice | null {
 
 let speechQueue: SpeechSynthesisUtterance[] = []
 
+function stopSpeaking() {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
+  speechQueue = []
+  isSpeaking.value = false
+}
+
 function speakText(text: string, options?: { rate?: number; pitch?: number }) {
   // STRICT: Only speak if chat window is actively open and voice is unmuted
   if (!isChatOpen.value || !isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
 
-  window.speechSynthesis.cancel()
-  speechQueue = []
+  stopSpeaking()
 
-  // Clean markdown, symbols, emojis, and formatting before speaking
+  // Clean status tags, markdown, symbols, emojis, and formatting before speaking
   const cleanText = text
+    .replace(/\[STATUS\]:?|\[TELEMETRY DATA\]:?|\[TACTICAL RECOMMENDATION\]:?|\[SYSTEM STATUS\]:?|\[OPERATION EXECUTED\]:?|\[ANALYSIS\]:?/gi, '')
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F6D0}-\u{1F6FF}\u{1F900}-\u{1F9FF}]/gu, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\*(.*?)\*/g, '$1')
@@ -568,40 +598,31 @@ function speakText(text: string, options?: { rate?: number; pitch?: number }) {
   const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(cleanText)
   const voice = getBestVoice(isVi)
 
-  // Split text into natural sentence chunks for realistic human intonation & pauses
-  const sentences = cleanText
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map(s => s.trim())
-    .filter(s => s.length > 0)
+  const utterance = new SpeechSynthesisUtterance(cleanText)
+  utterance.lang = isVi ? 'vi-VN' : 'en-US'
+  utterance.rate = options?.rate ?? 1.05
+  utterance.pitch = options?.pitch ?? 0.95
 
-  if (sentences.length === 0 || !isChatOpen.value) return
+  if (voice) {
+    utterance.voice = voice
+  }
+
+  utterance.onstart = () => {
+    if (isChatOpen.value) {
+      isSpeaking.value = true
+    }
+  }
+
+  utterance.onend = () => {
+    isSpeaking.value = false
+  }
+
+  utterance.onerror = () => {
+    isSpeaking.value = false
+  }
 
   isSpeaking.value = true
-
-  sentences.forEach((sentence, index) => {
-    const utterance = new SpeechSynthesisUtterance(sentence)
-    utterance.lang = isVi ? 'vi-VN' : 'en-US'
-    utterance.rate = options?.rate ?? 1.10
-    utterance.pitch = options?.pitch ?? 0.95
-
-    if (voice) {
-      utterance.voice = voice
-    }
-
-    if (index === sentences.length - 1) {
-      utterance.onend = () => {
-        isSpeaking.value = false
-      }
-      utterance.onerror = () => {
-        isSpeaking.value = false
-      }
-    }
-
-    speechQueue.push(utterance)
-    if (isChatOpen.value) {
-      window.speechSynthesis.speak(utterance)
-    }
-  })
+  window.speechSynthesis.speak(utterance)
 }
 
 // ── Click outside to close ──────────────────────────────────────────
