@@ -105,9 +105,13 @@ export const updateUserProfile = async (req: AuthRequest, res: Response): Promis
       // If it's a new base64 upload, store it in the avatars bucket
       if (finalAvatarToSave.startsWith('data:image')) {
         try {
-          const match = finalAvatarToSave.match(/^data:image\/(\w+);base64,/)
-          const ext = match ? match[1] : 'png'
-          const base64Data = finalAvatarToSave.replace(/^data:image\/\w+;base64,/, '')
+          const match = finalAvatarToSave.match(/^data:([^;]+);base64,/)
+          const mimeType = match ? match[1] : 'image/png'
+          const rawExt = mimeType.split('/')[1] || 'png'
+          const ext = rawExt === 'jpeg' ? 'jpg' : rawExt
+          const base64Data = finalAvatarToSave.includes(',')
+            ? finalAvatarToSave.split(',')[1]
+            : finalAvatarToSave
           const buffer = Buffer.from(base64Data, 'base64')
 
           const filePath = `${req.user!.id}/avatar.${ext}`
@@ -115,7 +119,7 @@ export const updateUserProfile = async (req: AuthRequest, res: Response): Promis
           const { error: uploadError } = await supabase.storage
             .from('avatars')
             .upload(filePath, buffer, {
-              contentType: `image/${ext}`,
+              contentType: mimeType,
               upsert: true
             })
 

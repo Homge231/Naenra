@@ -59,6 +59,7 @@
             <div class="relative group cursor-pointer" :class="{ 'cursor-default': !editMode }">
               <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-orange-400 to-red-500 p-[3px] shadow-lg">
                 <img
+                  :key="displayAvatar"
                   :src="displayAvatar"
                   :alt="form.username"
                   class="w-full h-full rounded-full object-cover bg-white border-2 border-white"
