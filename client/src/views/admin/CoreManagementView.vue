@@ -1,116 +1,133 @@
 <template>
-  <div class="space-y-6">
-    <!-- TOP HEADER & BALANCE CONFIG BANNER -->
-    <div class="bg-slate-900/90 border border-slate-800/90 rounded-2xl p-6 shadow-xl relative overflow-hidden backdrop-blur-xl">
-      <div class="absolute -right-20 -top-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="space-y-6 animate-fade-in">
+    <!-- PAGE HEADER: SYNCHRONIZED WITH PLAYER MANAGEMENT & OTHER ADMIN VIEWS -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-black text-white tracking-wide flex items-center gap-2.5">
+          <span>⚡</span>
+          <span>Support Cores & Game Configs</span>
+        </h2>
+        <p class="text-xs text-slate-400 mt-1">
+          Manage the catalog of Upgrade Cores, tune stat multipliers, flat bonuses, and drop pool status.
+        </p>
+      </div>
 
-      <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div>
-          <div class="flex items-center gap-3 mb-2">
-            <span class="px-2.5 py-1 text-xs font-mono font-bold uppercase rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center gap-1.5 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
-              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-              CORE STRATEGY ENGINE
-            </span>
-            <span class="text-xs text-slate-400 font-mono">CATALOG VERSION: v2.4</span>
+      <div class="flex items-center gap-3">
+        <button 
+          @click="fetchCores" 
+          :disabled="isLoading"
+          class="flex items-center gap-2 px-3.5 py-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold font-mono transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+        >
+          <svg class="w-4 h-4 text-cyan-400" :class="{ 'animate-spin': isLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Refresh Data</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 4 KPI SUMMARY CARDS: SYNCHRONIZED SIZE & LAYOUT WITH PLAYER MANAGEMENT -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <!-- KPI 1: TOTAL CORES -->
+      <div class="p-5 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-cyan-500/40 rounded-2xl flex flex-col justify-between shadow-lg transition-all">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider font-mono">Total Cores</span>
+          <div class="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-sm">
+            ⚡
           </div>
-          <h1 class="text-2xl sm:text-3xl font-black text-white tracking-wide uppercase">
-            Support Cores & Game Configs
-          </h1>
-          <p class="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            Manage the entire catalog of Upgrade Cores and game parameters. Instantly balance multipliers, adjust flat point bonuses, or disable broken cores from the live drop pool without server redeployment.
-          </p>
         </div>
-
-        <div class="shrink-0 flex items-center gap-3">
-          <button 
-            @click="fetchCores" 
-            :disabled="isLoading"
-            class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-semibold border border-slate-700 transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
-            title="Refresh Core Data"
-          >
-            <svg :class="['w-4 h-4 text-cyan-400', isLoading ? 'animate-spin' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>Refresh Data</span>
-          </button>
-
-          <!-- Strategy Pattern Invariant Badge (Dynamic Creation Removed) -->
-          <div class="px-4 py-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs font-mono text-amber-300 flex items-center gap-2 shadow-sm">
-            <span>🔒</span>
-            <span>Strategy Registry (65 Fixed Cores)</span>
-          </div>
+        <div class="mt-4">
+          <span class="text-3xl font-black text-white font-mono tracking-tight">{{ stats.totalCores }}</span>
+          <p class="text-[11px] text-slate-500 mt-1 font-mono">Catalog models in DB</p>
         </div>
       </div>
 
-      <!-- METRICS SUMMARY CARDS -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-800/80">
-        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-          <p class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Catalog Models</p>
-          <p class="text-xl sm:text-2xl font-black text-white mt-1">{{ stats.totalCores }}</p>
+      <!-- KPI 2: ACTIVE MATCH POOL -->
+      <div class="p-5 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-emerald-500/40 rounded-2xl flex flex-col justify-between shadow-lg transition-all">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider font-mono">Active Pool</span>
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-sm">
+            🟢
+          </div>
         </div>
-        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-          <p class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Active Match Pool</p>
-          <p class="text-xl sm:text-2xl font-black text-emerald-400 mt-1 flex items-center gap-2">
-            <span>{{ stats.activeCores }}</span>
-            <span class="text-xs px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-mono">ENABLED</span>
-          </p>
+        <div class="mt-4">
+          <span class="text-3xl font-black text-emerald-400 font-mono tracking-tight">{{ stats.activeCores }}</span>
+          <p class="text-[11px] text-emerald-500/80 mt-1 font-mono">Enabled in drop pool</p>
         </div>
-        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-          <p class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Disabled Cores</p>
-          <p class="text-xl sm:text-2xl font-black text-red-400 mt-1 flex items-center gap-2">
-            <span>{{ stats.disabledCores }}</span>
-            <span v-if="stats.disabledCores > 0" class="text-xs px-2 py-0.5 rounded-md bg-red-950/80 text-red-400 border border-red-800/60 font-mono">BANNED</span>
-          </p>
+      </div>
+
+      <!-- KPI 3: DISABLED CORES -->
+      <div class="p-5 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-red-500/40 rounded-2xl flex flex-col justify-between shadow-lg transition-all">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider font-mono">Disabled Cores</span>
+          <div class="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-sm">
+            🚫
+          </div>
         </div>
-        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-          <p class="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Avg Multiplier Power</p>
-          <p class="text-xl sm:text-2xl font-black text-amber-400 mt-1">x{{ stats.avgMultiplier.toFixed(2) }}</p>
+        <div class="mt-4">
+          <span class="text-3xl font-black text-red-400 font-mono tracking-tight">{{ stats.disabledCores }}</span>
+          <p class="text-[11px] text-red-500/80 mt-1 font-mono">Banned from selection pool</p>
+        </div>
+      </div>
+
+      <!-- KPI 4: AVG MULTIPLIER POWER -->
+      <div class="p-5 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 hover:border-amber-500/40 rounded-2xl flex flex-col justify-between shadow-lg transition-all">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400 uppercase tracking-wider font-mono">Avg Multiplier</span>
+          <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-sm">
+            ✨
+          </div>
+        </div>
+        <div class="mt-4">
+          <span class="text-3xl font-black text-amber-400 font-mono tracking-tight">x{{ stats.avgMultiplier.toFixed(2) }}</span>
+          <p class="text-[11px] text-slate-500 mt-1 font-mono">Catalog strategy strength</p>
         </div>
       </div>
     </div>
 
-    <!-- FILTER & TOOLBAR -->
-    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl flex flex-col lg:flex-row items-center justify-between gap-4">
-      <!-- Search Input -->
-      <div class="relative w-full lg:w-80">
-        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+    <!-- FILTER & SEARCH CONTROLS: SYNCHRONIZED WITH PLAYER MANAGEMENT BAR -->
+    <div class="p-4 bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <!-- Search Bar -->
+      <div class="relative flex-1 max-w-md">
+        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </span>
         <input 
           v-model="searchQuery" 
           type="text" 
-          placeholder="Filter core by name or description..."
-          class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors font-mono"
+          placeholder="Search core by name, description, or family..."
+          class="w-full pl-10 pr-8 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors font-mono"
         />
+        <button 
+          v-if="searchQuery" 
+          @click="searchQuery = ''" 
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs cursor-pointer"
+        >
+          ✕
+        </button>
       </div>
 
-      <!-- Classification & Tier Filters -->
-      <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-        <!-- Classification Tabs -->
-        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto max-w-full">
-          <button 
-            v-for="cat in classificationFilters" 
-            :key="cat.id"
-            @click="selectedClassification = cat.id"
-            :class="[
-              'px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all shrink-0 cursor-pointer',
-              selectedClassification === cat.id 
-                ? 'bg-cyan-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]' 
-                : 'text-slate-400 hover:text-slate-200'
-            ]"
-          >
-            {{ cat.label }}
-          </button>
-        </div>
+      <!-- Filters & View Switcher Controls -->
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Family Select -->
+        <select 
+          v-model="selectedFamily"
+          class="bg-slate-950/80 border border-slate-800 text-slate-200 text-xs font-mono font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+        >
+          <option v-for="fam in familyOptions" :key="fam.id" :value="fam.id">
+            {{ fam.label }}
+          </option>
+        </select>
 
         <!-- Tier Select -->
         <select 
           v-model="selectedTier"
-          class="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-mono rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
+          class="bg-slate-950/80 border border-slate-800 text-slate-200 text-xs font-mono font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
         >
           <option value="all">All Tiers</option>
-          <option value="1">Tier 1 (Base Core)</option>
+          <option value="1">Tier 1 (Main Core)</option>
           <option value="2">Tier 2 (Upgrade)</option>
           <option value="3">Tier 3 (Mastery)</option>
         </select>
@@ -118,36 +135,72 @@
         <!-- Status Select -->
         <select 
           v-model="selectedStatus"
-          class="bg-slate-950 border border-slate-800 text-slate-300 text-xs font-mono rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 cursor-pointer"
+          class="bg-slate-950/80 border border-slate-800 text-slate-200 text-xs font-mono font-semibold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
         >
           <option value="all">All Status</option>
-          <option value="active">Active Pool Only</option>
-          <option value="disabled">Disabled Only</option>
+          <option value="active">Active Drop Pool</option>
+          <option value="disabled">Disabled Cores</option>
         </select>
 
-        <!-- View Mode Switch -->
-        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
+        <!-- VIEW MODE SWITCHER (GRID vs TABLE) -->
+        <div class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 shrink-0">
           <button 
             @click="viewMode = 'grid'"
-            :class="['p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer', viewMode === 'grid' ? 'bg-slate-800 text-cyan-400' : 'text-slate-400 hover:text-white']"
-            title="Grid View"
+            :class="[
+              'px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5',
+              viewMode === 'grid' 
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-sm' 
+                : 'text-slate-400 hover:text-white'
+            ]"
+            title="Switch to Grid View"
           >
-            📱 Grid
+            <span>📱</span>
+            <span>Grid</span>
           </button>
           <button 
             @click="viewMode = 'table'"
-            :class="['p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer', viewMode === 'table' ? 'bg-slate-800 text-cyan-400' : 'text-slate-400 hover:text-white']"
-            title="Table View"
+            :class="[
+              'px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5',
+              viewMode === 'table' 
+                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-sm' 
+                : 'text-slate-400 hover:text-white'
+            ]"
+            title="Switch to Table View"
           >
-            📄 Table
+            <span>📄</span>
+            <span>Table</span>
           </button>
         </div>
       </div>
     </div>
 
+    <!-- RESULTS COUNT BADGE & RESET -->
+    <div class="flex items-center justify-between px-1 text-xs font-mono text-slate-400">
+      <p>Showing <span class="text-white font-bold">{{ filteredCores.length }}</span> of {{ cores.length }} registered cores</p>
+      <button 
+        v-if="selectedFamily !== 'all' || selectedTier !== 'all' || selectedStatus !== 'all' || searchQuery"
+        @click="resetFilters"
+        class="text-cyan-400 hover:underline cursor-pointer"
+      >
+        Reset Filters
+      </button>
+    </div>
+
     <!-- CORE LISTING: GRID VIEW -->
     <div v-if="viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <!-- EMPTY FILTERED RESULTS -->
+      <div v-if="filteredCores.length === 0" class="col-span-full py-16 bg-slate-900/40 border border-slate-800 rounded-2xl text-center">
+        <span class="text-3xl mb-2 block">🔍</span>
+        <p class="text-sm font-bold text-white font-mono">No Cores Match Filter Criteria</p>
+        <p class="text-xs text-slate-400 mt-1">Try resetting your family, tier, or search query filter.</p>
+        <button @click="resetFilters" class="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-mono font-bold rounded-xl border border-slate-700 cursor-pointer">
+          Reset All Filters
+        </button>
+      </div>
+
+      <!-- CORE CARDS -->
       <div 
+        v-else
         v-for="core in filteredCores" 
         :key="core.id"
         :class="[
@@ -158,101 +211,105 @@
         ]"
       >
         <!-- Top Core Badges & Active Toggle Switch -->
-        <div class="flex items-start justify-between gap-3 mb-3">
-          <div class="flex items-center gap-2">
-            <!-- Icon -->
-            <div class="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 p-1.5 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <img 
-                :src="getCoreIconPath(core.name)" 
-                :alt="core.name"
-                class="w-full h-full object-contain"
-                @error="(e) => (e.target as HTMLImageElement).src = '/images/cores/aegis_shield.png'"
-              />
+        <div>
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="flex items-center gap-2.5">
+              <!-- Icon -->
+              <div class="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 p-1.5 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <img 
+                  :src="getCoreIconPath(core.name)" 
+                  :alt="core.name"
+                  class="w-full h-full object-contain"
+                  @error="(e) => (e.target as HTMLImageElement).src = '/images/cores/aegis_shield.png'"
+                />
+              </div>
+              <div>
+                <h3 class="font-black text-white text-sm uppercase tracking-wide group-hover:text-cyan-400 transition-colors">
+                  {{ core.name }}
+                </h3>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <!-- Tier Badge -->
+                  <span 
+                    class="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded border uppercase"
+                    :class="getTierBadgeClass(core.tier)"
+                  >
+                    T{{ core.tier }}
+                  </span>
+                  <!-- Family Label -->
+                  <span class="text-[10px] font-mono text-cyan-400/90 font-bold uppercase">
+                    {{ getCoreFamilyName(core.name) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- IS_ACTIVE TOGGLE SWITCH -->
+            <div class="flex flex-col items-end gap-1 shrink-0">
+              <button 
+                @click="toggleActive(core)" 
+                :disabled="togglingIds.includes(core.id)"
+                :class="[
+                  'w-11 h-6 rounded-full p-0.5 transition-colors cursor-pointer relative shadow-inner border',
+                  core.is_active 
+                    ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.4)]' 
+                    : 'bg-slate-800 border-slate-700'
+                ]"
+                :title="core.is_active ? 'Click to disable from drop pool' : 'Click to enable in drop pool'"
+              >
+                <div 
+                  :class="[
+                    'w-4 h-4 rounded-full bg-white transition-transform shadow-md transform flex items-center justify-center text-[8px]',
+                    core.is_active ? 'translate-x-5' : 'translate-x-0'
+                  ]"
+                >
+                  <span v-if="togglingIds.includes(core.id)" class="animate-spin text-slate-900">⏳</span>
+                </div>
+              </button>
+              <span :class="['text-[9px] font-mono font-black uppercase', core.is_active ? 'text-emerald-400' : 'text-red-400']">
+                {{ core.is_active ? 'DROP READY' : 'DISABLED' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <p class="text-xs text-slate-400 leading-relaxed mb-4 line-clamp-3 min-h-[3.3rem]">
+            {{ core.description }}
+          </p>
+        </div>
+
+        <div>
+          <!-- Stats Breakdown Pills -->
+          <div class="grid grid-cols-3 gap-1.5 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/80 font-mono text-center mb-3">
+            <div>
+              <p class="text-[9px] text-slate-500 uppercase font-bold">Flat Bonus</p>
+              <p class="text-xs font-bold text-emerald-400">+{{ core.flat_buff }}</p>
             </div>
             <div>
-              <h3 class="font-black text-white text-sm uppercase tracking-wide group-hover:text-cyan-400 transition-colors">
-                {{ core.name }}
-              </h3>
-              <div class="flex items-center gap-1.5 mt-0.5">
-                <!-- Tier Badge -->
-                <span 
-                  class="px-1.5 py-0.2 text-[9px] font-mono font-bold rounded border uppercase"
-                  :class="getTierBadgeClass(core.tier)"
-                >
-                  T{{ core.tier }}
-                </span>
-                <!-- Classification Badge -->
-                <span class="text-[10px] font-mono text-slate-400 font-bold uppercase">
-                  {{ core.classification }}
-                </span>
-              </div>
+              <p class="text-[9px] text-slate-500 uppercase font-bold">Multiplier</p>
+              <p class="text-xs font-bold text-amber-400">x{{ core.multiplier_buff }}</p>
+            </div>
+            <div>
+              <p class="text-[9px] text-slate-500 uppercase font-bold">Duration</p>
+              <p class="text-xs font-bold text-cyan-400">{{ core.duration }}s</p>
             </div>
           </div>
 
-          <!-- IS_ACTIVE TOGGLE SWITCH -->
-          <div class="flex flex-col items-end gap-1">
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80">
             <button 
-              @click="toggleActive(core)" 
-              :disabled="togglingIds.includes(core.id)"
-              :class="[
-                'w-11 h-6 rounded-full p-0.5 transition-colors cursor-pointer relative shadow-inner border',
-                core.is_active 
-                  ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.4)]' 
-                  : 'bg-slate-800 border-slate-700'
-              ]"
-              :title="core.is_active ? 'Click to disable from drop pool' : 'Click to enable in drop pool'"
+              @click="openEditModal(core)" 
+              class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <div 
-                :class="[
-                  'w-4 h-4 rounded-full bg-white transition-transform shadow-md transform flex items-center justify-center text-[8px]',
-                  core.is_active ? 'translate-x-5' : 'translate-x-0'
-                ]"
-              >
-                <span v-if="togglingIds.includes(core.id)" class="animate-spin text-slate-900">⏳</span>
-              </div>
+              <span>✏️ Edit Stats</span>
             </button>
-            <span :class="['text-[9px] font-mono font-black uppercase', core.is_active ? 'text-emerald-400' : 'text-red-400']">
-              {{ core.is_active ? 'DROP READY' : 'DISABLED' }}
-            </span>
+            <button 
+              @click="confirmDelete(core)" 
+              class="px-2.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-200 rounded-lg text-xs font-semibold border border-red-800/50 transition-colors cursor-pointer"
+              title="Delete Core"
+            >
+              🗑️
+            </button>
           </div>
-        </div>
-
-        <!-- Description -->
-        <p class="text-xs text-slate-400 leading-relaxed mb-4 line-clamp-3 min-h-[3.6rem]">
-          {{ core.description }}
-        </p>
-
-        <!-- Stats Breakdown Pills -->
-        <div class="grid grid-cols-3 gap-2 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/80 font-mono text-center mb-4">
-          <div>
-            <p class="text-[9px] text-slate-500 uppercase font-bold">Flat Bonus</p>
-            <p class="text-xs font-bold text-emerald-400">+{{ core.flat_buff }}</p>
-          </div>
-          <div>
-            <p class="text-[9px] text-slate-500 uppercase font-bold">Multiplier</p>
-            <p class="text-xs font-bold text-amber-400">x{{ core.multiplier_buff }}</p>
-          </div>
-          <div>
-            <p class="text-[9px] text-slate-500 uppercase font-bold">Duration</p>
-            <p class="text-xs font-bold text-cyan-400">{{ core.duration }}s</p>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80">
-          <button 
-            @click="openEditModal(core)" 
-            class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-          >
-            <span>✏️ Edit Stats</span>
-          </button>
-          <button 
-            @click="confirmDelete(core)" 
-            class="px-2.5 py-2 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-200 rounded-lg text-xs font-semibold border border-red-800/50 transition-colors cursor-pointer"
-            title="Delete Core"
-          >
-            🗑️
-          </button>
         </div>
       </div>
     </div>
@@ -264,8 +321,8 @@
           <thead>
             <tr class="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
               <th class="py-3.5 px-4">Core Model</th>
+              <th class="py-3.5 px-4 text-center">Family</th>
               <th class="py-3.5 px-4 text-center">Tier</th>
-              <th class="py-3.5 px-4 text-center">Classification</th>
               <th class="py-3.5 px-4 text-center">Flat Bonus</th>
               <th class="py-3.5 px-4 text-center">Multiplier</th>
               <th class="py-3.5 px-4 text-center">Duration</th>
@@ -316,14 +373,14 @@
               </td>
 
               <td class="py-3.5 px-4 text-center">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold border uppercase" :class="getTierBadgeClass(core.tier)">
-                  Tier {{ core.tier }}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-cyan-400 border border-slate-700">
+                  {{ getCoreFamilyName(core.name) }}
                 </span>
               </td>
 
               <td class="py-3.5 px-4 text-center">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">
-                  {{ core.classification }}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border uppercase" :class="getTierBadgeClass(core.tier)">
+                  Tier {{ core.tier }}
                 </span>
               </td>
 
@@ -387,7 +444,7 @@
       </div>
     </div>
 
-    <!-- CREATE / EDIT FORM MODAL -->
+    <!-- EDIT FORM MODAL -->
     <div v-if="isFormModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div @click="closeFormModal" class="absolute inset-0 bg-slate-950/80 backdrop-blur-md"></div>
 
@@ -423,16 +480,13 @@
               />
             </div>
             <div>
-              <label class="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">Classification *</label>
-              <select 
+              <label class="block text-xs font-mono font-bold text-slate-300 uppercase mb-1">Classification / Family</label>
+              <input 
                 v-model="formData.classification"
-                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-              >
-                <option value="Attack">Attack (Damage/Multiplier)</option>
-                <option value="Defense">Defense (Shield/Safety)</option>
-                <option value="Economy">Economy (Time/Score Boost)</option>
-                <option value="Special">Special (Unique Mechanics)</option>
-              </select>
+                type="text" 
+                placeholder="e.g. Aegis / Phoenix"
+                class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500"
+              />
             </div>
           </div>
 
@@ -588,6 +642,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { fetchWithAuth } from '../../services/api'
 import { getCoreIconPath } from '../../game/cores/icons'
+import { getCoreFamily } from '../../game/cores/families'
 
 interface CoreConfig {
   id: string
@@ -616,7 +671,7 @@ const stats = ref({
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const searchQuery = ref('')
-const selectedClassification = ref('all')
+const selectedFamily = ref('all')
 const selectedTier = ref('all')
 const selectedStatus = ref('all')
 const viewMode = ref<'grid' | 'table'>('grid')
@@ -632,7 +687,7 @@ const selectedCoreId = ref<string | null>(null)
 const formData = ref({
   name: '',
   description: '',
-  classification: 'Attack',
+  classification: 'Special',
   tier: 1,
   flat_buff: 0,
   multiplier_buff: 1.0,
@@ -640,34 +695,59 @@ const formData = ref({
   is_active: true
 })
 
-const classificationFilters = [
+const familyOptions = [
   { id: 'all', label: 'All Families' },
-  { id: 'Attack', label: 'Attack' },
-  { id: 'Defense', label: 'Defense' },
-  { id: 'Economy', label: 'Economy' },
-  { id: 'Special', label: 'Special' }
+  { id: 'combo', label: 'Combo Family' },
+  { id: 'speedster', label: 'Speedster Family' },
+  { id: 'oracle', label: 'Oracle Family' },
+  { id: 'aegis', label: 'Aegis Family' },
+  { id: 'mission', label: 'Mission Family' },
+  { id: 'pandora', label: 'Pandora Family' },
+  { id: 'phoenix', label: 'Phoenix Family' },
+  { id: 'highroller', label: 'High Roller' },
+  { id: 'power', label: 'Power Family' },
+  { id: 'balanced', label: 'Balanced Family' }
 ]
 
+function getCoreFamilyName(coreName: string): string {
+  const fam = getCoreFamily(coreName)
+  if (!fam) return 'Special'
+  return fam.charAt(0).toUpperCase() + fam.slice(1)
+}
+
+function resetFilters() {
+  searchQuery.value = ''
+  selectedFamily.value = 'all'
+  selectedTier.value = 'all'
+  selectedStatus.value = 'all'
+}
+
 const filteredCores = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  const familyFilter = selectedFamily.value.toLowerCase()
+  const tierFilter = selectedTier.value
+  const statusFilter = selectedStatus.value
+
   return cores.value.filter(core => {
-    // Search query matching
-    const matchesSearch = !searchQuery.value || 
-      core.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-      core.description.toLowerCase().includes(searchQuery.value.toLowerCase())
+    // 1. Search Query matching
+    const matchesSearch = !q || 
+      core.name.toLowerCase().includes(q) || 
+      core.description.toLowerCase().includes(q) ||
+      (getCoreFamily(core.name) || '').toLowerCase().includes(q)
 
-    // Classification filter
-    const matchesCat = selectedClassification.value === 'all' || 
-      core.classification.toLowerCase().includes(selectedClassification.value.toLowerCase())
+    // 2. Family Filter
+    const coreFamily = (getCoreFamily(core.name) || core.classification || '').toLowerCase()
+    const matchesFamily = familyFilter === 'all' || coreFamily.includes(familyFilter)
 
-    // Tier filter
-    const matchesTier = selectedTier.value === 'all' || core.tier === parseInt(selectedTier.value)
+    // 3. Tier Filter
+    const matchesTier = tierFilter === 'all' || core.tier === parseInt(tierFilter)
 
-    // Status filter
+    // 4. Status Filter
     let matchesStatus = true
-    if (selectedStatus.value === 'active') matchesStatus = core.is_active
-    if (selectedStatus.value === 'disabled') matchesStatus = !core.is_active
+    if (statusFilter === 'active') matchesStatus = core.is_active
+    if (statusFilter === 'disabled') matchesStatus = !core.is_active
 
-    return matchesSearch && matchesCat && matchesTier && matchesStatus
+    return matchesSearch && matchesFamily && matchesTier && matchesStatus
   })
 })
 
@@ -729,7 +809,7 @@ function openEditModal(core: CoreConfig) {
   formData.value = {
     name: core.name,
     description: core.description,
-    classification: core.classification || 'Attack',
+    classification: core.classification || getCoreFamilyName(core.name),
     tier: core.tier || 1,
     flat_buff: core.flat_buff || 0,
     multiplier_buff: core.multiplier_buff || 1.0,
@@ -808,9 +888,9 @@ function showToast(msg: string, _type: 'success' | 'error' = 'success') {
 }
 
 function getTierBadgeClass(tier: number): string {
-  if (tier === 1) return 'bg-cyan-950/80 text-cyan-400 border-cyan-800/60 font-mono'
-  if (tier === 2) return 'bg-purple-950/80 text-purple-400 border-purple-800/60 font-mono'
-  return 'bg-amber-950/80 text-amber-400 border-amber-800/60 font-mono'
+  if (tier === 1) return 'bg-cyan-950/80 text-cyan-400 border-cyan-800/60 font-mono font-bold'
+  if (tier === 2) return 'bg-purple-950/80 text-purple-400 border-purple-800/60 font-mono font-bold'
+  return 'bg-amber-950/80 text-amber-400 border-amber-800/60 font-mono font-bold'
 }
 
 onMounted(() => {

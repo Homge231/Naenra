@@ -49,6 +49,7 @@ async function invalidatePlayerSession(id: string, kick = false): Promise<void> 
 export async function getAdminSummary(_req: AuthRequest, res: Response): Promise<void> {
   try {
     const startTime = Date.now()
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
 
     const [
       playersRes,
@@ -57,10 +58,10 @@ export async function getAdminSummary(_req: AuthRequest, res: Response): Promise
       liveMatchesRes,
       coresRes
     ] = await Promise.all([
-      supabase.from('players').select('*', { count: 'exact', head: true }).not('email', 'ilike', '%@guest.naenra.xyz%').not('email', 'ilike', 'guest_%'),
+      supabase.from('players').select('*', { count: 'exact', head: true }),
       supabase.from('questions').select('*', { count: 'exact', head: true }),
       supabase.from('game_sessions').select('*', { count: 'exact', head: true }),
-      supabase.from('game_sessions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      supabase.from('game_sessions').select('*', { count: 'exact', head: true }).eq('status', 'active').gte('updated_at', fiveMinutesAgo),
       supabase.from('cores').select('*', { count: 'exact', head: true })
     ])
 

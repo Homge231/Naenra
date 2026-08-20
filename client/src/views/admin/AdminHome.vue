@@ -25,7 +25,7 @@
           <button 
             @click="fetchMetrics" 
             :disabled="isLoading"
-            class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 rounded-xl text-sm font-semibold border border-slate-700 transition-all shadow-lg hover:border-red-500/50"
+            class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 rounded-xl text-sm font-semibold border border-slate-700 transition-all shadow-lg hover:border-red-500/50 cursor-pointer active:scale-95"
           >
             <svg 
               :class="['w-4 h-4 text-red-400', isLoading ? 'animate-spin' : '']" 
@@ -42,7 +42,7 @@
     </div>
 
     <!-- KPI SUMMARY CARDS GRID -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <!-- CARD 1: REGISTERED PLAYERS -->
       <div class="group relative overflow-hidden bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 hover:border-blue-500/50 rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:-translate-y-0.5">
         <div class="flex items-center justify-between">
@@ -104,12 +104,31 @@
         </div>
       </div>
 
-      <!-- CARD 4: SERVER LATENCY & HEALTH -->
+      <!-- CARD 4: SUPPORT CORES CATALOG -->
+      <div class="group relative overflow-hidden bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 hover:border-cyan-500/50 rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] hover:-translate-y-0.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">Support Cores</span>
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl group-hover:scale-110 transition-transform">
+            ⚡
+          </div>
+        </div>
+        <div class="mt-4">
+          <div v-if="isLoading" class="h-8 w-24 bg-slate-800 animate-pulse rounded-lg"></div>
+          <div v-else class="text-3xl font-black text-white tracking-tight font-mono">
+            {{ metrics.totalCores.toLocaleString() }}
+          </div>
+          <p class="text-xs text-slate-400 mt-1">
+            Registered cores in catalog
+          </p>
+        </div>
+      </div>
+
+      <!-- CARD 5: SERVER LATENCY & HEALTH -->
       <div class="group relative overflow-hidden bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 hover:border-red-500/50 rounded-2xl p-5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(225,29,72,0.15)] hover:-translate-y-0.5">
         <div class="flex items-center justify-between">
           <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">Server Health</span>
           <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-xl group-hover:scale-110 transition-transform">
-            ⚡
+            🖥️
           </div>
         </div>
         <div class="mt-4">
@@ -134,7 +153,7 @@
         <span>Management Modules</span>
       </h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <!-- MODULE 1: QUESTION BANK -->
         <router-link 
           to="/admin/questions" 
@@ -164,13 +183,13 @@
         >
           <div>
             <div class="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-              🛡️
+              👥
             </div>
             <h4 class="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">
-              Players & ELO Rankings
+              Players Manager
             </h4>
             <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-              Inspect player accounts, sessions, unlockable cores, and ELO leaderboards.
+              Inspect player accounts, active sessions, unlockable cores, and moderate access.
             </p>
           </div>
           <div class="mt-6 flex items-center justify-between text-xs font-mono text-blue-400 group-hover:translate-x-1 transition-transform">
@@ -179,29 +198,73 @@
           </div>
         </router-link>
 
-        <!-- MODULE 3: SUPPORT CORES REGISTRY -->
+        <!-- MODULE 3: LEADERBOARDS & SEASONS -->
         <router-link 
-          to="/admin/cores" 
+          to="/admin/leaderboard" 
           class="group p-6 bg-slate-900/60 hover:bg-slate-900 backdrop-blur-xl border border-slate-800 hover:border-amber-500/50 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-[0_0_25px_rgba(245,158,11,0.15)] flex flex-col justify-between"
         >
           <div>
             <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-              ⚡
+              🏆
             </div>
             <h4 class="text-lg font-bold text-white group-hover:text-amber-400 transition-colors">
-              Support Cores System
+              Leaderboards & Seasons
             </h4>
             <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-              View registered 65 cores across 10 families and verify strategy registry balances.
+              Monitor Top 100 Elo rankings in real-time and trigger global competitive season resets.
             </p>
           </div>
           <div class="mt-6 flex items-center justify-between text-xs font-mono text-amber-400 group-hover:translate-x-1 transition-transform">
-            <span>View Core Families</span>
+            <span>View Leaderboards</span>
             <span>→</span>
           </div>
         </router-link>
 
-        <!-- MODULE 4: AI CORE ASSISTANT -->
+        <!-- MODULE 4: MATCH ANALYTICS & TELEMETRY -->
+        <router-link 
+          to="/admin/matches" 
+          class="group p-6 bg-slate-900/60 hover:bg-slate-900 backdrop-blur-xl border border-slate-800 hover:border-emerald-500/50 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-[0_0_25px_rgba(16,185,129,0.15)] flex flex-col justify-between"
+        >
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+              ⚔️
+            </div>
+            <h4 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">
+              Match Analytics & Logs
+            </h4>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+              Track live match concurrency, score distribution charts, and detailed session history.
+            </p>
+          </div>
+          <div class="mt-6 flex items-center justify-between text-xs font-mono text-emerald-400 group-hover:translate-x-1 transition-transform">
+            <span>View Telemetry</span>
+            <span>→</span>
+          </div>
+        </router-link>
+
+        <!-- MODULE 5: SUPPORT CORES SYSTEM -->
+        <router-link 
+          to="/admin/cores" 
+          class="group p-6 bg-slate-900/60 hover:bg-slate-900 backdrop-blur-xl border border-slate-800 hover:border-cyan-500/50 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-[0_0_25px_rgba(6,182,212,0.15)] flex flex-col justify-between"
+        >
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+              ⚡
+            </div>
+            <h4 class="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">
+              Support Cores System
+            </h4>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+              Manage catalog of {{ metrics.totalCores }} cores, tune multipliers, and toggle drop pool availability.
+            </p>
+          </div>
+          <div class="mt-6 flex items-center justify-between text-xs font-mono text-cyan-400 group-hover:translate-x-1 transition-transform">
+            <span>Manage Core Catalog</span>
+            <span>→</span>
+          </div>
+        </router-link>
+
+        <!-- MODULE 6: AI CORE ASSISTANT -->
         <router-link 
           to="/admin/ai" 
           class="group p-6 bg-slate-900/60 hover:bg-slate-900 backdrop-blur-xl border border-slate-800 hover:border-violet-500/50 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-[0_0_25px_rgba(139,92,246,0.15)] flex flex-col justify-between"
