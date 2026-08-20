@@ -1437,9 +1437,12 @@ export async function getMatchHistory(req: AuthRequest, res: Response): Promise<
  */
 export async function generateAiQuestions(req: AuthRequest, res: Response): Promise<void> {
   try {
-    const { topic = 'daily-life', level = 'intermediate', count = 5 } = req.body
+    const { topic = 'daily-life', level = 'A1', count = 5, avoidDuplicates = true, focusContext = '' } = req.body
     const parsedCount = Math.min(Math.max(Number(count) || 5, 1), 20)
-    const questions = await generateQuestions(String(topic), String(level), parsedCount)
+    const questions = await generateQuestions(String(topic), String(level), parsedCount, {
+      avoidDuplicates: avoidDuplicates !== false,
+      focusContext: String(focusContext || '')
+    })
     res.json({
       success: true,
       questions

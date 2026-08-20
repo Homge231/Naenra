@@ -520,18 +520,54 @@ const questionSchema: Schema = {
   }
 }
 
-export async function generateQuestions(topic: string, level: string, count: number): Promise<GeneratedQuestion[]> {
+export async function generateQuestions(
+  topic: string,
+  level: string,
+  count: number,
+  options?: { avoidDuplicates?: boolean; focusContext?: string }
+): Promise<GeneratedQuestion[]> {
+  const shouldAvoidDuplicates = options?.avoidDuplicates !== false
+  const focusContext = options?.focusContext?.trim() || ''
+
+  let existingWords: string[] = []
+  if (shouldAvoidDuplicates) {
+    try {
+      const { data: dbWords } = await supabase
+        .from('questions')
+        .select('target_word')
+        .limit(2000)
+      existingWords = (dbWords || [])
+        .map(q => (q.target_word || '').trim().toLowerCase())
+        .filter(Boolean)
+    } catch (e) {
+      console.warn('Could not fetch existing words for deduplication:', e)
+    }
+  }
+
+  const existingWordsSet = new Set(existingWords)
+  const existingWordsSnippet = existingWords.length > 0
+    ? `\n\nAVOID DUPLICATE WORDS (STRICT EXCLUSION LIST):
+The following words ALREADY exist in the database Question Bank. You MUST NOT use ANY of these words as target_word:
+[${existingWords.slice(0, 400).join(', ')}]`
+    : ''
+
+  const focusSnippet = focusContext
+    ? `\n\nSUB-TOPIC / SPECIFIC FOCUS:
+Center questions specifically around the context: "${focusContext}".`
+    : ''
+
   const prompt = `
-You are an expert trivia and vocabulary question writer.
-Generate exactly ${count} fill-in-the-blank questions.
+You are an expert English trivia and CEFR vocabulary question generator for a competitive fast-typing arena game.
+Generate exactly ${count} diverse, engaging, and rich fill-in-the-blank questions.
 Topic: ${topic}
-Difficulty Level: ${level}
+Difficulty Level: ${level}${focusSnippet}${existingWordsSnippet}
 
 RULES:
-1. **question_text**: A fill-in-the-blank question containing EXACTLY ONE blank represented by four underscores ("____").
-2. **target_word**: The exact word that goes in the blank (must be a single word, lowercase).
-3. **target_word restriction**: The target_word MUST NOT contain spaces, hyphens (-), apostrophes, or any other punctuation/special characters. It MUST consist entirely of alphabet letters (a-z).
-4. **hint**: A highly specific, unambiguous hint that strongly points to the target_word. The hint MUST always start with a capital letter.
+1. **question_text**: A fill-in-the-blank question containing EXACTLY ONE blank represented by four underscores ("____"). The sentence must be natural, descriptive, and provide clear semantic context.
+2. **target_word**: The exact single word that goes in the blank (must be a single word, lowercase, purely a-z letters).
+3. **target_word restriction**: The target_word MUST NOT contain spaces, hyphens (-), apostrophes, or punctuation.
+4. **hint**: A highly specific, informative hint starting with a capital letter.
+5. **DIVERSITY & VOCABULARY RICHNESS**: Use varied, colorful, rich vocabulary perfectly calibrated for CEFR ${level}. Avoid repetitive or trivial words. Every target word in the generated batch must be 100% unique!
 `
 
   try {
@@ -550,7 +586,7 @@ RULES:
         config: {
           responseMimeType: 'application/json',
           responseSchema: questionSchema,
-          temperature: 0.7,
+          temperature: 0.8,
         }
       })
     } catch (e) {
@@ -561,7 +597,7 @@ RULES:
         config: {
           responseMimeType: 'application/json',
           responseSchema: questionSchema,
-          temperature: 0.7,
+          temperature: 0.8,
         }
       })
     }
@@ -570,7 +606,16 @@ RULES:
       throw new Error("AI returned empty response")
     }
 
-    const data: GeneratedQuestion[] = JSON.parse(response.text)
+    let data: GeneratedQuestion[] = JSON.parse(response.text)
+    
+    // Post-filter to ensure zero duplicates against existing DB words
+    if (shouldAvoidDuplicates && existingWordsSet.size > 0) {
+      data = data.filter(q => {
+        const word = (q.target_word || '').trim().toLowerCase()
+        return word && !existingWordsSet.has(word)
+      })
+    }
+
     return data
   } catch (error) {
     console.error("Error generating questions from Gemini:", error)

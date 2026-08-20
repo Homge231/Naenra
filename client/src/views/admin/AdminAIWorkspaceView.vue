@@ -435,6 +435,37 @@
             </div>
           </div>
 
+          <!-- Sub-topic focus input & Bank deduplication filter -->
+          <div class="space-y-2 pt-1">
+            <div>
+              <label class="text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                <span>Sub-Topic / Focus Context <span class="text-slate-600 lowercase">(optional)</span></span>
+                <span class="text-[10px] text-amber-400/80">Enhances diversity</span>
+              </label>
+              <input
+                v-model="genConfig.focusContext"
+                type="text"
+                placeholder="e.g. Airport boarding, Cybersecurity protocols, Coffee brewing..."
+                class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 placeholder-slate-600 transition-colors font-mono"
+              />
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer select-none bg-slate-950/60 p-2 rounded-xl border border-slate-800 hover:border-slate-700 transition-colors">
+              <input
+                type="checkbox"
+                v-model="genConfig.avoidDuplicates"
+                class="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-slate-900"
+              />
+              <div class="flex-1">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold text-slate-200">🛡️ Auto-Exclude Existing Bank Words</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Zero Duplicates</span>
+                </div>
+                <p class="text-[10px] text-slate-500 leading-tight">Searches current database Question Bank to ensure generated target words are 100% fresh and unique.</p>
+              </div>
+            </label>
+          </div>
+
           <button
             @click="generateQuestions"
             :disabled="isGenerating"
@@ -442,7 +473,7 @@
           >
             <svg v-if="isGenerating" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke-linecap="round"/></svg>
             <span>⚡</span>
-            <span>{{ isGenerating ? `Generating ${genConfig.count} Questions...` : `Generate ${genConfig.count} Questions` }}</span>
+            <span>{{ isGenerating ? `Generating ${genConfig.count} Unique Questions...` : `Generate ${genConfig.count} Questions` }}</span>
           </button>
         </div>
 
@@ -545,6 +576,8 @@ interface GenConfig {
   topic: string
   level: string
   count: number
+  avoidDuplicates: boolean
+  focusContext: string
 }
 
 interface AiConfig {
@@ -607,7 +640,13 @@ let chatAbortController: AbortController | null = null
 let chatStreamTimer: ReturnType<typeof setInterval> | null = null
 
 // Question generator
-const genConfig = ref<GenConfig>({ topic: 'daily-life', level: 'A1', count: 5 })
+const genConfig = ref<GenConfig>({
+  topic: 'daily-life',
+  level: 'A1',
+  count: 5,
+  avoidDuplicates: true,
+  focusContext: ''
+})
 const generatedQuestions = ref<GeneratedQuestion[]>([])
 const isGenerating = ref(false)
 const isSaving = ref(false)
@@ -915,7 +954,9 @@ async function generateQuestions() {
       body: JSON.stringify({
         topic: genConfig.value.topic,
         level: genConfig.value.level,
-        count: genConfig.value.count
+        count: genConfig.value.count,
+        avoidDuplicates: genConfig.value.avoidDuplicates,
+        focusContext: genConfig.value.focusContext
       })
     })
 
