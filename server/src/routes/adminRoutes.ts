@@ -22,7 +22,8 @@ import {
   deleteCore,
   getMatchAnalytics,
   getLiveMatchMetrics,
-  getMatchHistory
+  getMatchHistory,
+  generateAiQuestions
 } from '../controllers/adminController'
 
 const router = Router()
@@ -83,5 +84,8 @@ router.delete('/cores/:id', authMiddleware, requireAdmin, deleteCore)
 router.get('/matches/analytics', authMiddleware, requireAdmin, getMatchAnalytics)
 router.get('/matches/live', authMiddleware, requireAdmin, getLiveMatchMetrics)
 router.get('/matches/history', authMiddleware, requireAdmin, getMatchHistory)
+
+// Protected AI Operations endpoints (US-96)
+router.post('/ai/generate-questions', authMiddleware, requireAdmin, generateAiQuestions)
 
 export default router

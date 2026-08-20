@@ -720,6 +720,7 @@ async function sendMessage() {
   let displayedText = ''
   let isStreamClosed = false
   let timeoutId: any = null
+  let answerMsgIdx = -1
 
   const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
 
@@ -832,7 +833,7 @@ async function sendMessage() {
 
     // Push placeholder message for AI answer
     messages.value.push({ role: 'model', content: '' })
-    const answerMsgIdx = messages.value.length - 1
+    answerMsgIdx = messages.value.length - 1
 
     // Launch incremental typewriter loop
     startTypewriterLoop(answerMsgIdx)

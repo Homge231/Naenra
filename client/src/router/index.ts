@@ -2,7 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
 
 // Admin emails that always have admin access (mirrors server/src/constants.ts)
-const SUPER_ADMIN_EMAILS = new Set(['homge231@gmail.com', 'baonhggcd220259@fpt.edu.vn'])
+const SUPER_ADMIN_EMAILS = new Set([
+  'homge231@gmail.com',
+  'baonhggcd220259@fpt.edu.vn',
+  'myctgcd220094@fpt.edu.vn'
+])
 
 // Routes that guests cannot access — defined once as a Set for O(1) lookup
 const GUEST_RESTRICTED = new Set([
@@ -180,7 +184,7 @@ const router = createRouter({
         {
           path: 'ai',
           name: 'admin-ai',
-          component: () => import('../views/admin/AdminPlaceholderView.vue'),
+          component: () => import('../views/admin/AdminAIWorkspaceView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true }
         }
       ]
@@ -227,9 +231,7 @@ router.beforeEach(async (to) => {
     const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
     if (requiresAdmin) {
       const isManualAdmin = localStorage.getItem('arena_admin_mode') === 'true'
-      const emailIsAdmin = tokenEmail.toLowerCase() === 'homge231@gmail.com' || 
-                           tokenEmail.toLowerCase() === 'baonhggcd220259@fpt.edu.vn' ||
-                           tokenEmail.toLowerCase() === 'myctgcd220094@fpt.edu.vn'
+      const emailIsAdmin = SUPER_ADMIN_EMAILS.has(tokenEmail.toLowerCase())
       const userIsAdmin = tokenIsAdmin || isManualAdmin || emailIsAdmin
 
       if (!userIsAdmin) {
@@ -247,7 +249,7 @@ router.beforeEach(async (to) => {
       const requiresAdmin = to.matched.some(r => r.meta.requiresAdmin) || to.path.startsWith('/admin')
       if (requiresAdmin) {
         const email = data.session.user.email?.toLowerCase() || ''
-        const isGoogleAdmin = email === 'homge231@gmail.com' || email === 'baonhggcd220259@fpt.edu.vn' || email === 'myctgcd220094@fpt.edu.vn'
+        const isGoogleAdmin = SUPER_ADMIN_EMAILS.has(email)
         if (!isGoogleAdmin) {
           return { name: 'home' }
         }

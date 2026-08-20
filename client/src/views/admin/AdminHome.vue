@@ -200,6 +200,28 @@
             <span>→</span>
           </div>
         </router-link>
+
+        <!-- MODULE 4: AI CORE ASSISTANT -->
+        <router-link 
+          to="/admin/ai" 
+          class="group p-6 bg-slate-900/60 hover:bg-slate-900 backdrop-blur-xl border border-slate-800 hover:border-violet-500/50 rounded-2xl transition-all duration-200 shadow-lg hover:shadow-[0_0_25px_rgba(139,92,246,0.15)] flex flex-col justify-between"
+        >
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+              🤖
+            </div>
+            <h4 class="text-lg font-bold text-white group-hover:text-violet-400 transition-colors">
+              AI Core Assistant
+            </h4>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+              Test AI chat responses, batch-generate questions, and monitor Gemini model health.
+            </p>
+          </div>
+          <div class="mt-6 flex items-center justify-between text-xs font-mono text-violet-400 group-hover:translate-x-1 transition-transform">
+            <span>Open AI Workspace</span>
+            <span>→</span>
+          </div>
+        </router-link>
       </div>
     </div>
   </div>

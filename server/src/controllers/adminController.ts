@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
 import { kickUserClients, getOnlineUserIds } from '../utils/activeClients'
+import { generateQuestions } from '../services/aiService'
 
 // ── Shared admin helpers ──────────────────────────────────────────────────────
 
@@ -1426,6 +1427,28 @@ export async function getMatchHistory(req: AuthRequest, res: Response): Promise<
       success: false,
       error: 'InternalServerError',
       message: 'Failed to retrieve match history'
+    })
+  }
+}
+
+/**
+ * POST /api/admin/ai/generate-questions
+ * Generates batches of vocabulary questions using Gemini AI (US-96 AI Operations).
+ */
+export async function generateAiQuestions(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { topic = 'daily-life', level = 'intermediate', count = 5 } = req.body
+    const parsedCount = Math.min(Math.max(Number(count) || 5, 1), 20)
+    const questions = await generateQuestions(String(topic), String(level), parsedCount)
+    res.json({
+      success: true,
+      questions
+    })
+  } catch (error: any) {
+    console.error('Error in generateAiQuestions:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate questions via Gemini AI'
     })
   }
 }
