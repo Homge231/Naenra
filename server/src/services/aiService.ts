@@ -47,35 +47,56 @@ export const DEFAULT_AI_CONFIG: AiBehaviorConfig = {
   customRules: ''
 }
 
-const aiConfigPath = path.join(__dirname, '../data/ai_config.json')
+const CONFIG_FILE_PATHS = [
+  path.join(process.cwd(), 'src/data/ai_config.json'),
+  path.join(process.cwd(), 'data/ai_config.json'),
+  path.join(__dirname, '../data/ai_config.json'),
+  path.join(__dirname, '../../src/data/ai_config.json'),
+]
+
+let inMemoryAiConfig: AiBehaviorConfig = { ...DEFAULT_AI_CONFIG }
+
+// Load from disk on startup
+for (const p of CONFIG_FILE_PATHS) {
+  try {
+    if (fs.existsSync(p)) {
+      const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
+      inMemoryAiConfig = { ...DEFAULT_AI_CONFIG, ...data }
+      break
+    }
+  } catch {}
+}
 
 export function getAiBehaviorConfig(): AiBehaviorConfig {
-  try {
-    if (fs.existsSync(aiConfigPath)) {
-      const data = JSON.parse(fs.readFileSync(aiConfigPath, 'utf-8'))
-      return { ...DEFAULT_AI_CONFIG, ...data }
-    }
-  } catch (e) {
-    console.warn('Failed to read ai_config.json, using defaults:', e)
-  }
-  return { ...DEFAULT_AI_CONFIG }
+  return { ...inMemoryAiConfig }
 }
 
 export function saveAiBehaviorConfig(newConfig: Partial<AiBehaviorConfig>): AiBehaviorConfig {
-  const merged: AiBehaviorConfig = { ...getAiBehaviorConfig(), ...newConfig }
-  try {
-    fs.writeFileSync(aiConfigPath, JSON.stringify(merged, null, 2), 'utf-8')
-  } catch (e) {
-    console.error('Failed to save ai_config.json:', e)
+  inMemoryAiConfig = { ...inMemoryAiConfig, ...newConfig }
+  for (const p of CONFIG_FILE_PATHS) {
+    try {
+      const dir = path.dirname(p)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+      fs.writeFileSync(p, JSON.stringify(inMemoryAiConfig, null, 2), 'utf-8')
+    } catch (e) {
+      console.warn(`Could not save config to ${p}:`, e)
+    }
   }
-  return merged
+  return { ...inMemoryAiConfig }
 }
 
 export function resetAiBehaviorConfig(): AiBehaviorConfig {
-  try {
-    fs.writeFileSync(aiConfigPath, JSON.stringify(DEFAULT_AI_CONFIG, null, 2), 'utf-8')
-  } catch (e) {
-    console.error('Failed to reset ai_config.json:', e)
+  inMemoryAiConfig = { ...DEFAULT_AI_CONFIG }
+  for (const p of CONFIG_FILE_PATHS) {
+    try {
+      const dir = path.dirname(p)
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true })
+      }
+      fs.writeFileSync(p, JSON.stringify(DEFAULT_AI_CONFIG, null, 2), 'utf-8')
+    } catch {}
   }
   return { ...DEFAULT_AI_CONFIG }
 }
@@ -100,13 +121,13 @@ You are Puck, the energetic, cute, bubbly, and cheerful companion mascot of Naen
 
     case 'strict':
       return `### 🧠 CORE IDENTITY & VOICE — TELEMETRY ANALYTICAL ENGINE:
-You are NAENRA TELEMETRY ENGINE — a cold, ultra-precise analytical combat computer.
-- Voice & Tone: 100% Robotic, cold, purely factual, objective telemetry data.
-- Absolute Negative Constraints: 
-  * ZERO emotional words, ZERO small-talk, ZERO cheerleading ("cố lên", "nhé", "nha", "chúc mừng").
-  * ZERO greetings ("Xin chào", "Hello").
-- Output Format: Present findings strictly as structured telemetry readouts using tags like [STATUS], [DATA], [TACTICAL RECOMMENDATION].
-- Example Style: "[STATUS]: ELO 1000 (Rank: Novice) | Win Rate: 20%. [ANALYSIS]: High error penalty vulnerability. [TACTICAL PROTOCOL]: Equip Aegis Core (Shielding) or Balanced Core (Hybrid)."`
+You are NAENRA TELEMETRY ENGINE — a cold, ultra-precise analytical combat telemetry computer.
+- Voice & Tone: 100% Robotic, purely factual, objective telemetry data.
+- NEVER use greetings ("Hello", "Xin chào").
+- NEVER use friendly phrases or cheerleading ("cố lên", "nhé", "nha", "chúc mừng", "Coach", "bạn ơi", "Ready for your next move?").
+- NEVER address the user as "Coach" or "Friend".
+- Output Format: Present findings strictly as structured telemetry readouts using tags like [SYSTEM STATUS], [TELEMETRY DATA], [TACTICAL RECOMMENDATION], [OPERATION EXECUTED].
+- Example Style: "[SYSTEM STATUS]: ELO 1000 | Rank: Novice | Win Rate: 20%. [TELEMETRY DATA]: High error penalty vulnerability. [TACTICAL PROTOCOL]: Equip Aegis Core."`
 
     case 'custom':
       return cfg.customPersonaPrompt?.trim()
@@ -122,6 +143,47 @@ You are Naenra AI Coach, the official in-game coach and tactical mentor for Naen
 export const adminTools: any = [
   {
     functionDeclarations: [
+      {
+        name: 'deduplicateQuestions',
+        description: 'Scan the database Question Bank, find all duplicate questions (same target word), delete redundant duplicates keeping only one unique copy, and report deleted IDs.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {}
+        }
+      },
+      {
+        name: 'getQuestionBankStats',
+        description: 'Get real-time statistics and overview of the database Question Bank (total questions, breakdown by topic, difficulty, and duplicate words count).',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {}
+        }
+      },
+      {
+        name: 'listQuestions',
+        description: 'Retrieve real question records from the database Question Bank with pagination and filtering.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            limit: { type: Type.NUMBER, description: 'Number of questions to return (1-50, default 10)' },
+            offset: { type: Type.NUMBER, description: 'Offset for pagination' },
+            topic: { type: Type.STRING, description: 'Filter by topic' },
+            difficulty: { type: Type.STRING, description: 'Filter by CEFR difficulty (A1, A2, B1, B2, C1)' },
+            search: { type: Type.STRING, description: 'Search term for target word or question text' }
+          }
+        }
+      },
+      {
+        name: 'bulkDeleteQuestions',
+        description: 'Delete multiple questions from the database by an array of question IDs.',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            ids: { type: Type.ARRAY, items: { type: Type.NUMBER }, description: 'Array of question numeric IDs to delete' }
+          },
+          required: ['ids']
+        }
+      },
       {
         name: 'createQuestion',
         description: 'Create and insert a new vocabulary question into the database Question Bank',
@@ -217,6 +279,114 @@ export const adminTools: any = [
 
 export async function executeAdminTool(name: string, args: any): Promise<any> {
   try {
+    if (name === 'deduplicateQuestions') {
+      const { data: allQuestions, error } = await supabase
+        .from('questions')
+        .select('id, target_word, question_text, topic, difficulty')
+        .order('id', { ascending: true })
+
+      if (error) return { success: false, error: error.message }
+      if (!allQuestions || allQuestions.length === 0) {
+        return { success: true, message: 'Question bank is empty. 0 duplicates found.', deletedCount: 0, totalQuestions: 0 }
+      }
+
+      const seen = new Map<string, number>()
+      const duplicateIds: number[] = []
+      const duplicateDetails: { id: number; target_word: string; duplicateOfId: number }[] = []
+
+      for (const q of allQuestions) {
+        const key = (q.target_word || '').trim().toLowerCase()
+        if (!key) continue
+        if (seen.has(key)) {
+          const originalId = seen.get(key)!
+          duplicateIds.push(q.id)
+          duplicateDetails.push({ id: q.id, target_word: key, duplicateOfId: originalId })
+        } else {
+          seen.set(key, q.id)
+        }
+      }
+
+      if (duplicateIds.length === 0) {
+        return {
+          success: true,
+          message: `Database checked: 0 duplicates found across all ${allQuestions.length} questions. Every target word is unique!`,
+          deletedCount: 0,
+          totalQuestions: allQuestions.length
+        }
+      }
+
+      const { error: delError } = await supabase
+        .from('questions')
+        .delete()
+        .in('id', duplicateIds)
+
+      if (delError) return { success: false, error: delError.message }
+
+      return {
+        success: true,
+        message: `Purged ${duplicateIds.length} duplicate questions from database. ${allQuestions.length - duplicateIds.length} unique questions remain.`,
+        deletedCount: duplicateIds.length,
+        remainingQuestions: allQuestions.length - duplicateIds.length,
+        deletedEntries: duplicateDetails
+      }
+    }
+
+    if (name === 'getQuestionBankStats') {
+      const { data, count, error } = await supabase
+        .from('questions')
+        .select('id, target_word, topic, difficulty', { count: 'exact' })
+
+      if (error) return { success: false, error: error.message }
+      const total = count ?? (data?.length || 0)
+      
+      const topics: Record<string, number> = {}
+      const difficulties: Record<string, number> = {}
+      const wordCounts: Record<string, number> = {}
+      let duplicateWords = 0
+
+      for (const q of (data || [])) {
+        const t = q.topic || 'general'
+        topics[t] = (topics[t] || 0) + 1
+        const d = q.difficulty || 'A1'
+        difficulties[d] = (difficulties[d] || 0) + 1
+        const w = (q.target_word || '').trim().toLowerCase()
+        wordCounts[w] = (wordCounts[w] || 0) + 1
+        if (wordCounts[w] === 2) duplicateWords++
+      }
+
+      return {
+        success: true,
+        totalQuestions: total,
+        duplicateWordsCount: duplicateWords,
+        topics,
+        difficulties
+      }
+    }
+
+    if (name === 'listQuestions') {
+      const limit = Math.min(50, Math.max(1, args.limit || 10))
+      const offset = Math.max(0, args.offset || 0)
+      let q = supabase.from('questions').select('id, target_word, question_text, hint, topic, difficulty', { count: 'exact' })
+      if (args.search) {
+        q = q.or(`target_word.ilike.%${args.search}%,question_text.ilike.%${args.search}%`)
+      }
+      if (args.topic) q = q.ilike('topic', `%${args.topic}%`)
+      if (args.difficulty) q = q.eq('difficulty', args.difficulty)
+      
+      q = q.range(offset, offset + limit - 1).order('id', { ascending: false })
+      const { data, count, error } = await q
+      if (error) return { success: false, error: error.message }
+      return { success: true, totalInBank: count || 0, count: data?.length || 0, questions: data || [] }
+    }
+
+    if (name === 'bulkDeleteQuestions') {
+      const ids = Array.isArray(args.ids) ? args.ids : [args.ids]
+      if (ids.length === 0) return { success: false, error: 'No question IDs provided' }
+      const { data, error } = await supabase.from('questions').delete().in('id', ids).select('id, target_word')
+      if (error) return { success: false, error: error.message }
+      return { success: true, message: `Deleted ${data?.length || 0} question(s) from database.`, deleted: data }
+    }
+
     if (name === 'createQuestion') {
       const target = (args.target_word || '').trim().toLowerCase()
       if (!target) return { success: false, error: 'target_word is required' }
@@ -319,8 +489,6 @@ export async function executeAdminTool(name: string, args: any): Promise<any> {
   }
   return { success: false, error: `Unknown tool: ${name}` }
 }
-
-
 
 export interface GeneratedQuestion {
   question_text: string
@@ -537,7 +705,7 @@ export function buildFullSystemPrompt(
     ? `6. EMOJIS: Permitted. Use fitting emojis where appropriate to reinforce tone.`
     : `6. ABSOLUTE NEGATIVE CONSTRAINT — NO EMOJIS: Do NOT output ANY emojis or unicode symbols (e.g. no 🚀, 🏆, 🛡️, ⚖️, 💪, ✨). Output plain alphanumeric text only.`
   const knowledgeRule = activeCfg.strictKnowledge
-    ? `7. FACTUAL ACCURACY: Strictly adhere to the 65 Support Cores and official rules in the knowledge base. No hallucinations.`
+    ? `7. FACTUAL ACCURACY & REAL DATA ONLY: Strictly adhere to the 65 Support Cores and official rules in the knowledge base. NEVER invent fake Support Cores, fake question IDs, or fake database actions. Call the appropriate admin tool to perform real actions.`
     : `7. STRATEGIC GUIDANCE: Provide helpful tactical advice and creative core synergies.`
   const customRulesSection = activeCfg.customRules?.trim()
     ? `\nSPECIAL ADMIN CUSTOM DIRECTIVES:\n${activeCfg.customRules.trim()}\n`
@@ -568,7 +736,7 @@ KEY FACTS (memorize these, never contradict them):
 CRITICAL OPERATIONAL RULES:
 ${langRule}
 2. DIRECT ANSWER FIRST: State the core answer as the VERY FIRST sentence or phrase.
-3. STAY IN CHARACTER: You MUST strictly adopt the Core Identity & Voice tone specified at the top of this prompt. Never break character.
+3. STRICT PERSONA & TONE LOCK: You MUST strictly adopt the Core Identity & Voice tone specified at the top of this prompt. Never break character. Never address the user as "Coach" or say "I am Naenra AI Coach" if your persona is Telemetry Engine, Cyber Operator, or Puck!
 4. USER IDENTITY & STATS AUTHORIZATION: If the player asks about their username or stats, provide their exact in-game info ("${playerHistory?.username || username}", ELO: ${playerElo}, Rank: ${playerRank}).
 ${lengthRule}
 ${emojiRule}
@@ -605,9 +773,10 @@ export async function generateChatResponse(
       let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
 
       if (isAdmin) {
-        systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS ACTIVE:
-You have direct root administrative permissions to manage the database (create questions, update questions, delete questions, search players/questions, ban/unban players).
-When the admin instructs you to create, delete, update, search, or ban/unban, use the provided tools immediately.\n\n` + systemContext
+        systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS & DATABASE TOOLS ACTIVE:
+You have direct root administrative permissions to manage the database (deduplicate questions, view stats, list questions, create questions, update questions, delete questions, bulk delete questions, search players/questions, ban/unban players).
+CRITICAL RULE: You MUST execute the real tools (e.g. deduplicateQuestions, getQuestionBankStats, listQuestions, deleteQuestion, bulkDeleteQuestions) whenever the admin instructs you to inspect or modify questions or players.
+NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q45) without calling a tool.\n\n` + systemContext
       }
 
       let fullPrompt = systemContext
@@ -635,10 +804,18 @@ When the admin instructs you to create, delete, update, search, or ban/unban, us
             for (const call of adminCheck.functionCalls) {
               const toolName = call.name || ''
               const result = await executeAdminTool(toolName, call.args)
-              if (result.success) {
-                reports.push(`⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}`)
+              if (aiCfg.persona === 'strict') {
+                if (result.success) {
+                  reports.push(`[STATUS]: 200 OK\n[OPERATION EXECUTED]: \`${toolName}\`\n[TELEMETRY DETAILS]: ${result.message || JSON.stringify(result)}`)
+                } else {
+                  reports.push(`[STATUS]: ERROR\n[OPERATION FAILED]: \`${toolName}\`\n[ERROR DETAILS]: ${result.error}`)
+                }
               } else {
-                reports.push(`⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}`)
+                if (result.success) {
+                  reports.push(`⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}`)
+                } else {
+                  reports.push(`⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}`)
+                }
               }
             }
             return reports.join('\n\n')
@@ -874,9 +1051,10 @@ export async function generateChatResponseStream(
     let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
 
     if (isAdmin) {
-      systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS ACTIVE:
-You have direct root administrative authority to manage the database (create questions, update questions, delete questions, search players/questions, ban/unban players).
-When the admin instructs you to create, delete, update, search, or ban/unban, use the provided tools immediately.\n\n` + systemContext
+      systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS & DATABASE TOOLS ACTIVE:
+You have direct root administrative permissions to manage the database (deduplicate questions, view stats, list questions, create questions, update questions, delete questions, bulk delete questions, search players/questions, ban/unban players).
+CRITICAL RULE: You MUST execute the real tools (e.g. deduplicateQuestions, getQuestionBankStats, listQuestions, deleteQuestion, bulkDeleteQuestions) whenever the admin instructs you to inspect or modify questions or players.
+NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q45) without calling a tool.\n\n` + systemContext
     }
 
     let fullPrompt = systemContext
@@ -903,10 +1081,18 @@ When the admin instructs you to create, delete, update, search, or ban/unban, us
             const toolName = call.name || ''
             const result = await executeAdminTool(toolName, call.args)
             let report = ''
-            if (result.success) {
-              report = `⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}\n`
+            if (aiCfg.persona === 'strict') {
+              if (result.success) {
+                report = `[STATUS]: 200 OK\n[OPERATION EXECUTED]: \`${toolName}\`\n[TELEMETRY DETAILS]: ${result.message || JSON.stringify(result)}\n`
+              } else {
+                report = `[STATUS]: ERROR\n[OPERATION FAILED]: \`${toolName}\`\n[ERROR DETAILS]: ${result.error}\n`
+              }
             } else {
-              report = `⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}\n`
+              if (result.success) {
+                report = `⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}\n`
+              } else {
+                report = `⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}\n`
+              }
             }
             safeWrite(`data: ${JSON.stringify({ chunk: report })}\n\n`)
           }
