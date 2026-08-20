@@ -18,58 +18,15 @@
           <div class="chat-header-info">
             
             <!-- 🤖 INTERACTIVE AI MASCOT AVATAR (Glowing Eyes + Lip-Synced Mouth) -->
-            <div 
-              class="ai-mascot-box relative flex flex-col items-center justify-center cursor-pointer select-none transition-all duration-300 group"
-              @click="handleMascotClick"
-              :class="{
-                'mascot-pulse-listening': isListening,
-                'mascot-glow-thinking': isLoading && !isStreaming,
-                'mascot-talk-speaking': isSpeaking || isStreaming,
-                'mascot-interactive-click': isInteracting
-              }"
-              title="Click to interact with AI Mascot!"
-            >
-              <!-- Glowing AI Eyes -->
-              <div class="ai-eyes flex items-center gap-2 z-10">
-                <div 
-                  class="ai-eye left-eye" 
-                  :class="{ 
-                    'eye-blink': isBlinking, 
-                    'eye-wide': isListening, 
-                    'eye-happy': isInteracting,
-                    'eye-think': isLoading && !isStreaming 
-                  }"
-                ></div>
-                <div 
-                  class="ai-eye right-eye" 
-                  :class="{ 
-                    'eye-blink': isBlinking, 
-                    'eye-wide': isListening, 
-                    'eye-happy': isInteracting,
-                    'eye-think': isLoading && !isStreaming 
-                  }"
-                ></div>
-              </div>
-
-              <!-- Animated Talking Mouth (Lip Sync to Speech Readout, Audio & Real-time Text Streaming) -->
-              <div class="ai-mouth mt-1 z-10 flex items-center justify-center h-3.5">
-                <!-- When Speaking or Streaming: Animated Real-Time Mouth Bars (Lip Sync) -->
-                <div v-if="isSpeaking || isLiveSpeaking || isStreaming" class="talking-mouth flex items-center gap-0.5 h-3">
-                  <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
-                  <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(6, audioAmplitude * 16)}px` } : {}"></span>
-                  <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
-                </div>
-                <!-- When Listening / Live Active: Pulsing O Mouth -->
-                <div v-else-if="isListening || isLiveConnected" class="listening-mouth w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-900/50 animate-ping"></div>
-                <!-- When Interacting / Happy: Curved Smile -->
-                <div v-else-if="isInteracting" class="smile-mouth w-4 h-2 border-b-2 border-amber-400 rounded-b-full shadow-xs"></div>
-                <!-- Idle Gold Straight Mouth Line (Matching user screenshot) -->
-                <div v-else class="idle-mouth w-3.5 h-[2px] bg-amber-400 rounded-full group-hover:w-4.5 transition-all shadow-xs"></div>
-              </div>
-
-              <!-- AI Aura Glow Ring -->
-              <div class="ai-mascot-aura" :class="{ 'mascot-live-aura': isLiveConnected }"></div>
-            </div>
+            <MascotAvatar
+              :is-listening="isListening"
+              :is-loading="isLoading"
+              :is-streaming="isStreaming"
+              :is-speaking="isSpeaking"
+              :is-live-speaking="isLiveSpeaking"
+              :is-live-connected="isLiveConnected"
+              :audio-amplitude="audioAmplitude"
+            />
 
             <div>
               <h3 class="chat-title flex items-center gap-1.5">
@@ -320,6 +277,8 @@ import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
 import { useGeminiLive } from '../composables/useGeminiLive'
+import { useVoiceSynthesis } from '../composables/useVoiceSynthesis'
+import MascotAvatar from './ai/MascotAvatar.vue'
 
 interface ChatMessage {
   role: 'user' | 'model'
@@ -329,6 +288,7 @@ interface ChatMessage {
 const authStore = useAuthStore()
 const gameStore = useGameStore()
 const geminiLive = useGeminiLive()
+const { isSpeaking, isVoiceOutputEnabled, toggleVoiceOutput, speakText, stopSpeaking } = useVoiceSynthesis()
 
 const {
   isLiveConnected,
@@ -419,15 +379,11 @@ watch(isLiveConnected, (connected) => {
 watch(isChatOpen, (open) => {
   if (!open) {
     // 1. Immediately cancel any voice TTS readouts
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-    }
-    speechQueue = []
-    isSpeaking.value = false
+    stopSpeaking()
 
     // 2. Stop voice speech-to-text if active
     if (isListening.value) {
-      stopVoiceInput()
+      isListening.value = false
     }
 
     // 3. Stop real-time Gemini Live audio session
@@ -458,15 +414,10 @@ const isStreaming = ref(false)
 const streamingMsgIdx = ref(-1)
 const errorMsg = ref('')
 const isListening = ref(false)
-const isSpeaking = ref(false)
-const isVoiceOutputEnabled = ref(true)
-const isBlinking = ref(false)
-const isInteracting = ref(false)
 
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
 
-let blinkInterval: ReturnType<typeof setInterval> | null = null
 let streamTickerTimer: any = null
 let currentAbortController: AbortController | null = null
 
@@ -497,134 +448,6 @@ const quickHints = [
   '🏆 How can I rank up ELO fast?',
 ]
 
-// Mascot Interactive Click Handler
-function handleMascotClick() {
-  isInteracting.value = true
-  setTimeout(() => {
-    isInteracting.value = false
-  }, 1800)
-}
-
-// ── Automatic Blinking Animation Cycle ──────────────────────────────
-function startBlinkCycle() {
-  blinkInterval = setInterval(() => {
-    isBlinking.value = true
-    setTimeout(() => {
-      isBlinking.value = false
-    }, 200)
-  }, 4000)
-}
-
-
-// ── Web Speech Synthesis (Text-to-Speech Output) ─────────────────────
-function toggleVoiceOutput() {
-  isVoiceOutputEnabled.value = !isVoiceOutputEnabled.value
-  if (!isVoiceOutputEnabled.value && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-    isSpeaking.value = false
-  }
-}
-
-function getBestVoice(isVi: boolean): SpeechSynthesisVoice | null {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
-  const voices = window.speechSynthesis.getVoices()
-  if (!voices || voices.length === 0) return null
-
-  const targetLang = isVi ? 'vi' : 'en'
-  const langVoices = voices.filter(v => v.lang.toLowerCase().includes(targetLang))
-  if (langVoices.length === 0) return voices[0] || null
-
-  // Priority ranking list for most human-like male neural & natural voices matching Puck
-  const priorityNames = [
-    'guy online (natural)',
-    'google us english',
-    'google uk english male',
-    'natural (male)',
-    'neural (male)',
-    'alex',
-    'daniel',
-    'fred',
-    'jenny online (natural)',
-    'aria online (natural)',
-    'online (natural)',
-    'samantha (enhanced)',
-    'samantha',
-    'enhanced',
-    'natural',
-    'neural'
-  ]
-
-  for (const nameKeyword of priorityNames) {
-    const found = langVoices.find(v => v.name.toLowerCase().includes(nameKeyword))
-    if (found) return found
-  }
-
-  return langVoices[0] || null
-}
-
-let speechQueue: SpeechSynthesisUtterance[] = []
-
-function stopSpeaking() {
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
-  speechQueue = []
-  isSpeaking.value = false
-}
-
-function speakText(text: string, options?: { rate?: number; pitch?: number }) {
-  // STRICT: Only speak if chat window is actively open and voice is unmuted
-  if (!isChatOpen.value || !isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
-
-  stopSpeaking()
-
-  // Clean status tags, markdown, symbols, emojis, and formatting before speaking
-  const cleanText = text
-    .replace(/\[STATUS\]:?|\[TELEMETRY DATA\]:?|\[TACTICAL RECOMMENDATION\]:?|\[SYSTEM STATUS\]:?|\[OPERATION EXECUTED\]:?|\[ANALYSIS\]:?/gi, '')
-    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F6D0}-\u{1F6FF}\u{1F900}-\u{1F9FF}]/gu, '')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/<[^>]*>/g, '')
-    .replace(/^[-•*]\s+/gm, '')
-    .replace(/https?:\/\/\S+/g, '')
-    .trim()
-
-  if (!cleanText || !isChatOpen.value) {
-    isSpeaking.value = false
-    return
-  }
-
-  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(cleanText)
-  const voice = getBestVoice(isVi)
-
-  const utterance = new SpeechSynthesisUtterance(cleanText)
-  utterance.lang = isVi ? 'vi-VN' : 'en-US'
-  utterance.rate = options?.rate ?? 1.05
-  utterance.pitch = options?.pitch ?? 0.95
-
-  if (voice) {
-    utterance.voice = voice
-  }
-
-  utterance.onstart = () => {
-    if (isChatOpen.value) {
-      isSpeaking.value = true
-    }
-  }
-
-  utterance.onend = () => {
-    isSpeaking.value = false
-  }
-
-  utterance.onerror = () => {
-    isSpeaking.value = false
-  }
-
-  isSpeaking.value = true
-  window.speechSynthesis.speak(utterance)
-}
-
 // ── Click outside to close ──────────────────────────────────────────
 function handleClickOutside(e: MouseEvent) {
   if (!isChatOpen.value) return
@@ -635,27 +458,16 @@ function handleClickOutside(e: MouseEvent) {
 
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
-  startBlinkCycle()
-
-  // Ensure voices are loaded asynchronously if needed by Chrome/Safari
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = () => {
-      // Voices populated
-    }
-  }
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleClickOutside)
-  if (blinkInterval) clearInterval(blinkInterval)
   if (streamTickerTimer) clearInterval(streamTickerTimer)
   if (currentAbortController) {
     currentAbortController.abort()
     currentAbortController = null
   }
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
+  stopSpeaking()
 })
 
 // ── Toggle / Close ───────────────────────────────────────────────────
