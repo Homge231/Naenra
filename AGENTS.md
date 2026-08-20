@@ -27,19 +27,20 @@
 - `MatchRoom` with 4-round structure (Rounds 1–3 Core Mode with 15s core selection; Round 4 Race Mode with 5 fast questions, 12s timeout).
 - Custom room ELO locking to prevent boosting.
 
-### AI Integration & Real-time Streaming (US-95 / IN-423 Completed)
-- AI Question Generator (`generateQuestions`) using `gemini-3.5-flash` with structured JSON schema (`____` blanks, lowercase `target_word`).
+### AI Integration, Voice & Real-time Streaming (US-95 & US-96 Completed)
+- AI Question Generator (`generateQuestions`) using `gemini-3.5-flash` with structured JSON schema (`____` blanks, lowercase `target_word`), live database deduplication (`questions` table exclusion list), and sub-topic context focusing.
 - AI Performance Coach (`generateCoachAnalysis`) for personalized vocabulary analytics reports.
-- AI Assistant (`generateChatResponse` & `generateChatResponseStream`) using injected knowledge base (`naenra_knowledge_base.md`) and offline multi-lingual fallback NLP engine.
-- 2-Phase Real-time Streaming: Immediate conversational acknowledgment phase followed by adaptive character-by-character typewriter streaming, glowing cursor (`.chat-cursor`), mascot lip-sync animation, auto-scrolling, and `AbortController` 25s timeout resilience.
-- AI Server Startup Fix: Resolved `.env` typo and `dotenv.config()` race condition; primary model `gemini-3.5-flash`, fallback `gemini-3.1-flash-lite`.
+- AI Assistant (`generateChatResponse` & `generateChatResponseStream`) using injected knowledge base (`naenra_knowledge_base.md`), offline multi-lingual fallback NLP engine, and Gemini 3.1 Flash Live Voice WebSocket integration.
+- **Dynamic AI Persona & Root Admin Function Calling**: Server-side tool execution suite (`deduplicateQuestions`, `getQuestionBankStats`, `listQuestions`, `bulkDeleteQuestions`, `createQuestion`, `updateQuestion`, `deleteQuestion`, `banPlayer`, `unbanPlayer`, `setPlayerAdmin`, `searchDatabase`) and configurable persona engine (`Naenra Coach`, `Cyber Operator`, `Puck Mascot`, `Telemetry Core`, `Custom`).
+- **Instant Preemption & Voice Interruption**: Non-blocking input with instant abort of in-flight HTTP SSE streams, typewriter timers, and Web Speech Synthesis (`window.speechSynthesis.cancel()`) upon receiving new text or microphone voice triggers.
 
-### Cross-Device Responsiveness & Virtual Keyboard (Sprint 6 Completed)
+### Cross-Device Responsiveness & User Profile (Sprint 6 & 7 Completed)
 - `useDeviceMode.ts`: 3-layer touch API, screen width, and user preference detection.
 - `VirtualKeyboard.vue`: Cyberpunk QWERTY touch keyboard emitting `keypress` events.
 - Synthetic `KeyboardEvent` bridge into `GameplayView.vue`, `GameMultiplayView.vue`, and `GamePureSkillMultiView.vue`.
 - Native keyboard suppression via `readOnly` input attribute on touch devices.
 - Dynamic `slotSize` scaling for long words on 375px mobile screens.
+- **Avatar Upload Optimization**: 10MB raw file support with automatic client-side HTML5 Canvas downsampling (512x512px @ ~100KB) for instant uploads and zero storage bloat.
 
 ---
 
