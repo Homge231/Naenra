@@ -338,7 +338,6 @@
             <input
               v-model="chatInput"
               @keyup.enter="sendChatMessage"
-              :disabled="isChatLoading"
               type="text"
               placeholder="Test a prompt (e.g. 'What is Aegis Core?')"
               class="flex-1 bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
@@ -346,7 +345,7 @@
             />
             <button
               @click="sendChatMessage"
-              :disabled="isChatLoading || !chatInput.trim()"
+              :disabled="!chatInput.trim()"
               class="px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all shadow-[0_0_12px_rgba(139,92,246,0.3)] shrink-0"
             >
               <svg v-if="!isChatLoading" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -820,18 +819,36 @@ function clearChat() {
 
 async function sendChatMessage() {
   const text = chatInput.value.trim()
-  if (!text || isChatLoading.value) return
+  if (!text) return
 
   chatInput.value = ''
+
+  // 1. Immediately abort active stream & interval
+  if (chatAbortController) {
+    chatAbortController.abort()
+    chatAbortController = null
+  }
+  if (chatStreamTimer) {
+    clearInterval(chatStreamTimer)
+    chatStreamTimer = null
+  }
+
+  // 2. Finalize previous AI message if still typing
+  if (chatStreamingIdx.value >= 0 && chatStreamingIdx.value < chatMessages.value.length) {
+    const prev = chatMessages.value[chatStreamingIdx.value]
+    if (prev && !prev.content.trim()) {
+      chatMessages.value.splice(chatStreamingIdx.value, 1)
+    }
+  }
+
+  isChatLoading.value = false
+  isChatStreaming.value = false
+  chatStreamingIdx.value = -1
+
   chatMessages.value.push({ role: 'user', content: text })
   scrollChatToBottom()
 
-  if (chatAbortController) chatAbortController.abort()
-  if (chatStreamTimer) { clearInterval(chatStreamTimer); chatStreamTimer = null }
-
   isChatLoading.value = true
-  isChatStreaming.value = false
-  chatStreamingIdx.value = -1
 
   let incomingBuffer = ''
   let displayedText = ''

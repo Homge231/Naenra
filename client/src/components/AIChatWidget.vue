@@ -236,7 +236,6 @@
             <input
               v-model="inputText"
               @keyup.enter="sendMessage"
-              :disabled="isLoading"
               type="text"
               :placeholder="isLiveConnected ? 'Live active — speak or type...' : 'Type a question or tap mic for Live AI...'"
               class="chat-input flex-1"
@@ -248,7 +247,7 @@
             <!-- Send Button -->
             <button
               @click="sendMessage"
-              :disabled="isLoading || !inputText.trim()"
+              :disabled="!inputText.trim()"
               class="chat-send-btn shrink-0"
               id="ai-chat-send-btn"
               aria-label="Send"
@@ -684,10 +683,38 @@ async function sendMessage() {
   if (!isChatOpen.value) return
 
   const text = inputText.value.trim()
-  if (!text || isLoading.value || isStreaming.value) return
+  if (!text) return
 
   inputText.value = ''
   errorMsg.value = ''
+
+  // 1. Immediately abort active stream, clear interval, and stop TTS audio
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
+  speechQueue = []
+  isSpeaking.value = false
+
+  if (streamTickerTimer) {
+    clearInterval(streamTickerTimer)
+    streamTickerTimer = null
+  }
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
+
+  // 2. Finalize previous AI message if it was still typing (remove empty placeholder if no content arrived)
+  if (streamingMsgIdx.value >= 0 && streamingMsgIdx.value < messages.value.length) {
+    const prevMsg = messages.value[streamingMsgIdx.value]
+    if (prevMsg && !prevMsg.content.trim()) {
+      messages.value.splice(streamingMsgIdx.value, 1)
+    }
+  }
+
+  isStreaming.value = false
+  streamingMsgIdx.value = -1
+  isLoading.value = false
 
   currentUserLiveMsgIdx.value = -1
   currentAiLiveMsgIdx.value = -1
@@ -702,19 +729,7 @@ async function sendMessage() {
     return
   }
 
-  // Cancel any prior active stream ticker or controller
-  if (streamTickerTimer) {
-    clearInterval(streamTickerTimer)
-    streamTickerTimer = null
-  }
-  if (currentAbortController) {
-    currentAbortController.abort()
-    currentAbortController = null
-  }
-
   isLoading.value = true
-  isStreaming.value = false
-  streamingMsgIdx.value = -1
 
   let incomingBuffer = ''
   let displayedText = ''
