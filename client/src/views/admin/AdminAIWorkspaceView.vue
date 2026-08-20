@@ -213,7 +213,7 @@
                 <option value="travel">Travel & Culture</option>
                 <option value="Professional">Professional Skills</option>
                 <option value="Social">Social Interaction</option>
-                <option value="Tech">Tech & Critical Thinking</option>
+                <option value="Tech">Critical Thinking & Tech</option>
               </select>
             </div>
 
@@ -224,9 +224,14 @@
                 v-model="genConfig.level"
                 class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
               >
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
+                <option value="A1">A1 (Beginner)</option>
+                <option value="A2">A2 (Elementary)</option>
+                <option value="B1">B1 (Intermediate)</option>
+                <option value="B2">B2 (Upper Intermediate)</option>
+                <option value="C1">C1 (Advanced)</option>
+                <option value="Tier 1">Tier 1</option>
+                <option value="Tier 2">Tier 2</option>
+                <option value="Tier 3">Tier 3</option>
               </select>
             </div>
 
@@ -276,28 +281,57 @@
               <div class="flex items-start justify-between gap-2">
                 <div class="flex-1 min-w-0">
                   <p class="text-xs text-slate-200 leading-relaxed font-medium">{{ q.question_text }}</p>
-                  <div class="flex items-center gap-3 mt-2">
+                  <div class="flex flex-wrap items-center gap-2 mt-2">
                     <span class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/25 text-amber-400 font-bold">
                       {{ q.target_word }}
                     </span>
-                    <span class="text-[11px] text-slate-500 truncate">💡 {{ q.hint }}</span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600/40">
+                      {{ genConfig.level }}
+                    </span>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-300 border border-slate-600/40">
+                      {{ genConfig.topic }}
+                    </span>
+                    <span class="text-[11px] text-slate-400 truncate">💡 {{ q.hint }}</span>
                   </div>
                 </div>
-                <span class="text-[11px] font-mono text-slate-600 shrink-0">#{{ idx + 1 }}</span>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    v-if="!savedIndexes.has(idx)"
+                    @click="saveSingleQuestion(idx)"
+                    :disabled="isSaving"
+                    class="text-[11px] px-2 py-1 rounded bg-slate-800 hover:bg-emerald-600/20 text-slate-400 hover:text-emerald-400 border border-slate-700 hover:border-emerald-500/30 transition-colors"
+                    title="Save this question to Question Bank"
+                  >
+                    ➕ Save
+                  </button>
+                  <span v-else class="text-[11px] font-mono text-emerald-400 font-bold">✓ Saved</span>
+                  <span class="text-[11px] font-mono text-slate-600">#{{ idx + 1 }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Export footer -->
-        <div v-if="generatedQuestions.length > 0" class="px-5 py-3 border-t border-slate-800 flex items-center justify-between">
+        <div v-if="generatedQuestions.length > 0" class="px-5 py-3 border-t border-slate-800 flex items-center justify-between gap-3">
           <span class="text-[11px] text-slate-500 font-mono">{{ generatedQuestions.length }} questions ready</span>
-          <button
-            @click="exportAsJSON"
-            class="text-[11px] font-mono px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-lg transition-colors"
-          >
-            📥 Export JSON
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              @click="saveAllToQuestionBank"
+              :disabled="isSaving"
+              class="text-[11px] font-mono font-bold px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)] disabled:opacity-50 flex items-center gap-1"
+            >
+              <span>💾</span>
+              <span>{{ isSaving ? 'Saving...' : 'Save All to Question Bank' }}</span>
+            </button>
+            <button
+              @click="exportAsJSON"
+              class="text-[11px] font-mono px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-300 rounded-lg transition-colors flex items-center gap-1"
+            >
+              <span>📥</span>
+              <span>Export JSON</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -348,9 +382,11 @@ let chatAbortController: AbortController | null = null
 let chatStreamTimer: ReturnType<typeof setInterval> | null = null
 
 // Question generator
-const genConfig = ref<GenConfig>({ topic: 'daily-life', level: 'intermediate', count: 5 })
+const genConfig = ref<GenConfig>({ topic: 'daily-life', level: 'A1', count: 5 })
 const generatedQuestions = ref<GeneratedQuestion[]>([])
 const isGenerating = ref(false)
+const isSaving = ref(false)
+const savedIndexes = ref<Set<number>>(new Set())
 
 // Toast
 const toast = ref<Toast>({ message: '', type: 'success' })
@@ -578,11 +614,74 @@ async function generateQuestions() {
 
     const data = await genRes.json()
     generatedQuestions.value = data.questions || data || []
+    savedIndexes.value = new Set()
     showToast(`✅ Generated ${generatedQuestions.value.length} questions successfully!`)
   } catch (err: any) {
     showToast(`Generation failed: ${err.message}`, 'error')
   } finally {
     isGenerating.value = false
+  }
+}
+
+async function saveSingleQuestion(idx: number) {
+  const q = generatedQuestions.value[idx]
+  if (!q || isSaving.value) return
+  isSaving.value = true
+  try {
+    const res = await fetchWithAuth('/api/admin/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question_text: q.question_text,
+        target_word: q.target_word.trim().toLowerCase(),
+        hint: q.hint,
+        topic: genConfig.value.topic,
+        difficulty: genConfig.value.level
+      })
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || 'Failed to save question')
+    }
+    savedIndexes.value.add(idx)
+    showToast(`✅ Saved question #${idx + 1} (${q.target_word}) to Question Bank!`)
+  } catch (err: any) {
+    showToast(`Save failed: ${err.message}`, 'error')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function saveAllToQuestionBank() {
+  if (generatedQuestions.value.length === 0 || isSaving.value) return
+  isSaving.value = true
+  try {
+    const payload = generatedQuestions.value.map(q => ({
+      question_text: q.question_text,
+      target_word: q.target_word.trim().toLowerCase(),
+      hint: q.hint,
+      topic: genConfig.value.topic,
+      difficulty: genConfig.value.level
+    }))
+
+    const res = await fetchWithAuth('/api/admin/questions/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions: payload })
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || 'Failed to import questions')
+    }
+
+    // Mark all as saved
+    generatedQuestions.value.forEach((_, idx) => savedIndexes.value.add(idx))
+    showToast(`✅ Saved all ${generatedQuestions.value.length} questions to Question Bank!`)
+  } catch (err: any) {
+    showToast(`Save all failed: ${err.message}`, 'error')
+  } finally {
+    isSaving.value = false
   }
 }
 
