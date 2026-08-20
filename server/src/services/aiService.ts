@@ -315,6 +315,14 @@ export async function executeAdminTool(name: string, args: any): Promise<any> {
         }
       }
 
+      // Re-link historical match answers referencing duplicate question IDs to the original question IDs
+      for (const item of duplicateDetails) {
+        await supabase
+          .from('game_session_answers')
+          .update({ question_id: item.duplicateOfId })
+          .eq('question_id', item.id)
+      }
+
       const { error: delError } = await supabase
         .from('questions')
         .delete()
@@ -322,11 +330,17 @@ export async function executeAdminTool(name: string, args: any): Promise<any> {
 
       if (delError) return { success: false, error: delError.message }
 
+      const remaining = allQuestions.length - duplicateIds.length
+      const message = `🧹 **Đã Dọn Dẹp Sạch ${duplicateIds.length} Câu Hỏi Trùng Lặp Thành Công!**\n` +
+        `- **Số câu hỏi đã xóa**: **${duplicateIds.length}** câu\n` +
+        `- **Số câu hỏi độc nhất còn lại**: **${remaining}** câu trong ngân hàng\n` +
+        `- **Bảo toàn dữ liệu**: Đã tự động liên kết lại lịch sử thi đấu của người chơi sang các ID câu hỏi gốc.`
+
       return {
         success: true,
-        message: `Purged ${duplicateIds.length} duplicate questions from database. ${allQuestions.length - duplicateIds.length} unique questions remain.`,
+        message,
         deletedCount: duplicateIds.length,
-        remainingQuestions: allQuestions.length - duplicateIds.length,
+        remainingQuestions: remaining,
         deletedEntries: duplicateDetails
       }
     }
