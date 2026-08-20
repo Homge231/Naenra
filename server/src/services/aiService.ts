@@ -22,6 +22,79 @@ try {
   console.warn('Failed to load knowledge base files:', e)
 }
 
+export interface AiBehaviorConfig {
+  persona: 'default' | 'cyberpunk' | 'mascot' | 'strict' | 'custom'
+  customPersonaPrompt?: string
+  temperature: number
+  maxWords: number
+  autoLanguageMatch: boolean
+  enableEmojis: boolean
+  strictKnowledge: boolean
+  customRules?: string
+}
+
+export const DEFAULT_AI_CONFIG: AiBehaviorConfig = {
+  persona: 'default',
+  customPersonaPrompt: '',
+  temperature: 0.7,
+  maxWords: 60,
+  autoLanguageMatch: true,
+  enableEmojis: true,
+  strictKnowledge: true,
+  customRules: ''
+}
+
+const aiConfigPath = path.join(__dirname, '../data/ai_config.json')
+
+export function getAiBehaviorConfig(): AiBehaviorConfig {
+  try {
+    if (fs.existsSync(aiConfigPath)) {
+      const data = JSON.parse(fs.readFileSync(aiConfigPath, 'utf-8'))
+      return { ...DEFAULT_AI_CONFIG, ...data }
+    }
+  } catch (e) {
+    console.warn('Failed to read ai_config.json, using defaults:', e)
+  }
+  return { ...DEFAULT_AI_CONFIG }
+}
+
+export function saveAiBehaviorConfig(newConfig: Partial<AiBehaviorConfig>): AiBehaviorConfig {
+  const merged: AiBehaviorConfig = { ...getAiBehaviorConfig(), ...newConfig }
+  try {
+    fs.writeFileSync(aiConfigPath, JSON.stringify(merged, null, 2), 'utf-8')
+  } catch (e) {
+    console.error('Failed to save ai_config.json:', e)
+  }
+  return merged
+}
+
+export function resetAiBehaviorConfig(): AiBehaviorConfig {
+  try {
+    fs.writeFileSync(aiConfigPath, JSON.stringify(DEFAULT_AI_CONFIG, null, 2), 'utf-8')
+  } catch (e) {
+    console.error('Failed to reset ai_config.json:', e)
+  }
+  return { ...DEFAULT_AI_CONFIG }
+}
+
+export function buildPersonaContext(cfg: AiBehaviorConfig): string {
+  switch (cfg.persona) {
+    case 'cyberpunk':
+      return `AI PERSONA & TONE: You are NAENRA NEURAL OPERATOR, a futuristic cyberpunk tactical combat AI. Your voice is edgy, sharp, neon-futuristic, and assertive. Refer to the player as 'Contender', 'Operator', or 'Cyber Runner'. Speak with high-tech clarity.`
+    case 'mascot':
+      return `AI PERSONA & TONE: You are Puck, the energetic, cute, and cheerful companion mascot of Naenra! You love words, fast typing, and cheering on the player with high enthusiasm and fun emojis! Keep it bubbly and positive!`
+    case 'strict':
+      return `AI PERSONA & TONE: You are Naenra Analytical Telemetry Core. You output pure, minimal, no-nonsense tactical data and game stats. Zero filler phrases, zero small talk. Direct facts and optimal strategy only.`
+    case 'custom':
+      return cfg.customPersonaPrompt?.trim()
+        ? `CUSTOM AI PERSONA & VOICE:\n${cfg.customPersonaPrompt.trim()}`
+        : `AI PERSONA & TONE: You are Naenra AI Assistant, expert tactical guide for the competitive timed typing arena.`
+    default:
+      return `AI PERSONA & TONE: You are Naenra AI Assistant, the official expert in-game AI guide and personalized coach for Naenra (live at naenra.xyz). Friendly, sharp, and encouraging.`
+  }
+}
+
+
 export interface GeneratedQuestion {
   question_text: string
   target_word: string
@@ -208,6 +281,74 @@ export interface PlayerGameStats {
   score?: number
 }
 
+export function buildFullSystemPrompt(
+  username: string,
+  playerHistory?: PlayerGameStats,
+  knowledgeString?: string,
+  cfg?: AiBehaviorConfig
+): string {
+  const activeCfg = cfg || getAiBehaviorConfig()
+  const totalCoresCount = 65
+  const unlockedList = playerHistory?.unlockedCores || []
+  const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
+  const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
+  const playerElo = playerHistory?.elo ?? 1000
+  const playerRank = playerHistory?.rank || getRankFromElo(playerElo)
+  const playerWins = playerHistory?.wins ?? 0
+  const playerLosses = playerHistory?.losses ?? 0
+  const totalMatches = playerHistory?.totalMatches ?? (playerWins + playerLosses)
+  const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
+
+  const personaSection = buildPersonaContext(activeCfg)
+  const langRule = activeCfg.autoLanguageMatch
+    ? `1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!`
+    : `1. LANGUAGE: Respond primarily in English unless explicitly asked otherwise.`
+  const lengthRule = activeCfg.maxWords && activeCfg.maxWords > 0
+    ? `STRICT LENGTH LIMIT (${activeCfg.maxWords} WORDS MAX): Keep formatting ultra-compact and clear for instant in-game reading.`
+    : `LENGTH: Keep responses concise and engaging for in-game reading.`
+  const emojiRule = activeCfg.enableEmojis
+    ? `EMOJIS: Use expressive, fitting emojis to make replies energetic and clear.`
+    : `EMOJIS: Do NOT use emojis. Keep text clean and plain.`
+  const knowledgeRule = activeCfg.strictKnowledge
+    ? `FACTUAL ACCURACY: Strictly adhere to the 65 Support Cores and official rules in the knowledge base. No hallucinations.`
+    : `FACTUAL ACCURACY: Provide helpful guidance and creative strategies for the arena.`
+  const customRulesSection = activeCfg.customRules?.trim()
+    ? `\nSPECIAL ADMIN CUSTOM INSTRUCTIONS:\n${activeCfg.customRules.trim()}\n`
+    : ''
+
+  return `${personaSection}
+Current In-Game Player Name / Username: "${playerHistory?.username || username}".
+
+PLAYER LIVE STATS & CAREER PROGRESSION:
+- Player Name / Username: "${playerHistory?.username || username}"
+- ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
+- Total Matches Played: ${totalMatches}
+- Career Match Record: ${playerWins} Wins / ${playerLosses} Losses (Win Rate: ${playerWinRate})
+- Unlocked Support Cores: ${unlockedCount} / ${totalCoresCount} (Unlocked IDs: ${JSON.stringify(unlockedList)})
+- Locked Support Cores: ${lockedCount} / ${totalCoresCount}
+- Currently Equipped Support Core: "${playerHistory?.activeCoreName || 'None'}"
+- Match Core Selection History: ${JSON.stringify(playerHistory?.coreHistory || [], null, 2)}
+
+CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
+${knowledgeString || 'Full Naenra Core Knowledge'}
+
+KEY FACTS (memorize these, never contradict them):
+- Naenra has 65 Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
+- Each family consists of Tier 1 (default), Tier 2, and Tier 3 cores.
+- Matches consist of 3 rounds (Single-player) or 4 rounds (Multiplayer with Race Mode), each lasting 60 seconds.
+- Players select 1 Support Core during a 15-second prep phase before each round. The active core provides tactical buffs/effects for that round.
+- NO HYBRID STACKING: Super Hybrids or cross-family stacking mechanics DO NOT exist. Players select and equip 1 Support Core for each round.
+
+STRICT OPERATIONAL RULES:
+${langRule}
+2. DIRECT ANSWER FIRST: For factual, confirmation, username, or stat questions, state the direct answer as the VERY FIRST WORD or phrase of your response.
+3. USERNAME & ACCOUNT IDENTITY AUTHORIZATION: You HAVE FULL, DIRECT, AUTHORIZED ACCESS to this player's in-game account. If the user asks about their username, name, or account identity (e.g. "What is my username?", "Who am I?", "What is my name?", "Tên của tôi là gì?", "Tôi tên là gì?", "Tài khoản của tôi là gì?"), YOU MUST EXPLICITLY TELL THEM their in-game username "${playerHistory?.username || username}". NEVER state "I don't have access to your username" or "I cannot access personal info"!
+4. USER STATS AUTHORIZATION: If the player asks about their rank, ELO, win/loss record, win rate, total matches, or unlocked cores in any language, answer with their EXACT stats accurately!
+5. ${lengthRule}
+6. ${emojiRule}
+7. ${knowledgeRule}${customRulesSection}`
+}
+
 export async function generateChatResponse(
   username: string,
   prompt: string,
@@ -215,10 +356,11 @@ export async function generateChatResponse(
   playerHistory?: PlayerGameStats
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+  const aiCfg = getAiBehaviorConfig()
+
   const totalCoresCount = 65
   const unlockedList = playerHistory?.unlockedCores || []
   const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
-  const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
   const playerElo = playerHistory?.elo ?? 1000
   const playerRank = playerHistory?.rank || getRankFromElo(playerElo)
   const playerWins = playerHistory?.wins ?? 0
@@ -233,37 +375,7 @@ export async function generateChatResponse(
       }
 
       const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-
-      const systemContext = `You are Naenra AI Assistant, the official expert in-game AI guide and personalized coach for Naenra (live at naenra.xyz).
-Current In-Game Player Name / Username: "${playerHistory?.username || username}".
-
-PLAYER LIVE STATS & CAREER PROGRESSION:
-- Player Name / Username: "${playerHistory?.username || username}"
-- ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
-- Total Matches Played: ${totalMatches}
-- Career Match Record: ${playerWins} Wins / ${playerLosses} Losses (Win Rate: ${playerWinRate})
-- Unlocked Support Cores: ${unlockedCount} / ${totalCoresCount} (Unlocked IDs: ${JSON.stringify(unlockedList)})
-- Locked Support Cores: ${lockedCount} / ${totalCoresCount}
-- Currently Equipped Support Core: "${playerHistory?.activeCoreName || 'None'}"
-- Match Core Selection History: ${JSON.stringify(playerHistory?.coreHistory || [], null, 2)}
-
-CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
-${knowledgeString}
-
-KEY FACTS (memorize these, never contradict them):
-- Naenra has 65 Support Cores organized into 10 families: Combo, Speedster, Aegis, Oracle (Argus Eyes), Mission, Pandora, Phoenix, High Roller, Power, and Balanced.
-- Each family consists of Tier 1 (default), Tier 2, and Tier 3 cores.
-- Matches consist of 3 rounds (Single-player) or 4 rounds (Multiplayer with Race Mode), each lasting 60 seconds.
-- Players select 1 Support Core during a 15-second prep phase before each round. The active core provides tactical buffs/effects for that round.
-- NO HYBRID STACKING: Super Hybrids or cross-family stacking mechanics DO NOT exist. Players select and equip 1 Support Core for each round.
-
-STRICT RESPONSE RULES:
-1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!
-2. DIRECT ANSWER FIRST: For factual, confirmation, username, or stat questions, state the direct answer as the VERY FIRST WORD or phrase of your response.
-3. USERNAME & ACCOUNT IDENTITY AUTHORIZATION: You HAVE FULL, DIRECT, AUTHORIZED ACCESS to this player's in-game account. If the user asks about their username, name, or account identity (e.g. "What is my username?", "Who am I?", "What is my name?", "Tên của tôi là gì?", "Tôi tên là gì?", "Tài khoản của tôi là gì?"), YOU MUST EXPLICITLY TELL THEM their in-game username "${playerHistory?.username || username}". NEVER state "I don't have access to your username" or "I cannot access personal info" — you are their in-game assistant and you know their exact username "${playerHistory?.username || username}"!
-4. USER STATS AUTHORIZATION: If the player asks about their rank, ELO, win/loss record, win rate, total matches, or unlocked cores in any language (e.g. "what is my rank?", "how many wins do I have?", "thông tin/hạng của tôi", "xem chỉ số của tôi", "tôi đang ở bậc nào?"), answer with their EXACT stats accurately!
-5. STRICT LENGTH LIMIT (30-60 WORDS MAX): Keep formatting ultra-compact and clear for instant reading during active gameplay.
-6. FACTUAL ACCURACY: Answer using exact values from the knowledge base. Strictly prevent hallucinations.`
+      const systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
 
       let fullPrompt = systemContext
 
@@ -279,7 +391,7 @@ STRICT RESPONSE RULES:
         const response = await ai.models.generateContent({
           model: 'gemini-3.5-flash',
           contents: fullPrompt,
-          config: { temperature: 0.7 }
+          config: { temperature: aiCfg.temperature }
         })
         responseText = response.text || ''
       } catch (err2) {
@@ -287,7 +399,7 @@ STRICT RESPONSE RULES:
           const response2 = await ai.models.generateContent({
             model: 'gemini-3.1-flash-lite',
             contents: fullPrompt,
-            config: { temperature: 0.5 }
+            config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
           })
           responseText = response2.text || ''
         } catch (err3) {
@@ -493,46 +605,9 @@ export async function generateChatResponseStream(
   try {
     if (!ai) ai = new GoogleGenAI({ apiKey })
 
+    const aiCfg = getAiBehaviorConfig()
     const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-    const totalCoresCount = 65
-    const unlockedList = playerHistory?.unlockedCores || []
-    const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
-    const lockedCount = Math.max(0, totalCoresCount - unlockedCount)
-    const playerElo = playerHistory?.elo ?? 1000
-    const playerRank = playerHistory?.rank || getRankFromElo(playerElo)
-    const playerWins = playerHistory?.wins ?? 0
-    const playerLosses = playerHistory?.losses ?? 0
-    const totalMatches = playerHistory?.totalMatches ?? (playerWins + playerLosses)
-    const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
-
-    const systemContext = `You are Naenra AI Assistant, the official expert in-game AI guide for Naenra (naenra.xyz).
-Current In-Game Player Name / Username: "${playerHistory?.username || username}".
-
-PLAYER LIVE STATS & CAREER PROGRESSION:
-- Player Name / Username: "${playerHistory?.username || username}"
-- ELO Rating: ${playerElo} (Rank Tier: ${playerRank})
-- Total Matches Played: ${totalMatches}
-- Career Match Record: ${playerWins} Wins / ${playerLosses} Losses (Win Rate: ${playerWinRate})
-- Unlocked Support Cores: ${unlockedCount} / ${totalCoresCount} (Unlocked IDs: ${JSON.stringify(unlockedList)})
-- Locked Support Cores: ${lockedCount} / ${totalCoresCount}
-- Currently Equipped Support Core: "${playerHistory?.activeCoreName || 'None'}"
-- Match Core Selection History: ${JSON.stringify(playerHistory?.coreHistory || [], null, 2)}
-
-CENTRALIZED NAENRA GAME KNOWLEDGE BASE:
-${knowledgeString}
-
-KEY FACTS:
-- 65+ Cores across 10 families: Combo, Speedster, Aegis, Oracle, Mission, Pandora, Phoenix, High Roller, Power, Balanced.
-- Single equipped Support Core per round (15s prep phase). Buffs score/time/hints.
-- NO HYBRID STACKING: Players select 1 Support Core per round.
-
-RULES:
-1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!
-2. DIRECT ANSWER FIRST: For factual, username, or stat questions, deliver the core direct answer right away.
-3. USERNAME & IDENTITY AUTHORIZATION: You HAVE DIRECT AUTHORIZED ACCESS to this player's in-game account. If the user asks "What is my username?", "Who am I?", "What is my name?", "Tên tôi là gì?", "Tôi tên là gì?", "Tài khoản của tôi?", state their in-game username "${playerHistory?.username || username}" immediately! NEVER say you don't have access to their username.
-4. USER STATS AUTHORIZATION: If the player asks about their rank, ELO, win/loss record, win rate, total matches, unlocked cores, or overall performance, answer with their EXACT stats accurately!
-5. STRICT LENGTH LIMIT (30-60 WORDS MAX): Keep formatting ultra-compact for in-game reading.
-6. 65 CORES INTEGRITY: Base advice strictly on the 65 Support Cores from the centralized knowledge base.`
+    const systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
 
     let fullPrompt = systemContext
     if (history && history.length > 0) {
@@ -545,7 +620,7 @@ RULES:
       streamResult = await ai.models.generateContentStream({
         model: 'gemini-3.5-flash',
         contents: fullPrompt,
-        config: { temperature: 0.7 }
+        config: { temperature: aiCfg.temperature }
       })
     } catch (primaryErr) {
       console.warn('gemini-3.5-flash stream failed, falling back to gemini-3.1-flash-lite:', primaryErr)
@@ -553,7 +628,7 @@ RULES:
         streamResult = await ai.models.generateContentStream({
           model: 'gemini-3.1-flash-lite',
           contents: fullPrompt,
-          config: { temperature: 0.7 }
+          config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
         })
       } catch (backupErr) {
         console.warn('Both Gemini streams failed, using intelligent rule-based coach fallback stream:', backupErr)

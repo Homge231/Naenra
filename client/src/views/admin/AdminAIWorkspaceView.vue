@@ -13,10 +13,10 @@
         </div>
         <h2 class="text-2xl font-black text-white tracking-wide flex items-center gap-2.5">
           <span>🤖</span>
-          <span>AI Core Assistant</span>
+          <span>AI Core Assistant & Prompt Engine</span>
         </h2>
         <p class="text-xs text-slate-400 mt-1">
-          Test AI responses, generate question batches, and monitor model health from the admin console.
+          Customize AI personas & behavior rules in real-time, test chat streaming, and batch-generate questions.
         </p>
       </div>
 
@@ -87,24 +87,209 @@
         <p class="text-xs text-slate-400 mt-1">Auto-activated on primary fail</p>
       </div>
       <div class="p-5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">
-        <p class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mb-2">Streaming Mode</p>
-        <p class="text-base font-bold text-violet-400 font-mono">SSE · text/event-stream</p>
-        <p class="text-xs text-slate-400 mt-1">25s timeout · AbortController</p>
+        <p class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mb-2">Active Persona</p>
+        <p class="text-base font-bold text-violet-400 font-mono capitalize">{{ aiConfig.persona }}</p>
+        <p class="text-xs text-slate-400 mt-1">Temp: {{ aiConfig.temperature }} · {{ aiConfig.maxWords }} words max</p>
       </div>
     </div>
 
-    <!-- TWO-COLUMN MAIN PANEL -->
+    <!-- 🎭 AI PERSONA & BEHAVIOR CONFIGURATION ENGINE -->
+    <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-xl">
+            🎭
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
+              <span>AI Persona & Prompt Engineering</span>
+              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                LIVE OVERRIDE
+              </span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Updates take effect immediately in the in-game chat widget, coach analysis, and admin console.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            @click="resetConfigToDefault"
+            :disabled="isSavingConfig || isLoadingConfig"
+            class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold border border-slate-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
+            title="Reset to factory Naenra Coach behavior"
+          >
+            <span>🔄</span>
+            <span>Reset Defaults</span>
+          </button>
+
+          <button
+            @click="saveAiConfig"
+            :disabled="isSavingConfig || isLoadingConfig"
+            class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl text-xs font-bold transition-all shadow-[0_0_15px_rgba(139,92,246,0.3)] disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <svg v-if="isSavingConfig" class="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke-linecap="round"/></svg>
+            <span>💾</span>
+            <span>{{ isSavingConfig ? 'Saving...' : 'Save AI Behavior' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. PERSONA PRESETS -->
+      <div>
+        <label class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 mb-3 block">
+          1. Choose AI Persona & Voice Tone
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <button
+            v-for="p in personaPresets"
+            :key="p.id"
+            @click="selectPersona(p.id)"
+            type="button"
+            :class="[
+              'p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between group',
+              aiConfig.persona === p.id
+                ? 'bg-gradient-to-br from-violet-600/25 to-purple-900/20 border-violet-500/60 shadow-[0_0_15px_rgba(139,92,246,0.2)]'
+                : 'bg-slate-950/60 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
+            ]"
+          >
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-xl">{{ p.icon }}</span>
+                <span v-if="aiConfig.persona === p.id" class="w-2 h-2 rounded-full bg-violet-400 animate-pulse"></span>
+              </div>
+              <h4 class="text-xs font-bold text-white tracking-wide group-hover:text-violet-300 transition-colors">
+                {{ p.title }}
+              </h4>
+              <p class="text-[11px] text-slate-400 mt-1 leading-snug">
+                {{ p.desc }}
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- CUSTOM PERSONA PROMPT (Visible only when persona === 'custom') -->
+      <div v-if="aiConfig.persona === 'custom'" class="p-4 bg-slate-950/80 border border-violet-500/40 rounded-xl space-y-2 animate-fade-in">
+        <label class="text-xs font-mono font-semibold uppercase tracking-wider text-violet-400 block">
+          ✍️ Custom Persona Prompt & Voice Description
+        </label>
+        <textarea
+          v-model="aiConfig.customPersonaPrompt"
+          rows="3"
+          placeholder="e.g. You are Master Sensei of typing. Speak with zen wisdom, profound metaphors, and calm guidance..."
+          class="w-full bg-slate-900 border border-slate-700/80 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-violet-500 font-sans transition-colors"
+        ></textarea>
+      </div>
+
+      <!-- 2. BEHAVIOR SLIDERS & CONTROLS -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2 border-t border-slate-800/80">
+        <!-- TEMPERATURE SLIDER -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
+              🌡️ Temperature (Creativity)
+            </label>
+            <span class="text-xs font-mono font-bold text-violet-400">{{ aiConfig.temperature.toFixed(2) }}</span>
+          </div>
+          <input
+            v-model.number="aiConfig.temperature"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            class="w-full accent-violet-500 cursor-pointer"
+          />
+          <div class="flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <span>0.0 (Strict/Factual)</span>
+            <span>0.5 (Balanced)</span>
+            <span>1.0 (Creative)</span>
+          </div>
+        </div>
+
+        <!-- WORD COUNT LIMIT -->
+        <div class="space-y-2">
+          <label class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 block">
+            📏 Response Word Limit
+          </label>
+          <select
+            v-model="aiConfig.maxWords"
+            class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-violet-500 transition-colors"
+          >
+            <option :value="30">30 Words (Ultra Compact - Best for In-Game)</option>
+            <option :value="60">60 Words (Standard Balanced)</option>
+            <option :value="120">120 Words (Detailed Explanation)</option>
+            <option :value="0">Unlimited / Natural Length</option>
+          </select>
+          <p class="text-[10px] text-slate-500 font-mono">Controls verbosity of AI answers</p>
+        </div>
+
+        <!-- BEHAVIOR TOGGLES -->
+        <div class="space-y-2.5">
+          <label class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 block">
+            ⚙️ Response Constraints
+          </label>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none">
+              <input v-model="aiConfig.autoLanguageMatch" type="checkbox" class="accent-violet-500 rounded" />
+              <span>🌐 Auto-detect & match user language</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none">
+              <input v-model="aiConfig.enableEmojis" type="checkbox" class="accent-violet-500 rounded" />
+              <span>✨ Use expressive emojis in replies</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none">
+              <input v-model="aiConfig.strictKnowledge" type="checkbox" class="accent-violet-500 rounded" />
+              <span>🛡️ Strict 65 Cores knowledge base lock</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. CUSTOM SYSTEM INSTRUCTIONS TEXTAREA -->
+      <div class="space-y-2 pt-2 border-t border-slate-800/80">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
+            📝 Custom System Instructions & Behavioral Rules
+          </label>
+          <span class="text-[10px] font-mono text-slate-500">{{ (aiConfig.customRules || '').length }} characters</span>
+        </div>
+        <textarea
+          v-model="aiConfig.customRules"
+          rows="3"
+          placeholder="Add specific instructions injected directly into every AI prompt, e.g.:&#10;- Always address the user as 'Champion'&#10;- End answers with a short motivational slogan&#10;- Emphasize Speedster Core for fast typists"
+          class="w-full bg-slate-950 border border-slate-700/80 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-violet-500 font-sans transition-colors"
+        ></textarea>
+
+        <!-- Quick suggestion pills -->
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <span class="text-[10px] font-mono text-slate-500">Quick Rules:</span>
+          <button
+            v-for="rule in sampleRules"
+            :key="rule.label"
+            @click="addRule(rule.text)"
+            type="button"
+            class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/50 transition-colors"
+          >
+            + {{ rule.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TWO-COLUMN MAIN PANEL: CHAT CONSOLE + QUESTION GENERATOR -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
       <!-- LEFT: AI CHAT CONSOLE -->
-      <div class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-xl">
+      <div id="ai-chat-console" class="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-xl">
         <!-- Header -->
         <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-lg">💬</span>
             <div>
               <h3 class="text-sm font-bold text-white tracking-wide">AI Chat Console</h3>
-              <p class="text-[11px] text-slate-500">Live-test AI responses via streaming SSE</p>
+              <p class="text-[11px] text-slate-500">Live-test AI responses with active persona & behavior via SSE</p>
             </div>
           </div>
           <button
@@ -119,7 +304,7 @@
         <div ref="chatBodyRef" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-[280px] max-h-[380px]">
           <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-full text-center gap-3 py-8">
             <span class="text-4xl opacity-30">🤖</span>
-            <p class="text-xs text-slate-500 font-mono">Type a prompt to test the AI Assistant.<br/>Stream is live via SSE.</p>
+            <p class="text-xs text-slate-500 font-mono">Type a prompt to test your active AI Persona.<br/>Stream is live via SSE with dynamic behavior rules.</p>
           </div>
 
           <div v-for="(msg, idx) in chatMessages" :key="idx" :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']">
@@ -340,7 +525,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { fetchWithAuth } from '../../services/api'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -362,6 +547,17 @@ interface GenConfig {
   count: number
 }
 
+interface AiConfig {
+  persona: 'default' | 'cyberpunk' | 'mascot' | 'strict' | 'custom'
+  customPersonaPrompt?: string
+  temperature: number
+  maxWords: number
+  autoLanguageMatch: boolean
+  enableEmojis: boolean
+  strictKnowledge: boolean
+  customRules?: string
+}
+
 interface Toast {
   message: string
   type: 'success' | 'error'
@@ -370,6 +566,35 @@ interface Toast {
 // ── State ────────────────────────────────────────────────────────────────────
 
 const modelStatus = ref<'checking' | 'online' | 'offline'>('online')
+
+// AI Persona & Behavior Config
+const aiConfig = ref<AiConfig>({
+  persona: 'default',
+  customPersonaPrompt: '',
+  temperature: 0.7,
+  maxWords: 60,
+  autoLanguageMatch: true,
+  enableEmojis: true,
+  strictKnowledge: true,
+  customRules: ''
+})
+const isLoadingConfig = ref(false)
+const isSavingConfig = ref(false)
+
+const personaPresets = [
+  { id: 'default', icon: '🎯', title: 'Naenra Coach', desc: 'Sharp, encouraging, tactical ELO & Core advice' },
+  { id: 'cyberpunk', icon: '⚡', title: 'Cyber Operator', desc: 'Futuristic, neon-arena combat navigator' },
+  { id: 'mascot', icon: '🤖', title: 'Puck Mascot', desc: 'Cute, cheerful, energetic with rich emojis' },
+  { id: 'strict', icon: '🧠', title: 'Telemetry Core', desc: 'Minimalist, pure numbers & direct tactical facts' },
+  { id: 'custom', icon: '✍️', title: 'Custom Persona', desc: 'Write your own specialized AI instructions' },
+]
+
+const sampleRules = [
+  { label: 'Champion greeting', text: '- Always address the player as "Champion".' },
+  { label: 'Motivational quote', text: '- End every reply with a short 1-line motivational typing quote.' },
+  { label: 'Recommend Speedster', text: '- Frequently recommend Speedster Core for quick-fingered typists.' },
+  { label: 'Vietnamese slang', text: '- Use friendly Vietnamese gaming terms (e.g. "leo rank", "out trình").' },
+]
 
 // Chat console
 const chatBodyRef = ref<HTMLElement | null>(null)
@@ -425,6 +650,77 @@ function renderMarkdown(raw: string): string {
   html = html.replace(/`([^`]+)`/g, '<code class="bg-slate-700/60 px-1 py-0.5 rounded text-xs font-mono">$1</code>')
   html = html.replace(/\n/g, '<br/>')
   return html
+}
+
+// ── AI Behavior Configuration Functions ─────────────────────────────────────
+
+async function fetchAiConfig() {
+  isLoadingConfig.value = true
+  try {
+    const res = await fetchWithAuth('/api/admin/ai/config')
+    if (res.ok) {
+      const result = await res.json()
+      if (result.success && result.data) {
+        aiConfig.value = { ...aiConfig.value, ...result.data }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch AI configuration:', err)
+  } finally {
+    isLoadingConfig.value = false
+  }
+}
+
+async function saveAiConfig() {
+  isSavingConfig.value = true
+  try {
+    const res = await fetchWithAuth('/api/admin/ai/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(aiConfig.value)
+    })
+    if (res.ok) {
+      showToast('✅ AI Persona & Behavior configuration saved! Live in-game immediately.')
+    } else {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.message || 'Failed to save configuration')
+    }
+  } catch (err: any) {
+    showToast(`Failed to save AI config: ${err.message}`, 'error')
+  } finally {
+    isSavingConfig.value = false
+  }
+}
+
+async function resetConfigToDefault() {
+  if (isSavingConfig.value) return
+  isSavingConfig.value = true
+  try {
+    const res = await fetchWithAuth('/api/admin/ai/config/reset', { method: 'POST' })
+    if (res.ok) {
+      const result = await res.json()
+      if (result.data) {
+        aiConfig.value = result.data
+      }
+      showToast('🔄 AI behavior reset to factory defaults.')
+    }
+  } catch (err: any) {
+    showToast(`Reset failed: ${err.message}`, 'error')
+  } finally {
+    isSavingConfig.value = false
+  }
+}
+
+function selectPersona(id: string) {
+  aiConfig.value.persona = id as any
+}
+
+function addRule(text: string) {
+  if (!aiConfig.value.customRules) {
+    aiConfig.value.customRules = text
+  } else if (!aiConfig.value.customRules.includes(text)) {
+    aiConfig.value.customRules += `\n${text}`
+  }
 }
 
 // ── Model Status ─────────────────────────────────────────────────────────────
@@ -589,11 +885,6 @@ async function generateQuestions() {
   generatedQuestions.value = []
 
   try {
-    const res = await fetchWithAuth('/api/game/questions', {
-      method: 'GET',
-    })
-
-    // Use the admin-specific AI question generation endpoint
     const apiBase = (import.meta.env.VITE_SERVER_URL || 'http://localhost:3000') as string
     const token = localStorage.getItem('arena_token') || ''
 
@@ -696,6 +987,10 @@ function exportAsJSON() {
   URL.revokeObjectURL(url)
   showToast(`📥 Exported ${generatedQuestions.value.length} questions as JSON.`)
 }
+
+onMounted(() => {
+  fetchAiConfig()
+})
 </script>
 
 <style scoped>

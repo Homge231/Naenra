@@ -1,0 +1,10 @@
+{
+  "persona": "default",
+  "customPersonaPrompt": "",
+  "temperature": 0.7,
+  "maxWords": 60,
+  "autoLanguageMatch": true,
+  "enableEmojis": true,
+  "strictKnowledge": true,
+  "customRules": ""
+}

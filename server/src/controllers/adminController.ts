@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
 import { kickUserClients, getOnlineUserIds } from '../utils/activeClients'
-import { generateQuestions } from '../services/aiService'
+import { generateQuestions, getAiBehaviorConfig, saveAiBehaviorConfig, resetAiBehaviorConfig } from '../services/aiService'
 
 // ── Shared admin helpers ──────────────────────────────────────────────────────
 
@@ -1452,5 +1452,68 @@ export async function generateAiQuestions(req: AuthRequest, res: Response): Prom
     })
   }
 }
+
+/**
+ * GET /api/admin/ai/config
+ * Retrieves current dynamic AI prompt and behavior settings.
+ */
+export async function getAiConfigController(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const config = getAiBehaviorConfig()
+    res.json({
+      success: true,
+      data: config
+    })
+  } catch (error: any) {
+    console.error('Error in getAiConfigController:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve AI configuration'
+    })
+  }
+}
+
+/**
+ * PUT /api/admin/ai/config
+ * Updates dynamic AI prompt and behavior settings.
+ */
+export async function updateAiConfigController(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const updated = saveAiBehaviorConfig(req.body)
+    res.json({
+      success: true,
+      data: updated,
+      message: 'AI behavior and persona configuration updated successfully'
+    })
+  } catch (error: any) {
+    console.error('Error in updateAiConfigController:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update AI configuration'
+    })
+  }
+}
+
+/**
+ * POST /api/admin/ai/config/reset
+ * Resets AI configuration to factory default behavior.
+ */
+export async function resetAiConfigController(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const reset = resetAiBehaviorConfig()
+    res.json({
+      success: true,
+      data: reset,
+      message: 'AI configuration reset to factory defaults'
+    })
+  } catch (error: any) {
+    console.error('Error in resetAiConfigController:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to reset AI configuration'
+    })
+  }
+}
+
 
 
