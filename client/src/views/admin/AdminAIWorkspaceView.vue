@@ -713,6 +713,27 @@ async function resetConfigToDefault() {
 
 function selectPersona(id: string) {
   aiConfig.value.persona = id as any
+  if (id === 'strict') {
+    aiConfig.value.enableEmojis = false
+    aiConfig.value.temperature = 0.05
+    aiConfig.value.maxWords = 30
+    aiConfig.value.strictKnowledge = true
+  } else if (id === 'cyberpunk') {
+    aiConfig.value.enableEmojis = true
+    aiConfig.value.temperature = 0.65
+    aiConfig.value.maxWords = 45
+    aiConfig.value.strictKnowledge = true
+  } else if (id === 'mascot') {
+    aiConfig.value.enableEmojis = true
+    aiConfig.value.temperature = 0.85
+    aiConfig.value.maxWords = 60
+    aiConfig.value.strictKnowledge = false
+  } else if (id === 'default') {
+    aiConfig.value.enableEmojis = true
+    aiConfig.value.temperature = 0.7
+    aiConfig.value.maxWords = 60
+    aiConfig.value.strictKnowledge = true
+  }
 }
 
 function addRule(text: string) {
