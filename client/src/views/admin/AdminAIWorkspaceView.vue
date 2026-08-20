@@ -618,10 +618,10 @@ const toast = ref<Toast>({ message: '', type: 'success' })
 
 const quickTestPrompts = [
   'What is Aegis Core?',
-  'Best Core for high score?',
-  'How does Combo Core work?',
+  '🔍 Tìm 3 câu hỏi chủ đề Tech',
+  '➕ Tạo câu hỏi từ "astronaut" độ khó B2',
+  '👥 Tìm người chơi có tên "admin"',
   'What is my rank?',
-  'Explain Speedster Core',
 ]
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

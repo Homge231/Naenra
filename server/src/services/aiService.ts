@@ -2,6 +2,9 @@ import { GoogleGenAI, Type, Schema } from '@google/genai'
 import fs from 'fs'
 import path from 'path'
 import { getRankFromElo } from '../utils/ranks'
+import { supabase } from '../config/supabase'
+import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
+import { kickUserClients } from '../utils/activeClients'
 
 // We instantiate it dynamically inside the function to ensure dotenv is loaded
 let ai: GoogleGenAI | null = null;
@@ -114,6 +117,207 @@ You are NAENRA TELEMETRY ENGINE — a cold, ultra-precise analytical combat comp
       return `### 🎯 CORE IDENTITY & VOICE — NAENRA AI COACH:
 You are Naenra AI Coach, the official in-game coach and tactical mentor for Naenra. Helpful, sharp, tactical, encouraging, and focused on ELO progression.`
   }
+}
+
+export const adminTools: any = [
+  {
+    functionDeclarations: [
+      {
+        name: 'createQuestion',
+        description: 'Create and insert a new vocabulary question into the database Question Bank',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            question_text: { type: Type.STRING, description: 'Question text containing ____ (4 underscores)' },
+            target_word: { type: Type.STRING, description: 'Target word in lowercase' },
+            hint: { type: Type.STRING, description: 'Clear hint for the word' },
+            topic: { type: Type.STRING, description: 'Topic e.g. daily-life, cafe, travel, Tech, Professional, Social' },
+            difficulty: { type: Type.STRING, description: 'Difficulty e.g. A1, A2, B1, B2, C1, Tier 1, Tier 2, Tier 3' }
+          },
+          required: ['question_text', 'target_word', 'hint']
+        }
+      },
+      {
+        name: 'deleteQuestion',
+        description: 'Delete a question from the database by ID or target word',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING, description: 'Question ID (number or string)' },
+            target_word: { type: Type.STRING, description: 'Target word to delete if ID is unknown' }
+          }
+        }
+      },
+      {
+        name: 'updateQuestion',
+        description: 'Update an existing question in the database Question Bank by ID',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING, description: 'Question ID' },
+            question_text: { type: Type.STRING, description: 'New question text' },
+            target_word: { type: Type.STRING, description: 'New target word' },
+            hint: { type: Type.STRING, description: 'New hint' },
+            topic: { type: Type.STRING, description: 'New topic' },
+            difficulty: { type: Type.STRING, description: 'New difficulty level' }
+          },
+          required: ['id']
+        }
+      },
+      {
+        name: 'banPlayer',
+        description: 'Ban a player account by username, email, or user ID and invalidate active sessions',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            username_or_id: { type: Type.STRING, description: 'Username, email, or UUID of player to ban' },
+            reason: { type: Type.STRING, description: 'Reason for the ban' }
+          },
+          required: ['username_or_id']
+        }
+      },
+      {
+        name: 'unbanPlayer',
+        description: 'Unban a player account by username, email, or user ID',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            username_or_id: { type: Type.STRING, description: 'Username, email, or UUID of player to unban' }
+          },
+          required: ['username_or_id']
+        }
+      },
+      {
+        name: 'setPlayerAdmin',
+        description: 'Grant or revoke admin rights for a player',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            username_or_id: { type: Type.STRING, description: 'Player username, email, or UUID' },
+            is_admin: { type: Type.BOOLEAN, description: 'true to grant admin, false to revoke' }
+          },
+          required: ['username_or_id', 'is_admin']
+        }
+      },
+      {
+        name: 'searchDatabase',
+        description: 'Search questions or players in the database',
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            target: { type: Type.STRING, description: '"questions" or "players"' },
+            query: { type: Type.STRING, description: 'Search term (word, sentence, username, email)' }
+          },
+          required: ['target', 'query']
+        }
+      }
+    ]
+  }
+]
+
+export async function executeAdminTool(name: string, args: any): Promise<any> {
+  try {
+    if (name === 'createQuestion') {
+      const target = (args.target_word || '').trim().toLowerCase()
+      if (!target) return { success: false, error: 'target_word is required' }
+      const payload = {
+        question_text: args.question_text || `The target word is ${target}`,
+        target_word: target,
+        hint: args.hint || '',
+        topic: args.topic || 'daily-life',
+        difficulty: args.difficulty || 'A1',
+        category: args.topic || 'daily-life'
+      }
+      const { data, error } = await supabase.from('questions').insert(payload).select().single()
+      if (error) return { success: false, error: error.message }
+      return { success: true, message: `Created question ID #${data.id} ("${data.target_word}")`, question: data }
+    }
+
+    if (name === 'deleteQuestion') {
+      let q = supabase.from('questions').delete()
+      if (args.id) {
+        q = q.eq('id', args.id)
+      } else if (args.target_word) {
+        q = q.ilike('target_word', args.target_word.trim())
+      } else {
+        return { success: false, error: 'Either question id or target_word is required' }
+      }
+      const { data, error } = await q.select('id, target_word')
+      if (error) return { success: false, error: error.message }
+      return { success: true, message: `Deleted ${data?.length || 0} question(s).`, deleted: data }
+    }
+
+    if (name === 'updateQuestion') {
+      const updatePayload: any = {}
+      if (args.question_text) updatePayload.question_text = args.question_text
+      if (args.target_word) updatePayload.target_word = args.target_word.trim().toLowerCase()
+      if (args.hint) updatePayload.hint = args.hint
+      if (args.topic) updatePayload.topic = args.topic
+      if (args.difficulty) updatePayload.difficulty = args.difficulty
+
+      const { data, error } = await supabase.from('questions').update(updatePayload).eq('id', args.id).select().single()
+      if (error) return { success: false, error: error.message }
+      return { success: true, message: `Updated question ID #${args.id}`, question: data }
+    }
+
+    if (name === 'banPlayer') {
+      const queryStr = String(args.username_or_id).trim()
+      const { data: player } = await supabase.from('players')
+        .select('id, username, email')
+        .or(`username.ilike.${queryStr},email.ilike.${queryStr},id.eq.${queryStr}`)
+        .maybeSingle()
+      if (!player) return { success: false, error: `Player "${queryStr}" not found.` }
+
+      await supabase.from('players').update({ is_banned: true }).eq('id', player.id)
+      await broadcastSessionInvalidated(player.id, args.reason || 'Banned by Admin AI Operator')
+      kickUserClients(player.id)
+      return { success: true, message: `Banned player ${player.username} (${player.email}) successfully.` }
+    }
+
+    if (name === 'unbanPlayer') {
+      const queryStr = String(args.username_or_id).trim()
+      const { data: player } = await supabase.from('players')
+        .select('id, username, email')
+        .or(`username.ilike.${queryStr},email.ilike.${queryStr},id.eq.${queryStr}`)
+        .maybeSingle()
+      if (!player) return { success: false, error: `Player "${queryStr}" not found.` }
+
+      await supabase.from('players').update({ is_banned: false }).eq('id', player.id)
+      return { success: true, message: `Unbanned player ${player.username} (${player.email}) successfully.` }
+    }
+
+    if (name === 'setPlayerAdmin') {
+      const queryStr = String(args.username_or_id).trim()
+      const { data: player } = await supabase.from('players')
+        .select('id, username, email')
+        .or(`username.ilike.${queryStr},email.ilike.${queryStr},id.eq.${queryStr}`)
+        .maybeSingle()
+      if (!player) return { success: false, error: `Player "${queryStr}" not found.` }
+
+      await supabase.from('players').update({ is_admin: !!args.is_admin }).eq('id', player.id)
+      return { success: true, message: `Updated admin privileges for ${player.username}: is_admin = ${!!args.is_admin}.` }
+    }
+
+    if (name === 'searchDatabase') {
+      const queryStr = String(args.query || '').trim()
+      if (args.target === 'players') {
+        const { data } = await supabase.from('players')
+          .select('id, username, email, elo, wins, losses, is_banned, is_admin')
+          .or(`username.ilike.%${queryStr}%,email.ilike.%${queryStr}%`)
+          .limit(10)
+        return { success: true, count: data?.length || 0, players: data || [] }
+      } else {
+        const { data } = await supabase.from('questions')
+          .select('id, target_word, question_text, hint, topic, difficulty')
+          .or(`target_word.ilike.%${queryStr}%,question_text.ilike.%${queryStr}%,hint.ilike.%${queryStr}%`)
+          .limit(10)
+        return { success: true, count: data?.length || 0, questions: data || [] }
+      }
+    }
+  } catch (err: any) {
+    return { success: false, error: err.message }
+  }
+  return { success: false, error: `Unknown tool: ${name}` }
 }
 
 
@@ -375,7 +579,8 @@ export async function generateChatResponse(
   username: string,
   prompt: string,
   history?: { role: 'user' | 'model'; message: string }[],
-  playerHistory?: PlayerGameStats
+  playerHistory?: PlayerGameStats,
+  isAdmin?: boolean
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
   const aiCfg = getAiBehaviorConfig()
@@ -397,7 +602,13 @@ export async function generateChatResponse(
       }
 
       const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-      const systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
+      let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
+
+      if (isAdmin) {
+        systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS ACTIVE:
+You have direct root administrative permissions to manage the database (create questions, update questions, delete questions, search players/questions, ban/unban players).
+When the admin instructs you to create, delete, update, search, or ban/unban, use the provided tools immediately.\n\n` + systemContext
+      }
 
       let fullPrompt = systemContext
 
@@ -407,6 +618,36 @@ export async function generateChatResponse(
       }
 
       fullPrompt += `\n\n${username}: ${prompt}\nAI Assistant:`
+
+      if (isAdmin) {
+        try {
+          const adminCheck = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            contents: fullPrompt,
+            config: {
+              temperature: aiCfg.temperature,
+              tools: adminTools
+            }
+          })
+
+          if (adminCheck.functionCalls && adminCheck.functionCalls.length > 0) {
+            const reports: string[] = []
+            for (const call of adminCheck.functionCalls) {
+              const toolName = call.name || ''
+              const result = await executeAdminTool(toolName, call.args)
+              if (result.success) {
+                reports.push(`⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}`)
+              } else {
+                reports.push(`⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}`)
+              }
+            }
+            return reports.join('\n\n')
+          }
+          if (adminCheck.text?.trim()) return adminCheck.text.trim()
+        } catch (toolErr) {
+          console.warn('Admin tool calling in generateChatResponse error:', toolErr)
+        }
+      }
 
       let responseText = ''
       try {
@@ -588,7 +829,8 @@ export async function generateChatResponseStream(
   prompt: string,
   res: import('express').Response,
   history?: { role: 'user' | 'model'; message: string }[],
-  playerHistory?: PlayerGameStats
+  playerHistory?: PlayerGameStats,
+  isAdmin?: boolean
 ): Promise<void> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
 
@@ -629,13 +871,53 @@ export async function generateChatResponseStream(
 
     const aiCfg = getAiBehaviorConfig()
     const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-    const systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
+    let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
+
+    if (isAdmin) {
+      systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS ACTIVE:
+You have direct root administrative authority to manage the database (create questions, update questions, delete questions, search players/questions, ban/unban players).
+When the admin instructs you to create, delete, update, search, or ban/unban, use the provided tools immediately.\n\n` + systemContext
+    }
 
     let fullPrompt = systemContext
     if (history && history.length > 0) {
       fullPrompt += `\n\nCONVERSATION:\n` + history.map(h => `${h.role === 'user' ? username : 'AI Assistant'}: ${h.message}`).join('\n')
     }
     fullPrompt += `\n\n${username}: ${prompt}\nAI Assistant:`
+
+    // If caller is an Admin, check if prompt triggers an administrative tool action
+    if (isAdmin) {
+      try {
+        const adminCheck = await ai.models.generateContent({
+          model: 'gemini-3.5-flash',
+          contents: fullPrompt,
+          config: {
+            temperature: aiCfg.temperature,
+            tools: adminTools
+          }
+        })
+
+        if (adminCheck.functionCalls && adminCheck.functionCalls.length > 0) {
+          for (const call of adminCheck.functionCalls) {
+            if (isClientDisconnected) break
+            const toolName = call.name || ''
+            const result = await executeAdminTool(toolName, call.args)
+            let report = ''
+            if (result.success) {
+              report = `⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}\n`
+            } else {
+              report = `⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}\n`
+            }
+            safeWrite(`data: ${JSON.stringify({ chunk: report })}\n\n`)
+          }
+          safeWrite('data: [DONE]\n\n')
+          safeEnd()
+          return
+        }
+      } catch (toolErr) {
+        console.warn('Admin tool calling in stream error, proceeding to regular stream:', toolErr)
+      }
+    }
 
     let streamResult: any = null
     try {

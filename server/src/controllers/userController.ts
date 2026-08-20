@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { supabase } from '../config/supabase'
 import { AuthRequest } from '../middleware/authMiddleware'
 import { generateCoachAnalysis, generateChatResponse, generateChatResponseStream } from '../services/aiService'
-
+import { SUPER_ADMIN_EMAILS } from '../constants'
 import { getRankFromElo } from '../utils/ranks'
 
 // Cores that are locked behind gameplay missions — built once at startup, not per request.
@@ -187,6 +187,47 @@ export const getAiCoachAnalysis = async (req: AuthRequest, res: Response): Promi
   }
 }
 
+async function getPlayerContext(req: AuthRequest, playerHistory?: any): Promise<{ username: string; enrichedStats: any; isAdmin: boolean }> {
+  let enrichedStats = playerHistory || {}
+  let username = req.user?.username || req.user?.email?.split('@')[0] || enrichedStats.username || 'Player'
+  let isAdmin = (req.user as any)?.is_admin === true || SUPER_ADMIN_EMAILS.has((req.user?.email || '').toLowerCase())
+
+  if (req.user?.id) {
+    try {
+      const { data: dbPlayer } = await supabase
+        .from('players')
+        .select('username, elo, wins, losses, total_matches, is_admin')
+        .eq('id', req.user.id)
+        .maybeSingle()
+
+      if (dbPlayer) {
+        username = dbPlayer.username || username
+        if (dbPlayer.is_admin) isAdmin = true
+        const elo = dbPlayer.elo ?? enrichedStats.elo ?? 1000
+        const wins = dbPlayer.wins ?? enrichedStats.wins ?? 0
+        const losses = dbPlayer.losses ?? enrichedStats.losses ?? 0
+        const totalMatches = dbPlayer.total_matches ?? enrichedStats.totalMatches ?? (wins + losses)
+        const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
+
+        enrichedStats = {
+          ...enrichedStats,
+          username,
+          elo,
+          rank: getRankFromElo(elo),
+          wins,
+          losses,
+          totalMatches,
+          winRate
+        }
+      }
+    } catch (err) {
+      console.warn('Enriching player stats from DB error:', err)
+    }
+  }
+
+  return { username, enrichedStats, isAdmin }
+}
+
 export const getAiChatResponse = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
     const { prompt, history, playerHistory } = req.body
@@ -195,43 +236,8 @@ export const getAiChatResponse = async (req: AuthRequest, res: Response): Promis
       return res.status(400).json({ error: 'prompt is required' })
     }
 
-    let enrichedStats = playerHistory || {}
-    let username = req.user?.username || req.user?.email?.split('@')[0] || enrichedStats.username || 'Player'
-
-    // Enrich player statistics from database if user is authenticated
-    if (req.user?.id) {
-      try {
-        const { data: dbPlayer } = await supabase
-          .from('players')
-          .select('username, elo, wins, losses, total_matches')
-          .eq('id', req.user.id)
-          .maybeSingle()
-
-        if (dbPlayer) {
-          username = dbPlayer.username || username
-          const elo = dbPlayer.elo ?? enrichedStats.elo ?? 1000
-          const wins = dbPlayer.wins ?? enrichedStats.wins ?? 0
-          const losses = dbPlayer.losses ?? enrichedStats.losses ?? 0
-          const totalMatches = dbPlayer.total_matches ?? enrichedStats.totalMatches ?? (wins + losses)
-          const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
-
-          enrichedStats = {
-            ...enrichedStats,
-            username,
-            elo,
-            rank: getRankFromElo(elo),
-            wins,
-            losses,
-            totalMatches,
-            winRate
-          }
-        }
-      } catch (err) {
-        console.warn('Enriching player stats from DB error:', err)
-      }
-    }
-
-    const reply = await generateChatResponse(username, prompt.trim(), history, enrichedStats)
+    const { username, enrichedStats, isAdmin } = await getPlayerContext(req, playerHistory)
+    const reply = await generateChatResponse(username, prompt.trim(), history, enrichedStats, isAdmin)
     return res.status(200).json({ reply })
   } catch (error: any) {
     console.error('getAiChatResponse error:', error)
@@ -247,44 +253,9 @@ export const getAiChatResponseStream = async (req: AuthRequest, res: Response): 
       return res.status(400).json({ error: 'prompt is required' })
     }
 
-    let enrichedStats = playerHistory || {}
-    let username = req.user?.username || req.user?.email?.split('@')[0] || enrichedStats.username || 'Player'
-
-    // Enrich player statistics from database if user is authenticated
-    if (req.user?.id) {
-      try {
-        const { data: dbPlayer } = await supabase
-          .from('players')
-          .select('username, elo, wins, losses, total_matches')
-          .eq('id', req.user.id)
-          .maybeSingle()
-
-        if (dbPlayer) {
-          username = dbPlayer.username || username
-          const elo = dbPlayer.elo ?? enrichedStats.elo ?? 1000
-          const wins = dbPlayer.wins ?? enrichedStats.wins ?? 0
-          const losses = dbPlayer.losses ?? enrichedStats.losses ?? 0
-          const totalMatches = dbPlayer.total_matches ?? enrichedStats.totalMatches ?? (wins + losses)
-          const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
-
-          enrichedStats = {
-            ...enrichedStats,
-            username,
-            elo,
-            rank: getRankFromElo(elo),
-            wins,
-            losses,
-            totalMatches,
-            winRate
-          }
-        }
-      } catch (err) {
-        console.warn('Enriching player stats from DB error:', err)
-      }
-    }
-
+    const { username, enrichedStats, isAdmin } = await getPlayerContext(req, playerHistory)
     // generateChatResponseStream manages SSE headers and response lifecycle internally
-    await generateChatResponseStream(username, prompt.trim(), res, history, enrichedStats)
+    await generateChatResponseStream(username, prompt.trim(), res, history, enrichedStats, isAdmin)
   } catch (error: any) {
     console.error('getAiChatResponseStream error:', error)
     if (!res.headersSent) {
