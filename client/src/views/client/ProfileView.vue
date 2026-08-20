@@ -278,18 +278,72 @@ function cancelEdit() {
   successMsg.value = ''
 }
 
-function handleFileChange(e: Event) {
+function compressImage(file: File, maxWidth = 512, maxHeight = 512, quality = 0.88): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height)
+            height = maxHeight
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          resolve(e.target?.result as string)
+          return
+        }
+
+        ctx.drawImage(img, 0, 0, width, height)
+        const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+        const compressed = canvas.toDataURL(mimeType, quality)
+        resolve(compressed)
+      }
+      img.onerror = () => reject(new Error('Failed to parse image'))
+      img.src = e.target?.result as string
+    }
+    reader.onerror = () => reject(new Error('Failed to read image'))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function handleFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
-  if (file.size > 2 * 1024 * 1024) {
-    errorMsg.value = 'Image must be under 2MB'
+
+  // Allow up to 10MB raw photos from user device
+  if (file.size > 10 * 1024 * 1024) {
+    errorMsg.value = 'Image must be under 10MB'
     return
   }
-  const reader = new FileReader()
-  reader.onload = (ev) => {
-    uploadedBase64.value = ev.target?.result as string
+
+  errorMsg.value = ''
+  try {
+    const compressed = await compressImage(file, 512, 512, 0.88)
+    uploadedBase64.value = compressed
+  } catch (err) {
+    console.warn('Image compression fallback to raw data URL:', err)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      uploadedBase64.value = ev.target?.result as string
+    }
+    reader.readAsDataURL(file)
   }
-  reader.readAsDataURL(file)
 }
 
 async function handleSave() {
