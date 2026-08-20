@@ -354,8 +354,19 @@ export async function executeAdminTool(name: string, args: any): Promise<any> {
         if (wordCounts[w] === 2) duplicateWords++
       }
 
+      const topicStr = Object.entries(topics).map(([k, v]) => `  • ${k}: ${v} câu`).join('\n')
+      const diffStr = Object.entries(difficulties).map(([k, v]) => `  • ${k}: ${v} câu`).join('\n')
+
+      const message = `📊 **Thống Kê Ngân Hàng Câu Hỏi (Question Bank Stats)**:\n` +
+        `- **Tổng số câu hỏi**: **${total}** câu\n` +
+        `- **Từ vựng bị trùng lặp (Duplicate Target Words)**: **${duplicateWords}** từ (có $\\ge 2$ câu dùng chung)\n\n` +
+        `**Phân bố theo Chủ đề:**\n${topicStr}\n\n` +
+        `**Phân bố theo Độ khó:**\n${diffStr}\n\n` +
+        (duplicateWords > 0 ? `💡 *Bạn có thể ra lệnh "Hãy xóa các câu hỏi trùng lặp" để dọn dẹp bằng công cụ \`deduplicateQuestions\`.*` : `✅ Ngân hàng câu hỏi sạch 100%, không có câu trùng lặp!`)
+
       return {
         success: true,
+        message,
         totalQuestions: total,
         duplicateWordsCount: duplicateWords,
         topics,
@@ -376,7 +387,15 @@ export async function executeAdminTool(name: string, args: any): Promise<any> {
       q = q.range(offset, offset + limit - 1).order('id', { ascending: false })
       const { data, count, error } = await q
       if (error) return { success: false, error: error.message }
-      return { success: true, totalInBank: count || 0, count: data?.length || 0, questions: data || [] }
+
+      const questionList = (data || []).map((item: any, i: number) => 
+        `${offset + i + 1}. **${item.target_word}** [${item.difficulty || 'A1'} | ${item.topic || 'daily-life'}]: "${item.question_text}" *(ID: #${item.id})*`
+      ).join('\n')
+
+      const message = `📋 **Danh Sách Câu Hỏi Trong Ngân Hàng** (Hiển thị ${data?.length || 0} / ${count || 0} câu):\n\n` +
+        (questionList || '_Không tìm thấy câu hỏi nào phù hợp._')
+
+      return { success: true, message, totalInBank: count || 0, count: data?.length || 0, questions: data || [] }
     }
 
     if (name === 'bulkDeleteQuestions') {
