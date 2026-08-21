@@ -656,6 +656,179 @@ RULES:
   }
 }
 
+export interface QuestionAuditItem {
+  id: string
+  question_text: string
+  target_word: string
+  hint?: string
+  topic?: string
+  difficulty?: string
+  issues: string[]
+  suggested_question_text?: string
+  suggested_hint?: string
+  suggested_difficulty?: string
+  confidenceScore: number
+}
+
+export async function auditQuestionsWithAi(questions: any[]): Promise<QuestionAuditItem[]> {
+  if (!questions || questions.length === 0) return []
+
+  const auditResults: QuestionAuditItem[] = []
+  const questionsNeedingAi: any[] = []
+
+  for (const q of questions) {
+    const targetWord = (q.target_word || '').trim().toLowerCase()
+    const text = q.question_text || ''
+    const hint = q.hint || ''
+    const diff = q.difficulty || 'A1'
+    const issues: string[] = []
+
+    // 1. Check blank count
+    const blankMatch = text.match(/_+/g)
+    const blankLen = blankMatch ? blankMatch[0].length : 0
+    if (blankLen !== targetWord.length) {
+      issues.push(`Blank length mismatch (${blankLen} underscores vs ${targetWord.length} letters)`)
+    }
+
+    // 2. Check hint quality
+    if (!hint.trim()) {
+      issues.push('Missing hint')
+    } else if (hint.trim().toLowerCase() === targetWord) {
+      issues.push('Redundant hint (contains target word directly)')
+    }
+
+    // 3. Check target word formatting
+    if (/[A-Z]/.test(q.target_word || '')) {
+      issues.push('Target word has uppercase characters')
+    }
+    if (/[^a-z\s-]/.test(targetWord)) {
+      issues.push('Target word contains invalid punctuation or special symbols')
+    }
+
+    if (issues.length > 0) {
+      questionsNeedingAi.push({ ...q, target_word: targetWord, preIssues: issues })
+    } else {
+      auditResults.push({
+        id: q.id,
+        question_text: text,
+        target_word: targetWord,
+        hint: hint,
+        topic: q.topic || 'daily-life',
+        difficulty: diff,
+        issues: [],
+        confidenceScore: 98
+      })
+    }
+  }
+
+  if (questionsNeedingAi.length === 0) {
+    return auditResults
+  }
+
+  // Use Gemini to fix questions with issues
+  const apiKey = process.env.GEMINI_API_KEY
+  if (apiKey) {
+    try {
+      if (!ai) {
+        ai = new GoogleGenAI({ apiKey })
+      }
+
+      const prompt = `You are the Lead English Lexicographer and Question Quality Auditor for Naenra Arena.
+Analyze the following vocabulary questions that have quality issues and provide precise, high-quality corrections.
+CRITICAL RULES:
+1. "question_text" MUST contain exactly one continuous blank of underscores '____' whose length EQUALS the length of the lowercase "target_word".
+2. "hint" MUST be a clear, non-spoiler definition or phonetic clue (NOT the word itself).
+3. "difficulty" MUST be strictly one of: A1, A2, B1, B2, C1.
+4. "target_word" MUST be strictly lowercase English.
+
+QUESTIONS TO AUDIT & FIX:
+${JSON.stringify(questionsNeedingAi.map(q => ({
+  id: q.id,
+  target_word: q.target_word,
+  question_text: q.question_text,
+  hint: q.hint,
+  difficulty: q.difficulty,
+  knownIssues: q.preIssues
+})), null, 2)}`
+
+      const auditSchema: Schema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            id: { type: Type.STRING },
+            target_word: { type: Type.STRING },
+            suggested_question_text: { type: Type.STRING },
+            suggested_hint: { type: Type.STRING },
+            suggested_difficulty: { type: Type.STRING },
+            identified_issues: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["id", "target_word", "suggested_question_text", "suggested_hint", "suggested_difficulty", "identified_issues"]
+        }
+      }
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: auditSchema,
+          temperature: 0.2
+        }
+      })
+
+      if (response.text) {
+        const aiFixed: any[] = JSON.parse(response.text)
+        const fixMap = new Map(aiFixed.map(f => [String(f.id), f]))
+
+        for (const item of questionsNeedingAi) {
+          const fix = fixMap.get(String(item.id))
+          const correctUnderscores = '_'.repeat(item.target_word.length)
+          const fallbackText = item.question_text.replace(/_+/g, correctUnderscores)
+
+          auditResults.push({
+            id: item.id,
+            question_text: item.question_text,
+            target_word: item.target_word,
+            hint: item.hint,
+            topic: item.topic,
+            difficulty: item.difficulty,
+            issues: fix?.identified_issues || item.preIssues,
+            suggested_question_text: fix?.suggested_question_text || fallbackText,
+            suggested_hint: fix?.suggested_hint || `Definition of ${item.target_word}`,
+            suggested_difficulty: fix?.suggested_difficulty || item.difficulty,
+            confidenceScore: 92
+          })
+        }
+        return auditResults
+      }
+    } catch (err) {
+      console.warn("AI audit failed, falling back to heuristic corrections:", err)
+    }
+  }
+
+  // Fallback heuristic fixes if Gemini unavailable
+  for (const item of questionsNeedingAi) {
+    const correctUnderscores = '_'.repeat(item.target_word.length)
+    const fixedText = item.question_text.replace(/_+/g, correctUnderscores)
+    auditResults.push({
+      id: item.id,
+      question_text: item.question_text,
+      target_word: item.target_word,
+      hint: item.hint || `Clue for: ${item.target_word}`,
+      topic: item.topic,
+      difficulty: item.difficulty,
+      issues: item.preIssues,
+      suggested_question_text: fixedText.includes('____') ? fixedText : `The target word is ${correctUnderscores}.`,
+      suggested_hint: item.hint || `Clue for: ${item.target_word}`,
+      suggested_difficulty: item.difficulty || 'A1',
+      confidenceScore: 80
+    })
+  }
+
+  return auditResults
+}
+
 export async function generateCoachAnalysis(
   username: string,
   analyticsData: any[],

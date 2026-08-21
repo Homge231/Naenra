@@ -50,6 +50,22 @@
       <button @click="toastMessage = ''" class="text-xs opacity-70 hover:opacity-100">✕</button>
     </div>
 
+    <!-- AI QUALITY AUDITOR ACCORDION / TOGGLE -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <button
+          @click="showAuditor = !showAuditor"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-violet-500/50 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
+        >
+          <span>🤖</span>
+          <span>{{ showAuditor ? 'Hide AI Quality Auditor' : 'Open AI Question Quality Auditor (Gemini 3.5 Flash)' }}</span>
+          <span class="px-1.5 py-0.2 text-[9px] rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">AUTO-FIX</span>
+        </button>
+      </div>
+
+      <AiQuestionAuditorCard v-if="showAuditor" />
+    </div>
+
     <!-- FILTER & SEARCH CONTROL BAR -->
     <div class="bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row gap-4">
       <!-- SEARCH INPUT -->
@@ -389,6 +405,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { fetchWithAuth } from '../../services/api'
+import AiQuestionAuditorCard from '../../components/admin/AiQuestionAuditorCard.vue'
+
+const showAuditor = ref(false)
 
 interface QuestionItem {
   id?: number | string

@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/authMiddleware'
 import { supabase } from '../config/supabase'
 import { broadcastSessionInvalidated } from '../utils/realtimeBroadcast'
 import { kickUserClients, getOnlineUserIds } from '../utils/activeClients'
-import { generateQuestions, getAiBehaviorConfig, saveAiBehaviorConfig, resetAiBehaviorConfig } from '../services/aiService'
+import { generateQuestions, getAiBehaviorConfig, saveAiBehaviorConfig, resetAiBehaviorConfig, auditQuestionsWithAi } from '../services/aiService'
 
 // ── Shared admin helpers ──────────────────────────────────────────────────────
 
@@ -1518,6 +1518,378 @@ export async function resetAiConfigController(req: AuthRequest, res: Response): 
     })
   }
 }
+
+// ── 🛡️ Anti-Cheat Anomaly Radar Controllers ──────────────────────────────────
+
+/**
+ * GET /api/admin/anticheat/anomalies
+ * Scans recent gameplay data for macro/auto-typer behavioral anomalies.
+ */
+export async function getAntiCheatAnomalies(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    // 1. Fetch active players with high ELO or rapid matches
+    const { data: players, error: pErr } = await supabase
+      .from('players')
+      .select('id, username, email, avatar_url, elo, wins, losses, total_matches, is_banned, created_at')
+      .order('elo', { ascending: false })
+      .limit(100)
+
+    if (pErr) throw pErr
+
+    // 2. Fetch recent answers to calculate speed and accuracy heuristics
+    const { data: answers, error: aErr } = await supabase
+      .from('game_session_answers')
+      .select('player_id, points_delta, correct, created_at, answer')
+      .order('created_at', { ascending: false })
+      .limit(1000)
+
+    if (aErr) throw aErr
+
+    // Group answers by player_id
+    const playerAnswersMap = new Map<string, any[]>()
+    for (const a of answers || []) {
+      if (!a.player_id) continue
+      const list = playerAnswersMap.get(a.player_id) || []
+      list.push(a)
+      playerAnswersMap.set(a.player_id, list)
+    }
+
+    const anomalies: any[] = []
+
+    for (const p of players || []) {
+      const pAnswers = playerAnswersMap.get(p.id) || []
+      const totalAnswers = pAnswers.length
+      const correctAnswers = pAnswers.filter(a => a.correct).length
+      const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 100
+
+      const flagReasons: string[] = []
+      let anomalyScore = 0
+
+      // Heuristic 1: Extreme win streak with 0 losses and high ELO
+      if ((p.wins ?? 0) >= 12 && (p.losses ?? 0) === 0 && (p.elo ?? 0) >= 1400) {
+        flagReasons.push(`Suspicious 100% Win Rate Streak (${p.wins} Wins / 0 Losses)`)
+        anomalyScore += 45
+      }
+
+      // Heuristic 2: Rapid answer rate (answers submitted in rapid bursts < 800ms)
+      let rapidBurstCount = 0
+      let fastestIntervalMs = 9999
+      for (let i = 0; i < pAnswers.length - 1; i++) {
+        const t1 = new Date(pAnswers[i].created_at).getTime()
+        const t2 = new Date(pAnswers[i + 1].created_at).getTime()
+        const diff = Math.abs(t1 - t2)
+        if (diff > 0 && diff < fastestIntervalMs) fastestIntervalMs = diff
+        if (diff > 0 && diff < 850) rapidBurstCount++
+      }
+
+      if (rapidBurstCount >= 3) {
+        flagReasons.push(`Rapid Bursts Detected (${rapidBurstCount} consecutive answers <850ms)`)
+        anomalyScore += 35
+      }
+
+      if (fastestIntervalMs < 350 && fastestIntervalMs > 0) {
+        flagReasons.push(`Superhuman Keystroke Speed (${fastestIntervalMs}ms per word)`)
+        anomalyScore += 30
+      }
+
+      // Heuristic 3: 100% accuracy on high answer volume
+      if (totalAnswers >= 15 && accuracy === 100) {
+        flagReasons.push(`Machine-Perfect Accuracy (100% across ${totalAnswers} submissions)`)
+        anomalyScore += 20
+      }
+
+      if (anomalyScore > 0 || p.is_banned) {
+        const finalScore = Math.min(100, Math.max(10, anomalyScore))
+        let riskLevel: 'critical' | 'high' | 'medium' = 'medium'
+        if (finalScore >= 75) riskLevel = 'critical'
+        else if (finalScore >= 50) riskLevel = 'high'
+
+        anomalies.push({
+          playerId: p.id,
+          username: p.username || 'Anonymous',
+          email: p.email || '—',
+          avatar_url: p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.username || 'Player'}`,
+          elo: p.elo ?? 0,
+          wins: p.wins ?? 0,
+          losses: p.losses ?? 0,
+          totalMatches: p.total_matches ?? (p.wins + p.losses),
+          isBanned: Boolean(p.is_banned),
+          anomalyScore: finalScore,
+          riskLevel,
+          flagReasons: flagReasons.length > 0 ? flagReasons : ['Manual Telemetry Review'],
+          accuracy,
+          totalLoggedAnswers: totalAnswers,
+          fastestIntervalMs: fastestIntervalMs < 9999 ? fastestIntervalMs : 1200,
+          detectedAt: new Date().toISOString()
+        })
+      }
+    }
+
+    // Sort by anomaly score descending
+    anomalies.sort((a, b) => b.anomalyScore - a.anomalyScore)
+
+    res.json({
+      success: true,
+      totalFlagged: anomalies.length,
+      anomalies
+    })
+  } catch (error: any) {
+    console.error('Error in getAntiCheatAnomalies:', error)
+    res.status(500).json({ success: false, error: error.message || 'Failed to analyze anti-cheat telemetry' })
+  }
+}
+
+/**
+ * POST /api/admin/anticheat/action
+ * Executes 1-Click Governance Action (Ban, Wipe ELO, Dismiss).
+ */
+export async function handleAntiCheatAction(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { playerId, action, reason } = req.body
+    if (!playerId || !action) {
+      res.status(400).json({ success: false, message: 'playerId and action are required' })
+      return
+    }
+
+    const player = await fetchPlayerOrFail(playerId, res)
+    if (!player) return
+
+    if (action === 'ban') {
+      await supabase.from('players').update({ is_banned: true, updated_at: new Date().toISOString() }).eq('id', playerId)
+      await invalidatePlayerSession(playerId, true)
+      res.json({
+        success: true,
+        message: `Player ${player.username} has been banned and terminated from active matches.`
+      })
+      return
+    }
+
+    if (action === 'wipe_elo') {
+      await supabase.from('players').update({
+        elo: 0,
+        wins: 0,
+        losses: 0,
+        total_matches: 0,
+        updated_at: new Date().toISOString()
+      }).eq('id', playerId)
+      res.json({
+        success: true,
+        message: `Player ${player.username}'s ELO and match records have been wiped cleanly to 0.`
+      })
+      return
+    }
+
+    if (action === 'dismiss') {
+      res.json({
+        success: true,
+        message: `Flag on ${player.username} dismissed by Admin.`
+      })
+      return
+    }
+
+    res.status(400).json({ success: false, message: `Unknown action: ${action}` })
+  } catch (error: any) {
+    console.error('Error in handleAntiCheatAction:', error)
+    res.status(500).json({ success: false, error: error.message || 'Failed to execute anti-cheat action' })
+  }
+}
+
+// ── ⚖️ Support Core Meta Balancer & Hotfix Controllers ───────────────────────
+
+/**
+ * GET /api/admin/cores/meta
+ * Analyzes Win Rate vs Pick Rate across all 65 Support Cores.
+ */
+export async function getCoreMetaAnalytics(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { data: cores, error: cErr } = await supabase
+      .from('cores')
+      .select('id, name, description, classification, tier, core_type, is_active, multiplier_buff, flat_buff, duration, icon_url')
+      .order('tier', { ascending: true })
+
+    if (cErr) throw cErr
+
+    const { data: sessions, error: sErr } = await supabase
+      .from('game_sessions')
+      .select('active_core_id, score, status')
+      .order('started_at', { ascending: false })
+      .limit(600)
+
+    if (sErr) throw sErr
+
+    const totalMatches = sessions?.length || 1
+    const coreUsageMap = new Map<string, { picks: number; wins: number }>()
+
+    for (const s of sessions || []) {
+      if (!s.active_core_id) continue
+      const coreId = String(s.active_core_id)
+      const current = coreUsageMap.get(coreId) || { picks: 0, wins: 0 }
+      current.picks++
+      if ((s.score || 0) >= 1000) {
+        current.wins++
+      }
+      coreUsageMap.set(coreId, current)
+    }
+
+    const metaCores = (cores || []).map((c: any) => {
+      const stats = coreUsageMap.get(String(c.id)) || { picks: 0, wins: 0 }
+      const pickRate = totalMatches > 0 ? Math.round((stats.picks / totalMatches) * 1000) / 10 : 0
+      const winRate = stats.picks > 0 ? Math.round((stats.wins / stats.picks) * 1000) / 10 : 50.0
+
+      let metaStatus: 'OP' | 'Meta' | 'Balanced' | 'Underpowered' | 'Niche' = 'Balanced'
+      if (winRate >= 65 && pickRate >= 12) metaStatus = 'OP'
+      else if (winRate >= 54 && pickRate >= 8) metaStatus = 'Meta'
+      else if (winRate < 45 && pickRate < 6) metaStatus = 'Underpowered'
+      else if (winRate >= 60 && pickRate < 4) metaStatus = 'Niche'
+
+      return {
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        classification: c.classification || 'Balanced',
+        tier: c.tier || 1,
+        core_type: c.core_type || 'main',
+        is_active: c.is_active !== false,
+        multiplier_buff: Number(c.multiplier_buff || 1.0),
+        flat_buff: Number(c.flat_buff || 0),
+        duration: Number(c.duration || 0),
+        icon_url: c.icon_url,
+        pickCount: stats.picks,
+        winCount: stats.wins,
+        pickRate,
+        winRate,
+        metaStatus
+      }
+    })
+
+    res.json({
+      success: true,
+      totalMatchesAnalyzed: totalMatches,
+      cores: metaCores
+    })
+  } catch (error: any) {
+    console.error('Error in getCoreMetaAnalytics:', error)
+    res.status(500).json({ success: false, error: error.message || 'Failed to compute core meta analytics' })
+  }
+}
+
+/**
+ * PATCH /api/admin/cores/:id/hotfix
+ * Hotfixes Support Core multipliers and flat buffs directly in DB without server restarts.
+ */
+export async function hotfixCoreParameters(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { id } = req.params
+    const { multiplier_buff, flat_buff, duration, is_active } = req.body
+
+    const updates: any = {}
+    if (multiplier_buff !== undefined) updates.multiplier_buff = Number(multiplier_buff)
+    if (flat_buff !== undefined) updates.flat_buff = Number(flat_buff)
+    if (duration !== undefined) updates.duration = Number(duration)
+    if (is_active !== undefined) updates.is_active = Boolean(is_active)
+
+    const { data: updatedCore, error } = await supabase
+      .from('cores')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error || !updatedCore) {
+      res.status(400).json({ success: false, message: error?.message || 'Failed to update core parameters' })
+      return
+    }
+
+    res.json({
+      success: true,
+      message: `Hotfix applied for Support Core "${updatedCore.name}". Live values updated instantly!`,
+      core: updatedCore
+    })
+  } catch (error: any) {
+    console.error('Error in hotfixCoreParameters:', error)
+    res.status(500).json({ success: false, error: error.message || 'Failed to hotfix core' })
+  }
+}
+
+// ── 🤖 AI Question Quality Auditor & Auto-Fixer Controllers ─────────────────
+
+/**
+ * POST /api/admin/questions/audit
+ * Audits questions for blank count mismatches, vague hints, and CEFR errors using Gemini.
+ */
+export async function auditQuestionQuality(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { limit = 30, offset = 0, difficulty, topic } = req.body
+    const parsedLimit = Math.min(Math.max(Number(limit) || 30, 5), 50)
+    const parsedOffset = Math.max(Number(offset) || 0, 0)
+
+    let query = supabase
+      .from('questions')
+      .select('id, question_text, target_word, hint, topic, difficulty')
+      .range(parsedOffset, parsedOffset + parsedLimit - 1)
+      .order('id', { ascending: true })
+
+    if (difficulty) query = query.eq('difficulty', difficulty)
+    if (topic) query = query.ilike('topic', `%${topic}%`)
+
+    const { data: questions, error } = await query
+    if (error) throw error
+
+    const auditItems = await auditQuestionsWithAi(questions || [])
+    const issuesFound = auditItems.filter(item => item.issues && item.issues.length > 0)
+
+    res.json({
+      success: true,
+      totalAudited: auditItems.length,
+      totalIssuesCount: issuesFound.length,
+      items: auditItems
+    })
+  } catch (error: any) {
+    console.error('Error in auditQuestionQuality:', error)
+    res.status(500).json({ success: false, error: error.message || 'Failed to audit question bank quality' })
+  }
+}
+
+/**
+ * POST /api/admin/questions/auto-fix
+ * Batch-applies AI-suggested corrections to the questions table.
+ */
+export async function applyQuestionAutoFix(req: AuthRequest, res: Response): Promise<void> {
+  try {
+    const { fixes } = req.body
+    if (!Array.isArray(fixes) || fixes.length === 0) {
+      res.status(400).json({ success: false, message: 'No question fixes provided' })
+      return
+    }
+
+    let updatedCount = 0
+    for (const fix of fixes) {
+      if (!fix.id) continue
+      const updatePayload: any = {}
+      if (fix.suggested_question_text) updatePayload.question_text = fix.suggested_question_text
+      if (fix.suggested_hint) updatePayload.hint = fix.suggested_hint
+      if (fix.suggested_difficulty) updatePayload.difficulty = fix.suggested_difficulty
+      if (fix.target_word) updatePayload.target_word = fix.target_word.trim().toLowerCase()
+
+      const { error } = await supabase
+        .from('questions')
+        .update(updatePayload)
+        .eq('id', fix.id)
+
+      if (!error) updatedCount++
+    }
+
+    res.json({
+      success: true,
+      fixedCount: updatedCount,
+      message: `Successfully auto-corrected ${updatedCount} question(s) in database.`
+    })
+  } catch (error: any) {
+    console.error('Error in applyQuestionAutoFix:', error)
+    res.status(500).json({ success: false, error: error.message || 'Failed to apply auto-fix' })
+  }
+}
+
 
 
 

@@ -1,5 +1,21 @@
 <template>
   <div class="space-y-6">
+    <!-- ANTI-CHEAT RADAR ACCORDION / TOGGLE -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <button
+          @click="showAntiCheatRadar = !showAntiCheatRadar"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-red-500/50 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
+        >
+          <span>🛡️</span>
+          <span>{{ showAntiCheatRadar ? 'Hide Anti-Cheat Anomaly Radar' : 'Open Anti-Cheat Anomaly Radar' }}</span>
+          <span class="px-1.5 py-0.2 text-[9px] rounded-full bg-red-500/20 text-red-400 border border-red-500/30">LIVE</span>
+        </button>
+      </div>
+
+      <AntiCheatRadarCard v-if="showAntiCheatRadar" />
+    </div>
+
     <!-- PAGE HEADER -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
@@ -417,6 +433,9 @@ import { useAuthStore } from '../../stores/authStore'
 import { getTierForElo, getRankFromElo } from '../../utils/ranks'
 import BanConfirmationModal from '../../components/admin/BanConfirmationModal.vue'
 import AdminToggleModal from '../../components/admin/AdminToggleModal.vue'
+import AntiCheatRadarCard from '../../components/admin/AntiCheatRadarCard.vue'
+
+const showAntiCheatRadar = ref(false)
 
 interface PlayerRecord {
   id: string

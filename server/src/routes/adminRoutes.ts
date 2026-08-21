@@ -26,7 +26,13 @@ import {
   generateAiQuestions,
   getAiConfigController,
   updateAiConfigController,
-  resetAiConfigController
+  resetAiConfigController,
+  getAntiCheatAnomalies,
+  handleAntiCheatAction,
+  getCoreMetaAnalytics,
+  hotfixCoreParameters,
+  auditQuestionQuality,
+  applyQuestionAutoFix
 } from '../controllers/adminController'
 
 const router = Router()
@@ -66,11 +72,19 @@ router.delete('/questions/:id', authMiddleware, requireAdmin, deleteQuestion)
 // Bulk Import CSV/JSON endpoint
 router.post('/questions/import', authMiddleware, requireAdmin, importQuestions)
 
+// Question Quality Auditor endpoints (AI Auto-Fix)
+router.post('/questions/audit', authMiddleware, requireAdmin, auditQuestionQuality)
+router.post('/questions/auto-fix', authMiddleware, requireAdmin, applyQuestionAutoFix)
+
 // Protected Player Management endpoints
 router.get('/players', authMiddleware, requireAdmin, getPlayers)
 router.post('/players/:id/ban', authMiddleware, requireAdmin, banPlayer)
 router.post('/players/:id/unban', authMiddleware, requireAdmin, unbanPlayer)
 router.patch('/players/:id/admin', authMiddleware, requireAdmin, togglePlayerAdmin)
+
+// Anti-Cheat Anomaly Radar endpoints
+router.get('/anticheat/anomalies', authMiddleware, requireAdmin, getAntiCheatAnomalies)
+router.post('/anticheat/action', authMiddleware, requireAdmin, handleAntiCheatAction)
 
 // Leaderboard & Season Management endpoints (US-92)
 router.get('/leaderboard', authMiddleware, requireAdmin, getLeaderboard)
@@ -82,6 +96,10 @@ router.post('/cores', authMiddleware, requireAdmin, createCore)
 router.put('/cores/:id', authMiddleware, requireAdmin, updateCore)
 router.patch('/cores/:id/toggle', authMiddleware, requireAdmin, toggleCoreActive)
 router.delete('/cores/:id', authMiddleware, requireAdmin, deleteCore)
+
+// Support Core Meta Balancer & Live Hotfix endpoints
+router.get('/cores/meta', authMiddleware, requireAdmin, getCoreMetaAnalytics)
+router.patch('/cores/:id/hotfix', authMiddleware, requireAdmin, hotfixCoreParameters)
 
 // Protected Match Analytics & Telemetry endpoints (US-93)
 router.get('/matches/analytics', authMiddleware, requireAdmin, getMatchAnalytics)

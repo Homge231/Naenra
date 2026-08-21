@@ -85,6 +85,22 @@
       </div>
     </div>
 
+    <!-- META BALANCER & HOTFIX ACCORDION / TOGGLE -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between">
+        <button
+          @click="showMetaBalancer = !showMetaBalancer"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/50 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
+        >
+          <span>⚖️</span>
+          <span>{{ showMetaBalancer ? 'Hide Meta Balancer & Hotfix Sliders' : 'Open Support Core Meta Balancer & Hotfix Sliders' }}</span>
+          <span class="px-1.5 py-0.2 text-[9px] rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">HOTFIX</span>
+        </button>
+      </div>
+
+      <CoreMetaBalancerCard v-if="showMetaBalancer" />
+    </div>
+
     <!-- FILTER & SEARCH CONTROLS: SYNCHRONIZED WITH PLAYER MANAGEMENT BAR -->
     <div class="p-4 bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       <!-- Search Bar -->
@@ -643,6 +659,9 @@ import { ref, computed, onMounted } from 'vue'
 import { fetchWithAuth } from '../../services/api'
 import { getCoreIconPath } from '../../game/cores/icons'
 import { getCoreFamily } from '../../game/cores/families'
+import CoreMetaBalancerCard from '../../components/admin/CoreMetaBalancerCard.vue'
+
+const showMetaBalancer = ref(false)
 
 interface CoreConfig {
   id: string
