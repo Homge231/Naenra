@@ -252,6 +252,26 @@ export function useGeminiLive() {
     }
   }
 
+  const activeSources = new Set<AudioBufferSourceNode>()
+
+  // Stop all active audio playback and clear audio queue
+  function stopAllAudio() {
+    activeSources.forEach(source => {
+      try {
+        source.stop(0)
+        source.disconnect()
+      } catch {}
+    })
+    activeSources.clear()
+    nextPlayTime = 0
+    isSpeaking.value = false
+    audioAmplitude.value = 0
+  }
+
+  function interruptSession() {
+    stopAllAudio()
+  }
+
   // Play Back PCM Audio Chunks from Gemini 3.1 Flash Live
   function playAudioChunk(base64Data: string) {
     if (!audioCtx) return
@@ -291,11 +311,13 @@ export function useGeminiLive() {
       }
 
       isSpeaking.value = true
+      activeSources.add(source)
       source.start(nextPlayTime)
       nextPlayTime += audioBuffer.duration
 
       source.onended = () => {
-        if (audioCtx && audioCtx.currentTime >= nextPlayTime - 0.05) {
+        activeSources.delete(source)
+        if (activeSources.size === 0 || (audioCtx && audioCtx.currentTime >= nextPlayTime - 0.05)) {
           isSpeaking.value = false
           audioAmplitude.value = 0
         }
@@ -359,6 +381,8 @@ export function useGeminiLive() {
     isRecording.value = false
     audioAmplitude.value = 0
 
+    stopAllAudio()
+
     if (scriptNode) {
       scriptNode.disconnect()
       scriptNode = null
@@ -393,6 +417,8 @@ export function useGeminiLive() {
     errorMsg,
     startLiveSession,
     stopLiveSession,
+    stopAllAudio,
+    interruptSession,
     sendTextMessage,
     speakTextViaLive,
     onAiTranscript,

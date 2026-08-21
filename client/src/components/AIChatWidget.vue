@@ -325,6 +325,8 @@ function toggleLiveSession() {
 const isChatOpen = ref(false)
 const currentAiLiveMsgIdx = ref(-1)
 const currentUserLiveMsgIdx = ref(-1)
+let lastUserTranscript = ''
+let sessionSeq = 0
 
 // Real-time transcript from Gemini Live AI Output
 onAiTranscript((text: string) => {
@@ -341,19 +343,42 @@ onAiTranscript((text: string) => {
     const current = messages.value[currentAiLiveMsgIdx.value].content
     if (text.startsWith(current)) {
       messages.value[currentAiLiveMsgIdx.value].content = text
-    } else if (!current.endsWith(text)) {
-      messages.value[currentAiLiveMsgIdx.value].content += (current && !current.endsWith(' ') && !text.startsWith(' ') ? ' ' : '') + text
+    } else if (current.startsWith(text)) {
+      // Current already has accumulated text, do not overwrite with smaller prefix
+    } else {
+      messages.value[currentAiLiveMsgIdx.value].content = current + (current.endsWith(' ') || text.startsWith(' ') ? '' : ' ') + text
     }
   }
   scrollToBottom()
 })
 
-// Real-time transcript from Gemini Live Server User Input (if sent by server)
+// Real-time transcript from Gemini Live Server User Input (voice to text)
 onUserTranscript((text: string) => {
   if (!text || !isChatOpen.value) return
-  // Interrupt any previous AI TTS speech immediately when user begins speaking
+  if (text.trim() === lastUserTranscript.trim()) return
+  lastUserTranscript = text
+
+  // 1. Immediately preempt and stop any previous AI TTS or Live audio playback
   stopSpeaking()
-  if (currentUserLiveMsgIdx.value === -1 || currentUserLiveMsgIdx.value >= messages.value.length || messages.value[currentUserLiveMsgIdx.value]?.role !== 'user') {
+  geminiLive.stopAllAudio()
+
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
+  if (streamTickerTimer) {
+    clearInterval(streamTickerTimer)
+    streamTickerTimer = null
+  }
+  isStreaming.value = false
+  isLoading.value = false
+
+  // 2. Manage user voice transcript bubble cleanly without duplicates
+  if (
+    currentUserLiveMsgIdx.value === -1 ||
+    currentUserLiveMsgIdx.value >= messages.value.length ||
+    messages.value[currentUserLiveMsgIdx.value]?.role !== 'user'
+  ) {
     messages.value.push({ role: 'user', content: text })
     currentUserLiveMsgIdx.value = messages.value.length - 1
   } else {
@@ -362,24 +387,27 @@ onUserTranscript((text: string) => {
   scrollToBottom()
 })
 
-// Signal from Gemini Live when a turn completes (resets indices so next turn starts a new bubble)
+// Signal from Gemini Live when a turn completes (resets indices so next turn starts a new clean bubble)
 onTurnComplete(() => {
   currentAiLiveMsgIdx.value = -1
   currentUserLiveMsgIdx.value = -1
+  lastUserTranscript = ''
 })
 
 watch(isLiveConnected, (connected) => {
   if (!connected) {
     currentAiLiveMsgIdx.value = -1
     currentUserLiveMsgIdx.value = -1
+    lastUserTranscript = ''
   }
 })
 
 // Lifecycle: Ensure chatbox ONLY responds and speaks when and only when open
 watch(isChatOpen, (open) => {
   if (!open) {
-    // 1. Immediately cancel any voice TTS readouts
+    // 1. Immediately cancel any voice TTS and live audio
     stopSpeaking()
+    geminiLive.stopAllAudio()
 
     // 2. Stop voice speech-to-text if active
     if (isListening.value) {
@@ -468,6 +496,7 @@ onBeforeUnmount(() => {
     currentAbortController = null
   }
   stopSpeaking()
+  geminiLive.stopAllAudio()
 })
 
 // ── Toggle / Close ───────────────────────────────────────────────────
@@ -479,19 +508,15 @@ function toggleChat() {
     }
     nextTick(() => scrollToBottom())
   } else {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
-      isSpeaking.value = false
-    }
+    stopSpeaking()
+    geminiLive.stopAllAudio()
   }
 }
 
 function closeChat() {
   isChatOpen.value = false
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-    isSpeaking.value = false
-  }
+  stopSpeaking()
+  geminiLive.stopAllAudio()
 }
 
 // ── Scroll helpers ───────────────────────────────────────────────────
@@ -521,12 +546,12 @@ async function sendMessage() {
   inputText.value = ''
   errorMsg.value = ''
 
-  // 1. Immediately abort active stream, clear interval, and stop TTS audio
-  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
-  speechQueue = []
-  isSpeaking.value = false
+  // Preemption: Increment session sequence ID to cancel previous session
+  const thisSessionId = ++sessionSeq
+
+  // 1. Immediately abort active stream, clear interval, and stop TTS & Live audio
+  stopSpeaking()
+  geminiLive.stopAllAudio()
 
   if (streamTickerTimer) {
     clearInterval(streamTickerTimer)
@@ -551,6 +576,7 @@ async function sendMessage() {
 
   currentUserLiveMsgIdx.value = -1
   currentAiLiveMsgIdx.value = -1
+  lastUserTranscript = ''
 
   // Push user prompt bubble
   messages.value.push({ role: 'user', content: text })
@@ -577,8 +603,8 @@ async function sendMessage() {
     if (streamTickerTimer) clearInterval(streamTickerTimer)
 
     streamTickerTimer = setInterval(() => {
-      // Abort immediately if chat was closed
-      if (!isChatOpen.value) {
+      // Abort immediately if chat was closed or a new session preempted this one
+      if (!isChatOpen.value || thisSessionId !== sessionSeq) {
         if (streamTickerTimer) clearInterval(streamTickerTimer)
         streamTickerTimer = null
         isStreaming.value = false
@@ -610,7 +636,7 @@ async function sendMessage() {
         streamingMsgIdx.value = -1
         isLoading.value = false
 
-        if (displayedText.trim() && isChatOpen.value) {
+        if (displayedText.trim() && isChatOpen.value && thisSessionId === sessionSeq) {
           speakText(displayedText)
         } else {
           // If no content ever arrived, remove empty placeholder
@@ -674,6 +700,8 @@ async function sendMessage() {
       signal: currentAbortController.signal
     })
 
+    if (thisSessionId !== sessionSeq) return
+
     if (!res.ok || !res.body) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.message || (isVi ? 'Không thể kết nối đến AI Assistant' : 'Failed to connect to AI Assistant'))
@@ -691,7 +719,7 @@ async function sendMessage() {
     let buffer = ''
 
     while (true) {
-      if (!isChatOpen.value) {
+      if (!isChatOpen.value || thisSessionId !== sessionSeq) {
         reader.cancel().catch(() => {})
         isStreamClosed = true
         break
@@ -713,7 +741,7 @@ async function sendMessage() {
         }
         try {
           const parsed = JSON.parse(payload)
-          if (parsed.chunk) {
+          if (parsed.chunk && thisSessionId === sessionSeq) {
             incomingBuffer += parsed.chunk
           }
         } catch { /* skip malformed chunk */ }
@@ -725,7 +753,7 @@ async function sendMessage() {
     isStreamClosed = true
 
     // If stream failed before any text arrived, clean up placeholder
-    if (incomingBuffer.length === 0) {
+    if (thisSessionId === sessionSeq && incomingBuffer.length === 0) {
       if (streamTickerTimer) {
         clearInterval(streamTickerTimer)
         streamTickerTimer = null
@@ -744,7 +772,9 @@ async function sendMessage() {
     }
   } finally {
     if (timeoutId) clearTimeout(timeoutId)
-    currentAbortController = null
+    if (thisSessionId === sessionSeq) {
+      currentAbortController = null
+    }
     scrollToBottom()
   }
 }

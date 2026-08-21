@@ -43,11 +43,15 @@ export function useVoiceSynthesis() {
     return langVoices[0] || null
   }
 
+  let currentSpeechSession = 0
+
   function stopSpeaking() {
+    currentSpeechSession++
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
+      try {
+        window.speechSynthesis.cancel()
+      } catch {}
     }
-    speechQueue = []
     isSpeaking.value = false
   }
 
@@ -62,6 +66,7 @@ export function useVoiceSynthesis() {
     if (!isChatOpen || !isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
 
     stopSpeaking()
+    const thisSession = currentSpeechSession
 
     // Clean status tags, markdown, symbols, emojis, and formatting before speaking
     const cleanText = text
@@ -93,17 +98,26 @@ export function useVoiceSynthesis() {
     }
 
     utterance.onstart = () => {
+      if (currentSpeechSession !== thisSession) {
+        window.speechSynthesis.cancel()
+        isSpeaking.value = false
+        return
+      }
       if (isChatOpen) {
         isSpeaking.value = true
       }
     }
 
     utterance.onend = () => {
-      isSpeaking.value = false
+      if (currentSpeechSession === thisSession) {
+        isSpeaking.value = false
+      }
     }
 
     utterance.onerror = () => {
-      isSpeaking.value = false
+      if (currentSpeechSession === thisSession) {
+        isSpeaking.value = false
+      }
     }
 
     isSpeaking.value = true
