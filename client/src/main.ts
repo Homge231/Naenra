@@ -17,13 +17,12 @@ auth.init().finally(() => {
     app.mount('#app')
 
     // Register PWA Service Worker for offline asset caching
-    if ('serviceWorker' in navigator && import.meta.env.PROD) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then((reg) => {
-          console.log('[PWA] Service Worker registered:', reg.scope)
-        }).catch((err) => {
-          console.warn('[PWA] Service Worker registration failed:', err)
-        })
+    if ('serviceWorker' in navigator && (import.meta.env.PROD || window.location.protocol === 'https:')) {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        console.log('[PWA] Service Worker registered:', reg.scope)
+        reg.update()
+      }).catch((err) => {
+        console.warn('[PWA] Service Worker registration failed:', err)
       })
     }
   })

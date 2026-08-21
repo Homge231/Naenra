@@ -1,13 +1,12 @@
-const CACHE_NAME = 'naenra-app-v1'
+const CACHE_NAME = 'naenra-app-v2'
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/favicon.svg',
-  '/icons.svg',
   '/manifest.webmanifest'
 ]
 
-// Install Event: Pre-cache core shell
+// 1. Install Event: Cache core shell immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -19,7 +18,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting()
 })
 
-// Activate Event: Clean up outdated caches
+// 2. Activate Event: Take control and prune old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -35,16 +34,16 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// Fetch Event: Cache first for static assets, network first for API
+// 3. Fetch Event: Cache first for assets, network first with fallback for navigation & API
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
-  // Skip non-GET and chrome-extension / Colyseus WS requests
+  // Skip non-GET, WebSockets, or browser extensions
   if (event.request.method !== 'GET' || url.protocol.startsWith('ws') || url.protocol === 'chrome-extension:') {
     return
   }
 
-  // API Requests: Network first, don't break online real-time play
+  // API Requests: Network first, return offline JSON fallback if disconnected
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -57,23 +56,31 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Navigation requests (HTML): Network first with offline fallback to index.html
+  // Navigation requests (HTML pages): Network first, fallback to cached index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/index.html') || caches.match('/')
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
+          }
+          return networkResponse
+        })
+        .catch(() => {
+          return caches.match('/index.html') || caches.match('/')
+        })
     )
     return
   }
 
-  // Static Assets (JS, CSS, Images, Audio, Fonts): Cache first, fallback to network
+  // Static Assets (JS, CSS, Images, Fonts): Cache-first with background revalidation & caching
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Fetch in background to revalidate cache
+        // Background fetch to keep cache fresh
         fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
+          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
             caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse))
           }
         }).catch(() => {})
@@ -81,16 +88,12 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse
+        if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+          const clone = networkResponse.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
         }
-        const responseToCache = networkResponse.clone()
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache)
-        })
         return networkResponse
       }).catch(() => {
-        // Return fallback if possible
         if (event.request.destination === 'image') {
           return caches.match('/favicon.svg')
         }
