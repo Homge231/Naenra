@@ -48,6 +48,11 @@
         </div>
         
         <div class="flex items-center gap-1.5 border-l-2 border-orange-100 pl-3 ml-1">
+          <button @click="installApp" @mouseenter="audioService.playHover()"
+            class="px-3 py-1.5 font-black text-xs uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-white text-orange-600 border border-orange-200 hover:border-orange-400 flex items-center gap-1.5" title="Cài đặt Ứng dụng Naenra">
+            <span>📲</span>
+            <span class="hidden xl:inline">Cài App</span>
+          </button>
           <button v-if="authStore.isAdmin" @click="router.push('/admin'); audioService.playClick()" @mouseenter="audioService.playHover()"
             class="px-3 py-1.5 font-black text-xs uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-gradient-to-r from-orange to-hexred text-white flex items-center gap-1.5" title="Admin Operations HQ">
             <span>🛡️</span>
@@ -199,9 +204,11 @@ import { useAuthStore } from '../../stores/authStore.ts'
 import { audioService } from '../../services/audioService.ts'
 import AIChatWidget from '../../components/AIChatWidget.vue'
 import { getSavedReconnectionToken, reconnectMatchRoom, currentRoom } from '../../services/multiplayerService.ts'
+import { usePwaInstall } from '../../composables/usePwaInstall'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { installApp } = usePwaInstall()
 
 const isSearching = ref(false)
 const joinCode = ref('')

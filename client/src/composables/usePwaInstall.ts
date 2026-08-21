@@ -13,7 +13,7 @@ const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null)
 const canInstall = ref(false)
 const isStandalone = ref(false)
 const isIos = ref(false)
-const showIosGuide = ref(false)
+const showInstallModal = ref(false)
 
 export function usePwaInstall() {
   function checkEnvironment() {
@@ -30,33 +30,31 @@ export function usePwaInstall() {
     const isSafari = /safari/.test(ua) && !/chrome|crios|fxios/.test(ua)
     isIos.value = isIphoneOrIpad && isSafari && !isStandalone.value
 
-    // If already installed, we do not need install prompt
+    // If already installed, don't show prompt
     if (isStandalone.value) {
       canInstall.value = false
     }
   }
 
   async function installApp() {
-    if (isIos.value) {
-      showIosGuide.value = true
-      return
-    }
-
-    if (!deferredPrompt.value) {
-      return
-    }
-
-    try {
-      await deferredPrompt.value.prompt()
-      const { outcome } = await deferredPrompt.value.userChoice
-      if (outcome === 'accepted') {
-        console.log('[PWA] User accepted the installation!')
-        canInstall.value = false
-        deferredPrompt.value = null
+    if (deferredPrompt.value) {
+      try {
+        await deferredPrompt.value.prompt()
+        const { outcome } = await deferredPrompt.value.userChoice
+        if (outcome === 'accepted') {
+          console.log('[PWA] User accepted the installation!')
+          canInstall.value = false
+          deferredPrompt.value = null
+          showInstallModal.value = false
+          return
+        }
+      } catch (err) {
+        console.warn('[PWA] Install prompt failed:', err)
       }
-    } catch (err) {
-      console.warn('[PWA] Install prompt failed:', err)
     }
+
+    // If deferredPrompt is unavailable or iOS/Safari/Mac, show universal install modal
+    showInstallModal.value = true
   }
 
   function dismissInstall() {
@@ -73,11 +71,7 @@ export function usePwaInstall() {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault()
       deferredPrompt.value = e as BeforeInstallPromptEvent
-      
-      const lastDismissed = localStorage.getItem('pwa_prompt_dismissed')
-      if (!lastDismissed || Date.now() - Number(lastDismissed) > 86400000) {
-        canInstall.value = true
-      }
+      canInstall.value = true
     })
 
     // Listen for successful install event
@@ -86,6 +80,7 @@ export function usePwaInstall() {
       canInstall.value = false
       deferredPrompt.value = null
       isStandalone.value = true
+      showInstallModal.value = false
     })
   })
 
@@ -93,7 +88,7 @@ export function usePwaInstall() {
     canInstall,
     isStandalone,
     isIos,
-    showIosGuide,
+    showInstallModal,
     installApp,
     dismissInstall
   }
