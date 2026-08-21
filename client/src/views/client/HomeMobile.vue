@@ -50,7 +50,7 @@
         
         <div class="flex items-center gap-1 border-l-2 border-orange-100 pl-1.5 ml-0.5">
           <button @click="installApp" @mouseenter="audioService.playHover()"
-            class="px-2 py-1 font-black text-[9px] uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-white text-purple-600 border border-purple-200 flex items-center gap-1" title="Install App">
+            class="px-2 py-1 font-black text-[9px] uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-white text-orange-600 border border-orange-200 flex items-center gap-1" title="Install App">
             <span>📲</span>
             <span>App</span>
           </button>
