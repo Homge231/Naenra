@@ -3,6 +3,7 @@
     <RouterView />
     <ErrorNotification />
     <MissionToastOverlay />
+    <PwaInstallBanner />
     
     <!-- Global Settings Modal -->
     <GlobalSettingsOverlay />
@@ -28,6 +29,7 @@ import { RouterView, useRoute } from 'vue-router'
 import ErrorNotification from './components/ErrorNotification.vue'
 import GlobalSettingsOverlay from './components/GlobalSettingsOverlay.vue'
 import MissionToastOverlay from './components/MissionToastOverlay.vue'
+import PwaInstallBanner from './components/pwa/PwaInstallBanner.vue'
 import { useSettingsStore } from './stores/settingsStore'
 import { useAuthStore } from './stores/authStore'
 

@@ -1,5 +1,6 @@
 import { ref, nextTick } from 'vue'
 import { currentRoom } from '../../services/multiplayerService'
+import { OFFLINE_QUESTION_BANK } from '../useOfflineTraining'
 
 export interface QuestionPayload {
   id: string
@@ -25,6 +26,27 @@ export interface UseQuestionQueueOptions {
   refetchThreshold?: number
 }
 
+function generateOracleHints(word: string): string[] {
+  const len = word.length
+  if (len <= 2) return [word, word, word]
+  const h1 = word[0] + '·'.repeat(len - 2) + word[len - 1]
+  const mid = Math.floor(len / 2)
+  const h2 = word[0] + '·'.repeat(mid - 1) + word[mid] + '·'.repeat(len - mid - 2) + word[len - 1]
+  const h3 = word.split('').map((c, i) => i % 2 === 0 ? c : '·').join('')
+  return [h1, h2, h3]
+}
+
+const RICH_OFFLINE_QUESTIONS: QuestionPayload[] = OFFLINE_QUESTION_BANK.map(q => ({
+  id: q.id,
+  question_text: q.question_text,
+  target_length: q.target_word.length,
+  target_hash: '',
+  oracle_hints: generateOracleHints(q.target_word.toUpperCase()),
+  hint: q.hint,
+  correct_word: q.target_word.toLowerCase(),
+  topic: q.topic
+}))
+
 export function useQuestionQueue(options: UseQuestionQueueOptions) {
   const REFETCH_THRESHOLD = options.refetchThreshold ?? 3
   const questionQueue = ref<QuestionPayload[]>([])
@@ -36,14 +58,6 @@ export function useQuestionQueue(options: UseQuestionQueueOptions) {
     target_hash: '',
     oracle_hints: ['', '', '']
   })
-
-  const MOCK_QUESTIONS: QuestionPayload[] = [
-    { id: 'm1', question_text: 'The scientist made a remarkable ________ that changed medicine forever.', target_length: 9, target_hash: '', oracle_hints: ['D·······Y', 'D·S···E·Y', 'D·S·O·E·Y'], hint: 'The act of finding something new' },
-    { id: 'm2', question_text: 'She spoke with great ________ when addressing the crowd at the stadium.', target_length: 10, target_hash: '', oracle_hints: ['C········E', 'C·N····C·E', 'C·N·I·E·C·E'], hint: 'A feeling of self-assurance' },
-    { id: 'm3', question_text: 'His ability to ________ complex data in seconds impressed the entire team.', target_length: 7, target_hash: '', oracle_hints: ['A·····E', 'A·A··Z·E', 'A·A·Y·Z·E'], hint: 'Examine methodically and in detail' },
-    { id: 'm4', question_text: 'The team celebrated their ________ after months of hard work.', target_length: 7, target_hash: '', oracle_hints: ['V·····Y', 'V·C··R·Y', 'V·C·O·R·Y'], hint: 'Winning a competition' },
-    { id: 'm5', question_text: 'She showed great ________ in the face of adversity.', target_length: 10, target_hash: '', oracle_hints: ['R········E', 'R·S····N·E', 'R·S·L·E·N·E'], hint: 'Ability to recover quickly' },
-  ]
 
   async function fetchBatch(): Promise<void> {
     if (isFetchingBatch.value || options.gameState.value === 'timeout') return
@@ -68,7 +82,8 @@ export function useQuestionQueue(options: UseQuestionQueueOptions) {
       const data = await res.json()
       questionQueue.value.push(...(data.questions as QuestionPayload[]))
     } catch {
-      const shuffled = [...MOCK_QUESTIONS].sort(() => Math.random() - 0.5)
+      // Offline fallback: shuffle from 150 offline questions
+      const shuffled = [...RICH_OFFLINE_QUESTIONS].sort(() => Math.random() - 0.5)
       questionQueue.value.push(...shuffled)
     } finally {
       isFetchingBatch.value = false
@@ -87,7 +102,7 @@ export function useQuestionQueue(options: UseQuestionQueueOptions) {
 
     const next = questionQueue.value.shift()
     if (!next) {
-      currentQuestion.value = MOCK_QUESTIONS[Math.floor(Math.random() * MOCK_QUESTIONS.length)]
+      currentQuestion.value = RICH_OFFLINE_QUESTIONS[Math.floor(Math.random() * RICH_OFFLINE_QUESTIONS.length)]
       fetchBatch()
     } else {
       currentQuestion.value = next
