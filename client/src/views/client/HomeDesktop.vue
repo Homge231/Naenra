@@ -49,9 +49,9 @@
         
         <div class="flex items-center gap-1.5 border-l-2 border-orange-100 pl-3 ml-1">
           <button @click="installApp" @mouseenter="audioService.playHover()"
-            class="px-3 py-1.5 font-black text-xs uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-white text-orange-600 border border-orange-200 hover:border-orange-400 flex items-center gap-1.5" title="Cài đặt Ứng dụng Naenra">
+            class="px-3 py-1.5 font-black text-xs uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-white text-purple-600 border border-purple-200 hover:border-purple-400 flex items-center gap-1.5" title="Install Naenra App">
             <span>📲</span>
-            <span class="hidden xl:inline">Cài App</span>
+            <span class="hidden xl:inline">Install App</span>
           </button>
           <button v-if="authStore.isAdmin" @click="router.push('/admin'); audioService.playClick()" @mouseenter="audioService.playHover()"
             class="px-3 py-1.5 font-black text-xs uppercase tracking-wider rounded-full shadow-sm hover:scale-105 transition-all cursor-pointer bg-gradient-to-r from-orange to-hexred text-white flex items-center gap-1.5" title="Admin Operations HQ">
