@@ -41,27 +41,33 @@ export function initQuestionCron() {
         }
       }
       
-      // 2. Wipe existing questions (optional depending on your exact preference, 
-      //    but since the instruction was "delete all questions", we truncate/delete them here).
-      const { error: deleteErr } = await supabase
-        .from('questions')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000') // Deletes all rows
+      // 2. Safely append new unique questions to database (prevent wiping existing questions)
+      if (allNewQuestions.length > 0) {
+        const { data: existingQuestions } = await supabase
+          .from('questions')
+          .select('target_word')
 
-      if (deleteErr) {
-        console.error('Failed to wipe old questions:', deleteErr)
-        return
-      }
+        const existingSet = new Set(
+          (existingQuestions || []).map((q: any) => (q.target_word || '').trim().toLowerCase())
+        )
 
-      // 3. Insert new questions
-      const { error: insertErr } = await supabase
-        .from('questions')
-        .insert(allNewQuestions)
+        const uniqueQuestions = allNewQuestions.filter(
+          q => q.target_word && !existingSet.has(q.target_word.trim().toLowerCase())
+        )
 
-      if (insertErr) {
-        console.error('Failed to insert new questions:', insertErr)
-      } else {
-        console.log(`Successfully generated and inserted ${allNewQuestions.length} new AI questions across levels A1, B1, and B2!`)
+        if (uniqueQuestions.length > 0) {
+          const { error: insertErr } = await supabase
+            .from('questions')
+            .insert(uniqueQuestions)
+
+          if (insertErr) {
+            console.error('[QuestionCron] Failed to insert new questions:', insertErr)
+          } else {
+            console.log(`[QuestionCron] Successfully generated and appended ${uniqueQuestions.length} new unique AI questions!`)
+          }
+        } else {
+          console.log('[QuestionCron] All generated questions already existed in the bank. 0 duplicates inserted.')
+        }
       }
     } catch (err) {
       console.error('Error during weekly question generation cron job:', err)

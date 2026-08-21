@@ -3,6 +3,19 @@ import { Client } from 'colyseus';
 export const activeClientsByUserId = new Map<string, Set<Client>>();
 export const userLastSeenMap = new Map<string, number>();
 
+// Periodic cleanup of stale in-memory presence entries older than 10 minutes
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    const staleThreshold = 10 * 60 * 1000;
+    for (const [userId, lastSeen] of userLastSeenMap.entries()) {
+      if (now - lastSeen > staleThreshold && !activeClientsByUserId.has(userId)) {
+        userLastSeenMap.delete(userId);
+      }
+    }
+  }, 5 * 60 * 1000);
+}
+
 export function touchUserActivity(userId: string) {
   if (!userId) return;
   userLastSeenMap.set(userId, Date.now());

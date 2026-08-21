@@ -1171,6 +1171,9 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
       shieldsUsed: Number(shields_used) || 0
     })
 
+    // Prune session anti-cheat timer to prevent memory accumulation
+    sessionTimers.delete(session_id)
+
     res.status(200).json({
       message: 'Session ended',
       score: finalScore,
@@ -1245,6 +1248,9 @@ export async function abandonSession(req: AuthRequest, res: Response): Promise<v
         console.log(`[abandonSession] Forfeit ELO penalty applied for player ${playerId}: ${currentElo} -> ${newElo} (-16 ELO)`)
       }
     }
+
+    // Prune session anti-cheat timer to prevent memory accumulation
+    sessionTimers.delete(session_id)
 
     res.status(200).json({ message: 'Session abandoned' })
   } catch (err) {
