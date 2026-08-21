@@ -199,6 +199,7 @@ const gameStore = useGameStore()
 const matchStore = useMatchStore()
 const tutorial = useTutorial()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
+import { DEFAULT_OFFLINE_CORES } from '../../composables/useOfflineTraining'
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
 
 // ── Hover & Touch-Hold Tooltip Logic ─────────────────────────────────────────
@@ -403,24 +404,31 @@ async function fetchSupportCores() {
       flat_buff: c.flat_buff,
       multiplier_buff: c.multiplier_buff,
       icon: getCoreIconPath(c.name, c.icon_url),
-      // Use DB column directly — no frontend recomputation needed
       classification: c.classification ?? 'power',
       tier: c.tier
     }))
-
-    randomCores.value = getRandomCores(supportCores.value, 2)
-    discardedCoreIds.value.clear()
-    randomCores.value.forEach(c => discardedCoreIds.value.add(c.id))
-    loading.value = false
-
-    startTimer()
   } catch (err) {
-    if (!isMounted.value) return
-    console.error('fetchSupportCores error:', err)
-    errorMsg.value = 'Failed to load Support Cores.'
-    loading.value = false
+    console.warn('fetchSupportCores offline fallback:', err)
+    supportCores.value = DEFAULT_OFFLINE_CORES.map(c => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      flat_buff: c.flat_buff,
+      multiplier_buff: c.multiplier_buff,
+      icon: getCoreIconPath(c.name, ''),
+      classification: c.classification,
+      tier: c.tier
+    }))
   }
+
+  if (!isMounted.value) return
+  randomCores.value = getRandomCores(supportCores.value, 2)
+  discardedCoreIds.value.clear()
+  randomCores.value.forEach(c => discardedCoreIds.value.add(c.id))
+  loading.value = false
+  startTimer()
 }
+
 async function createSession(coreId: string) {
   try {
     const token = localStorage.getItem('arena_token')
@@ -433,7 +441,7 @@ async function createSession(coreId: string) {
       body: JSON.stringify({ active_core_id: coreId })
     })
 
-    if (!res.ok) return
+    if (!res.ok) throw new Error('failed')
     const data = await res.json()
 
     if (data.session_id) {
@@ -447,7 +455,9 @@ async function createSession(coreId: string) {
       gameStore.activeCoreName = data.active_core.name
     }
   } catch (err) {
-    console.error('Error creating Session:', err)
+    console.warn('createSession offline fallback:', err)
+    gameStore.sessionId = `offline-session-${Date.now()}`
+    gameStore.activeCoreId = coreId
   }
 }
 

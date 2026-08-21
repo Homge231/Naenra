@@ -229,3 +229,132 @@ export function useOfflineTraining() {
     finishMatch
   }
 }
+
+export interface OfflineCoreOption {
+  id: string
+  name: string
+  description: string
+  flat_buff: number
+  multiplier_buff: number
+  classification: string
+  tier: number
+}
+
+export const DEFAULT_OFFLINE_CORES: OfflineCoreOption[] = [
+  { id: 'combo-core', name: 'Combo Core', description: 'Increases combo multiplier bonus on consecutive correct words.', flat_buff: 0, multiplier_buff: 0.05, classification: 'power', tier: 1 },
+  { id: 'speedster-core', name: 'Speedster Core', description: 'Grants +3s bonus time when completing words under 2 seconds.', flat_buff: 0, multiplier_buff: 0, classification: 'power', tier: 1 },
+  { id: 'oracle-core', name: 'Oracle Core', description: 'Reveals first and last letters of target words.', flat_buff: 0, multiplier_buff: 0, classification: 'effect', tier: 1 },
+  { id: 'aegis-core', name: 'Aegis Core', description: 'Provides 2 energy shields that absorb typos without breaking combo.', flat_buff: 0, multiplier_buff: 0, classification: 'effect', tier: 1 },
+  { id: 'power-core', name: 'Power Core', description: 'Grants +30 flat bonus score per correct word.', flat_buff: 30, multiplier_buff: 0, classification: 'power', tier: 1 },
+  { id: 'balanced-core', name: 'Balanced Core', description: 'Moderate flat bonus and combo multiplier boost.', flat_buff: 15, multiplier_buff: 0.02, classification: 'power', tier: 1 },
+  { id: 'phoenix-core', name: 'Phoenix Core', description: 'Restores 50% score lost on mistakes.', flat_buff: 0, multiplier_buff: 0, classification: 'effect', tier: 1 },
+  { id: 'high-roller-core', name: 'High Roller Core', description: 'High risk, double points on long words (7+ letters).', flat_buff: 0, multiplier_buff: 0.1, classification: 'power', tier: 1 }
+]
+
+export function evaluateOfflineSubmission(params: {
+  typed: string
+  target: string
+  currentCombo: number
+  currentShields: number
+  activeCoreName?: string | null
+  elapsedMs: number
+}) {
+  const cleanInput = (params.typed || '').trim().toLowerCase()
+  const cleanTarget = (params.target || '').trim().toLowerCase()
+  const coreName = (params.activeCoreName || '').toLowerCase()
+
+  if (!cleanInput) {
+    // Skipped
+    return {
+      correct: false,
+      isSkip: true,
+      pointsEarned: 0,
+      pointsDeducted: 20,
+      newCombo: 0,
+      shieldBlocked: false,
+      newShields: params.currentShields,
+      timerDelta: 0,
+      correctWord: cleanTarget
+    }
+  }
+
+  if (cleanInput === cleanTarget) {
+    // Exact Match
+    const newCombo = params.currentCombo + 1
+    const comboMultiplier = 1 + Math.min(newCombo * 0.05, 1.0)
+    let basePts = cleanTarget.length * 20
+    if (coreName.includes('power')) basePts += 30
+    if (coreName.includes('balanced')) basePts += 15
+
+    let earned = Math.round(basePts * comboMultiplier)
+    if (coreName.includes('high roller') && cleanTarget.length >= 7) {
+      earned = Math.round(earned * 1.5)
+    }
+
+    let timerDelta = 0
+    if (coreName.includes('speedster') && params.elapsedMs < 2000) {
+      timerDelta = 3000
+    }
+
+    return {
+      correct: true,
+      isSkip: false,
+      pointsEarned: earned,
+      pointsDeducted: 0,
+      newCombo,
+      shieldBlocked: false,
+      newShields: params.currentShields,
+      timerDelta,
+      correctWord: cleanTarget
+    }
+  }
+
+  // Typo / Wrong Answer
+  let dist = 0
+  const matrix: number[][] = []
+  for (let i = 0; i <= cleanInput.length; i++) matrix[i] = [i]
+  for (let j = 0; j <= cleanTarget.length; j++) matrix[0][j] = j
+  for (let i = 1; i <= cleanInput.length; i++) {
+    for (let j = 1; j <= cleanTarget.length; j++) {
+      const cost = cleanInput[i - 1] === cleanTarget[j - 1] ? 0 : 1
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      )
+    }
+  }
+  dist = matrix[cleanInput.length][cleanTarget.length]
+  const maxLen = Math.max(cleanInput.length, cleanTarget.length)
+  const sim = maxLen > 0 ? (maxLen - dist) / maxLen : 0
+
+  if (params.currentShields > 0) {
+    // Aegis shield protects
+    return {
+      correct: false,
+      isSkip: false,
+      pointsEarned: 0,
+      pointsDeducted: 0,
+      newCombo: params.currentCombo,
+      shieldBlocked: true,
+      newShields: params.currentShields - 1,
+      timerDelta: 0,
+      correctWord: cleanTarget
+    }
+  }
+
+  const penalty = sim >= 0.8 ? dist * 2 : Math.min(50, dist * 10)
+
+  return {
+    correct: false,
+    isSkip: false,
+    pointsEarned: 0,
+    pointsDeducted: penalty,
+    newCombo: 0,
+    shieldBlocked: false,
+    newShields: 0,
+    timerDelta: 0,
+    correctWord: cleanTarget
+  }
+}
+

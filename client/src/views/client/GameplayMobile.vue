@@ -602,9 +602,9 @@ import {
 } from '../../game/cores/registry.ts'
 import { useSettingsStore } from '../../stores/settingsStore.ts'
 import CoreTooltip from '../../components/game/CoreTooltip.vue'
-import { getCoreIconPath } from '../../game/cores/icons.ts'
 import { fetchWithAuth } from '../../services/api.ts'
 import { audioService } from '../../services/audioService.ts'
+import { evaluateOfflineSubmission, DEFAULT_OFFLINE_CORES } from '../../composables/useOfflineTraining.ts'
 
 const showCelebrationModal = ref(false)
 const unlockedCoresCelebrationList = ref<UnlockedCoreDetail[]>([])
@@ -1114,59 +1114,83 @@ function stopTimeoutInterval() {
 // ── Session API ────────────────────────────────────────────────────────────
 async function createSession() {
   try {
-    const res = await fetchWithAuth(`/api/game/session`, {
-      method: 'POST',
-      body: JSON.stringify({ active_core_id: activeCoreId.value })
-    })
-    if (!res.ok) return
-    const data = await res.json()
-    sessionId.value = data.session_id
-    gameStore.sessionId = data.session_id
-    if (data.active_core?.id) gameStore.activeCoreId = data.active_core.id
-    if (data.active_core?.name) gameStore.activeCoreName = data.active_core.name
-    // Theme is now managed by matchStore topics
-    if (data.aegis_shield_count !== undefined) aegisShieldCount.value = data.aegis_shield_count
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      const res = await fetchWithAuth(`/api/game/session`, {
+        method: 'POST',
+        body: JSON.stringify({ active_core_id: activeCoreId.value })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        sessionId.value = data.session_id
+        gameStore.sessionId = data.session_id
+        if (data.active_core?.id) gameStore.activeCoreId = data.active_core.id
+        if (data.active_core?.name) gameStore.activeCoreName = data.active_core.name
+        if (data.aegis_shield_count !== undefined) aegisShieldCount.value = data.aegis_shield_count
+        return
+      }
+    }
   } catch (err) {
-    console.error(err)
+    console.warn('createSession offline fallback:', err)
   }
+
+  // Local Offline Session Fallback
+  const offSid = `offline-session-${Date.now()}`
+  sessionId.value = offSid
+  gameStore.sessionId = offSid
 }
 
 async function callTimeoutEndpoint(sid: string, coreId: string | null, oracleLvl: number) {
   savingSession.value = true
   try {
-    const res = await fetchWithAuth(`/api/game/timeout`, {
-      method: 'POST',
-      body: JSON.stringify({
-        session_id: sid,
-        active_core_id: coreId,
-        oracle_reveal_level: oracleLvl,
-        max_combo: maxComboStreak.value,
-        shields_used: aegisShieldCount.value,
-        accuracy: 100
+    if (typeof navigator !== 'undefined' && navigator.onLine && !sid?.startsWith('offline-')) {
+      const res = await fetchWithAuth(`/api/game/timeout`, {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: sid,
+          active_core_id: coreId,
+          oracle_reveal_level: oracleLvl,
+          max_combo: maxComboStreak.value,
+          shields_used: aegisShieldCount.value,
+          accuracy: 100
+        })
       })
-    })
-    if (res.ok) {
-      const data = await res.json()
-      score.value = data.score ?? score.value
-      questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+      if (res.ok) {
+        const data = await res.json()
+        score.value = data.score ?? score.value
+        questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
 
-      // US-74: Update unlocked cores and trigger celebration modal
-      if (data.newly_unlocked_cores && data.newly_unlocked_cores.length > 0) {
-        if (authStore.profile) {
-          const unlockedSet = new Set(authStore.profile.unlocked_core_ids || [])
-          data.newly_unlocked_cores.forEach((c: any) => unlockedSet.add(String(c.id)))
-          authStore.profile.unlocked_core_ids = Array.from(unlockedSet)
+        // US-74: Update unlocked cores and trigger celebration modal
+        if (data.newly_unlocked_cores && data.newly_unlocked_cores.length > 0) {
+          if (authStore.profile) {
+            const unlockedSet = new Set(authStore.profile.unlocked_core_ids || [])
+            data.newly_unlocked_cores.forEach((c: any) => unlockedSet.add(String(c.id)))
+            authStore.profile.unlocked_core_ids = Array.from(unlockedSet)
+          }
+          unlockedCoresCelebrationList.value = data.newly_unlocked_cores
+          showCelebrationModal.value = true
         }
-        unlockedCoresCelebrationList.value = data.newly_unlocked_cores
-        showCelebrationModal.value = true
-      }
 
-      if (data.mission_progress_updates && data.mission_progress_updates.length > 0) {
-        missionToastUpdates.value = data.mission_progress_updates
-      }
+        if (data.mission_progress_updates && data.mission_progress_updates.length > 0) {
+          missionToastUpdates.value = data.mission_progress_updates
+        }
 
-      // Synchronize cloud mission progress
-      missionsStore.fetchCloudProgress()
+        // Synchronize cloud mission progress
+        missionsStore.fetchCloudProgress()
+      }
+    } else {
+      // Offline Practice Finish - Queue EXP
+      try {
+        const queue = JSON.parse(localStorage.getItem('offline_matches_queue') || '[]')
+        queue.push({
+          score: score.value,
+          questions_answered: questionsAnswered.value,
+          max_combo: maxComboStreak.value,
+          accuracy: 100,
+          exp: Math.round(score.value * 0.1) + 50,
+          playedAt: new Date().toISOString()
+        })
+        localStorage.setItem('offline_matches_queue', JSON.stringify(queue))
+      } catch (e) {}
     }
   } catch (err) {
     console.error(err)
@@ -1225,14 +1249,15 @@ async function skipQuestion() {
   // Notify server: send empty string as answer (server treats it as a full skip/wrong)
   const timeTaken = Date.now() - questionStartTime.value
   const mySeq = ++submitAnswerSeq
-    ; (async () => {
-      try {
+  ;(async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine && !sessionId.value?.startsWith('offline-')) {
         const res = await fetchWithAuth(`/api/game/submit-answer`, {
           method: 'POST',
           body: JSON.stringify({
             session_id: sessionId.value,
             question_id: questionId,
-            answer: '',            // empty = full skip
+            answer: '', // empty = full skip
             current_combo: capturedCombo,
             active_core_id: activeCoreId.value,
             secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
@@ -1256,7 +1281,6 @@ async function skipQuestion() {
             missionProgress.value = data.breakdown.mission_streak
           }
 
-          // --- Core Effect Engine (v2) Handlers ---
           if (data.timer_delta) {
             addTime(data.timer_delta)
             if (data.timer_delta > 0) {
@@ -1265,15 +1289,12 @@ async function skipQuestion() {
           }
           
           if (data.forgive_mistake) {
-            // Restore proactive resets
             currentCombo.value = capturedCombo
             missionProgress.value = capturedMission
-            
             triggerScoreFlash('forgive')
             spawnPointPopup(0, 'custom', 'FORGIVEN!')
           }
 
-          // Only show popup if it's the latest question to avoid spam, but ALWAYS update history
           if (mySeq === submitAnswerSeq) {
             if (data.breakdown?.shield_blocked) {
               spawnPointPopup(0, 'shield_blocked')
@@ -1285,14 +1306,35 @@ async function skipQuestion() {
           matchHistory.value.push({
             round: matchStore.currentRound,
             submitted: '(Skipped)',
-            correct: data.correct_word || '???',
+            correct: data.correct_word || currentQuestion.value.correct_word || '???',
             isCorrect: false
           })
+          return
         }
-      } catch (err) {
-        console.error('Failed to sync skip:', err)
       }
-    })()
+    } catch (err) {
+      console.warn('submit-answer skip offline fallback:', err)
+    }
+
+    // Offline Skip Fallback
+    const targetWord = currentQuestion.value.correct_word || currentQuestion.value.hint || 'answer'
+    const off = evaluateOfflineSubmission({
+      typed: '',
+      target: targetWord,
+      currentCombo: capturedCombo,
+      currentShields: capturedShields,
+      activeCoreName: gameStore.activeCoreName,
+      elapsedMs: timeTaken
+    })
+    score.value = Math.max(0, score.value - off.pointsDeducted)
+    spawnPointPopup(off.pointsDeducted, 'wrong', 'SKIPPED')
+    matchHistory.value.push({
+      round: matchStore.currentRound,
+      submitted: '(Skipped)',
+      correct: targetWord,
+      isCorrect: false
+    })
+  })()
 }
 
 // ── Input handling ────────────────────────────────────────────────────────
@@ -1364,7 +1406,9 @@ async function checkAnswer() {
   const capturedMission = missionProgress.value
 
   const hashVal = await sha256(typed)
-  const isCorrectLocal = hashVal === currentQuestion.value.target_hash
+  const targetWord = (currentQuestion.value.correct_word || '').toLowerCase()
+  const isCorrectLocal = (currentQuestion.value.target_hash ? hashVal === currentQuestion.value.target_hash : false) ||
+                         (targetWord ? typed.toLowerCase() === targetWord : false)
 
   if (isCorrectLocal) {
     audioService.playCorrect()
@@ -1382,202 +1426,201 @@ async function checkAnswer() {
       pauseTimerFor(3000)
     }
 
-    // Mission logic has been removed from client prediction and moved entirely to the backend.
-
     triggerScoreFlash('correct')
   } else {
     audioService.playSkip()
     gameState.value = 'wrong'
     currentCombo.value = 0
-    // Mission streak drop logic is now handled by the backend
-
     triggerScoreFlash('wrong')
   }
 
-  if (!sessionId.value || !questionId) {
-    setTimeout(() => {
-      if (gameState.value !== 'timeout') loadQuestion()
-    }, FEEDBACK_MS)
-    return
-  }
-
-  const timeTaken = elapsed
   const mySeq = ++submitAnswerSeq
 
-  // If local check is correct, transition to next question immediately after feedback time
+  // Transition to next question after feedback delay (always guaranteed)
+  let delay = FEEDBACK_MS
   if (isCorrectLocal) {
-    let delay = FEEDBACK_MS
-    // BUG FIX #3: was hardcoded === 5, didn't account for Swift Mission (3) or Mission Master (3)
     const missionTarget = effectiveCores.value.some(c =>
       ['swift mission', 'mission master', 'daily quest'].includes(c.name.toLowerCase())
     ) ? 3 : 5
     if (isMissionCore.value && missionProgress.value === missionTarget) {
-      delay = 2000 // Wait for mission celebration animation
+      delay = 2000
     }
-    setTimeout(() => {
-      if (gameState.value !== 'timeout' && mySeq === submitAnswerSeq) loadQuestion()
-    }, delay)
   }
+  setTimeout(() => {
+    if (gameState.value !== 'timeout' && mySeq === submitAnswerSeq) {
+      loadQuestion()
+    }
+  }, delay)
 
-  ; (async () => {
+  const timeTaken = elapsed
+
+  ;(async () => {
     let lockInputMs = 0
     try {
-      const res = await fetchWithAuth(`/api/game/submit-answer`, {
-        method: 'POST',
-        body: JSON.stringify({
-          session_id: sessionId.value,
-          question_id: questionId,
-          answer: typed,
-          current_combo: capturedCombo,
-          active_core_id: activeCoreId.value,
-          secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
-          core_history_names: gameStore.coreHistory.map(c => c.name),
-          core_history: gameStore.coreHistory.map(c => c.id),
-          oracle_reveal_level: capturedOracleLevel,
-          time_taken: timeTaken,
-          current_shields: capturedShields,
-          mission_progress: capturedMission
-        })
-      })
-
-      if (res.ok) {
-        const data = await res.json()
-        
-        if (!data.correct) {
-          isTypingError.value = true
-          setTimeout(() => {
-            isTypingError.value = false
-          }, 300)
-        }
-
-        if (data.lock_input_ms) {
-          lockInputMs = data.lock_input_ms
-        }
-
-        updateScoreAnimated(data.new_total_score ?? score.value)
-
-        // Evaluate mission progress for score and streaks
-        missionsStore.evaluateGameplayProgress({
-          score: data.new_total_score ?? score.value,
-          comboStreak: currentCombo.value
+      if (typeof navigator !== 'undefined' && navigator.onLine && !sessionId.value?.startsWith('offline-')) {
+        const res = await fetchWithAuth(`/api/game/submit-answer`, {
+          method: 'POST',
+          body: JSON.stringify({
+            session_id: sessionId.value,
+            question_id: questionId,
+            answer: typed,
+            current_combo: capturedCombo,
+            active_core_id: activeCoreId.value,
+            secondary_core_id: isPandoraMode.value ? currentPandoraCoreId.value : undefined,
+            core_history_names: gameStore.coreHistory.map(c => c.name),
+            core_history: gameStore.coreHistory.map(c => c.id),
+            oracle_reveal_level: capturedOracleLevel,
+            time_taken: timeTaken,
+            current_shields: capturedShields,
+            mission_progress: capturedMission
+          })
         })
 
-        questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
-        pointsEarned.value = data.points_earned ?? pointsEarned.value
-        pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
-
-        if (data.breakdown?.final_shield_count !== undefined) {
-          aegisShieldCount.value = data.breakdown.final_shield_count
-        }
-        if (data.breakdown?.mission_streak !== undefined) {
-          if (data.breakdown.mission_completed === 1) {
-            // Optimistically fill the last star for the celebration
-            missionProgress.value = missionProgress.value + 1
-          } else {
-            missionProgress.value = data.breakdown.mission_streak
-          }
-        }
-
-        // --- Core Effect Engine (v2) Handlers ---
-        if (data.timer_delta) {
-          addTime(data.timer_delta)
-          // Optional: spawn some text popup for +1s
-          if (data.timer_delta > 0) {
-            spawnPointPopup(0, 'custom', `+${data.timer_delta/1000}s TIME!`)
-          }
-        }
-
-        if (data.pause_timer_ms) {
-          pauseTimerFor(data.pause_timer_ms)
-          spawnPointPopup(0, 'custom', 'TIME FROZEN!')
-        }
-        
-        if (data.shield_delta && data.shield_delta > 0) {
-          // If Phoenix rebirth happened, the points popup already covers it — show REBIRTH! instead
-          if (data.breakdown?.phoenix_miss_count > 0) {
-            spawnPointPopup(0, 'custom', '🔥 REBIRTH!')
-            playPhoenixRebirth()
-          } else {
-            const shieldLabel = data.shield_delta >= 2 ? `+${data.shield_delta} SHIELDS!` : '+1 SHIELD!'
-            spawnPointPopup(0, 'custom', shieldLabel)
-          }
-        }
-        
-        // Handle forgive_mistake (prevent streak loss)
-        if (!data.correct && data.forgive_mistake) {
-          // Restore proactive resets
-          currentCombo.value = capturedCombo
-          missionProgress.value = capturedMission
+        if (res.ok) {
+          const data = await res.json()
           
-          triggerScoreFlash('forgive')
-          spawnPointPopup(0, 'custom', 'FORGIVEN!')
-        }
-
-        if (mySeq === submitAnswerSeq && !data.correct && data.correct_word) {
-          currentQuestion.value.correct_word = data.correct_word
-        }
-
-        matchHistory.value.push({
-          round: matchStore.currentRound,
-          submitted: typed,
-          correct: data.correct ? typed : (data.correct_word || '???'),
-          isCorrect: data.correct
-        })
-
-        if (mySeq === submitAnswerSeq) {
-          if (data.breakdown?.mission_completed === 1) {
-            playJackpot(true)
-            showMissionCelebration.value = true
+          if (!data.correct) {
+            isTypingError.value = true
             setTimeout(() => {
-              showMissionCelebration.value = false
-              missionProgress.value = 0
-            }, 2000)
-          }
-
-          // Note: Mission celebration is now handled locally for instant feedback
-          if (data.breakdown?.shield_blocked) {
-            spawnPointPopup(0, 'shield_blocked')
-          } else if (data.correct && isPrismaticCombo.value) {
-            spawnPointPopup(data.points_earned, 'prismatic')
-            showPrismaticFlash.value = true
-            playFireBurst() // Burst of fire for prismatic
-            setTimeout(() => {
-              showPrismaticFlash.value = false
+              isTypingError.value = false
             }, 300)
-          } else if (data.correct && isSpeedsterCore.value) {
-            spawnPointPopup(data.points_earned, 'speedster')
-            if (timeTaken <= 2000) playSpeedWhoosh()
-          } else {
-            const popupType: 'correct' | 'wrong' | 'typo' | 'prismatic' = data.correct
-              ? 'correct'
-              : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
-            spawnPointPopup(
-              data.correct ? data.points_earned : data.points_deducted,
-              popupType
-            )
           }
-        }
 
+          if (data.lock_input_ms) {
+            lockInputMs = data.lock_input_ms
+          }
+
+          updateScoreAnimated(data.new_total_score ?? score.value)
+
+          // Evaluate mission progress for score and streaks
+          missionsStore.evaluateGameplayProgress({
+            score: data.new_total_score ?? score.value,
+            comboStreak: currentCombo.value
+          })
+
+          questionsAnswered.value = data.questions_answered ?? questionsAnswered.value
+          pointsEarned.value = data.points_earned ?? pointsEarned.value
+          pointsDeducted.value = data.points_deducted ?? pointsDeducted.value
+
+          if (data.breakdown?.final_shield_count !== undefined) {
+            aegisShieldCount.value = data.breakdown.final_shield_count
+          }
+          if (data.breakdown?.mission_streak !== undefined) {
+            if (data.breakdown.mission_completed === 1) {
+              missionProgress.value = missionProgress.value + 1
+            } else {
+              missionProgress.value = data.breakdown.mission_streak
+            }
+          }
+
+          // --- Core Effect Engine Handlers ---
+          if (data.timer_delta) {
+            addTime(data.timer_delta)
+            if (data.timer_delta > 0) {
+              spawnPointPopup(0, 'custom', `+${data.timer_delta/1000}s TIME!`)
+            }
+          }
+
+          if (data.pause_timer_ms) {
+            pauseTimerFor(data.pause_timer_ms)
+            spawnPointPopup(0, 'custom', 'TIME FROZEN!')
+          }
+          
+          if (data.shield_delta && data.shield_delta > 0) {
+            if (data.breakdown?.phoenix_miss_count > 0) {
+              spawnPointPopup(0, 'custom', '🔥 REBIRTH!')
+              playPhoenixRebirth()
+            } else {
+              const shieldLabel = data.shield_delta >= 2 ? `+${data.shield_delta} SHIELDS!` : '+1 SHIELD!'
+              spawnPointPopup(0, 'custom', shieldLabel)
+            }
+          }
+          
+          if (!data.correct && data.forgive_mistake) {
+            currentCombo.value = capturedCombo
+            missionProgress.value = capturedMission
+            triggerScoreFlash('forgive')
+            spawnPointPopup(0, 'custom', 'FORGIVEN!')
+          }
+
+          if (mySeq === submitAnswerSeq && !data.correct && data.correct_word) {
+            currentQuestion.value.correct_word = data.correct_word
+          }
+
+          matchHistory.value.push({
+            round: matchStore.currentRound,
+            submitted: typed,
+            correct: data.correct ? typed : (data.correct_word || '???'),
+            isCorrect: data.correct
+          })
+
+          if (mySeq === submitAnswerSeq) {
+            if (data.breakdown?.shield_blocked) {
+              spawnPointPopup(0, 'shield_blocked')
+            } else if (data.correct && isPrismaticCombo.value) {
+              spawnPointPopup(data.points_earned, 'prismatic')
+              showPrismaticFlash.value = true
+              playFireBurst()
+              setTimeout(() => {
+                showPrismaticFlash.value = false
+              }, 300)
+            } else if (data.correct && isSpeedsterCore.value) {
+              spawnPointPopup(data.points_earned, 'speedster')
+              if (timeTaken <= 2000) playSpeedWhoosh()
+            } else {
+              const popupType: 'correct' | 'wrong' | 'typo' | 'prismatic' = data.correct
+                ? 'correct'
+                : (data.penalty_type === 'typo' ? 'typo' : 'wrong')
+              spawnPointPopup(
+                data.correct ? data.points_earned : data.points_deducted,
+                popupType
+              )
+            }
+          }
+          return
+        }
       }
     } catch (err) {
-      console.error('Failed to sync answer:', err)
-    } finally {
-      if (!isCorrectLocal && mySeq === submitAnswerSeq) {
-        if (!currentQuestion.value.correct_word) {
-          currentQuestion.value.correct_word = '(Incorrect)'
-        }
-        const feedbackDelay = lockInputMs > 0 ? lockInputMs : FEEDBACK_MS
-        
-        if (lockInputMs > 0) {
-          triggerScoreFlash('wrong') // Trigger a stronger flash or effect
-          spawnPointPopup(0, 'custom', 'SYSTEM OVERLOAD!')
-        }
+      console.warn('submit-answer online failed, running local offline scoring:', err)
+    }
 
-        setTimeout(() => {
-          if (gameState.value !== 'timeout') loadQuestion()
-        }, feedbackDelay)
+    // OFFLINE / LOCAL SCORING EVALUATION
+    const off = evaluateOfflineSubmission({
+      typed,
+      target: targetWord,
+      currentCombo: capturedCombo,
+      currentShields: capturedShields,
+      activeCoreName: gameStore.activeCoreName,
+      elapsedMs: timeTaken
+    })
+
+    if (off.correct) {
+      updateScoreAnimated(score.value + off.pointsEarned)
+      questionsAnswered.value++
+      pointsEarned.value = off.pointsEarned
+      pointsDeducted.value = 0
+      if (off.timerDelta > 0) {
+        addTime(off.timerDelta)
+        spawnPointPopup(0, 'custom', `+${off.timerDelta/1000}s TIME!`)
+      }
+      spawnPointPopup(off.pointsEarned, 'correct', off.newCombo >= 3 ? 'HOT STREAK!' : undefined)
+    } else {
+      if (off.shieldBlocked) {
+        aegisShieldCount.value = off.newShields
+        spawnPointPopup(0, 'shield_blocked')
+      } else {
+        score.value = Math.max(0, score.value - off.pointsDeducted)
+        pointsDeducted.value = off.pointsDeducted
+        spawnPointPopup(off.pointsDeducted, 'wrong')
       }
     }
+
+    matchHistory.value.push({
+      round: matchStore.currentRound,
+      submitted: typed,
+      correct: targetWord || '???',
+      isCorrect: off.correct
+    })
   })()
 }
 

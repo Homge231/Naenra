@@ -207,6 +207,13 @@ router.beforeEach(async (to) => {
     return true
   }
 
+  // Allow offline solo gameplay training without authentication
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    if (['/core', '/game', '/end', '/home'].includes(to.path)) {
+      return true
+    }
+  }
+
   if (!to.meta.requiresAuth) {
     return true
   }
