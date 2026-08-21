@@ -1,6 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { supabase } from '../lib/supabase'
 
+// Static imports for client-facing core gameplay and navigation
+// Guarantees zero chunk-load network failures when operating offline
+import HomeView from '../views/client/HomeView.vue'
+import CoreSelectionView from '../views/client/CoreSelectionView.vue'
+import CoreSelectionMultiView from '../views/client/CoreSelectionMultiView.vue'
+import GameplayView from '../views/client/GameplayView.vue'
+import GameMultiplayView from '../views/client/GameMultiplayView.vue'
+import GamePureSkillMultiView from '../views/client/GamePureSkillMultiView.vue'
+import ShopView from '../views/client/ShopView.vue'
+import MatchEndView from '../views/client/MatchEndView.vue'
+import ErrorView from '../views/client/ErrorView.vue'
+import VerifyOTPView from '../views/client/VerifyOTPView.vue'
+import ForgotPasswordView from '../views/client/ForgotPasswordView.vue'
+import ResetPasswordView from '../views/client/ResetPasswordView.vue'
+import ProfileView from '../views/client/ProfileView.vue'
+import CustomRoomView from '../views/client/CustomRoomView.vue'
+import MatchmakingView from '../views/client/MatchmakingView.vue'
+import MatchFoundView from '../views/client/MatchFoundView.vue'
+import LeaderboardView from '../views/client/LeaderboardView.vue'
+import CoreLibraryView from '../views/client/CoreLibraryView.vue'
+import CoreUpgradeDetailView from '../views/client/CoreUpgradeDetailView.vue'
+import MissionsDashboardView from '../views/client/MissionsDashboardView.vue'
+import LoginView from '../views/client/LoginView.vue'
+
 // Admin emails that always have admin access (mirrors server/src/constants.ts)
 const SUPER_ADMIN_EMAILS = new Set([
   'homge231@gmail.com',
@@ -25,115 +49,122 @@ const router = createRouter({
     {
       path: '/login', 
       name: 'login',
-      component: () => import('../views/client/LoginView.vue')
+      component: LoginView
     },
     {
       path: '/home',
       alias: '/lobby',
       name: 'home',
-      component: () => import('../views/client/HomeView.vue')
+      component: HomeView
     },
     { 
       path: '/core', 
-      component: () => import('../views/client/CoreSelectionView.vue'), 
+      name: 'core',
+      component: CoreSelectionView, 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/core/multiplayer', 
-      component: () => import('../views/client/CoreSelectionMultiView.vue'), 
+      name: 'core-multiplayer',
+      component: CoreSelectionMultiView, 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/game', 
-      component: () => import('../views/client/GameplayView.vue'), 
+      name: 'game',
+      component: GameplayView, 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/game/multiplayer', 
-      component: () => import('../views/client/GameMultiplayView.vue'), 
+      name: 'game-multiplayer',
+      component: GameMultiplayView, 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/game/pure-skill-multiplayer', 
-      component: () => import('../views/client/GamePureSkillMultiView.vue'), 
+      name: 'game-pure-skill-multiplayer',
+      component: GamePureSkillMultiView, 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/shop', 
-      component: () => import('../views/client/ShopView.vue'), 
+      name: 'shop',
+      component: ShopView, 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/end', 
-      component: () => import('../views/client/MatchEndView.vue'), 
+      name: 'end',
+      component: MatchEndView, 
       meta: { requiresAuth: true } 
     },
     { 
       path: '/error', 
       name: 'error', 
-      component: () => import('../views/client/ErrorView.vue') 
+      component: ErrorView 
     },
     {
       path: '/verify-otp',
       name: 'verify-otp',
-      component: () => import('../views/client/VerifyOTPView.vue')
+      component: VerifyOTPView
     },
     {
       path: '/forgot-password',
       name: 'forgot-password',
-      component: () => import('../views/client/ForgotPasswordView.vue')
+      component: ForgotPasswordView
     },
     {
       path: '/reset-password',
       name: 'reset-password',
-      component: () => import('../views/client/ResetPasswordView.vue')
+      component: ResetPasswordView
     },
     {
       path: '/profile',
       name: 'profile',
-      component: () => import('../views/client/ProfileView.vue'),
+      component: ProfileView,
       meta: { requiresAuth: true }
     },
     {
       path: '/room/custom',
       name: 'CustomRoom',
-      component: () => import('../views/client/CustomRoomView.vue'),
+      component: CustomRoomView,
       meta: { requiresAuth: true }
     },
     {
       path: '/matchmaking',
       name: 'matchmaking',
-      component: () => import('../views/client/MatchmakingView.vue'),
+      component: MatchmakingView,
       meta: { requiresAuth: true }
     },
     {
       path: '/match-found',
       name: 'match-found',
-      component: () => import('../views/client/MatchFoundView.vue'),
+      component: MatchFoundView,
       meta: { requiresAuth: true }
     },
     {
       path: '/leaderboard',
       name: 'leaderboard',
-      component: () => import('../views/client/LeaderboardView.vue'),
+      component: LeaderboardView,
       meta: { requiresAuth: true }
     },
     {
       path:'/library',
       name: 'library',
-      component: () => import('../views/client/CoreLibraryView.vue'),
+      component: CoreLibraryView,
       meta: { requiresAuth: true }
     },
     {
       path: '/library/core/:id',
       name: 'core-library-item',
-      component: () => import('../views/client/CoreUpgradeDetailView.vue'),
+      component: CoreUpgradeDetailView,
       meta: { requiresAuth: true }
     },
     {
       path: '/missions',
       name: 'missions',
-      component: () => import('../views/client/MissionsDashboardView.vue'),
+      component: MissionsDashboardView,
       meta: { requiresAuth: true }
     },
     {
@@ -198,20 +229,21 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
-  const hash = window.location.hash;
+  const hash = window.location.hash
   if (hash.includes('access_token') || hash.includes('type=recovery')) {
-    return true;
+    return true
   }
 
   if (to.name === 'login' || to.name === 'reset-password' || to.name === 'forgot-password' || to.name === 'home') {
     return true
   }
 
-  // Allow offline solo gameplay training without authentication
+  // Allow offline solo gameplay, core selection, library, missions & offline profile without redirection loop
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    if (['/core', '/game', '/end', '/home'].includes(to.path)) {
-      return true
+    if (to.path.startsWith('/admin') || to.path === '/matchmaking' || to.path === '/room/custom') {
+      return { name: 'home' }
     }
+    return true
   }
 
   if (!to.meta.requiresAuth) {
@@ -270,8 +302,11 @@ router.beforeEach(async (to) => {
 
 // Handle chunk load errors when deploying new versions
 router.onError((error, to) => {
-  if (error.message.includes('Failed to fetch dynamically imported module') || error.name === 'ChunkLoadError') {
-    window.location.href = to.fullPath
+  console.warn('[Router Chunk Error]', error)
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    if (error.message.includes('Failed to fetch dynamically imported module') || error.name === 'ChunkLoadError') {
+      window.location.href = to.fullPath
+    }
   }
 })
 

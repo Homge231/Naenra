@@ -255,11 +255,30 @@ export const useAuthStore = defineStore('auth', () => {
       } catch {}
     }
 
-    if (!isGuest.value && (user.value || localStorage.getItem('arena_token'))) await fetchProfile()
+    if (!isGuest.value && (user.value || localStorage.getItem('arena_token'))) {
+      try {
+        await fetchProfile()
+      } catch {}
+    }
+
+    // Offline auto-fallback if no user/profile exists
+    if (!user.value || !profile.value) {
+      const offlineId = 'offline_player_' + Math.floor(Math.random() * 10000)
+      user.value = { id: offlineId, email: 'offline@naenra.xyz', isGuest: true }
+      profile.value = {
+        id: offlineId,
+        username: 'Offline Player',
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=OfflinePlayer`,
+        elo: 0,
+        isGuest: true,
+        unlocked_core_ids: []
+      }
+      isGuest.value = true
+    }
 
     // Restore session_version tracking + realtime subscription on page reload
     const currentToken = localStorage.getItem('arena_token')
-    if (currentToken && user.value?.id) {
+    if (currentToken && user.value?.id && navigator.onLine) {
       const version = extractSessionVersionFromToken(currentToken)
       if (version !== null) {
         currentSessionVersion.value = version
@@ -415,29 +434,44 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function loginAsGuest(): Promise<{ success: boolean }> {
     try {
-      const res = await fetch(`${SERVER_URL}/auth/guest`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Failed to initialize guest session')
-      
-      localStorage.setItem('arena_token', data.token)
-      user.value = { id: data.user.id, email: data.user.email, isGuest: true }
-      profile.value = {
-        id: data.user.id,
-        username: data.user.username,
-        avatar_url: data.user.avatar_url,
-        elo: data.user.elo,
-        isGuest: true
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        const res = await fetch(`${SERVER_URL}/auth/guest`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          localStorage.setItem('arena_token', data.token)
+          user.value = { id: data.user.id, email: data.user.email, isGuest: true }
+          profile.value = {
+            id: data.user.id,
+            username: data.user.username,
+            avatar_url: data.user.avatar_url,
+            elo: data.user.elo,
+            isGuest: true
+          }
+          isGuest.value = true
+          useMissionsStore().loadUserMissions()
+          return { success: true }
+        }
       }
-      isGuest.value = true
-      useMissionsStore().loadUserMissions()
-      return { success: true }
     } catch (err) {
-      console.error('loginAsGuest error:', err)
-      return { success: false }
+      console.warn('loginAsGuest network failed, fallback to local offline guest:', err)
     }
+
+    // Offline Guest Session Fallback
+    const offlineId = 'offline_player_' + Math.floor(Math.random() * 10000)
+    user.value = { id: offlineId, email: 'offline@naenra.xyz', isGuest: true }
+    profile.value = {
+      id: offlineId,
+      username: 'Offline Player',
+      avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=OfflinePlayer`,
+      elo: 0,
+      isGuest: true,
+      unlocked_core_ids: []
+    }
+    isGuest.value = true
+    return { success: true }
   }
 
   async function logout() {
