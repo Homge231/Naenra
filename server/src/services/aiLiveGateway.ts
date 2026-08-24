@@ -61,6 +61,7 @@ export function setupAiLiveGateway(): WebSocketServer {
     const geminiWs = new WebSocket(geminiUri)
 
     let isSetupComplete = false
+    let isAiStreaming = false // Tracks if AI is currently streaming response/audio to client
     const pendingClientMessages: (Buffer | string)[] = []
 
     geminiWs.on('open', () => {
@@ -117,8 +118,21 @@ Key Game Facts:
 
     // 2. Relay messages from Client -> Gemini Live (Buffered until setup completes)
     clientWs.on('message', (message: Buffer | string) => {
+      const msgStr = message.toString()
+
+      // BE Task: Add logic to block/drop incoming voice payloads during AI stream
+      if (isAiStreaming) {
+        try {
+          if (msgStr.includes('realtimeInput') || msgStr.includes('audio/pcm')) {
+            // Drop voice payload on server to prevent AI echo and interruption
+            console.log('[GeminiLiveProxy] Dropped incoming voice payload while AI is streaming audio.')
+            return
+          }
+        } catch { /* skip */ }
+      }
+
       if (isSetupComplete && geminiWs.readyState === WebSocket.OPEN) {
-        geminiWs.send(message.toString())
+        geminiWs.send(msgStr)
       } else {
         pendingClientMessages.push(message)
       }
@@ -137,6 +151,14 @@ Key Game Facts:
               geminiWs.send(pending.toString())
             }
           }
+        }
+
+        // Track when AI starts and finishes streaming output
+        if (dataStr.includes('outputTranscription') || dataStr.includes('modelTurn') || dataStr.includes('audio/pcm')) {
+          isAiStreaming = true
+        }
+        if (dataStr.includes('turnComplete') || dataStr.includes('generationComplete') || dataStr.includes('interrupted')) {
+          isAiStreaming = false
         }
       } catch {
         // Ignore non-JSON parsing errors

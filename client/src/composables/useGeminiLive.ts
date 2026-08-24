@@ -74,18 +74,36 @@ export function useGeminiLive() {
         await audioCtx.resume()
       }
 
-      // 2. Request Microphone Access optionally (audio playback works even if mic is denied or unavailable)
+      // 2. Request Microphone Access with strictly enforced noise suppression & typing noise filtering
       try {
         micStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true
-          }
+            autoGainControl: true,
+            // Advanced WebRTC noise & typing suppression (filters out mechanical keyboard clacking)
+            googEchoCancellation: true,
+            googAutoGainControl: true,
+            googNoiseSuppression: true,
+            googHighpassFilter: true,
+            googTypingNoiseDetection: true,
+            channelCount: 1
+          } as any
         })
-      } catch (micErr) {
-        console.warn('[Gemini Live]: Microphone not available or denied. Proceeding with audio output playback mode.', micErr)
-        micStream = null
+      } catch {
+        // Fallback to standard noise suppression constraints if advanced WebRTC flags aren't supported
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          })
+        } catch (micErr) {
+          console.warn('[Gemini Live]: Microphone not available or denied. Proceeding with audio output playback mode.', micErr)
+          micStream = null
+        }
       }
 
       // 3. Connect WebSocket

@@ -180,7 +180,7 @@
         <div class="chat-footer">
           <div class="chat-input-wrap flex items-center gap-2">
 
-            <!-- 🎙️ PUSH-TO-TALK HOLD MIC BUTTON -->
+            <!-- 🎙️ PUSH-TO-TALK HOLD MIC BUTTON (Disabled while AI is answering/speaking) -->
             <button
               @mousedown.prevent="onMicPressStart"
               @touchstart.prevent="onMicPressStart"
@@ -190,13 +190,15 @@
               @contextmenu.prevent
               type="button"
               id="ai-chat-mic-btn"
+              :disabled="isAiSpeaking"
               class="chat-mic-btn shrink-0 relative transition-all duration-200 select-none cursor-pointer"
               :class="{
                 'chat-mic-btn--recording': isHoldingMic,
                 'chat-mic-btn--listening': isLiveConnected,
+                'opacity-50 cursor-not-allowed': isAiSpeaking,
                 'opacity-60 animate-pulse': isLiveConnecting
               }"
-              :title="isHoldingMic ? 'Release mic button to stop recording & send payload' : 'Hold mic button down to speak with AI'"
+              :title="isAiSpeaking ? 'AI is currently answering... Mic blocked to prevent echo' : isHoldingMic ? 'Release mic button to stop recording & send payload' : 'Hold mic button down to speak with AI'"
             >
               <span v-if="isHoldingMic" class="text-sm text-red-500 animate-pulse">🔴</span>
               <span v-else-if="isLiveConnecting" class="text-sm">⏳</span>
@@ -461,9 +463,18 @@ let recognitionInstance: any = null
 let recordedTranscript = ''
 let pressStartTime = 0
 
+// FE Task: Create isAiSpeaking state to disable the Mic button while AI is answering
+const isAiSpeaking = computed(() =>
+  isSpeaking.value ||
+  isLiveSpeaking.value ||
+  isStreaming.value ||
+  isLoading.value
+)
+
 // Task 1: FE - Bind mousedown / touchstart to start recording
 function onMicPressStart(e: MouseEvent | TouchEvent) {
-  if (isHoldingMic.value || !isChatOpen.value) return
+  // Mic button is blocked/disabled while AI is currently answering or speaking
+  if (isHoldingMic.value || !isChatOpen.value || isAiSpeaking.value) return
   
   pressStartTime = Date.now()
   isHoldingMic.value = true
