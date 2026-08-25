@@ -90,7 +90,7 @@ export function useGeminiLive() {
             autoGainControl: true,
             channelCount: 1,               // Mono reduces noise floor (Issue #8)
             suppressLocalAudioPlayback: true // Prevent AI speaker output bleeding into mic (Issue #8)
-          }
+          } as MediaTrackConstraints & { suppressLocalAudioPlayback?: boolean }
         })
       } catch {
         // Fallback to standard noise suppression constraints if advanced WebRTC flags aren't supported
