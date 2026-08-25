@@ -131,7 +131,7 @@ Key Game Facts:
       }
 
       if (isSetupComplete && geminiWs.readyState === WebSocket.OPEN) {
-        geminiWs.send(msgStr)
+        geminiWs.send(message.toString())
       } else {
         pendingClientMessages.push(message)
       }
