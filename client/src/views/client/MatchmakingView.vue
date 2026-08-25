@@ -24,9 +24,18 @@
         </div>
       </div>
 
+      <!-- BUG-5 fix: dynamic connection state badge -->
       <div class="flex items-center gap-2 bg-white/70 backdrop-blur-md border border-white/60 px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-sm">
-        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-        <span class="text-[9px] md:text-xs font-black text-gray-600 tracking-widest uppercase">Connected</span>
+        <span class="w-2 h-2 rounded-full transition-colors"
+          :class="{
+            'bg-yellow-400 animate-pulse': isConnecting,
+            'bg-green-500 animate-pulse': !isConnecting && isConnectedToQueue,
+            'bg-gray-400': !isConnecting && !isConnectedToQueue
+          }"
+        ></span>
+        <span class="text-[9px] md:text-xs font-black text-gray-600 tracking-widest uppercase">
+          {{ isConnecting ? 'Connecting...' : isConnectedToQueue ? 'Connected' : 'Reconnecting...' }}
+        </span>
       </div>
     </header>
 
@@ -127,6 +136,7 @@ const authStore = useAuthStore()
 const secondsElapsed = ref(0)
 let timerInterval: ReturnType<typeof setInterval> | null = null
 const isConnecting = ref(false)
+const isConnectedToQueue = ref(false)
 const navigatingToGame = ref(false)
 
 const username = computed(() =>
@@ -169,6 +179,7 @@ function stopTimer() {
 
 async function startQueueConnection() {
   isConnecting.value = true
+  isConnectedToQueue.value = false
   const options = {
     token: localStorage.getItem('arena_token'),
     id: authStore.user?.id,
@@ -178,6 +189,11 @@ async function startQueueConnection() {
 
   try {
     const room = await joinOrCreateQueueRoom(options)
+    isConnectedToQueue.value = true
+
+    room.onLeave(() => {
+      isConnectedToQueue.value = false
+    })
 
     room.onMessage('match_found', async ({ roomId }: { roomId: string }) => {
       if (navigatingToGame.value) return
@@ -197,6 +213,7 @@ async function startQueueConnection() {
 
   } catch (err: any) {
     console.error('Failed to join matchmaking room:', err)
+    isConnectedToQueue.value = false
   } finally {
     isConnecting.value = false
   }
@@ -205,6 +222,7 @@ async function startQueueConnection() {
 function cancelMatchmaking() {
   audioService.playClick()
   stopTimer()
+  isConnectedToQueue.value = false
 
   if (queueRoom) {
     try {

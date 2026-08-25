@@ -8,6 +8,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // Default values
   const volumeLevel = ref(50)
   const vfxEnabled = ref(true)
+  const soundEnabled = ref(true)
 
   // Load from localStorage
   const storedVolume = localStorage.getItem('arena_volume')
@@ -20,25 +21,41 @@ export const useSettingsStore = defineStore('settings', () => {
     vfxEnabled.value = storedVfx === 'true'
   }
 
+  const storedSound = localStorage.getItem('arena_sound')
+  if (storedSound !== null) {
+    soundEnabled.value = storedSound !== 'false'
+  }
+
   // Persist and apply changes
   watch(volumeLevel, (newVal) => {
     localStorage.setItem('arena_volume', String(newVal))
     // Apply immediately to Web Audio API
     import('../composables/game/useAudioEngine').then(({ setMasterVolume }) => {
-      setMasterVolume(newVal / 100.0)
+      setMasterVolume(soundEnabled.value ? newVal / 100.0 : 0)
     }).catch(() => {})
     
     // Apply to HTML5 Audio elements
-    audioService.setMasterVolume(newVal / 100.0)
+    audioService.setMasterVolume(soundEnabled.value ? newVal / 100.0 : 0)
   })
 
   watch(vfxEnabled, (newVal) => {
     localStorage.setItem('arena_vfx', String(newVal))
   })
 
+  watch(soundEnabled, (newVal) => {
+    localStorage.setItem('arena_sound', String(newVal))
+    const effectiveVolume = newVal ? volumeLevel.value / 100.0 : 0
+    import('../composables/game/useAudioEngine').then(({ setMasterVolume }) => {
+      setMasterVolume(effectiveVolume)
+    }).catch(() => {})
+    audioService.setMasterVolume(effectiveVolume)
+  })
+
   return {
     isSettingsOpen,
     volumeLevel,
-    vfxEnabled
+    vfxEnabled,
+    soundEnabled
   }
 })
+

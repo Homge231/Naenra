@@ -77,6 +77,30 @@
             </div>
             <p class="text-[10px] text-gray-500 mt-2">Disable to reduce visual clutter and improve performance. Turns off intense glowing borders, shakes, and background animations.</p>
           </div>
+
+          <!-- Sound Effects Toggle (BUG-3 fix) -->
+          <div>
+            <div class="flex justify-between items-center">
+              <label class="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                <svg class="w-5 h-5 text-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path v-if="!settingsStore.soundEnabled" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z" />
+                </svg>
+                Sound Effects
+              </label>
+              <button
+                @click="settingsStore.soundEnabled = !settingsStore.soundEnabled"
+                class="relative inline-flex items-center h-6 w-11 rounded-full transition-colors focus:outline-none"
+                :class="settingsStore.soundEnabled ? 'bg-success' : 'bg-gray-600'"
+              >
+                <span
+                  class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out"
+                  :class="settingsStore.soundEnabled ? 'translate-x-6' : 'translate-x-1'"
+                />
+              </button>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-2">Toggle all in-game sound effects on or off instantly.</p>
+          </div>
           
         </div>
         

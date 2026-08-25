@@ -365,28 +365,6 @@ function toggleLiveSession() {
   }
 }
 
-// Issue #6: Push-to-Talk — called on mousedown / touchstart
-function onMicPress() {
-  if (isMicLocked.value) return  // Issue #7: blocked while AI is speaking
-  stopSpeaking()
-  geminiLive.stopAllAudio()
-
-  if (!isLiveConnected.value && !isLiveConnecting.value) {
-    // First press: open session (mic will auto-start recording in startMicRecording via setupComplete)
-    startLiveSession()
-  } else {
-    // Already connected: just resume the mic stream
-    resumeMicRecording()
-  }
-}
-
-// Issue #6: Push-to-Talk — called on mouseup / touchend
-function onMicRelease() {
-  if (isLiveConnected.value) {
-    pauseMicRecording()  // Stop streaming audio but keep session open
-  }
-}
-
 const isChatOpen = ref(false)
 const currentAiLiveMsgIdx = ref(-1)
 const currentUserLiveMsgIdx = ref(-1)

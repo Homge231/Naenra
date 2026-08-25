@@ -126,7 +126,7 @@
           <div class="flex flex-col">
             <span class="text-[10px] font-extrabold tracking-[0.2em] text-orange-500 uppercase">Your Rank</span>
             <div class="font-black text-2xl flex items-baseline gap-1">
-              <span class="text-orange-600 font-black">#{{ currentUser.rank }}</span>
+              <span class="text-orange-600 font-black">{{ currentUser.rank === '-' || !currentUser.rank ? 'Unranked' : `#${currentUser.rank}` }}</span>
             </div>
           </div>
           

@@ -105,13 +105,17 @@ export class QueueRoom extends Room<{ state: QueueState }> {
               const matchRoom = await matchMaker.createRoom("match_room", { isCustom: false });
               console.log(`[QueueRoom] Created human matchRoom ${matchRoom.roomId}`);
 
-              const client1 = this.clients.find(c => c.sessionId === p1.sessionId);
-              const client2 = this.clients.find(c => c.sessionId === p2.sessionId);
+              const client1 = this.clients.find(c => c.sessionId === p1.sessionId)
+                || this.clients.find(c => c.userData?.userId === p1.userId)
+              const client2 = this.clients.find(c => c.sessionId === p2.sessionId)
+                || this.clients.find(c => c.userData?.userId === p2.userId)
 
-              if (client1) client1.send("match_found", { roomId: matchRoom.roomId });
-              if (client2) client2.send("match_found", { roomId: matchRoom.roomId });
+              if (client1) client1.send("match_found", { roomId: matchRoom.roomId })
+              else console.warn(`[QueueRoom] ⚠️ No client found for player1 ${p1.userId}`)
+              if (client2) client2.send("match_found", { roomId: matchRoom.roomId })
+              else console.warn(`[QueueRoom] ⚠️ No client found for player2 ${p2.userId}`)
 
-              console.log(`[QueueRoom] Matched ${p1.userId} and ${p2.userId} in room ${matchRoom.roomId} (Elo diff: ${eloDiff})`);
+              console.log(`[QueueRoom] Matched ${p1.userId} and ${p2.userId} in room ${matchRoom.roomId} (Elo diff: ${eloDiff})`)
             } catch (e) {
               console.error("[QueueRoom] Failed to create match room", e);
             }
@@ -146,13 +150,13 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
           console.log(`[QueueRoom] Bot match room created: ${matchRoom.roomId}`);
 
-          const client = this.clients.find(c => c.sessionId === p.sessionId);
+          const client = this.clients.find(c => c.sessionId === p.sessionId)
+            || this.clients.find(c => c.userData?.userId === p.userId)
           if (client) {
-            client.send("match_found", { roomId: matchRoom.roomId, isBotMatch: true });
-            console.log(`[QueueRoom] ✅ match_found sent to ${p.userId} → room ${matchRoom.roomId}`);
+            client.send("match_found", { roomId: matchRoom.roomId, isBotMatch: true })
+            console.log(`[QueueRoom] ✅ match_found sent to ${p.userId} → room ${matchRoom.roomId}`)
           } else {
-            console.warn(`[QueueRoom] ⚠️ Client ${p.sessionId} not found in this.clients — cannot send match_found!`);
-            console.log(`[QueueRoom] Available clients:`, this.clients.map(c => c.sessionId));
+            console.warn(`[QueueRoom] ⚠️ No client found for ${p.userId} — player likely fully disconnected.`)
           }
 
           console.log(`[QueueRoom] Matched human ${p.userId} with Bot ${botProfile.name} in room ${matchRoom.roomId}`);
