@@ -184,8 +184,8 @@
             <!-- Hold to speak, release to stop. Click ✕ to fully disconnect. -->
             <button
               v-if="!isLiveConnected"
-              @mousedown.prevent="onMicPress"
-              @touchstart.prevent="onMicPress"
+              @mousedown.prevent.stop="onMicPress"
+              @touchstart.prevent.stop="onMicPress"
               @mouseup="onMicRelease"
               @touchend="onMicRelease"
               @mouseleave="onMicRelease"
@@ -209,8 +209,8 @@
             <div v-else class="flex items-center gap-1 shrink-0">
               <!-- Hold-to-speak area -->
               <button
-                @mousedown.prevent="onMicPress"
-                @touchstart.prevent="onMicPress"
+                @mousedown.prevent.stop="onMicPress"
+                @touchstart.prevent.stop="onMicPress"
                 @mouseup="onMicRelease"
                 @touchend="onMicRelease"
                 @mouseleave="onMicRelease"
