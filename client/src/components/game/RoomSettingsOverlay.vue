@@ -3,41 +3,41 @@
     <div v-if="isOpen" class="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4">
       <!-- Backdrop -->
       <div 
-        class="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+        class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         @click="close"
       ></div>
 
-      <!-- Modal Content Container -->
-      <div class="relative w-full max-w-xl bg-gradient-to-b from-[#182032] via-[#111726] to-[#0a0e1a] backdrop-blur-2xl border border-white/20 rounded-3xl shadow-[0_0_60px_rgba(0,0,0,0.9)] p-5 sm:p-7 overflow-hidden flex flex-col gap-6 max-h-[90vh]">
+      <!-- Modal Content Container (Light & Crisp Theme) -->
+      <div class="relative w-full max-w-xl bg-white/95 backdrop-blur-2xl border-2 border-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] p-5 sm:p-7 overflow-hidden flex flex-col gap-5 max-h-[90vh] text-gray-800">
         
         <!-- Ambient Glowing Orbs -->
-        <div class="absolute -top-20 -left-20 w-56 h-56 bg-orange-500/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-20 -right-20 w-56 h-56 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -top-20 -left-20 w-56 h-56 bg-orange-300/30 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-20 -right-20 w-56 h-56 bg-red-300/20 rounded-full blur-3xl pointer-events-none"></div>
 
         <!-- Header -->
-        <div class="flex justify-between items-center pb-4 border-b border-white/15 relative z-10">
+        <div class="flex justify-between items-center pb-4 border-b border-gray-100 relative z-10">
           <div class="flex items-center gap-3">
-            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 shadow-lg shadow-orange-500/30 flex items-center justify-center text-white flex-shrink-0">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 shadow-md shadow-orange-500/20 flex items-center justify-center text-white flex-shrink-0">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
               </svg>
             </div>
             <div>
-              <h2 class="text-xl font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <h2 class="text-xl font-black uppercase tracking-wider text-gray-900 flex items-center gap-2">
                 Room Settings
               </h2>
-              <p class="text-xs text-gray-300 font-medium">Customize match rules, question topics & core restrictions</p>
+              <p class="text-xs text-gray-500 font-medium">Customize match rules, question topics & core restrictions</p>
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
-            <span :class="['px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest shadow-md', isHost ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-black shadow-emerald-500/20' : 'bg-gray-700 text-gray-200 border border-gray-600']">
+          <div class="flex items-center gap-2.5">
+            <span :class="['px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-xs', isHost ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-600 border-gray-200']">
               {{ isHost ? 'HOST CONTROLS' : 'VIEW ONLY' }}
             </span>
             <button 
               @click="close"
-              class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-gray-200 hover:text-white transition-all flex items-center justify-center focus:outline-none shadow"
+              class="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-500 hover:text-gray-800 transition-all flex items-center justify-center focus:outline-none cursor-pointer"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
@@ -47,18 +47,20 @@
         </div>
 
         <!-- Body Scrollable Content -->
-        <div class="space-y-6 flex-1 overflow-y-auto pr-1.5 custom-scrollbar relative z-10">
+        <div class="space-y-4 flex-1 overflow-y-auto pr-1.5 custom-scrollbar relative z-10">
           
           <!-- SECTION 01: Question Topic -->
-          <div class="space-y-3 bg-white/5 border border-white/15 rounded-2xl p-4">
+          <div class="space-y-3 bg-[#fbf7f4] border border-orange-100/80 rounded-2xl p-4">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <label class="text-xs font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
                 </svg>
                 Question Topic
               </label>
-              <span class="text-[11px] text-pink-300 font-bold uppercase tracking-wider bg-pink-500/20 px-2 py-0.5 rounded border border-pink-500/30">3 Assigned Topics</span>
+              <span class="text-[10px] text-orange-600 font-bold uppercase tracking-wider bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+                Topic Options
+              </span>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -68,23 +70,23 @@
                 :disabled="!isHost"
                 @click="localMetadata.topic = t.id"
                 :class="[
-                  'flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-200 gap-1.5 relative overflow-hidden group shadow-md',
+                  'flex flex-col items-center justify-center p-3 rounded-xl border-2 text-center transition-all duration-200 gap-1 relative overflow-hidden group cursor-pointer',
                   localMetadata.topic === t.id 
-                    ? 'bg-gradient-to-br from-pink-500 to-purple-600 border-pink-300 text-white shadow-pink-500/30 scale-[1.02]' 
-                    : 'bg-black/40 border-white/10 text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed'
+                    ? 'bg-gradient-to-br from-orange-500 to-red-500 border-transparent text-white shadow-md shadow-orange-500/25 scale-[1.02]' 
+                    : 'bg-white border-gray-200/80 text-gray-700 hover:border-orange-300 hover:bg-orange-50/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs'
                 ]"
               >
                 <span class="text-2xl group-hover:scale-110 transition-transform">{{ t.icon }}</span>
-                <span class="text-xs font-black uppercase tracking-wider text-white">{{ t.name }}</span>
-                <span :class="['text-[10px] leading-tight font-medium', localMetadata.topic === t.id ? 'text-pink-100' : 'text-gray-400']">{{ t.desc }}</span>
+                <span :class="['text-xs font-black uppercase tracking-wider', localMetadata.topic === t.id ? 'text-white' : 'text-gray-900']">{{ t.name }}</span>
+                <span :class="['text-[10px] leading-tight font-medium', localMetadata.topic === t.id ? 'text-orange-100' : 'text-gray-500']">{{ t.desc }}</span>
               </button>
             </div>
           </div>
 
           <!-- SECTION 02: Match Mode (Pure Skill Switch) -->
-          <div class="bg-white/5 border border-white/15 rounded-2xl p-4 flex items-center justify-between gap-4">
+          <div class="bg-[#fbf7f4] border border-orange-100/80 rounded-2xl p-4 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-              <div :class="['w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg transition-all flex-shrink-0', localMetadata.pureSkillMode ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-orange-500/30' : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-purple-500/30']">
+              <div :class="['w-11 h-11 rounded-2xl flex items-center justify-center shadow-md transition-all flex-shrink-0', localMetadata.pureSkillMode ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-amber-500/20' : 'bg-gradient-to-br from-purple-500 to-indigo-500 text-white shadow-purple-500/20']">
                 <svg v-if="localMetadata.pureSkillMode" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
@@ -93,13 +95,13 @@
                 </svg>
               </div>
               <div>
-                <div class="flex items-center gap-2.5">
-                  <h3 class="text-xs font-black uppercase tracking-wider text-white">Pure Skill Mode</h3>
-                  <span :class="['px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow', localMetadata.pureSkillMode ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-black' : 'bg-purple-500/30 border border-purple-400/50 text-purple-200']">
-                    {{ localMetadata.pureSkillMode ? 'ACTIVE (NO CORES)' : 'CORES ENABLED' }}
+                <div class="flex items-center gap-2">
+                  <h3 class="text-xs font-black uppercase tracking-wider text-gray-900">Pure Skill Mode</h3>
+                  <span :class="['px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border shadow-2xs', localMetadata.pureSkillMode ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-purple-50 text-purple-700 border-purple-200']">
+                    {{ localMetadata.pureSkillMode ? '⚡ Active (No Cores)' : '✨ Cores Enabled' }}
                   </span>
                 </div>
-                <p class="text-[11px] text-gray-300 font-medium mt-0.5">Disables all Support Cores for a 100% pure typing speed duel.</p>
+                <p class="text-[11px] text-gray-500 font-medium mt-0.5">Disables all Support Cores for a 100% pure typing speed duel.</p>
               </div>
             </div>
 
@@ -107,8 +109,8 @@
               :disabled="!isHost"
               @click="togglePureSkillMode"
               :class="[
-                'w-13 h-7 rounded-full transition-colors relative flex items-center p-1 flex-shrink-0 border',
-                localMetadata.pureSkillMode ? 'bg-gradient-to-r from-amber-500 to-orange-500 border-orange-300 shadow-md shadow-orange-500/40' : 'bg-gray-700 border-gray-600',
+                'w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 flex-shrink-0 border',
+                localMetadata.pureSkillMode ? 'bg-orange-500 border-orange-600 shadow-sm shadow-orange-500/30' : 'bg-gray-300 border-gray-300',
                 !isHost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
               ]"
             >
@@ -120,47 +122,49 @@
           </div>
 
           <!-- SECTION 03: Vocabulary Level -->
-          <div class="space-y-3 bg-white/5 border border-white/15 rounded-2xl p-4">
+          <div class="space-y-3 bg-[#fbf7f4] border border-orange-100/80 rounded-2xl p-4">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <label class="text-xs font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                 </svg>
                 Vocabulary Difficulty
               </label>
-              <span class="text-[11px] text-sky-300 font-bold uppercase tracking-wider bg-sky-500/20 px-2 py-0.5 rounded border border-sky-500/30">CEFR Standard</span>
+              <span class="text-[10px] text-blue-600 font-bold uppercase tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                CEFR Standard
+              </span>
             </div>
 
-            <div class="grid grid-cols-3 gap-2 p-1.5 bg-black/50 rounded-xl border border-white/10">
+            <div class="grid grid-cols-3 gap-2 p-1.5 bg-white rounded-xl border border-gray-200/80 shadow-2xs">
               <button 
                 v-for="lvl in levelsList" 
                 :key="lvl.id"
                 :disabled="!isHost"
                 @click="localMetadata.vocabularyLevel = lvl.id"
                 :class="[
-                  'py-2.5 px-3 text-center rounded-lg transition-all duration-200 flex flex-col items-center gap-0.5 shadow-sm',
+                  'py-2 px-3 text-center rounded-lg transition-all duration-200 flex flex-col items-center gap-0.5 cursor-pointer',
                   localMetadata.vocabularyLevel === lvl.id 
-                    ? 'bg-gradient-to-r from-sky-500 to-blue-600 border border-sky-300 text-white font-black shadow-sky-500/30 scale-[1.02]' 
-                    : 'text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black shadow-md shadow-blue-500/20 scale-[1.01]' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/60 disabled:opacity-50 disabled:cursor-not-allowed'
                 ]"
               >
-                <span class="text-xs font-black uppercase tracking-wider text-white">{{ lvl.name }}</span>
-                <span :class="['text-[10px] font-bold', localMetadata.vocabularyLevel === lvl.id ? 'text-sky-100' : 'text-gray-400']">{{ lvl.cefr }}</span>
+                <span :class="['text-xs font-black uppercase tracking-wider', localMetadata.vocabularyLevel === lvl.id ? 'text-white' : 'text-gray-900']">{{ lvl.name }}</span>
+                <span :class="['text-[10px] font-bold', localMetadata.vocabularyLevel === lvl.id ? 'text-blue-100' : 'text-gray-400']">{{ lvl.cefr }}</span>
               </button>
             </div>
-            <p class="text-[11px] text-gray-300 font-medium italic">Sets match vocabulary starting difficulty (A1-A2 in Round 1, B1-B2 in Round 2, C1 in Round 3).</p>
+            <p class="text-[11px] text-gray-500 font-medium italic">Sets match vocabulary starting difficulty (A1-A2 in Round 1, B1-B2 in Round 2, C1 in Round 3).</p>
           </div>
 
           <!-- SECTION 04: Support Core Restrictions -->
-          <div class="space-y-3 bg-white/5 border border-white/15 rounded-2xl p-4">
+          <div class="space-y-3 bg-[#fbf7f4] border border-orange-100/80 rounded-2xl p-4">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
-                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <label class="text-xs font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                 </svg>
                 Core Ability Restrictions
               </label>
-              <span class="text-[11px] text-purple-300 font-bold uppercase tracking-wider bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30">
+              <span :class="['text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border', localMetadata.disabledCores.length > 0 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200']">
                 {{ localMetadata.disabledCores.length }} Banned
               </span>
             </div>
@@ -169,21 +173,21 @@
             <div 
               v-else 
               :class="[
-                'grid grid-cols-2 gap-2.5 max-h-48 overflow-y-auto custom-scrollbar pr-1 transition-opacity duration-300',
+                'grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1 transition-opacity duration-300',
                 localMetadata.pureSkillMode ? 'opacity-30 pointer-events-none' : ''
               ]"
             >
               <div 
                 v-for="core in allCores" 
                 :key="core.id"
-                class="flex items-center justify-between p-2.5 bg-black/50 rounded-xl border border-white/10 hover:border-white/20 transition-colors shadow-sm"
+                class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-gray-200/90 hover:border-orange-300 transition-colors shadow-2xs"
               >
                 <div class="flex items-center gap-2 overflow-hidden">
-                  <div class="w-6 h-6 rounded-lg bg-purple-500/30 border border-purple-400/50 flex items-center justify-center flex-shrink-0">
+                  <div class="w-6 h-6 rounded-lg bg-orange-50 border border-orange-200/80 flex items-center justify-center flex-shrink-0">
                     <img v-if="core.icon_url" :src="core.icon_url" class="w-4 h-4 object-contain" />
-                    <span v-else class="text-[10px] font-bold text-purple-300">⚡</span>
+                    <span v-else class="text-[10px] font-bold text-orange-500">⚡</span>
                   </div>
-                  <span class="text-xs font-bold text-white truncate" :title="core.name">{{ core.name }}</span>
+                  <span class="text-xs font-bold text-gray-800 truncate" :title="core.name">{{ core.name }}</span>
                 </div>
 
                 <button 
@@ -191,12 +195,12 @@
                   @click="toggleCore(core.id)"
                   :class="[
                     'w-8 h-4 rounded-full transition-colors relative flex items-center p-0.5 flex-shrink-0',
-                    !localMetadata.disabledCores.includes(core.id) ? 'bg-emerald-500 shadow-sm shadow-emerald-500/30' : 'bg-red-500/80 shadow-sm shadow-red-500/30',
+                    !localMetadata.disabledCores.includes(core.id) ? 'bg-emerald-500 shadow-2xs' : 'bg-red-400 shadow-2xs',
                     !isHost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                   ]"
                 >
                   <span 
-                    class="w-3 h-3 bg-white rounded-full shadow-md transition-transform duration-200"
+                    class="w-3 h-3 bg-white rounded-full shadow-xs transition-transform duration-200"
                     :class="!localMetadata.disabledCores.includes(core.id) ? 'translate-x-4' : 'translate-x-0'"
                   ></span>
                 </button>
@@ -207,11 +211,11 @@
         </div>
 
         <!-- Footer / Save Button -->
-        <div class="pt-4 border-t border-white/15 mt-auto relative z-10 flex flex-col gap-2">
+        <div class="pt-3 border-t border-gray-100 mt-auto relative z-10 flex flex-col gap-2">
           <button 
             v-if="isHost"
             @click="saveAndClose"
-            class="w-full py-3.5 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:from-orange-400 hover:via-red-400 hover:to-pink-400 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+            class="w-full py-3.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-orange-500/20 hover:shadow-orange-500/30 transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
@@ -219,8 +223,8 @@
             Save Room Settings
           </button>
 
-          <div v-else class="py-3 bg-white/5 border border-white/10 rounded-xl text-center">
-            <p class="text-xs font-bold text-gray-300 uppercase tracking-widest flex items-center justify-center gap-2">
+          <div v-else class="py-3 bg-gray-50 border border-gray-200 rounded-xl text-center">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center justify-center gap-2">
               <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
               </svg>
@@ -345,14 +349,14 @@ const close = () => {
   width: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.04);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.25);
 }
 </style>
