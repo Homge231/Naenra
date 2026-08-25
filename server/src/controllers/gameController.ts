@@ -20,6 +20,48 @@ const PANDORA_CORE_ID = '00000000-0000-0000-0000-000000000010' // Pandora's Box
 // In-memory timer store for Anti-Cheat (time_taken validation)
 const sessionTimers = new Map<string, number>()
 
+// ── Startup Cleanup (M-1 fix) ──────────────────────────────────────────────────
+// On server restart the sessionTimers Map is wiped. Any sessions that were 'active'
+// in the DB but never received a /timeout or /abandon call are stuck forever.
+// This runs once on boot and marks those orphaned sessions as 'abandoned'.
+export async function cleanupStaleSessionsOnBoot(): Promise<void> {
+  try {
+    // Sessions active for more than 75s are guaranteed to have expired (match = 60s + 15s grace)
+    const staleThreshold = new Date(Date.now() - 75_000).toISOString()
+
+    const { data: staleSessions, error } = await supabase
+      .from('game_sessions')
+      .select('id')
+      .eq('status', 'active')
+      .lt('created_at', staleThreshold)
+
+    if (error) {
+      console.warn('[Boot Cleanup] Could not query stale sessions:', error.message)
+      return
+    }
+
+    if (!staleSessions || staleSessions.length === 0) {
+      console.log('[Boot Cleanup] No stale sessions found.')
+      return
+    }
+
+    const staleIds = staleSessions.map(s => s.id)
+
+    const { error: updateError } = await supabase
+      .from('game_sessions')
+      .update({ status: 'abandoned', ended_at: new Date().toISOString() })
+      .in('id', staleIds)
+
+    if (updateError) {
+      console.warn('[Boot Cleanup] Could not update stale sessions:', updateError.message)
+    } else {
+      console.log(`[Boot Cleanup] Marked ${staleIds.length} orphaned session(s) as abandoned.`)
+    }
+  } catch (err) {
+    console.warn('[Boot Cleanup] Unexpected error during stale session cleanup:', err)
+  }
+}
+
 const TYPO_ACCURACY_THRESHOLD = 0.70   // >= 70% similarity counts as a "typo"
 const TYPO_PENALTY_PER_LETTER = 2     // -2 pts per wrong letter for close misses
 const DEFAULT_WRONG_PENALTY = 50      // Default penalty for wrong answers or skips (-50 pts)

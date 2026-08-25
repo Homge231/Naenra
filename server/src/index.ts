@@ -13,6 +13,7 @@ import adminRoutes from './routes/adminRoutes'
 import rateLimit from 'express-rate-limit'
 import { initQuestionCron } from './cron/questionCron'
 import { initGuestCleanupCron } from './cron/guestCleanupCron'
+import { cleanupStaleSessionsOnBoot } from './controllers/gameController'
 import { Server } from 'colyseus'
 import { WebSocketTransport } from '@colyseus/ws-transport'
 import { MatchRoom } from './rooms/MatchRoom'
@@ -94,4 +95,6 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000
 
 gameServer.listen(PORT).then(() => {
   console.log(`Colyseus Server running on port ${PORT}`)
+  // M-1: Clean up any game_sessions stuck as 'active' from before last server restart
+  void cleanupStaleSessionsOnBoot()
 })
