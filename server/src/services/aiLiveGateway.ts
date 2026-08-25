@@ -139,11 +139,11 @@ Key Game Facts:
 
     // 3. Relay responses from Gemini Live -> Client
     geminiWs.on('message', (data: Buffer | string) => {
+      // Handle setupComplete and flush pending messages
       try {
         const dataStr = data.toString()
         if (dataStr.includes('setupComplete')) {
           isSetupComplete = true
-          // Flush buffered messages once setup completes
           while (pendingClientMessages.length > 0) {
             const pending = pendingClientMessages.shift()
             if (pending && geminiWs.readyState === WebSocket.OPEN) {
@@ -151,9 +151,14 @@ Key Game Facts:
             }
           }
         }
+      } catch {
+        // Ignore non-JSON parsing errors for setupComplete check
+      }
 
-        // Issue #7: Track AI streaming state from Gemini response messages
-        const msg = JSON.parse(dataStr)
+      // HF-4: Separate try/catch for isAiStreaming tracking
+      // Ensures binary audio frames cannot silently prevent turnComplete from unlocking mic
+      try {
+        const msg = JSON.parse(data.toString())
         const parts = msg?.serverContent?.modelTurn?.parts || []
         if (parts.some((p: any) => p.inlineData?.mimeType?.startsWith('audio/'))) {
           isAiStreaming = true  // AI is sending audio — lock mic
@@ -162,7 +167,8 @@ Key Game Facts:
           isAiStreaming = false  // AI finished speaking — unlock mic
         }
       } catch {
-        // Ignore non-JSON parsing errors
+        // Binary audio frames are not JSON — this is normal, ignore silently
+        // isAiStreaming state is NOT modified here, preserving last known value
       }
 
       if (clientWs.readyState === WebSocket.OPEN) {
