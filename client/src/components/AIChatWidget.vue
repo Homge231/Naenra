@@ -178,26 +178,66 @@
         <div class="chat-footer">
           <div class="chat-input-wrap flex items-center gap-2">
 
-            <!-- 🎙️ GEMINI 3.1 LIVE MIC BUTTON (replaces old STT mic) -->
+            <!-- 🎙️ GEMINI 3.1 LIVE MIC BUTTON — Push-to-Talk (Issue #6) -->
+            <!-- Hold to speak, release to stop. Click ✕ to fully disconnect. -->
             <button
-              @click="toggleLiveSession"
+              v-if="!isLiveConnected"
+              @mousedown.prevent="onMicPress"
+              @touchstart.prevent="onMicPress"
+              @mouseup="onMicRelease"
+              @touchend="onMicRelease"
+              @mouseleave="onMicRelease"
               type="button"
               id="ai-chat-mic-btn"
-              class="chat-mic-btn shrink-0 relative"
+              class="chat-mic-btn shrink-0 relative select-none"
               :class="{
-                'chat-mic-btn--listening': isLiveConnected,
-                'opacity-60 animate-pulse': isLiveConnecting
+                'opacity-60 animate-pulse': isLiveConnecting,
+                'cursor-not-allowed opacity-40': isMicLocked
               }"
-              :title="isLiveConnected ? 'Gemini 3.1 Live — Click to stop' : isLiveConnecting ? 'Connecting...' : 'Start Gemini 3.1 Flash Live Voice'"
+              :disabled="isMicLocked"
+              :title="isMicLocked ? '🔒 Wait for AI to finish speaking' : isLiveConnecting ? 'Connecting...' : 'Hold to speak with Gemini 3.1 Live'"
             >
               <span v-if="isLiveConnecting" class="text-sm">⏳</span>
-              <span v-else-if="isLiveConnected" class="text-sm text-red-400 animate-pulse">🔴</span>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
-              <!-- Red dot indicator when live -->
-              <span v-if="isLiveConnected" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
             </button>
+
+            <!-- PTT Active: hold indicator + disconnect button (Issue #6) -->
+            <div v-else class="flex items-center gap-1 shrink-0">
+              <!-- Hold-to-speak area -->
+              <button
+                @mousedown.prevent="onMicPress"
+                @touchstart.prevent="onMicPress"
+                @mouseup="onMicRelease"
+                @touchend="onMicRelease"
+                @mouseleave="onMicRelease"
+                type="button"
+                class="chat-mic-btn relative select-none"
+                :class="{
+                  'chat-mic-btn--listening': !isMicPaused && !isMicLocked,
+                  'opacity-40 cursor-not-allowed': isMicLocked
+                }"
+                :disabled="isMicLocked"
+                :title="isMicLocked ? '🔒 AI is speaking — mic locked' : !isMicPaused ? '🎙️ Recording — release to pause' : 'Hold to speak'"
+              >
+                <span v-if="isMicLocked" class="text-sm">🔒</span>
+                <span v-else-if="!isMicPaused" class="text-sm text-red-400 animate-pulse">🔴</span>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+                <!-- Active ping indicator -->
+                <span v-if="!isMicPaused && !isMicLocked" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              </button>
+
+              <!-- Disconnect session button -->
+              <button
+                @click="toggleLiveSession"
+                type="button"
+                class="text-[9px] font-bold px-1.5 py-1 rounded-md bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 cursor-pointer transition-colors"
+                title="Stop Live session"
+              >✕</button>
+            </div>
 
             <!-- Text Input Field -->
             <input
@@ -232,7 +272,9 @@
           <!-- Live status + error row -->
           <div class="flex justify-between items-center mt-1.5 px-1">
             <span v-if="liveErrorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ liveErrorMsg }}</span>
-            <span v-else-if="isLiveConnected" class="text-[10px] text-red-400 font-bold animate-pulse">🔴 Gemini 3.1 Live active — speak now</span>
+            <span v-else-if="isMicLocked" class="text-[10px] text-orange-500 font-bold animate-pulse">🔒 AI speaking — mic locked</span>
+            <span v-else-if="isLiveConnected && !isMicPaused" class="text-[10px] text-red-400 font-bold animate-pulse">🔴 Recording — release to stop</span>
+            <span v-else-if="isLiveConnected && isMicPaused" class="text-[10px] text-gray-500 font-semibold">🎙️ Hold mic button to speak</span>
             <span v-else class="text-[10px] text-gray-500 font-semibold">⚠️ AI can make mistakes. Please verify.</span>
           </div>
         </div>
@@ -294,11 +336,15 @@ const {
   isLiveConnected,
   isConnecting: isLiveConnecting,
   isSpeaking: isLiveSpeaking,
+  isMicLocked,          // Issue #7: true while AI is speaking
+  isMicPaused,          // Issue #6: true while PTT is released
   audioAmplitude,
   errorMsg: liveErrorMsg,
   startLiveSession,
   stopLiveSession,
   sendTextMessage,
+  pauseMicRecording,    // Issue #6: PTT release handler
+  resumeMicRecording,   // Issue #6: PTT press handler
   onAiTranscript,
   onUserTranscript,
   onTurnComplete
@@ -319,6 +365,28 @@ function toggleLiveSession() {
     stopLiveSession()
   } else {
     startLiveSession()
+  }
+}
+
+// Issue #6: Push-to-Talk — called on mousedown / touchstart
+function onMicPress() {
+  if (isMicLocked.value) return  // Issue #7: blocked while AI is speaking
+  stopSpeaking()
+  geminiLive.stopAllAudio()
+
+  if (!isLiveConnected.value && !isLiveConnecting.value) {
+    // First press: open session (mic will auto-start recording in startMicRecording via setupComplete)
+    startLiveSession()
+  } else {
+    // Already connected: just resume the mic stream
+    resumeMicRecording()
+  }
+}
+
+// Issue #6: Push-to-Talk — called on mouseup / touchend
+function onMicRelease() {
+  if (isLiveConnected.value) {
+    pauseMicRecording()  // Stop streaming audio but keep session open
   }
 }
 

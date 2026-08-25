@@ -8,6 +8,12 @@ export function useGeminiLive() {
   const audioAmplitude = ref(0) // 0..1 volume level for mascot lip-sync
   const errorMsg = ref<string | null>(null)
 
+  // Issue #7: mic is locked while AI is playing audio (prevents echo loop)
+  const isMicLocked = ref(false)
+
+  // Issue #6: PTT — tracks whether mic streaming is actively paused
+  const isMicPaused = ref(false)
+
   let ws: WebSocket | null = null
   let audioCtx: AudioContext | null = null
   let micStream: MediaStream | null = null
@@ -75,12 +81,15 @@ export function useGeminiLive() {
       }
 
       // 2. Request Microphone Access optionally (audio playback works even if mic is denied or unavailable)
+      // Issue #8: Enforce noise/echo suppression + mono channel to filter mechanical keyboard noise
       try {
         micStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true
+            autoGainControl: true,
+            channelCount: 1,               // Mono reduces noise floor (Issue #8)
+            suppressLocalAudioPlayback: true // Prevent AI speaker output bleeding into mic (Issue #8)
           }
         })
       } catch (micErr) {
@@ -139,7 +148,14 @@ export function useGeminiLive() {
     const TARGET_SAMPLES = audioCtx.sampleRate * 0.15 // ~150ms chunks
 
     scriptNode.onaudioprocess = (e) => {
+      // Issue #6: Skip if PTT is released (mic paused)
+      // Issue #7: Skip if AI is currently speaking (mic locked to prevent echo)
       if (!isLiveConnected.value || !ws || ws.readyState !== WebSocket.OPEN) return
+      if (isMicPaused.value || isMicLocked.value) {
+        chunkBuffer = []
+        chunkSamples = 0
+        return
+      }
       const inputData = e.inputBuffer.getChannelData(0)
       chunkBuffer.push(new Float32Array(inputData))
       chunkSamples += inputData.length
@@ -176,6 +192,19 @@ export function useGeminiLive() {
     silenceGain.connect(audioCtx.destination)
   }
 
+  // Issue #6: Push-to-Talk — pause mic streaming without closing WebSocket session
+  function pauseMicRecording() {
+    isMicPaused.value = true
+    isRecording.value = false
+  }
+
+  // Issue #6: Push-to-Talk — resume mic streaming on button press
+  function resumeMicRecording() {
+    if (isMicLocked.value) return // Issue #7: don't resume if AI is speaking
+    isMicPaused.value = false
+    isRecording.value = true
+  }
+
   const aiTranscriptListeners: ((text: string) => void)[] = []
   const userTranscriptListeners: ((text: string) => void)[] = []
   const turnCompleteListeners: (() => void)[] = []
@@ -204,12 +233,14 @@ export function useGeminiLive() {
         return
       }
 
-      // Setup complete — Gemini 3.1 Live is ready, activate mic and recording
+      // Setup complete — Gemini 3.1 Live is ready, start mic in PTT paused state (Issue #6)
+      // User must hold the mic button to actively stream audio (Push-to-Talk)
       if (msg.setupComplete) {
         isLiveConnected.value = true
         isConnecting.value = false
-        isRecording.value = true
-        startMicRecording()
+        isRecording.value = false  // Issue #6: start paused — user holds button to speak
+        isMicPaused.value = true   // Issue #6: PTT default = paused until user holds
+        startMicRecording()        // Initialize the audio pipeline but streaming is gated by isMicPaused
         return
       }
 
@@ -266,6 +297,7 @@ export function useGeminiLive() {
     nextPlayTime = 0
     isSpeaking.value = false
     audioAmplitude.value = 0
+    isMicLocked.value = false  // Issue #7: Always free mic lock when audio is manually stopped
   }
 
   function interruptSession() {
@@ -311,6 +343,7 @@ export function useGeminiLive() {
       }
 
       isSpeaking.value = true
+      isMicLocked.value = true  // Issue #7: Lock mic while AI audio is playing
       activeSources.add(source)
       source.start(nextPlayTime)
       nextPlayTime += audioBuffer.duration
@@ -320,6 +353,7 @@ export function useGeminiLive() {
         if (activeSources.size === 0 || (audioCtx && audioCtx.currentTime >= nextPlayTime - 0.05)) {
           isSpeaking.value = false
           audioAmplitude.value = 0
+          isMicLocked.value = false  // Issue #7: Unlock mic when AI finishes speaking
         }
       }
     } catch (err) {
@@ -380,6 +414,8 @@ export function useGeminiLive() {
     isSpeaking.value = false
     isRecording.value = false
     audioAmplitude.value = 0
+    isMicLocked.value = false   // Issue #7: Always release mic lock on session end
+    isMicPaused.value = false   // Issue #6: Always release PTT pause on session end
 
     stopAllAudio()
 
@@ -413,6 +449,8 @@ export function useGeminiLive() {
     isConnecting,
     isSpeaking,
     isRecording,
+    isMicLocked,    // Issue #7: exposed so UI can disable PTT button
+    isMicPaused,    // Issue #6: exposed so UI can track PTT hold state
     audioAmplitude,
     errorMsg,
     startLiveSession,
@@ -421,6 +459,8 @@ export function useGeminiLive() {
     interruptSession,
     sendTextMessage,
     speakTextViaLive,
+    pauseMicRecording,   // Issue #6: PTT press-release
+    resumeMicRecording,  // Issue #6: PTT press-release
     onAiTranscript,
     onUserTranscript,
     onTurnComplete
