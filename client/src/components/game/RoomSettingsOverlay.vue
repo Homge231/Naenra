@@ -135,16 +135,15 @@
             <button 
               :disabled="!isHost"
               @click="togglePureSkillMode"
-              class="w-13 h-7 rounded-full transition-colors relative flex items-center p-0.5 flex-shrink-0 border-2"
-              :class="[
-                localMetadata.pureSkillMode ? 'bg-[#FF7B00] border-orange-600' : 'bg-gray-300 border-gray-400',
-                !isHost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-              ]"
+              type="button"
+              class="relative inline-flex items-center h-6 w-11 rounded-full transition-colors focus:outline-none flex-shrink-0"
+              :class="!isHost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+              :style="localMetadata.pureSkillMode ? 'background-color: #FF7B00;' : 'background-color: #CBD5E1;'"
             >
               <span 
-                class="w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200"
-                :class="localMetadata.pureSkillMode ? 'translate-x-6' : 'translate-x-0'"
-              ></span>
+                class="inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-md"
+                :class="localMetadata.pureSkillMode ? 'translate-x-6' : 'translate-x-1'"
+              />
             </button>
           </div>
 
@@ -233,16 +232,15 @@
                 <button 
                   :disabled="!isHost"
                   @click="toggleCore(core.id)"
-                  class="w-8 h-4 rounded-full transition-colors relative flex items-center p-0.5 flex-shrink-0"
-                  :class="[
-                    !localMetadata.disabledCores.includes(core.id) ? 'bg-emerald-500' : 'bg-red-500',
-                    !isHost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                  ]"
+                  type="button"
+                  class="relative inline-flex items-center h-5 w-9 rounded-full transition-colors focus:outline-none flex-shrink-0"
+                  :class="!isHost ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'"
+                  :style="!localMetadata.disabledCores.includes(core.id) ? 'background-color: #22C55E;' : 'background-color: #EF4444;'"
                 >
                   <span 
-                    class="w-3 h-3 bg-white rounded-full shadow-md transition-transform duration-200"
-                    :class="!localMetadata.disabledCores.includes(core.id) ? 'translate-x-4' : 'translate-x-0'"
-                  ></span>
+                    class="inline-block w-3.5 h-3.5 transform bg-white rounded-full transition-transform duration-200 ease-in-out shadow-xs"
+                    :class="!localMetadata.disabledCores.includes(core.id) ? 'translate-x-4.5' : 'translate-x-1'"
+                  />
                 </button>
               </div>
             </div>
