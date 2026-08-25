@@ -147,12 +147,14 @@
           </div>
         </div>
 
-        <!-- Voice Live Wavebar Visualizer -->
-        <div v-if="isListening || isSpeaking" class="voice-wave-bar flex items-center justify-between">
+        <!-- Voice Live Wavebar Visualizer & Active Push-to-Talk Recording Banner -->
+        <div v-if="isHoldingMic || isListening || isSpeaking" class="voice-wave-bar flex items-center justify-between">
           <div class="voice-status-info flex items-center gap-2">
-            <span class="pulse-dot" :class="{ 'pulse-dot--active': isListening || isSpeaking }"></span>
+            <span class="pulse-dot" :class="{ 'pulse-dot--active': isHoldingMic || isListening || isSpeaking }"></span>
             <span class="voice-status-text font-bold text-xs">
-              {{ isListening ? '🎙️ Listening to your voice...' : '🔊 Speaking response aloud...' }}
+              <span v-if="isHoldingMic" class="text-red-600 animate-pulse">🔴 Recording voice... (Release mic button to send payload)</span>
+              <span v-else-if="isListening">🎙️ Listening to your voice...</span>
+              <span v-else>🔊 Speaking response aloud...</span>
             </span>
           </div>
           <div class="flex items-center gap-2">
@@ -164,7 +166,7 @@
             >
               ⏹ Stop
             </button>
-            <div class="waveform-anim" :class="{ 'waveform-anim--active': isListening || isSpeaking }">
+            <div class="waveform-anim" :class="{ 'waveform-anim--active': isHoldingMic || isListening || isSpeaking }">
               <span class="wave-bar"></span>
               <span class="wave-bar"></span>
               <span class="wave-bar"></span>
@@ -174,7 +176,7 @@
           </div>
         </div>
 
-        <!-- Footer: Text Input + Gemini 3.1 Live Mic -->
+        <!-- Footer: Text Input + Hold-to-Talk Mic Button -->
         <div class="chat-footer">
           <div class="chat-input-wrap flex items-center gap-2">
 
@@ -244,7 +246,7 @@
               v-model="inputText"
               @keyup.enter="sendMessage"
               type="text"
-              :placeholder="isLiveConnected ? 'Live active — speak or type...' : 'Type a question or tap mic for Live AI...'"
+              :placeholder="isHoldingMic ? '🔴 Recording... Release mic button to send!' : isLiveConnected ? 'Live active — speak or type...' : 'Type a question or hold mic to speak...'"
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
@@ -510,6 +512,132 @@ const isStreaming = ref(false)
 const streamingMsgIdx = ref(-1)
 const errorMsg = ref('')
 const isListening = ref(false)
+
+// ── Push-To-Talk Hold Recording State & Handlers ──────────────────────
+const isHoldingMic = ref(false)
+const recordingTimeMs = ref(0)
+let recordingTimer: ReturnType<typeof setInterval> | null = null
+let recognitionInstance: any = null
+let recordedTranscript = ''
+let pressStartTime = 0
+
+// FE Task: Create isAiSpeaking state to disable the Mic button while AI is answering
+const isAiSpeaking = computed(() =>
+  isSpeaking.value ||
+  isLiveSpeaking.value ||
+  isStreaming.value ||
+  isLoading.value
+)
+
+// Task 1: FE - Bind mousedown / touchstart to start recording
+function onMicPressStart(e: MouseEvent | TouchEvent) {
+  // Mic button is blocked/disabled while AI is currently answering or speaking
+  if (isHoldingMic.value || !isChatOpen.value || isAiSpeaking.value) return
+  
+  pressStartTime = Date.now()
+  isHoldingMic.value = true
+  isListening.value = true
+  errorMsg.value = ''
+  recordedTranscript = ''
+  recordingTimeMs.value = 0
+
+  stopSpeaking()
+
+  if (recordingTimer) clearInterval(recordingTimer)
+  recordingTimer = setInterval(() => {
+    recordingTimeMs.value += 100
+  }, 100)
+
+  if (typeof window !== 'undefined') {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (SpeechRecognition) {
+      try {
+        if (recognitionInstance) {
+          recognitionInstance.abort()
+        }
+        recognitionInstance = new SpeechRecognition()
+        recognitionInstance.continuous = true
+        recognitionInstance.interimResults = true
+        recognitionInstance.lang = navigator.language || 'en-US'
+
+        recognitionInstance.onresult = (event: any) => {
+          let text = ''
+          for (let i = 0; i < event.results.length; i++) {
+            text += event.results[i][0].transcript
+          }
+          recordedTranscript = text
+          if (text) {
+            inputText.value = text
+          }
+        }
+
+        recognitionInstance.onerror = (err: any) => {
+          console.warn('[Push-to-talk STT Error]:', err)
+          if (err.error !== 'aborted' && err.error !== 'no-speech') {
+            liveErrorMsg.value = 'Microphone issue. Please check permissions.'
+          }
+        }
+
+        recognitionInstance.start()
+      } catch (err) {
+        console.warn('[Push-to-talk STT Start Warning]:', err)
+      }
+    } else {
+      if (!isLiveConnected.value && !isLiveConnecting.value) {
+        startLiveSession()
+      }
+    }
+  }
+}
+
+// Task 2: FE - Bind mouseup / touchend to stop recording and send payload
+function onMicPressEnd(e: MouseEvent | TouchEvent) {
+  if (!isHoldingMic.value) return
+
+  const pressDuration = Date.now() - pressStartTime
+  isHoldingMic.value = false
+  isListening.value = false
+
+  if (recordingTimer) {
+    clearInterval(recordingTimer)
+    recordingTimer = null
+  }
+
+  if (recognitionInstance) {
+    try {
+      recognitionInstance.stop()
+    } catch { /* skip */ }
+  }
+
+  // Acceptance Criteria: Recording stops immediately on release.
+  if (pressDuration < 300 && !inputText.value.trim() && !recordedTranscript.trim()) {
+    liveErrorMsg.value = 'Hold mic button down to record voice, release to send payload.'
+    setTimeout(() => { liveErrorMsg.value = '' }, 3000)
+    return
+  }
+
+  const finalPrompt = (inputText.value || recordedTranscript).trim()
+  if (finalPrompt) {
+    inputText.value = finalPrompt
+    sendMessage()
+  }
+}
+
+// Cancel recording if mouse leaves button while holding
+function onMicPressCancel() {
+  if (!isHoldingMic.value) return
+  isHoldingMic.value = false
+  isListening.value = false
+  if (recordingTimer) {
+    clearInterval(recordingTimer)
+    recordingTimer = null
+  }
+  if (recognitionInstance) {
+    try {
+      recognitionInstance.stop()
+    } catch { /* skip */ }
+  }
+}
 
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
@@ -1405,6 +1533,14 @@ function renderMarkdown(raw: string): string {
   color: #ffffff !important;
   border-color: #fca5a5 !important;
   box-shadow: 0 0 14px rgba(239, 68, 68, 0.6) !important;
+}
+
+.chat-mic-btn--recording {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  color: #ffffff !important;
+  border-color: #fca5a5 !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 30px rgba(220, 38, 38, 0.5) !important;
+  transform: scale(1.12) !important;
 }
 
 .chat-send-btn {
