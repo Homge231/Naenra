@@ -166,10 +166,10 @@
             }}
           </span>
           <span class="text-xs font-black uppercase tracking-widest flex items-center gap-1 shadow-sm"
-            :class="[index === gameStore.coreHistory.length - 1 ? (activeCoreModule.timerColor || 'text-lightBlue') : 'text-gray-400']">
+            :class="[index === gameStore.coreHistory.length - 1 ? (activeCoreModule?.timerColor || 'text-lightBlue') : 'text-gray-400']">
             <span>
               <img
-                :src="(index === gameStore.coreHistory.length - 1 && isPandoraMode) ? activeCoreIconUrlDynamic : core.icon"
+                :src="(index === gameStore.coreHistory.length - 1 && isPandoraMode) ? activeCoreIconUrlDynamic : getCoreIconPath(core.name, core.icon)"
                 :alt="core.name" class="w-4 h-4 inline-block object-contain" />
             </span> {{ (index === gameStore.coreHistory.length - 1 && isPandoraMode) ? 'Shifted: ' +
               activeCoreNameDynamic : core.name }}
@@ -1094,15 +1094,16 @@ const effectiveCores = computed(() => {
   }
 
   // Filter out older Power Cores in history if there is a more recent one
-  const getClassification = (name: string) => {
-    const found = allCores.value.find(c => c.name.toLowerCase() === name.toLowerCase())
+  const getClassification = (name?: string | null) => {
+    if (!name) return null
+    const found = allCores.value.find(c => c && c.name && c.name.toLowerCase() === name.toLowerCase())
     return found?.classification || null
   }
 
-  const powerCoresInHist = history.filter(c => getClassification(c.name) === 'power')
+  const powerCoresInHist = history.filter(c => c && c.name && getClassification(c.name) === 'power')
   if (powerCoresInHist.length > 1) {
     const latestPowerCore = powerCoresInHist[powerCoresInHist.length - 1]
-    history = history.filter(c => getClassification(c.name) !== 'power' || c.id === latestPowerCore.id)
+    history = history.filter(c => !c || !c.name || getClassification(c.name) !== 'power' || c.id === latestPowerCore.id)
   }
 
   return history
@@ -1122,10 +1123,10 @@ const activeCoreNameDynamic = computed(() => {
 
 const activeCoreIconUrlDynamic = computed(() => {
   if (isPandoraMode.value && currentPandoraCoreId.value) {
-    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
+    const shiftedCore = allCores.value.find(c => c && c.id === currentPandoraCoreId.value)
     return shiftedCore ? getCoreIconPath(shiftedCore.name, shiftedCore.icon_url) : getCoreIconPath(gameStore.activeCoreName || '')
   }
-  return gameStore.activeCoreName ? getCoreIconPath(gameStore.activeCoreName) : ''
+  return gameStore.activeCoreName ? getCoreIconPath(gameStore.activeCoreName) : DEFAULT_ICON
 })
 
 const activeCoreModule = computed(() => {

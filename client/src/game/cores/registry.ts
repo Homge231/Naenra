@@ -476,9 +476,27 @@ const _fallback: CoreModule = {
  */
 export function getCoreModule(name: string | null | undefined): CoreModule {
   if (!name) return _fallback
-  let key = name.trim().toLowerCase()
-  if (key.endsWith(' core')) key = key.substring(0, key.length - 5)
-  return CORE_REGISTRY[key] ?? _fallback
+  const key = name.trim().toLowerCase()
+  if (CORE_REGISTRY[key]) return CORE_REGISTRY[key]
+  
+  if (key.endsWith(' core')) {
+    const keyWithoutCore = key.substring(0, key.length - 5).trim()
+    if (CORE_REGISTRY[keyWithoutCore]) return CORE_REGISTRY[keyWithoutCore]
+  }
+
+  // Common aliases
+  if (key === 'balanced' || key === 'balanced core' || key === 'balance') return CORE_REGISTRY['balance'] || _fallback
+  if (key === 'oracle' || key === 'oracle core' || key === 'argus eyes') return CORE_REGISTRY['argus eyes'] || _fallback
+  if (key === 'combo' || key === 'combo core' || key === 'perfect combo') return CORE_REGISTRY['perfect combo'] || _fallback
+  if (key === 'mission' || key === 'mission core' || key === 'mission impossible') return CORE_REGISTRY['mission impossible'] || _fallback
+  if (key === 'power' || key === 'power core' || key === 'power strike') return CORE_REGISTRY['power strike'] || _fallback
+  if (key === 'aegis' || key === 'aegis shield') return CORE_REGISTRY['aegis shield'] || _fallback
+  if (key === 'pandora' || key === "pandora's box" || key === 'pandoras box') return CORE_REGISTRY["pandora's box"] || _fallback
+  if (key === 'speedster' || key === 'speedster core') return CORE_REGISTRY['speedster'] || _fallback
+  if (key === 'highroller' || key === 'high roller' || key === 'high roller core') return CORE_REGISTRY['high roller'] || _fallback
+  if (key === 'phoenix' || key === 'phoenix core') return CORE_REGISTRY['phoenix'] || _fallback
+
+  return _fallback
 }
 
 /**

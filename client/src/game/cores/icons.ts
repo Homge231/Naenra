@@ -18,19 +18,31 @@ const SLUG_OVERRIDES: Record<string, string> = {
   'supermassive': 'supermassive-core',
   'aegis shield': 'aegis-shield',
   'oracle': 'oracle-core',
+  'oracle core': 'oracle-core',
   'argus eyes': 'oracle-core',
   'power strike': 'power-core',
+  'power core': 'power-core',
   'mission impossible': 'mission-core',
+  'mission core': 'mission-core',
   'perfect combo': 'combo-core',
+  'combo core': 'combo-core',
   'balance': 'balanced-core',
+  'balanced': 'balanced-core',
+  'balanced core': 'balanced-core',
   'speedster': 'speedster',
-  'pandora\'s box': 'pandoras-box',
-  'high roller': 'high-roller'
+  'speedster core': 'speedster',
+  "pandora's box": 'pandoras-box',
+  'pandoras box': 'pandoras-box',
+  'pandora': 'pandoras-box',
+  'high roller': 'high-roller',
+  'highroller': 'high-roller',
+  'phoenix': 'phoenix',
+  'phoenix core': 'phoenix'
 }
 
 /** Convert a core name to a filesystem-safe slug */
 function toSlug(name: string): string {
-  const key = name.toLowerCase()
+  const key = (name || '').trim().toLowerCase()
   if (SLUG_OVERRIDES[key]) {
     return SLUG_OVERRIDES[key]
   }
@@ -54,20 +66,65 @@ for (const [family, tiers] of Object.entries(CORE_FAMILIES)) {
   }
 }
 
+// Add common aliases so any core naming format works seamlessly
+CORE_ICON_MAP['balance'] = '/icons/cores/balanced/balanced-core.svg'
+CORE_ICON_MAP['balanced'] = '/icons/cores/balanced/balanced-core.svg'
+CORE_ICON_MAP['balanced core'] = '/icons/cores/balanced/balanced-core.svg'
+CORE_ICON_MAP['oracle'] = '/icons/cores/oracle/oracle-core.svg'
+CORE_ICON_MAP['oracle core'] = '/icons/cores/oracle/oracle-core.svg'
+CORE_ICON_MAP['argus eyes'] = '/icons/cores/oracle/oracle-core.svg'
+CORE_ICON_MAP['combo'] = '/icons/cores/combo/combo-core.svg'
+CORE_ICON_MAP['combo core'] = '/icons/cores/combo/combo-core.svg'
+CORE_ICON_MAP['perfect combo'] = '/icons/cores/combo/combo-core.svg'
+CORE_ICON_MAP['mission'] = '/icons/cores/mission/mission-core.svg'
+CORE_ICON_MAP['mission core'] = '/icons/cores/mission/mission-core.svg'
+CORE_ICON_MAP['mission impossible'] = '/icons/cores/mission/mission-core.svg'
+CORE_ICON_MAP['power'] = '/icons/cores/power/power-core.svg'
+CORE_ICON_MAP['power core'] = '/icons/cores/power/power-core.svg'
+CORE_ICON_MAP['power strike'] = '/icons/cores/power/power-core.svg'
+CORE_ICON_MAP['aegis'] = '/icons/cores/aegis/aegis-shield.svg'
+CORE_ICON_MAP['aegis shield'] = '/icons/cores/aegis/aegis-shield.svg'
+CORE_ICON_MAP['pandora'] = '/icons/cores/pandora/pandoras-box.svg'
+CORE_ICON_MAP["pandora's box"] = '/icons/cores/pandora/pandoras-box.svg'
+CORE_ICON_MAP['pandoras box'] = '/icons/cores/pandora/pandoras-box.svg'
+CORE_ICON_MAP['speedster'] = '/icons/cores/speedster/speedster.svg'
+CORE_ICON_MAP['speedster core'] = '/icons/cores/speedster/speedster.svg'
+CORE_ICON_MAP['high roller'] = '/icons/cores/highroller/high-roller.svg'
+CORE_ICON_MAP['highroller'] = '/icons/cores/highroller/high-roller.svg'
+CORE_ICON_MAP['phoenix'] = '/icons/cores/phoenix/phoenix.svg'
+CORE_ICON_MAP['phoenix core'] = '/icons/cores/phoenix/phoenix.svg'
+
 export const DEFAULT_ICON = '/icons/cores/default.svg'
 
 /**
  * Get the icon path for a core by name.
- * Prefers `icon_url` from DB if available, falls back to local path.
+ * Prefers local SVG file if available, falls back to DB `icon_url` or default icon.
  */
-export function getCoreIconPath(coreName: string, iconUrl?: string | null): string {
-  if (!coreName) return DEFAULT_ICON
-  const key = coreName.trim().toLowerCase()
-  if (CORE_ICON_MAP[key]) {
+export function getCoreIconPath(coreName?: string | null, iconUrl?: string | null): string {
+  if (!coreName && !iconUrl) return DEFAULT_ICON
+  
+  // If coreName is already a valid path or URL
+  if (coreName && (coreName.startsWith('/') || coreName.startsWith('http'))) {
+    return coreName
+  }
+
+  const key = (coreName || '').trim().toLowerCase()
+  if (key && CORE_ICON_MAP[key]) {
     return CORE_ICON_MAP[key]
   }
-  if (iconUrl && iconUrl.startsWith('http')) {
+
+  // Check without ' core' suffix
+  if (key && key.endsWith(' core')) {
+    const withoutCore = key.substring(0, key.length - 5).trim()
+    if (CORE_ICON_MAP[withoutCore]) {
+      return CORE_ICON_MAP[withoutCore]
+    }
+  }
+
+  // Check if iconUrl is a valid path or URL (not an emoji like '⚙️')
+  if (iconUrl && (iconUrl.startsWith('/') || iconUrl.startsWith('http'))) {
     return iconUrl
   }
+
   return DEFAULT_ICON
 }
