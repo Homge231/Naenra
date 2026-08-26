@@ -31,9 +31,9 @@ export async function cleanupStaleSessionsOnBoot(): Promise<void> {
 
     const { data: staleSessions, error } = await supabase
       .from('game_sessions')
-      .select('id')
+      .select('id, started_at')
       .eq('status', 'active')
-      .lt('created_at', staleThreshold)
+      .or(`started_at.lt.${staleThreshold},started_at.is.null`)
 
     if (error) {
       console.warn('[Boot Cleanup] Could not query stale sessions:', error.message)
@@ -458,7 +458,8 @@ export async function createSession(req: AuthRequest, res: Response): Promise<vo
       .insert({ 
         player_id: playerId, 
         status: 'active', 
-        active_core_id: finalCoreId
+        active_core_id: finalCoreId,
+        started_at: new Date().toISOString()
       })
       .select('id')
       .single()
