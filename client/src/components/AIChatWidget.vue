@@ -186,6 +186,7 @@
               v-if="!isLiveConnected"
               @mousedown.prevent.stop="unifiedMicPress"
               @touchstart.prevent.stop="unifiedMicPress"
+              @click.prevent.stop
               type="button"
               id="ai-chat-mic-btn"
               class="chat-mic-btn shrink-0 relative select-none"
@@ -211,6 +212,7 @@
               <button
                 @mousedown.prevent.stop="unifiedMicPress"
                 @touchstart.prevent.stop="unifiedMicPress"
+                @click.prevent.stop
                 type="button"
                 class="chat-mic-btn relative select-none"
                 :class="{
@@ -658,8 +660,12 @@ const quickHints = [
 
 // ── Click outside to close ──────────────────────────────────────────
 function handleClickOutside(e: MouseEvent) {
-  if (!isChatOpen.value) return
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
+  if (!isChatOpen.value || isHoldingMic.value) return
+  const target = e.target as Node | null
+  if (!target) return
+  // Prevent unmounted/re-rendered DOM elements (e.g. mic icon swap on press/release) from triggering false outside click
+  if ('isConnected' in target && !target.isConnected) return
+  if (rootRef.value && !rootRef.value.contains(target)) {
     isChatOpen.value = false
   }
 }
