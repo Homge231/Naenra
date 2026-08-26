@@ -573,6 +573,7 @@ import { useDeviceMode } from '../../composables/useDeviceMode.ts'
 import { useGameStore } from '../../stores/gameStore.ts'
 import { useMissionsStore } from '../../stores/missionsStore.ts'
 import { getCoreFamily } from '../../game/cores/families.ts'
+import { getCoreIconPath, DEFAULT_ICON } from '../../game/cores/icons.ts'
 import { useMatchStore } from '../../stores/matchStore.ts'
 import {
   initAudio, 
