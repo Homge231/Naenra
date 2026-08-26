@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/authMiddleware'
 import {
   getQuestions,
   getCores,
+  getCreatures,
   createSession,
   submitAnswer,
   timeoutSession,
@@ -15,6 +16,7 @@ const router = Router()
 
 router.get('/questions',      authMiddleware, getQuestions)
 router.get('/cores',          authMiddleware, getCores)
+router.get('/creatures',      authMiddleware, getCreatures)
 router.post('/session',       authMiddleware, createSession)
 router.post('/submit-answer', authMiddleware, submitAnswer)
 router.post('/timeout',       authMiddleware, timeoutSession)
