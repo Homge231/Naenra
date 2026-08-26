@@ -296,19 +296,19 @@ function handleCardReroll(index: number) {
     discardedCoreIds.value.add(currentReplacedCore.id)
   }
 
-  if (selectedCore.value?.id === randomCores.value[index].id) {
+  if (selectedCore.value?.id === randomCores.value[index]?.id) {
     selectedCore.value = null
   }
 
   const t1 = setTimeout(() => {
-    const currentOnScreenIds = randomCores.value.map(c => c.id)
+    const currentOnScreenIds = randomCores.value.map(c => c?.id).filter(Boolean)
     // Filter out cores currently on screen AND all cores previously seen/discarded
     let availableCores = supportCores.value.filter(
-      c => !currentOnScreenIds.includes(c.id) && !discardedCoreIds.value.has(c.id)
+      c => c && !currentOnScreenIds.includes(c.id) && !discardedCoreIds.value.has(c.id)
     )
 
     if (availableCores.length < 1) {
-      availableCores = supportCores.value.filter(c => !currentOnScreenIds.includes(c.id))
+      availableCores = supportCores.value.filter(c => c && !currentOnScreenIds.includes(c.id))
     }
     if (availableCores.length < 1) {
       availableCores = [...supportCores.value]

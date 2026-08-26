@@ -208,14 +208,14 @@
         </div>
 
         <div class="relative flex items-center gap-1 ml-1"
-          :class="timeLeft <= 10 ? 'text-hexred' : activeCoreModule.timerColor">
-          <svg class="w-4 h-4 drop-shadow-md" :class="activeCoreModule.timerIconClass || undefined" fill="none"
+          :class="timeLeft <= 10 ? 'text-hexred' : (activeCoreModule?.timerColor || 'text-lightBlue')">
+          <svg class="w-4 h-4 drop-shadow-md" :class="activeCoreModule?.timerIconClass || undefined" fill="none"
             stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span class="font-mono font-black text-xl tabular-nums drop-shadow-lg" :class="[
-            activeCoreModule?.timerColor,
+            activeCoreModule?.timerColor || 'text-lightBlue',
             timeLeft <= 10 && settingsStore.vfxEnabled ? 'animate-pulse' : '',
             settingsStore.vfxEnabled ? (activeCoreModule?.timerClass || '') : ''
           ]">
@@ -238,7 +238,7 @@
       class="relative z-20 flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center py-4 px-2 max-w-5xl mx-auto w-full">
 
       <!-- Speedster wind streak overlay component -->
-      <SpeedsterOverlay :active="!!activeCoreModule.showWindOverlay && settingsStore.vfxEnabled"
+      <SpeedsterOverlay :active="!!activeCoreModule?.showWindOverlay && settingsStore.vfxEnabled"
         :playing="gameState === 'playing'" />
 
       <!-- Active Core UI VFX Micro-animations -->
@@ -791,15 +791,15 @@ const effectiveCores = computed(() => {
   const activeName = gameStore.activeCoreName || ''
   const activeFamily = getCoreFamily(activeName)
 
-  let history = [...gameStore.coreHistory]
+  let history = [...(gameStore.coreHistory || [])]
 
   if (activeFamily) {
-    history = history.filter(c => getCoreFamily(c.name) === activeFamily)
-  } else {
-    history = history.filter(c => c.name === activeName)
+    history = history.filter(c => c && c.name && getCoreFamily(c.name) === activeFamily)
+  } else if (activeName) {
+    history = history.filter(c => c && c.name === activeName)
   }
 
-  if (gameStore.activeCoreId && gameStore.activeCoreName && !history.some(c => c.id === gameStore.activeCoreId)) {
+  if (gameStore.activeCoreId && gameStore.activeCoreName && !history.some(c => c && c.id === gameStore.activeCoreId)) {
     history.push({
       id: gameStore.activeCoreId,
       name: gameStore.activeCoreName,
@@ -808,8 +808,8 @@ const effectiveCores = computed(() => {
   }
 
   if (isPandoraMode.value && currentPandoraCoreId.value) {
-    const shiftedCore = allCores.value.find(c => c.id === currentPandoraCoreId.value)
-    if (shiftedCore && !history.some(c => c.id === shiftedCore.id)) {
+    const shiftedCore = allCores.value.find(c => c && c.id === currentPandoraCoreId.value)
+    if (shiftedCore && !history.some(c => c && c.id === shiftedCore.id)) {
       history.push(shiftedCore)
     }
   }
