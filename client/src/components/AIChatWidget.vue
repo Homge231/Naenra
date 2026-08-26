@@ -336,9 +336,6 @@ const {
   isConnecting: isLiveConnecting,
   isSpeaking: isLiveSpeaking,
   isMicLocked,          // Issue #7: true while AI is speaking
-  isMicPaused,          // Issue #6: true while PTT is released
-  audioAmplitude,
-  errorMsg: liveErrorMsg,
   startLiveSession,
   stopLiveSession,
   sendTextMessage,
@@ -617,13 +614,6 @@ function unifiedMicRelease() {
     }
   }
 }
-
-// Legacy stubs — kept so any remaining template refs don't break
-const onMicPress = unifiedMicPress
-const onMicRelease = unifiedMicRelease
-const onMicPressStart = unifiedMicPress
-const onMicPressEnd = unifiedMicRelease
-function onMicPressCancel() { unifiedMicRelease() }
 
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
