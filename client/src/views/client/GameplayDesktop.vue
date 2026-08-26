@@ -245,9 +245,9 @@
 
         <template v-else>
           <transition name="card-flip" mode="out-in">
-            <div :key="currentQuestion.id" class="w-full flex flex-col items-center gap-10">
+            <div :key="currentQuestion?.id || 'q'" class="w-full flex flex-col items-center gap-10">
 
-              <div v-if="currentQuestion.hint"
+              <div v-if="currentQuestion?.hint"
                 class="relative overflow-hidden bg-blue/10 backdrop-blur-xl border border-blue/30 rounded-2xl p-6 md:p-8 shadow-[0_10px_30px_rgba(59,130,246,0.15)] text-center w-full transition-all duration-300 transform hover:-translate-y-1">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue to-transparent">
                 </div>
@@ -260,7 +260,7 @@
                 </div>
                 <h1
                   class="text-2xl md:text-4xl font-black text-lightBlue tracking-wider drop-shadow-lg leading-tight break-words px-2 py-1">
-                  {{ currentQuestion.hint }}
+                  {{ currentQuestion?.hint }}
                 </h1>
               </div>
 
@@ -297,7 +297,7 @@
                 <div
                   class="flex flex-nowrap items-center justify-center gap-2 md:gap-3 w-full overflow-x-auto pb-3 scrollbar-none"
                   :class="{ 'speedster-slots-glow': isSpeedsterCore && gameState === 'playing' }">
-                  <div v-for="(_, idx) in currentQuestion.target_length" :key="idx" class="flex-shrink-0">
+                  <div v-for="(_, idx) in (currentQuestion?.target_length || 0)" :key="idx" class="flex-shrink-0">
                     <div
                       class="relative w-10 h-14 md:w-14 md:h-20 bg-black/60 rounded-t-lg flex items-center justify-center border-b-4 transition-colors duration-200"
                       :class="{
@@ -849,7 +849,7 @@ const getActiveName = () => activeCoreNameDynamic.value?.toLowerCase() || ''
 const isComboCore = computed(() => {
   const name = getActiveName()
   if (checkComboCore(name)) return true
-  return gameStore.coreHistory.some(c => checkComboCore(c.name))
+  return gameStore.coreHistory.some(c => c && c.name && checkComboCore(c.name))
 })
 const isOracleCore = computed(() => {
   const name = getActiveName()
@@ -858,45 +858,45 @@ const isOracleCore = computed(() => {
 const isSpeedsterCore = computed(() => {
   const name = getActiveName()
   if (checkSpeedsterCore(name)) return true
-  return gameStore.coreHistory.some(c => checkSpeedsterCore(c.name))
+  return gameStore.coreHistory.some(c => c && c.name && checkSpeedsterCore(c.name))
 })
 const isMissionCore = computed(() => {
   const name = getActiveName()
   if (checkMissionCore(name)) return true
-  return gameStore.coreHistory.some(c => checkMissionCore(c.name))
+  return gameStore.coreHistory.some(c => c && c.name && checkMissionCore(c.name))
 })
 const isTimeWarp = computed(() => {
   const name = getActiveName()
   if (name === 'time warp') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'time warp')
+  return gameStore.coreHistory.some(c => c && c.name && c.name.toLowerCase() === 'time warp')
 })
 const isPowerCore = computed(() => {
   const name = getActiveName()
   if (checkPowerCore(name)) return true
-  return gameStore.coreHistory.some(c => checkPowerCore(c.name))
+  return gameStore.coreHistory.some(c => c && c.name && checkPowerCore(c.name))
 })
 const isTypingError = ref(false)
 
 const isChronobreak = computed(() => {
   const name = getActiveName()
   if (name === 'chronobreak') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'chronobreak')
+  return gameStore.coreHistory.some(c => c && c.name && c.name.toLowerCase() === 'chronobreak')
 })
 
 const isPrismaticCombo = computed(() => {
   const name = getActiveName()
   if (name === 'prismatic combo') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'prismatic combo')
+  return gameStore.coreHistory.some(c => c && c.name && c.name.toLowerCase() === 'prismatic combo')
 })
 const isExodia = computed(() => {
   const name = getActiveName()
   if (name === 'exodia') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'exodia')
+  return gameStore.coreHistory.some(c => c && c.name && c.name.toLowerCase() === 'exodia')
 })
 const isSpeedDemon = computed(() => {
   const name = getActiveName()
   if (name === 'speed demon') return true
-  return gameStore.coreHistory.some(c => c.name.toLowerCase() === 'speed demon')
+  return gameStore.coreHistory.some(c => c && c.name && c.name.toLowerCase() === 'speed demon')
 })
 
 const isOracleFree = computed(() => {
@@ -904,6 +904,7 @@ const isOracleFree = computed(() => {
   // Hints are free only for Oracle UPGRADE cores (not the base Argus Eyes itself)
   if (name && checkOracleCore(name) && name !== 'argus eyes') return true
   return gameStore.coreHistory.some(c => {
+    if (!c || !c.name) return false
     const family = getCoreFamily(c.name)
     return family === 'oracle' && c.name.toLowerCase() !== 'argus eyes'
   })
@@ -936,7 +937,7 @@ let roundCoreHoldTimer: ReturnType<typeof setTimeout> | null = null
 function getCoreDetailsByItem(coreItem: { id: string; name: string }) {
   if (!coreItem) return null
   if (allCores.value.length > 0) {
-    const found = allCores.value.find(c => c.id === coreItem.id || c.name.toLowerCase() === coreItem.name.toLowerCase())
+    const found = allCores.value.find(c => c && ((coreItem.id && c.id === coreItem.id) || (coreItem.name && c.name && c.name.toLowerCase() === coreItem.name.toLowerCase())))
     if (found) return found
   }
   return {
@@ -1003,6 +1004,7 @@ function triggerShapeshift() {
   const validNames = tier1Names
 
   pandoraPool.value = allCores.value.filter((c: any) =>
+    c && c.name &&
     validNames.some(name => name.toLowerCase() === c.name.toLowerCase()) &&
     c.id !== activeCoreId.value &&
     !checkPandoraCore(c.name)
@@ -1218,7 +1220,7 @@ async function skipQuestion() {
   gameState.value = 'wrong'
   currentCombo.value = 0
   if (isMissionCore.value) {
-    const isShieldMission = effectiveCores.value.some(c => c.name.toLowerCase() === 'shield mission')
+    const isShieldMission = effectiveCores.value.some(c => c && c.name && c.name.toLowerCase() === 'shield mission')
     if (isShieldMission && aegisShieldCount.value > 0) {
       // Streak is protected by active shield
     } else {
@@ -1414,7 +1416,7 @@ async function checkAnswer() {
   let delay = FEEDBACK_MS
   if (isCorrectLocal) {
     const missionTarget = effectiveCores.value.some(c =>
-      ['swift mission', 'mission master', 'daily quest'].includes(c.name.toLowerCase())
+      c && c.name && ['swift mission', 'mission master', 'daily quest'].includes(c.name.toLowerCase())
     ) ? 3 : 5
     if (isMissionCore.value && missionProgress.value === missionTarget) {
       delay = 2000
@@ -1849,7 +1851,7 @@ watch(activeCoreModule, () => {
 }, { immediate: true })
 
 watch(() => currentCombo.value, (newVal) => {
-  const isComboActive = effectiveCores.value.some(c => c.name.toLowerCase().includes('combo') || c.name.toLowerCase().includes('strike') || c.name.toLowerCase().includes('power'))
+  const isComboActive = effectiveCores.value.some(c => c && c.name && (c.name.toLowerCase().includes('combo') || c.name.toLowerCase().includes('strike') || c.name.toLowerCase().includes('power')))
   
   if (!isComboActive) return
 

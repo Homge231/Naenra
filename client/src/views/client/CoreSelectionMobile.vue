@@ -198,7 +198,7 @@ const matchStore = useMatchStore()
 const tutorial = useTutorial()
 const { isFlipping, handleMouseEnter, triggerCardFlip } = useCardTilt()
 import { DEFAULT_OFFLINE_CORES } from '../../composables/useOfflineTraining'
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000'
+import { fetchWithAuth } from '../../services/api.ts'
 
 // ── Hover & Touch-Hold Tooltip Logic ─────────────────────────────────────────
 const activeTooltipIndex = ref<number | null>(null)
@@ -387,10 +387,7 @@ async function fetchSupportCores() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/cores`, {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-    })
+    const res = await fetchWithAuth('/api/game/cores')
     if (!res.ok) throw new Error('failed')
     const data = await res.json()
     if (!isMounted.value) return
@@ -429,13 +426,8 @@ async function fetchSupportCores() {
 
 async function createSession(coreId: string) {
   try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/session`, {
+    const res = await fetchWithAuth('/api/game/session', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
       body: JSON.stringify({ active_core_id: coreId })
     })
 
@@ -467,7 +459,7 @@ async function submitCore(core: CoreOption) {
   loading.value = true
   
   audioService.playClick()
-  audioService.playCoreActivation(core.id)
+  audioService.playCoreActivation(core.name)
   
   // Unlock audio context on user interaction
   initAudio()
