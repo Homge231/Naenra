@@ -360,27 +360,53 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
           })
         }
 
-        const shuffledSameFamily = [...sameFamilyPool].sort(() => 0.5 - Math.random())
-        offeredCores = shuffledSameFamily.slice(0, 2)
+        // Fetch user-unlocked cores to prioritize unlocked options
+        let userUnlockedIds = new Set<string>()
+        if (req.user?.id) {
+          const { data: userUnlockedProgress } = await supabase
+            .from('user_core_progress')
+            .select('core_id')
+            .eq('user_id', req.user.id)
+            .eq('is_unlocked', true)
+          if (userUnlockedProgress) {
+            userUnlockedIds = new Set(userUnlockedProgress.map(p => String(p.core_id)))
+          }
+        }
+
+        const isCoreUnlocked = (c: any) => {
+          if (c.tier === 1 || c.core_type === 'main') return true
+          if (!DEFAULT_LOCKED_CORES.has(String(c.name || '').trim().toLowerCase())) return true
+          return userUnlockedIds.has(String(c.id))
+        }
+
+        const unlockedInFamily = sameFamilyPool.filter(isCoreUnlocked)
+        const lockedInFamily = sameFamilyPool.filter(c => !isCoreUnlocked(c))
+
+        const shuffledUnlocked = [...unlockedInFamily].sort(() => 0.5 - Math.random())
+        const shuffledLocked = [...lockedInFamily].sort(() => 0.5 - Math.random())
+
+        // Always prioritize unlocked upgrades first so the player is never trapped
+        const combined = [...shuffledUnlocked, ...shuffledLocked]
+        offeredCores = combined.slice(0, 2)
       }
     }
 
-      // Fallback if no synergy upgrades found
-      if (offeredCores.length === 0) {
-        const prevCore = allCores.find(c => c.id === previous_core_id)
-        let synergyCore: any = null
-        if (prevCore && prevCore.upgrades_to) {
-          synergyCore = allCores.find(c => c.id === prevCore.upgrades_to)
-        }
-        let pool = tier1Cores.filter(c => c.id !== previous_core_id)
-        if (pool.length === 0) pool = tier1Cores
-        const shuffledPool = [...pool].sort(() => 0.5 - Math.random())
-        if (synergyCore) {
-          offeredCores = [synergyCore, shuffledPool[0]]
-        } else {
-          offeredCores = [shuffledPool[0], shuffledPool[1]]
-        }
+    // Fallback if no synergy upgrades found
+    if (offeredCores.length === 0) {
+      const prevCore = allCores.find(c => c.id === previous_core_id)
+      let synergyCore: any = null
+      if (prevCore && prevCore.upgrades_to) {
+        synergyCore = allCores.find(c => c.id === prevCore.upgrades_to)
       }
+      let pool = tier1Cores.filter(c => c.id !== previous_core_id)
+      if (pool.length === 0) pool = tier1Cores
+      const shuffledPool = [...pool].sort(() => 0.5 - Math.random())
+      if (synergyCore) {
+        offeredCores = [synergyCore, shuffledPool[0]]
+      } else {
+        offeredCores = [shuffledPool[0], shuffledPool[1]]
+      }
+    }
 
     let signature: string | undefined
     if (previous_core_id) {

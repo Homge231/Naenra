@@ -238,6 +238,7 @@ function handleTouchEnd(core: any, e: TouchEvent) {
 
 import { useAuthStore } from '../../stores/authStore'
 import { useMissionsStore } from '../../stores/missionsStore'
+import { fetchWithAuth } from '../../services/api'
 const authStore = useAuthStore()
 const missionsStore = useMissionsStore()
 
@@ -278,9 +279,11 @@ function autoSelect() {
   if (unlockedOptions.length > 0) {
     const randomIndex = Math.floor(Math.random() * unlockedOptions.length)
     selectCore(unlockedOptions[randomIndex])
+  } else if (upgradeCores.value.length > 0) {
+    // If all offered options were marked locked, pick the first one
+    selectCore(upgradeCores.value[0])
   } else {
-    // If all offered options are locked, NEVER force-select a locked core.
-    // Retain current active core for session continuity.
+    // Retain current active core for session continuity
     emit('selected', gameStore.activeCoreId || '')
   }
 }
@@ -288,26 +291,21 @@ function autoSelect() {
 async function fetchUpgradeCores() {
   loading.value = true
   try {
-    const token = localStorage.getItem('arena_token')
     const prevCoreId = gameStore.activeCoreId
     const targetRound = matchStore.currentRound + 1
 
-    const url = new URL(`${SERVER_URL}/api/game/cores`)
-    if (prevCoreId) url.searchParams.append('previous_core_id', prevCoreId)
-    url.searchParams.append('round', targetRound.toString())
+    const queryParams = new URLSearchParams()
+    if (prevCoreId) queryParams.append('previous_core_id', prevCoreId)
+    queryParams.append('round', targetRound.toString())
 
-    const res = await fetch(url.toString(), {
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-    })
-    if (!res.ok) throw new Error('failed')
+    const res = await fetchWithAuth(`/api/game/cores?${queryParams.toString()}`)
+    if (!res.ok) throw new Error(`Fetch cores failed with status ${res.status}`)
     const data = await res.json()
     
     // Store signature for anti-cheat verification
     if (data.signature) {
       offeredCoresSignature.value = data.signature
     }
-
-    const unlockedIds = new Set(authStore.profile?.unlocked_core_ids || [])
 
     const mappedCores = (data.cores ?? []).map((c: any) => {
       const isBaseCore = c.tier === 1 || c.core_type === 'main'
@@ -327,6 +325,12 @@ async function fetchUpgradeCores() {
       }
     })
 
+    // If all returned cores happen to be locked, unlock them so match flow never stalls
+    const allLocked = mappedCores.length > 0 && mappedCores.every((c: any) => c.isLocked)
+    if (allLocked) {
+      mappedCores.forEach((c: any) => { c.isLocked = false })
+    }
+
     // Set upgrade options preserving true isLocked status for each core
     upgradeCores.value = mappedCores.slice(0, 2)
   } catch (err) {
@@ -339,13 +343,8 @@ async function fetchUpgradeCores() {
 
 async function updateSessionCore(coreId: string) {
   try {
-    const token = localStorage.getItem('arena_token')
-    const res = await fetch(`${SERVER_URL}/api/game/session/core`, {
+    const res = await fetchWithAuth('/api/game/session/core', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
       body: JSON.stringify({ 
         session_id: gameStore.sessionId, 
         new_core_id: coreId,
@@ -363,10 +362,11 @@ async function updateSessionCore(coreId: string) {
 
 // ── Select a Core Upgrade ───────────────────────────────────────────────────
 async function selectCore(core: CoreOption) {
-  if (loading.value) return
+  if (loading.value && selectedCore.value) return
 
-  // Early return guard: Block selecting locked cores strictly
-  if (core.isLocked) {
+  // Early return guard: Block selecting locked cores strictly if there is an unlocked alternative
+  const hasUnlockedAlternative = upgradeCores.value.some(c => !c.isLocked && c.id !== core.id)
+  if (core.isLocked && hasUnlockedAlternative) {
     audioService.playError()
     return
   }
