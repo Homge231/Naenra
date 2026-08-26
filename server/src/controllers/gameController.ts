@@ -7,7 +7,6 @@ import { runScoring, getCoreStrategy } from '../cores/index'
 import { getUpgradesForCore, getCoreFamily } from '../cores/families'
 import { getTierForElo } from '../utils/ranks'
 import { evaluatePostMatchMissions } from '../services/missionEvaluatorService'
-import { CREATURE_CHALLENGERS } from '../services/botGeneratorService'
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -392,16 +391,6 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
   } catch (err) {
     console.error('getCores error:', err)
     res.status(500).json({ error: 'Failed to fetch cores.' })
-  }
-}
-
-// ── Endpoint: GET /api/game/creatures ─────────────────────────────────────────
-export async function getCreatures(req: AuthRequest, res: Response): Promise<void> {
-  try {
-    res.status(200).json({ creatures: CREATURE_CHALLENGERS })
-  } catch (err) {
-    console.error('getCreatures error:', err)
-    res.status(500).json({ error: 'Failed to fetch creatures.' })
   }
 }
 

@@ -1,248 +1,106 @@
 export interface BotProfile {
   id: string
   name: string
-  title?: string
-  icon?: string
   avatar: string
-  tier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'Boss'
   elo: number
   wpm: number
   accuracy: number
   solveIntervalMs: number
   pointsPerSolve: number
-  favoriteCore?: string
-  badgeColor?: string
-  quote?: string
-  description?: string
   isBot: boolean
 }
 
-export const CREATURE_CHALLENGERS: BotProfile[] = [
-  {
-    id: "creature_puck_pixie",
-    name: "Puck the Cyber Pixie",
-    title: "Playful Mascot",
-    icon: "🦝",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=PuckThePixie&backgroundColor=b6e3f4",
-    tier: "Bronze",
-    elo: 800,
-    wpm: 38,
-    accuracy: 0.70,
-    solveIntervalMs: 4500,
-    pointsPerSolve: 100,
-    favoriteCore: "Balanced Core",
-    badgeColor: "#10B981",
-    quote: "Let's practice together! Don't worry, I won't type too fast!",
-    description: "Gentle training bot. Great for warming up and beginners.",
-    isBot: true
-  },
-  {
-    id: "creature_neon_wolf",
-    name: "Neon Wolf",
-    title: "Cybernetic Scout",
-    icon: "🐺",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=NeonWolf99&backgroundColor=c0aede",
-    tier: "Bronze",
-    elo: 1200,
-    wpm: 48,
-    accuracy: 0.75,
-    solveIntervalMs: 3800,
-    pointsPerSolve: 105,
-    favoriteCore: "Combo Core",
-    badgeColor: "#06B6D4",
-    quote: "A swift strike will test your reflexes in the arena.",
-    description: "Quick and agile, builds steady combo chains.",
-    isBot: true
-  },
-  {
-    id: "creature_cyber_golem",
-    name: "Cyber Golem",
-    title: "Armored Titan",
-    icon: "🤖",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=CyberGolemSteel&backgroundColor=d1d5db",
-    tier: "Silver",
-    elo: 1800,
-    wpm: 58,
-    accuracy: 0.82,
-    solveIntervalMs: 3200,
-    pointsPerSolve: 120,
-    favoriteCore: "Aegis Shield",
-    badgeColor: "#64748B",
-    quote: "My defenses are impenetrable. Break through if you can.",
-    description: "Rock-solid accuracy with resilient shield tactics.",
-    isBot: true
-  },
-  {
-    id: "creature_thunder_falcon",
-    name: "Thunder Falcon",
-    title: "Tempest Raptor",
-    icon: "🦅",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=ThunderFalconStorm&backgroundColor=bae6fd",
-    tier: "Silver",
-    elo: 2400,
-    wpm: 70,
-    accuracy: 0.84,
-    solveIntervalMs: 2800,
-    pointsPerSolve: 130,
-    favoriteCore: "Speedster",
-    badgeColor: "#3B82F6",
-    quote: "Lightning strikes twice before you even blink!",
-    description: "Rapid burst typing speed that tests your sprint capacity.",
-    isBot: true
-  },
-  {
-    id: "creature_ignis_drake",
-    name: "Ignis Drake",
-    title: "Infernal Dragon",
-    icon: "🐉",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=IgnisDrakeFire&backgroundColor=fed7aa",
-    tier: "Gold",
-    elo: 3200,
-    wpm: 82,
-    accuracy: 0.86,
-    solveIntervalMs: 2300,
-    pointsPerSolve: 145,
-    favoriteCore: "Power Strike",
-    badgeColor: "#F97316",
-    quote: "Feel the heat! Can your vocabulary withstand the flame?",
-    description: "Aggressive, high-scoring words with explosive power.",
-    isBot: true
-  },
-  {
-    id: "creature_argus_specter",
-    name: "Argus Specter",
-    title: "All-Seeing Phantom",
-    icon: "👁️",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=ArgusSpecterPhantom&backgroundColor=e9d5ff",
-    tier: "Gold",
-    elo: 4000,
-    wpm: 92,
-    accuracy: 0.88,
-    solveIntervalMs: 2000,
-    pointsPerSolve: 160,
-    favoriteCore: "Oracle Core",
-    badgeColor: "#8B5CF6",
-    quote: "I foresee every letter before your fingers touch the keys.",
-    description: "Uncanny word prediction and lightning-fast puzzle solving.",
-    isBot: true
-  },
-  {
-    id: "creature_kitsune_glitch",
-    name: "Kitsune Glitch",
-    title: "Nine-Tailed Trickster",
-    icon: "🦊",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=KitsuneGlitchTrickster&backgroundColor=fbcfe8",
-    tier: "Platinum",
-    elo: 5000,
-    wpm: 104,
-    accuracy: 0.90,
-    solveIntervalMs: 1700,
-    pointsPerSolve: 180,
-    favoriteCore: "High Roller",
-    badgeColor: "#EC4899",
-    quote: "High risk, infinite reward. Care to roll the dice?",
-    description: "Gambles on huge score multipliers with blistering speed.",
-    isBot: true
-  },
-  {
-    id: "creature_solar_chimera",
-    name: "Solar Chimera",
-    title: "Radiant Apex",
-    icon: "🦁",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=SolarChimeraApex&backgroundColor=fef08a",
-    tier: "Diamond",
-    elo: 6500,
-    wpm: 118,
-    accuracy: 0.93,
-    solveIntervalMs: 1400,
-    pointsPerSolve: 200,
-    favoriteCore: "Phoenix Core",
-    badgeColor: "#EAB308",
-    quote: "From the ashes of defeated rivals, I rise victorious.",
-    description: "Relentless comeback potential and master-tier execution.",
-    isBot: true
-  },
-  {
-    id: "creature_abyssal_kraken",
-    name: "Abyssal Kraken",
-    title: "Deep Sea Behemoth",
-    icon: "🐙",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=AbyssalKrakenLeviathan&backgroundColor=99f6e4",
-    tier: "Diamond",
-    elo: 7800,
-    wpm: 130,
-    accuracy: 0.95,
-    solveIntervalMs: 1200,
-    pointsPerSolve: 220,
-    favoriteCore: "Pandora's Box",
-    badgeColor: "#14B8A6",
-    quote: "The abyss consumes all hesitations. You cannot escape.",
-    description: "Overwhelming speed and complex advanced vocabulary.",
-    isBot: true
-  },
-  {
-    id: "creature_void_leviathan",
-    name: "Void Leviathan",
-    title: "Cosmic Overlord",
-    icon: "🌌",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=VoidLeviathanCosmic&backgroundColor=fecaca",
-    tier: "Boss",
-    elo: 9999,
-    wpm: 145,
-    accuracy: 0.97,
-    solveIntervalMs: 1000,
-    pointsPerSolve: 250,
-    favoriteCore: "Combo Core",
-    badgeColor: "#EF4444",
-    quote: "I am the end of silence. Submit to the ultimate trial.",
-    description: "The ultimate typing challenge. Near-perfect speed and godlike precision.",
-    isBot: true
-  }
+const BOT_NAMES = [
+  "Faker77", "Gumayusi06", "Chovy99", "Keria02", "Zeus04",
+  "ShowMaker97", "Deft06", "Caps99", "TenZ01", "Shroud99",
+  "S1mple21", "ZywOo99", "Rekkles97", "BeryL01", "Ruler98",
+  "Viper00", "Scout98", "Doinb96", "Rookie97", "Boaster95",
+  "Aspas03", "Derke03", "Chronicle02", "Yay98", "ShahZaM94",
+  "Tarzan99", "Kiin99", "Peanut98", "Canyon01", "Oner02",
+  "Bdd99", "Uzi97", "Xiaohu98", "Ming98", "JackeyLove00",
+  "TheShy99", "Ning98", "Tian99", "Knight00", "36901",
+  "Meiko98", "Scump95", "Formal91", "NiKo97", "ScreaM94",
+  "Device95", "Coldzera94", "Rain94", "Karrigan90", "KennyS95"
 ]
 
-export const CORE_NAMES = [
+const CORE_NAMES = [
   "Combo Core", "Speedster", "Oracle Core", "Aegis Shield",
   "Mission Core", "Phoenix Core", "Pandora's Box", "High Roller",
   "Power Strike", "Balanced Core"
 ]
 
-export function getCreatureById(id: string): BotProfile | undefined {
-  return CREATURE_CHALLENGERS.find(c => c.id === id)
-}
+export function generateBotProfile(playerElo: number = 1000): BotProfile {
+  // 1. Random name from pool
+  const nameIndex = Math.floor(Math.random() * BOT_NAMES.length)
+  const name = BOT_NAMES[nameIndex]
 
-export function generateBotProfile(playerElo: number = 1000, creatureId?: string): BotProfile {
-  // 1. If explicit creature selected, return matching creature with fresh id
-  if (creatureId) {
-    const creature = getCreatureById(creatureId)
-    if (creature) {
-      return {
-        ...creature,
-        id: `bot_${Math.random().toString(36).substring(2, 10)}`
-      }
-    }
+  // 2. Elo: playerElo +/- [0 to 50], min 0
+  const eloOffset = Math.floor(Math.random() * 101) - 50
+  const elo = Math.max(0, playerElo + eloOffset)
+
+  // 3. Avatar
+  const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`
+
+  // 4. Realistic Human-like WPM & Accuracy scaling with REAL MISTAKES
+  let wpm = 40
+  let accuracy = 0.70
+  let solveIntervalMs = 4500
+  let pointsPerSolve = 100
+
+  if (elo < 1500) {
+    // Bronze: Human-like WPM 30-42, Accuracy 65-75% (25-35% mistake rate)
+    wpm = Math.floor(Math.random() * 13) + 30
+    accuracy = 0.65 + Math.random() * 0.10
+    solveIntervalMs = Math.floor(Math.random() * 1500) + 4000
+    pointsPerSolve = 100
+  } else if (elo < 3000) {
+    // Silver: Human-like WPM 45-60, Accuracy 72-82% (18-28% mistake rate)
+    wpm = Math.floor(Math.random() * 16) + 45
+    accuracy = 0.72 + Math.random() * 0.10
+    solveIntervalMs = Math.floor(Math.random() * 1000) + 3200
+    pointsPerSolve = 115
+  } else if (elo < 4500) {
+    // Gold: Human-like WPM 65-78, Accuracy 78-86% (14-22% mistake rate)
+    wpm = Math.floor(Math.random() * 14) + 65
+    accuracy = 0.78 + Math.random() * 0.08
+    solveIntervalMs = Math.floor(Math.random() * 800) + 2500
+    pointsPerSolve = 135
+  } else if (elo < 6000) {
+    // Platinum: Human-like WPM 80-95, Accuracy 84-90% (10-16% mistake rate)
+    wpm = Math.floor(Math.random() * 16) + 80
+    accuracy = 0.84 + Math.random() * 0.06
+    solveIntervalMs = Math.floor(Math.random() * 600) + 2000
+    pointsPerSolve = 160
+  } else if (elo < 7500) {
+    // Diamond: Human-like WPM 98-112, Accuracy 88-94% (6-12% mistake rate)
+    wpm = Math.floor(Math.random() * 15) + 98
+    accuracy = 0.88 + Math.random() * 0.06
+    solveIntervalMs = Math.floor(Math.random() * 500) + 1600
+    pointsPerSolve = 190
+  } else {
+    // Master / Grandmaster: WPM 115-130, Accuracy 91-96% (4-9% mistake rate)
+    wpm = Math.floor(Math.random() * 16) + 115
+    accuracy = 0.91 + Math.random() * 0.05
+    solveIntervalMs = Math.floor(Math.random() * 400) + 1300
+    pointsPerSolve = 220
   }
 
-  // 2. Select creature closest to player Elo from catalog
-  const sorted = [...CREATURE_CHALLENGERS].sort((a, b) => 
-    Math.abs(a.elo - playerElo) - Math.abs(b.elo - playerElo)
-  )
-  const baseCreature = sorted[0] || CREATURE_CHALLENGERS[0]
-
-  // Add a small Elo variance (+/- 40) for dynamic feel
-  const eloOffset = Math.floor(Math.random() * 81) - 40
-  const dynamicElo = Math.max(100, baseCreature.elo + eloOffset)
+  const id = `bot_${Math.random().toString(36).substring(2, 10)}`
 
   return {
-    ...baseCreature,
-    id: `bot_${Math.random().toString(36).substring(2, 10)}`,
-    elo: dynamicElo
+    id,
+    name,
+    avatar,
+    elo,
+    wpm,
+    accuracy,
+    solveIntervalMs,
+    pointsPerSolve,
+    isBot: true
   }
 }
 
-export function getRandomBotCoreName(preferredCore?: string): string {
-  if (preferredCore && Math.random() < 0.75) {
-    return preferredCore
-  }
+export function getRandomBotCoreName(): string {
   const idx = Math.floor(Math.random() * CORE_NAMES.length)
   return CORE_NAMES[idx]
 }

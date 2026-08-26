@@ -112,51 +112,23 @@
                 <!-- Player 2 -->
                 <div class="flex flex-col items-center transform transition-transform duration-500 hover:-translate-y-2">
                     <template v-if="player2">
-                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-white backdrop-blur-xl border-4 p-1.5 md:p-2 shadow-lg relative"
-                             :class="isPlayer2Bot ? 'border-purple-300' : 'border-blue-200'">
-                            <div v-if="isPlayer2Bot" class="absolute -top-2.5 -right-2.5 md:-top-3 md:-right-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[9px] md:text-[10px] font-black px-2 md:px-3 py-0.5 md:py-1 rounded-full uppercase tracking-wider shadow-md">
-                                🤖 AI Boss
-                            </div>
+                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-white backdrop-blur-xl border-4 border-blue-200 p-1.5 md:p-2 shadow-lg">
                             <img :src="player2.avatar" :alt="player2.name" class="w-full h-full rounded-[1.2rem] md:rounded-[1.5rem] object-cover bg-gray-100" />
                         </div>
-                        <p class="mt-3 md:mt-6 text-base md:text-2xl font-black tracking-widest uppercase text-gray-900 drop-shadow-sm text-center">
+                        <p class="mt-3 md:mt-6 text-base md:text-2xl font-black tracking-widest uppercase text-gray-900 drop-shadow-sm">
                             {{ player2.name }}
                         </p>
-                        <!-- Change or Remove Creature Bot Actions (Host Only) -->
-                        <div v-if="isHost && isPlayer2Bot" class="mt-2 flex gap-1.5 z-30">
-                            <button 
-                                @click="isCreatureModalOpen = true"
-                                class="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-[10px] font-black rounded-lg uppercase tracking-wider transition-all cursor-pointer shadow-2xs active:scale-95"
-                            >
-                                🔄 Change
-                            </button>
-                            <button 
-                                @click="removeCreatureBot"
-                                class="px-2.5 py-1 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-[10px] font-black rounded-lg uppercase tracking-wider transition-all cursor-pointer shadow-2xs active:scale-95"
-                            >
-                                ✕ Remove
-                            </button>
-                        </div>
                     </template>
 
                     <template v-else>
-                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-gray-100/80 backdrop-blur-md border-4 border-dashed border-gray-300 flex flex-col items-center justify-center p-2 shadow-inner">
+                        <div class="w-24 h-24 md:w-44 md:h-44 rounded-[1.5rem] md:rounded-[2rem] bg-gray-100/80 backdrop-blur-md border-4 border-dashed border-gray-300 flex items-center justify-center p-2 shadow-inner">
                             <svg class="w-8 h-8 md:w-12 md:h-12 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                             </svg>
                         </div>
-                        <p class="mt-2 text-xs md:text-sm font-bold tracking-[0.2em] uppercase text-gray-400 animate-pulse">
+                        <p class="mt-3 md:mt-6 text-xs md:text-sm font-bold tracking-[0.2em] uppercase text-gray-400 animate-pulse">
                             Waiting...
                         </p>
-                        <!-- Add Creature Bot Button (Host Only) -->
-                        <button 
-                            v-if="isHost"
-                            @click="isCreatureModalOpen = true"
-                            class="mt-2.5 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-400 hover:to-red-400 text-white text-xs font-black rounded-xl uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
-                        >
-                            <span>🐉</span>
-                            <span>Add Creature</span>
-                        </button>
                     </template>
                 </div>
             </div>
@@ -170,7 +142,7 @@
                     <span class="relative z-10">Play Game</span>
                 </button>
                 <p v-if="!canStartGame" class="mt-3 md:mt-4 text-xs font-bold text-gray-500 uppercase tracking-widest animate-pulse">
-                    Waiting for opponent or add an AI Creature...
+                    Waiting for opponent...
                 </p>
             </div>
             
@@ -190,13 +162,6 @@
             @close="isRoomSettingsOpen = false"
             @save="saveRoomSettings"
         />
-
-        <CreatureSelectModal
-            :isOpen="isCreatureModalOpen"
-            :currentCreatureId="currentCreatureId"
-            @close="isCreatureModalOpen = false"
-            @select="onSelectCreature"
-        />
     </div>
 </template>
 
@@ -206,7 +171,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../stores/authStore.ts'
 import { createMatchRoom, joinMatchRoomById, leaveMatchRoom, currentRoom } from '../../services/multiplayerService.ts'
 import RoomSettingsOverlay from '../../components/game/RoomSettingsOverlay.vue'
-import CreatureSelectModal from '../../components/game/CreatureSelectModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -216,8 +180,6 @@ const navigatingToGame = ref(false)
 const roomId = ref(route.query.id as string || 'Loading...')
 const copied = ref(false)
 const isRoomSettingsOpen = ref(false)
-const isCreatureModalOpen = ref(false)
-const currentCreatureId = ref<string>('')
 const roomMetadata = ref({
     vocabularyLevel: 'Normal',
     difficulty: 'Standard',
@@ -263,24 +225,6 @@ const roomHostId = ref<string>('')
 
 const player1 = computed(() => participants.value[0] || null)
 const player2 = computed(() => participants.value[1] || null)
-
-const isPlayer2Bot = computed(() => {
-    return Boolean(player2.value && (player2.value.id.startsWith('bot_') || player2.value.id.startsWith('creature_')))
-})
-
-const onSelectCreature = (creature: any) => {
-    currentCreatureId.value = creature.id
-    if (currentRoom) {
-        currentRoom.send('set_creature_bot', { creatureId: creature.id })
-    }
-}
-
-const removeCreatureBot = () => {
-    currentCreatureId.value = ''
-    if (currentRoom) {
-        currentRoom.send('remove_bot_opponent')
-    }
-}
 
 // Determine if the current user is the host
 const isHost = computed(() => {

@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { generateOracleHints, normalizeAnswer } from "../controllers/gameController";
 import { addActiveClient, removeActiveClient } from "../utils/activeClients";
 import { generateQuestions } from "../services/aiService";
-import { BotProfile, generateBotProfile, getRandomBotCoreName } from "../services/botGeneratorService";
+import { BotProfile, getRandomBotCoreName } from "../services/botGeneratorService";
 
 export class MatchRoom extends Room<{ state: MatchState }> {
   maxClients = 2;
@@ -61,49 +61,6 @@ export class MatchRoom extends Room<{ state: MatchState }> {
         this.state.metadata.disabledCores.clear();
         message.disabledCores.forEach((coreId: string) => this.state.metadata.disabledCores.push(coreId));
       }
-    });
-
-    this.onMessage("set_creature_bot", (client, message: { creatureId?: string }) => {
-      const isHost = client.userData?.userId === this.state.hostId;
-      if (!isHost) {
-        console.warn(`Non-host tried to set creature bot: ${client.sessionId}`);
-        return;
-      }
-
-      // If an existing bot is registered, remove it first
-      if (this.botSessionId && this.state.players.has(this.botSessionId)) {
-        this.state.players.delete(this.botSessionId);
-      }
-
-      const botProfile = generateBotProfile(1000, message.creatureId);
-
-      this.isBotMatch = true;
-      this.botProfile = botProfile;
-      this.botSessionId = botProfile.id;
-
-      const botPlayer = new Player(
-        botProfile.id,
-        botProfile.name,
-        botProfile.avatar,
-        botProfile.elo
-      );
-      this.state.players.set(this.botSessionId, botPlayer);
-      console.log(`[MatchRoom ${this.roomId}] Host set Creature Bot opponent: ${botProfile.name} (Elo: ${botProfile.elo}, Tier: ${botProfile.tier})`);
-      this.broadcast("creature_bot_updated", { botProfile });
-    });
-
-    this.onMessage("remove_bot_opponent", (client) => {
-      const isHost = client.userData?.userId === this.state.hostId;
-      if (!isHost) return;
-
-      if (this.botSessionId && this.state.players.has(this.botSessionId)) {
-        this.state.players.delete(this.botSessionId);
-        console.log(`[MatchRoom ${this.roomId}] Host removed bot opponent`);
-      }
-      this.isBotMatch = false;
-      this.botProfile = null;
-      this.botSessionId = "";
-      this.broadcast("bot_removed");
     });
 
     this.onMessage("start_match", (client) => {
@@ -379,7 +336,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
     this.botSelectionTimeout = setTimeout(() => {
       const botPlayer = this.state.players.get(this.botSessionId);
       if (botPlayer) {
-        const coreName = getRandomBotCoreName(this.botProfile?.favoriteCore);
+        const coreName = getRandomBotCoreName();
         botPlayer.activeCoreId = coreName;
         botPlayer.isReady = true;
         console.log(`[MatchRoom ${this.roomId}] Bot selected core: ${coreName}`);
