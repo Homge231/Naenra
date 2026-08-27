@@ -147,6 +147,11 @@ export function useGeminiLive() {
   function startMicRecording() {
     if (!micStream || !audioCtx) return
 
+    // Ensure audio tracks are disabled initially if mic is paused (PTT default)
+    micStream.getAudioTracks().forEach(track => {
+      track.enabled = !isMicPaused.value
+    })
+
     const source = audioCtx.createMediaStreamSource(micStream)
     scriptNode = audioCtx.createScriptProcessor(2048, 1, 1)
 
@@ -207,6 +212,11 @@ export function useGeminiLive() {
   function pauseMicRecording() {
     isMicPaused.value = true
     isRecording.value = false
+    if (micStream) {
+      micStream.getAudioTracks().forEach(track => {
+        track.enabled = false
+      })
+    }
   }
 
   // Issue #6: Push-to-Talk — resume mic streaming on button press
@@ -214,6 +224,11 @@ export function useGeminiLive() {
     if (isMicLocked.value) return // Issue #7: don't resume if AI is speaking
     isMicPaused.value = false
     isRecording.value = true
+    if (micStream) {
+      micStream.getAudioTracks().forEach(track => {
+        track.enabled = true
+      })
+    }
   }
 
   const aiTranscriptListeners: ((text: string) => void)[] = []

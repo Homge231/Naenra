@@ -340,6 +340,7 @@ const {
   isConnecting: isLiveConnecting,
   isSpeaking: isLiveSpeaking,
   isMicLocked,          // Issue #7: true while AI is speaking
+  isMicPaused,          // Issue #6: PTT paused state
   startLiveSession,
   stopLiveSession,
   sendTextMessage,
@@ -651,8 +652,11 @@ const username = computed(() =>
 const mascotStatusText = computed(() => {
   if (isLiveConnecting.value) return 'Connecting to Gemini 3.1 Live...'
   if (isLiveSpeaking.value) return 'Gemini 3.1 Live speaking...'
-  if (isLiveConnected.value) return '🔴 Gemini 3.1 Live Active (Listening)'
-  if (isListening.value) return 'Listening to your voice...'
+  if (isLiveConnected.value) {
+    if (!isMicPaused.value && isHoldingMic.value) return '🔴 Recording voice...'
+    return '🟢 Gemini 3.1 Live Ready (Hold to speak)'
+  }
+  if (isHoldingMic.value || isListening.value) return 'Listening to your voice...'
   if (isStreaming.value) return 'Streaming response in real-time...'
   if (isLoading.value) return 'Just a moment, finding your answer...'
   if (isSpeaking.value) return 'Speaking response aloud...'
