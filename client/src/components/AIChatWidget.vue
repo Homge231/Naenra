@@ -19,13 +19,10 @@
             
             <!-- 🤖 INTERACTIVE AI MASCOT AVATAR (Glowing Eyes + Lip-Synced Mouth) -->
             <MascotAvatar
-              :is-listening="isListening"
+              :is-listening="isHoldingMic || speechRec.isListening.value"
               :is-loading="isLoading"
               :is-streaming="isStreaming"
               :is-speaking="isSpeaking"
-              :is-live-speaking="isLiveSpeaking"
-              :is-live-connected="isLiveConnected"
-              :audio-amplitude="audioAmplitude"
             />
 
             <div>
@@ -77,7 +74,7 @@
             </div>
             <p class="text-xs text-gray-700 font-medium leading-relaxed">
               Welcome <strong class="chat-username text-orange-600 font-extrabold">{{ username }}</strong> to **Naenra AI Assistant**!<br/>
-              Select a quick prompt below or click **Microphone 🎙️** to speak hands-free!
+              Select a quick prompt below or hold **Microphone 🎙️** to speak hands-free!
             </p>
             
             <!-- Quick Action Hints in English -->
@@ -110,7 +107,7 @@
                 </span>
                 <button 
                   v-if="msg.content && (!isStreaming || streamingMsgIdx !== idx)" 
-                  @click="speakText(msg.content)" 
+                  @click="speakText(msg.content, isChatOpen)" 
                   class="text-[10px] font-bold text-orange-600 hover:text-white hover:bg-orange-500 transition-colors flex items-center gap-1 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full cursor-pointer"
                   title="Read aloud using Voice TTS"
                 >
@@ -148,12 +145,11 @@
         </div>
 
         <!-- Voice Live Wavebar Visualizer & Active Push-to-Talk Recording Banner -->
-        <div v-if="isHoldingMic || isListening || isSpeaking" class="voice-wave-bar flex items-center justify-between">
+        <div v-if="isHoldingMic || speechRec.isListening.value || isSpeaking" class="voice-wave-bar flex items-center justify-between">
           <div class="voice-status-info flex items-center gap-2">
-            <span class="pulse-dot" :class="{ 'pulse-dot--active': isHoldingMic || isListening || isSpeaking }"></span>
+            <span class="pulse-dot" :class="{ 'pulse-dot--active': isHoldingMic || speechRec.isListening.value || isSpeaking }"></span>
             <span class="voice-status-text font-bold text-xs">
-              <span v-if="isHoldingMic" class="text-red-600 animate-pulse">🔴 Recording voice... (Release mic button to send payload)</span>
-              <span v-else-if="isListening">🎙️ Listening to your voice...</span>
+              <span v-if="isHoldingMic || speechRec.isListening.value" class="text-red-600 animate-pulse">🔴 Listening to your voice... (Release mic to send)</span>
               <span v-else>🔊 Speaking response aloud...</span>
             </span>
           </div>
@@ -166,7 +162,7 @@
             >
               ⏹ Stop
             </button>
-            <div class="waveform-anim" :class="{ 'waveform-anim--active': isHoldingMic || isListening || isSpeaking }">
+            <div class="waveform-anim" :class="{ 'waveform-anim--active': isHoldingMic || speechRec.isListening.value || isSpeaking }">
               <span class="wave-bar"></span>
               <span class="wave-bar"></span>
               <span class="wave-bar"></span>
@@ -181,7 +177,7 @@
           <div class="chat-input-wrap flex items-center gap-2">
 
             <!-- 🎙️ PUSH-TO-TALK MIC BUTTON -->
-            <!-- Hold to speak in English/Vietnamese. Release to send immediately. -->
+            <!-- Hold to speak. Release to send immediately. Pressing while AI is speaking will interrupt instantly. -->
             <button
               @mousedown.prevent.stop="unifiedMicPress"
               @touchstart.prevent.stop="unifiedMicPress"
@@ -192,17 +188,17 @@
               id="ai-chat-mic-btn"
               class="chat-mic-btn shrink-0 relative select-none"
               :class="{
-                'chat-mic-btn--listening': isHoldingMic,
-                'opacity-60': isAiSpeaking && !isHoldingMic
+                'chat-mic-btn--listening': isHoldingMic || speechRec.isListening.value,
+                'opacity-80': isAiSpeaking && !isHoldingMic
               }"
-              :title="isHoldingMic ? '🔴 Recording — release to send' : isAiSpeaking ? 'AI is speaking — hold to interrupt' : 'Hold to speak'"
+              :title="isHoldingMic ? '🔴 Recording — release to send' : isAiSpeaking ? '🔊 AI is answering — hold mic to interrupt' : '🎙️ Hold mic to speak'"
             >
-              <span v-if="isHoldingMic" class="text-sm text-red-400 animate-pulse">🔴</span>
+              <span v-if="isHoldingMic || speechRec.isListening.value" class="text-sm text-red-400 animate-pulse">🔴</span>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
               <!-- Active ping indicator when recording -->
-              <span v-if="isHoldingMic" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              <span v-if="isHoldingMic || speechRec.isListening.value" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
             </button>
 
             <!-- Text Input Field -->
@@ -238,7 +234,7 @@
           <!-- Live status + error row -->
           <div class="flex justify-between items-center mt-1.5 px-1">
             <span v-if="errorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ errorMsg }}</span>
-            <span v-else-if="isHoldingMic" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Recording voice — release to send</span>
+            <span v-else-if="isHoldingMic || speechRec.isListening.value" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Recording voice — release to send</span>
             <span v-else-if="isAiSpeaking" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (Hold mic to interrupt)</span>
             <span v-else class="text-[10px] text-gray-500 font-semibold">🎙️ Hold mic button to speak</span>
             <span v-if="inputText.length > 0" class="text-[10px] text-gray-400 font-mono">{{ inputText.length }}/300</span>
@@ -284,7 +280,7 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
-import { useGeminiLive } from '../composables/useGeminiLive'
+import { useSpeechRecognition } from '../composables/useSpeechRecognition'
 import { useVoiceSynthesis } from '../composables/useVoiceSynthesis'
 import MascotAvatar from './ai/MascotAvatar.vue'
 
@@ -295,267 +291,37 @@ interface ChatMessage {
 
 const authStore = useAuthStore()
 const gameStore = useGameStore()
-const geminiLive = useGeminiLive()
+const speechRec = useSpeechRecognition()
 const { isSpeaking, isVoiceOutputEnabled, toggleVoiceOutput, speakText, stopSpeaking } = useVoiceSynthesis()
 
-const {
-  isLiveConnected,
-  isConnecting: isLiveConnecting,
-  isSpeaking: isLiveSpeaking,
-  isMicLocked,          // Issue #7: true while AI is speaking
-  isMicPaused,          // Issue #6: PTT paused state
-  startLiveSession,
-  stopLiveSession,
-  sendTextMessage,
-  pauseMicRecording,    // Issue #6: PTT release handler
-  resumeMicRecording,   // Issue #6: PTT press handler
-  onAiTranscript,
-  onUserTranscript,
-  onTurnComplete
-} = geminiLive
-
-function toggleLiveSession() {
-  stopSpeaking()
-  if (currentAbortController) {
-    currentAbortController.abort()
-    currentAbortController = null
-  }
-  if (streamTickerTimer) {
-    clearInterval(streamTickerTimer)
-    streamTickerTimer = null
-  }
-
-  if (isLiveConnected.value || isLiveConnecting.value) {
-    stopLiveSession()
-  } else {
-    startLiveSession()
-  }
-}
-
 const isChatOpen = ref(false)
-const currentAiLiveMsgIdx = ref(-1)
-const currentUserLiveMsgIdx = ref(-1)
-let lastUserTranscript = ''
-let sessionSeq = 0
-
-// Real-time transcript from Gemini Live AI Output
-onAiTranscript((text: string) => {
-  if (!text || !isChatOpen.value) return
-
-  if (
-    currentAiLiveMsgIdx.value === -1 ||
-    currentAiLiveMsgIdx.value >= messages.value.length ||
-    messages.value[currentAiLiveMsgIdx.value]?.role !== 'model'
-  ) {
-    messages.value.push({ role: 'model', content: text })
-    currentAiLiveMsgIdx.value = messages.value.length - 1
-  } else {
-    const current = messages.value[currentAiLiveMsgIdx.value].content
-    if (text.startsWith(current)) {
-      messages.value[currentAiLiveMsgIdx.value].content = text
-    } else if (current.startsWith(text)) {
-      // Current already has accumulated text, do not overwrite with smaller prefix
-    } else {
-      messages.value[currentAiLiveMsgIdx.value].content = current + (current.endsWith(' ') || text.startsWith(' ') ? '' : ' ') + text
-    }
-  }
-  scrollToBottom()
-})
-
-// Real-time transcript from Gemini Live Server User Input (voice to text)
-onUserTranscript((text: string) => {
-  if (!text || !isChatOpen.value) return
-  if (text.trim() === lastUserTranscript.trim()) return
-  lastUserTranscript = text
-
-  // 1. Immediately preempt and stop any previous AI TTS or Live audio playback
-  stopSpeaking()
-  geminiLive.stopAllAudio()
-
-  if (currentAbortController) {
-    currentAbortController.abort()
-    currentAbortController = null
-  }
-  if (streamTickerTimer) {
-    clearInterval(streamTickerTimer)
-    streamTickerTimer = null
-  }
-  isStreaming.value = false
-  isLoading.value = false
-
-  // 2. Manage user voice transcript bubble cleanly without duplicates
-  if (
-    currentUserLiveMsgIdx.value === -1 ||
-    currentUserLiveMsgIdx.value >= messages.value.length ||
-    messages.value[currentUserLiveMsgIdx.value]?.role !== 'user'
-  ) {
-    messages.value.push({ role: 'user', content: text })
-    currentUserLiveMsgIdx.value = messages.value.length - 1
-  } else {
-    messages.value[currentUserLiveMsgIdx.value].content = text
-  }
-  scrollToBottom()
-})
-
-// Signal from Gemini Live when a turn completes (resets indices so next turn starts a new clean bubble)
-onTurnComplete(() => {
-  currentAiLiveMsgIdx.value = -1
-  currentUserLiveMsgIdx.value = -1
-  lastUserTranscript = ''
-})
-
-watch(isLiveConnected, (connected, wasConnected) => {
-  if (!connected) {
-    currentAiLiveMsgIdx.value = -1
-    currentUserLiveMsgIdx.value = -1
-    lastUserTranscript = ''
-    isHoldingMic.value = false
-  } else if (connected && !wasConnected) {
-    // Gemini Live just finished connecting (setupComplete received).
-    // If user is still holding the mic button, start streaming immediately.
-    if (isHoldingMic.value) {
-      resumeMicRecording()
-    }
-  }
-})
-
-// Lifecycle: Ensure chatbox ONLY responds and speaks when and only when open
-watch(isChatOpen, (open) => {
-  if (!open) {
-    // 1. Immediately cancel any voice TTS and live audio
-    stopSpeaking()
-    geminiLive.stopAllAudio()
-
-    // 2. Stop voice speech-to-text if active
-    if (isListening.value) {
-      isListening.value = false
-    }
-
-    // 3. Stop real-time Gemini Live audio session
-    if (isLiveConnected.value || isLiveConnecting.value) {
-      stopLiveSession()
-    }
-
-    // 4. Abort any active streaming request
-    if (currentAbortController) {
-      currentAbortController.abort()
-      currentAbortController = null
-    }
-    if (streamTickerTimer) {
-      clearInterval(streamTickerTimer)
-      streamTickerTimer = null
-    }
-    isStreaming.value = false
-    streamingMsgIdx.value = -1
-    isLoading.value = false
-  } else {
-    nextTick(() => scrollToBottom())
-  }
-})
 const inputText = ref('')
 const messages = ref<ChatMessage[]>([])
 const isLoading = ref(false)
 const isStreaming = ref(false)
 const streamingMsgIdx = ref(-1)
 const errorMsg = ref('')
-const isListening = ref(false)
 
-// ── Push-To-Talk Hold Recording State ──────────────────────────────
+// ── Push-To-Talk State & Session Isolation ─────────────────────────
 const isHoldingMic = ref(false)
-const recordingTimeMs = ref(0)
-let recordingTimer: ReturnType<typeof setInterval> | null = null
-let recognitionInstance: any = null
-let recordedTranscript = ''
 let pressStartTime = 0
-
-// Unified: isAiSpeaking blocks mic in all cases (Gemini Live + Web STT)
-const isAiSpeaking = computed(() =>
-  isSpeaking.value ||
-  isLiveSpeaking.value ||
-  isStreaming.value ||
-  isLoading.value
-)
-
-// ── UNIFIED PTT PRESS handler ──────────────────────────────────────
-// Hold = stream voice PCM audio to Gemini Live (Puck voice), release = stop and answer.
-function unifiedMicPress() {
-  if (!isChatOpen.value || isMicLocked.value) return
-
-  // 1. Immediately preempt / stop any previous AI voice or audio playback
-  stopSpeaking()
-  geminiLive.stopAllAudio()
-  if (currentAbortController) {
-    currentAbortController.abort()
-    currentAbortController = null
-  }
-  if (streamTickerTimer) {
-    clearInterval(streamTickerTimer)
-    streamTickerTimer = null
-  }
-  isStreaming.value = false
-  isLoading.value = false
-
-  // 2. ALWAYS register global release listeners so releasing outside the button also works
-  window.removeEventListener('mouseup', unifiedMicRelease)
-  window.removeEventListener('touchend', unifiedMicRelease)
-  window.addEventListener('mouseup', unifiedMicRelease, { once: true })
-  window.addEventListener('touchend', unifiedMicRelease, { once: true })
-
-  isHoldingMic.value = true
-  pressStartTime = Date.now()
-  errorMsg.value = ''
-
-  // 3. Connect to Gemini Live if not connected, or resume mic streaming
-  if (isLiveConnected.value) {
-    resumeMicRecording()
-  } else if (!isLiveConnecting.value) {
-    startLiveSession()
-  }
-}
-
-// ── UNIFIED PTT RELEASE handler ────────────────────────────────────
-// Called whenever user lifts finger/mouse — regardless of where on screen.
-function unifiedMicRelease() {
-  // Remove global listeners
-  window.removeEventListener('mouseup', unifiedMicRelease)
-  window.removeEventListener('touchend', unifiedMicRelease)
-
-  const wasHolding = isHoldingMic.value
-  isHoldingMic.value = false
-
-  if (!wasHolding) return
-
-  const pressDuration = Date.now() - pressStartTime
-
-  // Send turnComplete and release hardware mic immediately
-  if (isLiveConnected.value) {
-    pauseMicRecording()
-  }
-
-  // Too short tap — show usage hint
-  if (pressDuration < 250) {
-    errorMsg.value = 'Hold mic button down to speak, then release when finished.'
-    setTimeout(() => {
-      if (errorMsg.value.includes('Hold mic')) errorMsg.value = ''
-    }, 3000)
-  }
-}
+let sessionSeq = 0
+let streamTickerTimer: any = null
+let currentAbortController: AbortController | null = null
 
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
 
-let streamTickerTimer: any = null
-let currentAbortController: AbortController | null = null
-
-const username = computed(() =>
-  authStore.profile?.username ||
-  authStore.user?.user_metadata?.full_name ||
-  'Player'
+// Unified indicator of whether AI is processing, streaming, or speaking
+const isAiSpeaking = computed(() =>
+  isSpeaking.value ||
+  isStreaming.value ||
+  isLoading.value
 )
 
-// Dynamic Mascot Status Text in English
+// Dynamic Mascot Status Text
 const mascotStatusText = computed(() => {
-  if (isHoldingMic.value) return '🔴 Listening to voice (Release to send)...'
+  if (isHoldingMic.value || speechRec.isListening.value) return '🔴 Listening to voice (Release to send)...'
   if (isStreaming.value) return 'Streaming response in real-time...'
   if (isLoading.value) return 'Finding your answer...'
   if (isSpeaking.value) return 'Speaking response aloud...'
@@ -571,75 +337,94 @@ const quickHints = [
   '🏆 How can I rank up ELO fast?',
 ]
 
-// ── Click outside to close ──────────────────────────────────────────
-function handleClickOutside(e: MouseEvent) {
-  if (!isChatOpen.value || isHoldingMic.value) return
-  const target = e.target as Node | null
-  if (!target) return
-  // Prevent unmounted/re-rendered DOM elements (e.g. mic icon swap on press/release) from triggering false outside click
-  if ('isConnected' in target && !target.isConnected) return
-  if (rootRef.value && !rootRef.value.contains(target)) {
-    isChatOpen.value = false
-  }
-}
+const username = computed(() =>
+  authStore.profile?.username ||
+  authStore.user?.user_metadata?.full_name ||
+  'Player'
+)
 
-onMounted(() => {
-  document.addEventListener('mousedown', handleClickOutside)
-})
+// ── UNIFIED PTT PRESS handler ──────────────────────────────────────
+// Press & hold = start capturing speech with Web Speech API.
+// Automatically preempts & cancels any previous AI speech, text stream, or session.
+async function unifiedMicPress() {
+  if (!isChatOpen.value) return
 
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', handleClickOutside)
-  if (streamTickerTimer) clearInterval(streamTickerTimer)
+  // 1. Immediately abort active stream, clear interval, and stop TTS audio from previous turn
+  sessionSeq++
+  stopSpeaking()
   if (currentAbortController) {
     currentAbortController.abort()
     currentAbortController = null
   }
-  stopSpeaking()
-  geminiLive.stopAllAudio()
-})
+  if (streamTickerTimer) {
+    clearInterval(streamTickerTimer)
+    streamTickerTimer = null
+  }
+  isStreaming.value = false
+  isLoading.value = false
 
-// ── Toggle / Close ───────────────────────────────────────────────────
-function toggleChat() {
-  isChatOpen.value = !isChatOpen.value
-  if (isChatOpen.value) {
-    if (!authStore.profile) {
-      void authStore.fetchProfile()
+  // 2. Register global release listeners so releasing outside button also works
+  window.removeEventListener('mouseup', unifiedMicRelease)
+  window.removeEventListener('touchend', unifiedMicRelease)
+  window.addEventListener('mouseup', unifiedMicRelease, { once: true })
+  window.addEventListener('touchend', unifiedMicRelease, { once: true })
+
+  isHoldingMic.value = true
+  pressStartTime = Date.now()
+  errorMsg.value = ''
+  inputText.value = ''
+
+  // 3. Connect real-time transcript updates into the input box
+  speechRec.onTranscriptUpdate((text: string) => {
+    if (isHoldingMic.value && text) {
+      inputText.value = text
     }
-    if (!isLiveConnected.value && !isLiveConnecting.value) {
-      startLiveSession()
-    }
-    nextTick(() => scrollToBottom())
-  } else {
-    stopSpeaking()
-    geminiLive.stopAllAudio()
+  })
+
+  const started = await speechRec.startListening()
+  if (!started && speechRec.errorMsg.value) {
+    errorMsg.value = speechRec.errorMsg.value
   }
 }
 
-function closeChat() {
-  isChatOpen.value = false
-  stopSpeaking()
-  geminiLive.stopAllAudio()
-}
+// ── UNIFIED PTT RELEASE handler ────────────────────────────────────
+// Called whenever user lifts finger/mouse — finishes recording and triggers answer.
+async function unifiedMicRelease() {
+  window.removeEventListener('mouseup', unifiedMicRelease)
+  window.removeEventListener('touchend', unifiedMicRelease)
 
-// ── Scroll helpers ───────────────────────────────────────────────────
-function scrollToBottom() {
-  nextTick(() => {
-    if (chatBodyRef.value) {
-      chatBodyRef.value.scrollTop = chatBodyRef.value.scrollHeight
+  const wasHolding = isHoldingMic.value
+  isHoldingMic.value = false
+
+  if (!wasHolding) return
+
+  const pressDuration = Date.now() - pressStartTime
+
+  // Stop recording and retrieve recognized voice text
+  const capturedText = await speechRec.stopListening()
+  const finalPrompt = (capturedText || inputText.value).trim()
+
+  if (speechRec.errorMsg.value) {
+    errorMsg.value = speechRec.errorMsg.value
+    return
+  }
+
+  if (finalPrompt) {
+    inputText.value = finalPrompt
+    await sendMessage()
+  } else {
+    // Too short tap or no voice detected
+    if (pressDuration < 250) {
+      errorMsg.value = 'Hold mic button down to speak, then release when finished.'
+      setTimeout(() => {
+        if (errorMsg.value.includes('Hold mic')) errorMsg.value = ''
+      }, 3000)
     }
-  })
+  }
 }
 
-// ── Quick hints ──────────────────────────────────────────────────────
-function sendQuick(text: string) {
-  if (!isChatOpen.value) return
-  inputText.value = text
-  sendMessage()
-}
-
-// ── Send message with 2-Phase Natural Interaction (Instant Acknowledgment -> Streaming Answer) ──
+// ── Send message with Typewriter Streaming & Voice TTS ─────────────
 async function sendMessage() {
-  // STRICT: Only send if chat window is actively open
   if (!isChatOpen.value) return
 
   const text = inputText.value.trim()
@@ -648,13 +433,11 @@ async function sendMessage() {
   inputText.value = ''
   errorMsg.value = ''
 
-  // Preemption: Increment session sequence ID to cancel previous session
+  // Increment session sequence ID — cancels and invalidates any previous session
   const thisSessionId = ++sessionSeq
 
-  // 1. Immediately abort active stream, clear interval, and stop TTS & Live audio
+  // 1. Immediately abort active stream, clear interval, and stop TTS audio
   stopSpeaking()
-  geminiLive.stopAllAudio()
-
   if (streamTickerTimer) {
     clearInterval(streamTickerTimer)
     streamTickerTimer = null
@@ -676,10 +459,6 @@ async function sendMessage() {
   streamingMsgIdx.value = -1
   isLoading.value = false
 
-  currentUserLiveMsgIdx.value = -1
-  currentAiLiveMsgIdx.value = -1
-  lastUserTranscript = ''
-
   // Push user prompt bubble
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
@@ -694,7 +473,7 @@ async function sendMessage() {
 
   const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
 
-  // Helper to start the incremental typewriter effect for the response bubble
+  // Helper to start incremental typewriter effect for response bubble
   const startTypewriterLoop = (targetIdx: number) => {
     if (streamTickerTimer) clearInterval(streamTickerTimer)
 
@@ -716,7 +495,6 @@ async function sendMessage() {
         }
 
         const backlog = incomingBuffer.length - displayedText.length
-        // Adaptive rate: step size 1 if close to buffer, up to 5 if chunk accumulated
         const step = backlog > 80 ? 5 : backlog > 30 ? 3 : backlog > 12 ? 2 : 1
         displayedText += incomingBuffer.slice(displayedText.length, displayedText.length + step)
 
@@ -733,7 +511,7 @@ async function sendMessage() {
         isLoading.value = false
 
         if (displayedText.trim() && isChatOpen.value && thisSessionId === sessionSeq) {
-          speakText(displayedText)
+          speakText(displayedText, isChatOpen.value)
         } else {
           // If no content ever arrived, remove empty placeholder
           if (targetIdx >= 0 && targetIdx < messages.value.length && !messages.value[targetIdx].content) {
@@ -858,7 +636,9 @@ async function sendMessage() {
         messages.value.splice(answerMsgIdx, 1)
       }
       if (err.name === 'AbortError') {
-        errorMsg.value = isVi ? 'Kết nối AI bị quá thời gian (25s). Vui lòng thử lại.' : 'AI connection timed out (25s). Please try again.'
+        if (thisSessionId === sessionSeq && !isHoldingMic.value) {
+          errorMsg.value = isVi ? 'Kết nối AI bị quá thời gian (25s). Vui lòng thử lại.' : 'AI connection timed out (25s). Please try again.'
+        }
       } else {
         errorMsg.value = err.message || (isVi ? 'Đã xảy ra lỗi. Vui lòng thử lại.' : 'An error occurred. Please try again.')
       }
@@ -874,6 +654,86 @@ async function sendMessage() {
     scrollToBottom()
   }
 }
+
+// ── Lifecycle & Close Handlers ─────────────────────────────────────
+watch(isChatOpen, (open) => {
+  if (!open) {
+    stopSpeaking()
+    speechRec.abortListening()
+    isHoldingMic.value = false
+    if (currentAbortController) {
+      currentAbortController.abort()
+      currentAbortController = null
+    }
+    if (streamTickerTimer) {
+      clearInterval(streamTickerTimer)
+      streamTickerTimer = null
+    }
+    isStreaming.value = false
+    streamingMsgIdx.value = -1
+    isLoading.value = false
+  } else {
+    nextTick(() => scrollToBottom())
+  }
+})
+
+function toggleChat() {
+  isChatOpen.value = !isChatOpen.value
+  if (isChatOpen.value) {
+    if (!authStore.profile) {
+      void authStore.fetchProfile()
+    }
+    nextTick(() => scrollToBottom())
+  } else {
+    closeChat()
+  }
+}
+
+function closeChat() {
+  isChatOpen.value = false
+  stopSpeaking()
+  speechRec.abortListening()
+  isHoldingMic.value = false
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    if (chatBodyRef.value) {
+      chatBodyRef.value.scrollTop = chatBodyRef.value.scrollHeight
+    }
+  })
+}
+
+function sendQuick(text: string) {
+  if (!isChatOpen.value) return
+  inputText.value = text
+  sendMessage()
+}
+
+function handleClickOutside(e: MouseEvent) {
+  if (!isChatOpen.value || isHoldingMic.value) return
+  const target = e.target as Node | null
+  if (!target) return
+  if ('isConnected' in target && !target.isConnected) return
+  if (rootRef.value && !rootRef.value.contains(target)) {
+    isChatOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+  if (streamTickerTimer) clearInterval(streamTickerTimer)
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
+  stopSpeaking()
+  speechRec.abortListening()
+})
 
 // ── Simple Markdown renderer ─────────────────────────────────────────
 function renderMarkdown(raw: string): string {
@@ -903,291 +763,143 @@ function renderMarkdown(raw: string): string {
 /* ── Chat Window ─────────────────────────────── */
 .chat-window {
   position: absolute;
-  bottom: 72px;
+  bottom: 74px;
   right: 0;
-  width: 410px;
-  height: 540px;
+  width: 360px;
   max-width: calc(100vw - 32px);
+  height: 520px;
   max-height: calc(100vh - 120px);
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 2px solid rgba(254, 215, 170, 0.85);
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(234, 88, 12, 0.15), 0 10px 25px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(251, 146, 60, 0.35);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-@media (max-width: 640px) {
-  .ai-chat-root {
-    bottom: 16px;
-    right: 16px;
-  }
-  .chat-window {
-    position: fixed;
-    bottom: 88px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-    height: 420px;
-    max-height: calc(100vh - 120px);
-    border-radius: 20px;
-  }
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.18),
+    0 4px 16px rgba(251, 146, 60, 0.15);
 }
 
 /* ── Accent Bar ──────────────────────────────── */
 .chat-accent-bar {
   height: 4px;
-  background: linear-gradient(90deg, #ff7b00, #e63946, #f59e0b);
+  background: linear-gradient(90deg, #ff7b00, #ffb703, #e63946);
+  flex-shrink: 0;
 }
 
-/* ── Header & AI Mascot Avatar ────────────── */
+/* ── Header ──────────────────────────────────── */
 .chat-header {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  border-bottom: 1px solid #fed7aa;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(254, 215, 170, 0.6);
-  background: rgba(255, 245, 236, 0.75);
+  flex-shrink: 0;
 }
 
 .chat-header-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-/* AI Mascot Avatar Box (Eyes + Mouth) */
-.ai-mascot-box,
-.cyber-mascot-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
-  border: 2.5px solid #ea580c;
-  box-shadow: 0 0 14px rgba(234, 88, 12, 0.45);
-  position: relative;
-}
-.ai-mascot-box:hover,
-.cyber-mascot-box:hover {
-  transform: scale(1.06);
-  border-color: #ff7b00;
-  box-shadow: 0 0 20px rgba(255, 123, 0, 0.6);
-}
-
-/* Glowing AI Eyes */
-.ai-eye,
-.cyber-eye {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #f97316;
-  box-shadow: 0 0 8px #f97316, 0 0 14px #ea580c;
-  transition: all 0.2s ease;
-}
-
-.eye-blink {
-  height: 2px !important;
-  border-radius: 2px !important;
-  box-shadow: 0 0 4px #f97316 !important;
-}
-
-.eye-wide {
-  width: 11px !important;
-  height: 11px !important;
-  background: #ef4444 !important;
-  box-shadow: 0 0 14px #ef4444 !important;
-}
-
-.eye-happy {
-  width: 10px !important;
-  height: 5px !important;
-  border-top-left-radius: 10px !important;
-  border-top-right-radius: 10px !important;
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-  background: #fbbf24 !important;
-}
-
-.eye-think {
-  background: #f59e0b !important;
-  box-shadow: 0 0 12px #f59e0b !important;
-}
-
-/* Lip Sync Mouth Animations */
-.animate-lip-1 {
-  animation: lipMove 0.4s ease-in-out infinite alternate;
-}
-.animate-lip-2 {
-  animation: lipMove 0.4s ease-in-out infinite alternate 0.15s;
-}
-.animate-lip-3 {
-  animation: lipMove 0.4s ease-in-out infinite alternate 0.3s;
-}
-
-@keyframes lipMove {
-  0% { height: 2px; }
-  100% { height: 10px; }
-}
-
-.mascot-pulse-listening {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.8) !important;
-  animation: mascot-pulse 1s infinite alternate;
-}
-
-.mascot-glow-thinking {
-  border-color: #f59e0b !important;
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.8) !important;
-}
-
-.mascot-talk-speaking {
-  border-color: #10b981 !important;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
-}
-
-.mascot-interactive-click {
-  animation: mascot-spin-bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-@keyframes mascot-pulse {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.08); }
-}
-
-@keyframes mascot-spin-bounce {
-  0% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.2) rotate(15deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  gap: 8px;
 }
 
 .chat-title {
-  font-size: 15px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 800;
   color: #1e293b;
-  margin: 0;
   line-height: 1.2;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 
 .chat-badge {
   font-size: 9px;
-  font-weight: 900;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: #ffedd5;
-  color: #ea580c;
-  border: 1px solid #fed7aa;
+  font-weight: 800;
+  padding: 1px 5px;
+  background: #ff7b00;
+  color: #ffffff;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
 }
 
 .chat-subtitle {
-  font-size: 11px;
-  color: #64748b;
-  margin: 2px 0 0 0;
-  font-weight: 700;
+  font-size: 10px;
+  color: #9a3412;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
-.chat-icon-btn {
-  background: #ffffff;
-  border: 1px solid #fed7aa;
-  color: #64748b;
+.chat-icon-btn,
+.chat-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
   cursor: pointer;
-  padding: 6px 9px;
-  border-radius: 10px;
+  padding: 5px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s;
 }
-.chat-icon-btn:hover {
-  background: #fff7ed;
-  color: #ea580c;
-  border-color: #fdba74;
+.chat-icon-btn:hover,
+.chat-close-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
 }
 .chat-icon-btn--active {
-  background: #ffedd5;
-  border-color: #f97316;
   color: #ea580c;
+  background: #ffedd5;
 }
 
-.chat-close-btn {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
-}
-.chat-close-btn:hover {
-  background: #fee2e2;
-  color: #ef4444;
-  border-color: #fca5a5;
-}
-
-/* ── Body ────────────────────────────────────── */
+/* ── Messages Body ───────────────────────────── */
 .chat-body {
   flex: 1;
+  padding: 12px;
   overflow-y: auto;
-  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  scroll-behavior: smooth;
-  background: linear-gradient(180deg, rgba(255, 245, 236, 0.5) 0%, rgba(255, 255, 255, 0) 100%);
+  gap: 10px;
+  background: #fafafa;
 }
 
+/* ── Welcome Area ────────────────────────────── */
 .chat-welcome {
   text-align: center;
-  padding: 14px 10px;
-  color: #475569;
-  font-size: 13px;
-  line-height: 1.6;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid #fed7aa;
-  border-radius: 20px;
-  box-shadow: 0 4px 15px rgba(251, 146, 60, 0.06);
+  padding: 16px 8px 8px;
+}
+
+.chat-welcome-mascot-box {
+  display: flex;
+  justify-content: center;
+}
+
+.chat-username {
+  color: #ea580c;
 }
 
 .chat-quick-hints {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .chat-quick-btn {
   background: #ffffff;
   border: 1px solid #fed7aa;
-  border-bottom: 3px solid #fdba74;
-  color: #ea580c;
+  color: #c2410c;
   font-size: 11px;
-  font-weight: 800;
-  padding: 7px 13px;
-  border-radius: 14px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 10px;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(251, 146, 60, 0.08);
+  transition: all 0.15s;
 }
 .chat-quick-btn:hover {
-  background: linear-gradient(135deg, #ff7b00, #e63946);
-  border-color: #ea580c;
-  border-bottom-color: #991b1b;
-  color: #ffffff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(234, 88, 12, 0.25);
-}
-.chat-quick-btn:active {
-  transform: translateY(1px);
-  border-bottom-width: 1px;
+  background: #ffedd5;
+  border-color: #f97316;
+  color: #9a3412;
+  transform: translateX(2px);
 }
 
 /* ── Message Bubbles ─────────────────────────── */
@@ -1204,196 +916,170 @@ function renderMarkdown(raw: string): string {
 
 .chat-bubble {
   max-width: 88%;
-  padding: 11px 15px;
-  border-radius: 18px;
-  font-size: 13px;
-  line-height: 1.55;
+  padding: 9px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  line-height: 1.5;
   word-break: break-word;
 }
 
 .chat-bubble--user {
-  background: linear-gradient(135deg, #ff7b00 0%, #e63946 100%);
+  background: linear-gradient(135deg, #ff7b00, #ea580c);
   color: #ffffff;
-  border-bottom-right-radius: 4px;
-  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.25);
-  font-weight: 600;
+  border-bottom-right-radius: 3px;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.2);
 }
 
 .chat-bubble--ai {
   background: #ffffff;
   border: 1px solid #fed7aa;
   color: #1e293b;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  border-bottom-left-radius: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .chat-bubble-label {
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+
+.chat-bubble-text code {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 1px 4px;
+  border-radius: 4px;
   font-size: 11px;
 }
 
-.chat-bubble-text {
-  margin: 0;
-}
-.chat-bubble-text :deep(code) {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-family: monospace;
-  font-size: 12px;
-  color: #c2410c;
-  font-weight: 700;
-}
-
-/* ── ChatGPT-style Streaming Blinking Cursor ─── */
+/* ChatGPT style blinking cursor */
 .chat-cursor {
   display: inline-block;
-  width: 6px;
-  height: 14px;
-  background-color: #ea580c;
-  margin-left: 3px;
-  vertical-align: -1.5px;
-  border-radius: 1px;
-  box-shadow: 0 0 8px rgba(234, 88, 12, 0.6);
-  animation: cursor-blink 0.75s infinite ease-in-out;
+  width: 2px;
+  height: 12px;
+  background: #ea580c;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: cursor-blink 0.8s infinite;
 }
-
 @keyframes cursor-blink {
-  0%, 100% { opacity: 1; transform: scaleY(1); }
-  50% { opacity: 0; transform: scaleY(0.85); }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 /* ── Typing Indicator ────────────────────────── */
 .chat-typing {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 10px 14px;
+  gap: 3px;
+  padding: 8px 12px;
   background: #ffffff;
-  border-radius: 16px;
   border: 1px solid #fed7aa;
-  border-bottom-left-radius: 4px;
+  border-radius: 12px;
   width: fit-content;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 .chat-typing span:not(:first-child) {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
+  background: #ea580c;
   border-radius: 50%;
-  background: #f97316;
-  animation: typing 1.2s infinite ease-in-out;
+  animation: typing-dot 1.2s infinite;
 }
+.chat-typing span:nth-child(2) { animation-delay: 0s; }
 .chat-typing span:nth-child(3) { animation-delay: 0.2s; }
 .chat-typing span:nth-child(4) { animation-delay: 0.4s; }
 
-@keyframes typing {
-  0%, 100% { opacity: 0.3; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-4px); }
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
 }
 
-/* ── Error ───────────────────────────────────── */
+/* ── Error Notification ──────────────────────── */
 .chat-error {
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
-  color: #991b1b;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 9px 13px;
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 8px;
 }
 .chat-error-dismiss {
-  background: none;
+  background: transparent;
   border: none;
-  color: #ef4444;
+  color: #dc2626;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: bold;
+  font-size: 11px;
+  padding: 0 4px;
 }
 
-/* ── Live Wave Bar ────────────────────────────── */
+/* ── Voice Wave Bar Visualizer ───────────────── */
 .voice-wave-bar {
-  background: #fff7ed;
+  padding: 6px 12px;
+  background: linear-gradient(90deg, #fff7ed, #fef2f2);
   border-top: 1px solid #fed7aa;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.voice-status-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  border-bottom: 1px solid #fed7aa;
+  flex-shrink: 0;
 }
 
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #94a3b8;
-  transition: all 0.3s;
 }
-
 .pulse-dot--active {
   background: #ef4444;
-  box-shadow: 0 0 10px #ef4444;
-}
-
-.voice-status-text {
-  color: #9a3412;
+  animation: dot-pulse 1s infinite;
 }
 
 .waveform-anim {
   display: flex;
   align-items: center;
-  gap: 3px;
-  height: 16px;
+  gap: 2px;
+  height: 14px;
 }
-
 .wave-bar {
-  width: 3px;
+  width: 2px;
   height: 4px;
-  background: #f97316;
+  background: #94a3b8;
   border-radius: 2px;
-  transition: height 0.2s;
+  transition: height 0.15s;
 }
-
 .waveform-anim--active .wave-bar {
-  animation: wave 1s ease-in-out infinite alternate;
+  background: #ea580c;
+  animation: wave-anim 0.8s ease-in-out infinite alternate;
+}
+.waveform-anim--active .wave-bar:nth-child(1) { animation-delay: 0.0s; }
+.waveform-anim--active .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+.waveform-anim--active .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+.waveform-anim--active .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+.waveform-anim--active .wave-bar:nth-child(5) { animation-delay: 0.6s; }
+
+@keyframes wave-anim {
+  0%   { height: 3px; }
+  100% { height: 14px; }
 }
 
-.waveform-anim--active .wave-bar:nth-child(1) { animation-delay: 0.1s; }
-.waveform-anim--active .wave-bar:nth-child(2) { animation-delay: 0.3s; }
-.waveform-anim--active .wave-bar:nth-child(3) { animation-delay: 0.2s; }
-.waveform-anim--active .wave-bar:nth-child(4) { animation-delay: 0.4s; }
-.waveform-anim--active .wave-bar:nth-child(5) { animation-delay: 0.15s; }
-
-@keyframes wave {
-  0% { height: 4px; background: #f97316; }
-  100% { height: 16px; background: #dc2626; }
-}
-
-/* ── Footer / Input ──────────────────────────── */
+/* ── Footer ──────────────────────────────────── */
 .chat-footer {
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: #ffffff;
   border-top: 1px solid #fed7aa;
+  flex-shrink: 0;
 }
 
 .chat-input-wrap {
   background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 6px 8px;
-  transition: all 0.2s;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 4px 6px;
+  transition: border-color 0.15s;
 }
 .chat-input-wrap:focus-within {
   border-color: #f97316;
-  background: #ffffff;
-  box-shadow: 0 0 14px rgba(249, 115, 22, 0.2);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
 }
 
 .chat-input {
@@ -1584,4 +1270,3 @@ function renderMarkdown(raw: string): string {
   transform: scale(0.7) rotate(15deg);
 }
 </style>
-

@@ -4,8 +4,6 @@ export function useVoiceSynthesis() {
   const isSpeaking = ref(false)
   const isVoiceOutputEnabled = ref(true)
 
-  let speechQueue: SpeechSynthesisUtterance[] = []
-
   function getBestVoice(isVi: boolean): SpeechSynthesisVoice | null {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
     const voices = window.speechSynthesis.getVoices()
@@ -15,7 +13,7 @@ export function useVoiceSynthesis() {
     const langVoices = voices.filter(v => v.lang.toLowerCase().includes(targetLang))
     if (langVoices.length === 0) return voices[0] || null
 
-    // Priority ranking list for human-like voices matching Puck / Assistant
+    // Priority ranking list for natural, high-clarity voice personas
     const priorityNames = [
       'guy online (natural)',
       'google us english',
@@ -62,24 +60,37 @@ export function useVoiceSynthesis() {
     }
   }
 
-  function speakText(text: string, isChatOpen = true, options?: { rate?: number; pitch?: number }) {
-    if (!isChatOpen || !isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
-
-    stopSpeaking()
-    const thisSession = currentSpeechSession
-
-    // Clean status tags, markdown, symbols, emojis, and formatting before speaking
-    const cleanText = text
+  function cleanSpeechText(text: string): string {
+    return text
+      .replace(/```[\s\S]*?```/g, '') // remove code blocks
       .replace(/\[STATUS\]:?|\[TELEMETRY DATA\]:?|\[TACTICAL RECOMMENDATION\]:?|\[SYSTEM STATUS\]:?|\[OPERATION EXECUTED\]:?|\[ANALYSIS\]:?/gi, '')
-      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F6D0}-\u{1F6FF}\u{1F900}-\u{1F9FF}]/gu, '')
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F6D0}-\u{1F6FF}]/gu, '')
       .replace(/\*\*(.*?)\*\*/g, '$1')
       .replace(/\*(.*?)\*/g, '$1')
       .replace(/`([^`]+)`/g, '$1')
       .replace(/<[^>]*>/g, '')
       .replace(/^[-•*]\s+/gm, '')
       .replace(/https?:\/\/\S+/g, '')
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/\s+/g, ' ')
       .trim()
+  }
 
+  function splitIntoSentences(text: string): string[] {
+    const rawChunks = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)
+    if (!rawChunks) return [text]
+    const cleaned = rawChunks.map(c => c.trim()).filter(c => c.length > 0)
+    return cleaned.length > 0 ? cleaned : [text]
+  }
+
+  function speakText(text: string, isChatOpen = true, options?: { rate?: number; pitch?: number }) {
+    if (!isChatOpen || !isVoiceOutputEnabled.value || typeof window === 'undefined' || !('speechSynthesis' in window)) return
+
+    // Immediately stop previous speech and increment session sequence
+    stopSpeaking()
+    const thisSession = currentSpeechSession
+
+    const cleanText = cleanSpeechText(text)
     if (!cleanText || !isChatOpen) {
       isSpeaking.value = false
       return
@@ -87,41 +98,72 @@ export function useVoiceSynthesis() {
 
     const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(cleanText)
     const voice = getBestVoice(isVi)
+    const sentences = splitIntoSentences(cleanText)
 
-    const utterance = new SpeechSynthesisUtterance(cleanText)
-    utterance.lang = isVi ? 'vi-VN' : 'en-US'
-    utterance.rate = options?.rate ?? 1.05
-    utterance.pitch = options?.pitch ?? 0.95
+    let currentSentenceIdx = 0
 
-    if (voice) {
-      utterance.voice = voice
-    }
-
-    utterance.onstart = () => {
-      if (currentSpeechSession !== thisSession) {
-        window.speechSynthesis.cancel()
-        isSpeaking.value = false
+    function playNextSentence() {
+      if (currentSpeechSession !== thisSession || !isChatOpen || currentSentenceIdx >= sentences.length) {
+        if (currentSpeechSession === thisSession) {
+          isSpeaking.value = false
+        }
         return
       }
-      if (isChatOpen) {
+
+      const sentence = sentences[currentSentenceIdx]
+      currentSentenceIdx++
+
+      const utterance = new SpeechSynthesisUtterance(sentence)
+      utterance.lang = isVi ? 'vi-VN' : 'en-US'
+      utterance.rate = options?.rate ?? 1.05
+      utterance.pitch = options?.pitch ?? 0.95
+      if (voice) {
+        utterance.voice = voice
+      }
+
+      utterance.onstart = () => {
+        if (currentSpeechSession !== thisSession) {
+          try { window.speechSynthesis.cancel() } catch {}
+          isSpeaking.value = false
+          return
+        }
         isSpeaking.value = true
       }
-    }
 
-    utterance.onend = () => {
-      if (currentSpeechSession === thisSession) {
+      utterance.onend = () => {
+        if (currentSpeechSession !== thisSession) {
+          isSpeaking.value = false
+          return
+        }
+        if (currentSentenceIdx < sentences.length) {
+          playNextSentence()
+        } else {
+          isSpeaking.value = false
+        }
+      }
+
+      utterance.onerror = (e) => {
+        if (currentSpeechSession !== thisSession) {
+          isSpeaking.value = false
+          return
+        }
+        // If an individual sentence errors (e.g. cancelled), stop gracefully
+        if (e.error !== 'canceled' && currentSentenceIdx < sentences.length) {
+          playNextSentence()
+        } else {
+          isSpeaking.value = false
+        }
+      }
+
+      try {
+        isSpeaking.value = true
+        window.speechSynthesis.speak(utterance)
+      } catch {
         isSpeaking.value = false
       }
     }
 
-    utterance.onerror = () => {
-      if (currentSpeechSession === thisSession) {
-        isSpeaking.value = false
-      }
-    }
-
-    isSpeaking.value = true
-    window.speechSynthesis.speak(utterance)
+    playNextSentence()
   }
 
   onMounted(() => {
