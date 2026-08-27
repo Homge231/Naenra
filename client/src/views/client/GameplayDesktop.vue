@@ -124,13 +124,6 @@
               </svg>
               ⚡ Admin: Skip to Core Selection
             </button>
-            <button v-if="isDev" @click.stop="debugSkipRound"
-              class="w-full flex items-center gap-3 px-5 py-3.5 text-sm text-yellow-400 hover:bg-yellow-400/10 transition-colors text-left border-t border-white/10">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-              </svg>
-              Debug: Skip Round
-            </button>
           </div>
         </transition>
 
@@ -648,7 +641,6 @@ const confirmQuit = ref(false)
 const savingSession = ref(false)
 const sessionId = ref<string | null>(null)
 const timeoutCountdown = ref(TIMEOUT_PHASE_DURATION)
-const isDev = import.meta.env.DEV
 
 const tutorial = useTutorial()
 
@@ -1745,15 +1737,6 @@ function goHome() {
   gameStore.sessionId = null
   matchStore.resetMatch()
   router.push('/home')
-}
-
-async function debugSkipRound() {
-  menuOpen.value = false
-  if (matchStore.isFinalRound()) {
-    startTimeoutPhase()
-  } else {
-    await restartMatch()
-  }
 }
 
 function skipGameplay() {
