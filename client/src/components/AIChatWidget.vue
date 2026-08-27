@@ -549,15 +549,27 @@ async function sendMessage() {
       score: gameStore.score || 0
     }
 
-    // ── Setup SSE Request with AbortController & 25s Timeout ──────────
+    // ── Setup SSE Request with Connection Timeout (15s TTFB) ──────────
     currentAbortController = new AbortController()
-    timeoutId = setTimeout(() => {
-      if (currentAbortController) {
-        currentAbortController.abort()
-      }
-    }, 25000)
+    const resetWatchdog = () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        if (currentAbortController && thisSessionId === sessionSeq) {
+          currentAbortController.abort()
+        }
+      }, 15000)
+    }
 
-    const token = localStorage.getItem('arena_token') || ''
+    resetWatchdog()
+
+    let token = localStorage.getItem('arena_token') || ''
+    if (!token && !authStore.isLoggedIn) {
+      try {
+        await authStore.fetchGuestToken()
+        token = localStorage.getItem('arena_token') || ''
+      } catch {}
+    }
+
     let apiBase = import.meta.env.VITE_SERVER_URL
     if (!apiBase && typeof window !== 'undefined') {
       apiBase = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
@@ -573,6 +585,9 @@ async function sendMessage() {
       body: JSON.stringify({ prompt: text, history, playerHistory }),
       signal: currentAbortController.signal
     })
+
+    // Reset watchdog now that server connection has responded
+    resetWatchdog()
 
     if (thisSessionId !== sessionSeq) return
 
@@ -601,6 +616,9 @@ async function sendMessage() {
 
       const { done, value } = await reader.read()
       if (done) break
+
+      // Reset activity watchdog on each received stream chunk
+      resetWatchdog()
 
       buffer += decoder.decode(value, { stream: true })
       const lines = buffer.split('\n')
@@ -637,7 +655,7 @@ async function sendMessage() {
       }
       if (err.name === 'AbortError') {
         if (thisSessionId === sessionSeq && !isHoldingMic.value) {
-          errorMsg.value = isVi ? 'Kết nối AI bị quá thời gian (25s). Vui lòng thử lại.' : 'AI connection timed out (25s). Please try again.'
+          errorMsg.value = isVi ? 'Kết nối AI bị gián đoạn hoặc quá thời gian. Vui lòng thử lại.' : 'AI connection timed out. Please try again.'
         }
       } else {
         errorMsg.value = err.message || (isVi ? 'Đã xảy ra lỗi. Vui lòng thử lại.' : 'An error occurred. Please try again.')

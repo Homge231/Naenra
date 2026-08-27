@@ -614,7 +614,7 @@ RULES:
     let response;
     try {
       response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -623,16 +623,29 @@ RULES:
         }
       })
     } catch (e) {
-      console.warn("Primary model gemini-3.5-flash failed, trying gemini-3.1-flash-lite fallback:", e)
-      response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-lite',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: questionSchema,
-          temperature: 0.8,
-        }
-      })
+      console.warn("Primary model gemini-2.5-flash failed, trying gemini-2.0-flash fallback:", e)
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: questionSchema,
+            temperature: 0.8,
+          }
+        })
+      } catch (e2) {
+        console.warn("Secondary model gemini-2.0-flash failed, trying gemini-1.5-flash fallback:", e2)
+        response = await ai.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: questionSchema,
+            temperature: 0.8,
+          }
+        })
+      }
     }
 
     if (!response.text) {
@@ -768,7 +781,7 @@ ${JSON.stringify(questionsNeedingAi.map(q => ({
       }
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -872,13 +885,13 @@ CORE GUIDELINES:
       let response;
       try {
         response = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+          model: 'gemini-2.5-flash',
           contents: prompt,
           config: { temperature: 0.7 }
         })
       } catch (e) {
         response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite',
+          model: 'gemini-2.0-flash',
           contents: prompt,
           config: { temperature: 0.7 }
         })
@@ -1042,7 +1055,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
       if (isAdmin) {
         try {
           const adminCheck = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
+            model: 'gemini-2.5-flash',
             contents: fullPrompt,
             config: {
               temperature: aiCfg.temperature,
@@ -1080,7 +1093,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
       let responseText = ''
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+          model: 'gemini-2.5-flash',
           contents: fullPrompt,
           config: { temperature: aiCfg.temperature }
         })
@@ -1088,13 +1101,22 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
       } catch (err2) {
         try {
           const response2 = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
+            model: 'gemini-2.0-flash',
             contents: fullPrompt,
             config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
           })
           responseText = response2.text || ''
         } catch (err3) {
-          throw err3
+          try {
+            const response3 = await ai.models.generateContent({
+              model: 'gemini-1.5-flash',
+              contents: fullPrompt,
+              config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
+            })
+            responseText = response3.text || ''
+          } catch (err4) {
+            throw err4
+          }
         }
       }
 
@@ -1288,7 +1310,15 @@ export async function generateChatResponseStream(
   }
 
   if (!apiKey) {
-    safeWrite(`data: ${JSON.stringify({ chunk: 'API key not configured.' })}\n\n`)
+    console.log('GEMINI_API_KEY not configured, streaming instant smart fallback response...')
+    const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
+    const words = fallbackReply.split(' ')
+    for (let i = 0; i < words.length; i += 2) {
+      if (isClientDisconnected) break
+      const chunk = words.slice(i, i + 2).join(' ') + (i + 2 < words.length ? ' ' : '')
+      safeWrite(`data: ${JSON.stringify({ chunk })}\n\n`)
+      await new Promise(r => setTimeout(r, 15))
+    }
     safeWrite('data: [DONE]\n\n')
     safeEnd()
     return
@@ -1318,7 +1348,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     if (isAdmin) {
       try {
         const adminCheck = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+          model: 'gemini-2.5-flash',
           contents: fullPrompt,
           config: {
             temperature: aiCfg.temperature,
@@ -1359,20 +1389,29 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     let streamResult: any = null
     try {
       streamResult = await ai.models.generateContentStream({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: fullPrompt,
         config: { temperature: aiCfg.temperature }
       })
     } catch (primaryErr) {
-      console.warn('gemini-3.5-flash stream failed, falling back to gemini-3.1-flash-lite:', primaryErr)
+      console.warn('gemini-2.5-flash stream failed, falling back to gemini-2.0-flash:', primaryErr)
       try {
         streamResult = await ai.models.generateContentStream({
-          model: 'gemini-3.1-flash-lite',
+          model: 'gemini-2.0-flash',
           contents: fullPrompt,
           config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
         })
       } catch (backupErr) {
-        console.warn('Both Gemini streams failed, using intelligent rule-based coach fallback stream:', backupErr)
+        console.warn('gemini-2.0-flash stream failed, trying gemini-1.5-flash:', backupErr)
+        try {
+          streamResult = await ai.models.generateContentStream({
+            model: 'gemini-1.5-flash',
+            contents: fullPrompt,
+            config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
+          })
+        } catch (finalErr) {
+          console.warn('All Gemini streams failed, using intelligent rule-based coach fallback stream:', finalErr)
+        }
       }
     }
 
@@ -1402,7 +1441,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
         if (isClientDisconnected) break
         const chunk = words.slice(i, i + 2).join(' ') + (i + 2 < words.length ? ' ' : '')
         safeWrite(`data: ${JSON.stringify({ chunk })}\n\n`)
-        await new Promise(r => setTimeout(r, 20))
+        await new Promise(r => setTimeout(r, 15))
       }
     }
 

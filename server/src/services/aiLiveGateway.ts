@@ -69,7 +69,7 @@ export function setupAiLiveGateway(): WebSocketServer {
       // 2. Send Setup Message to Gemini 3.1 Flash Live with player identity & stats injected
       const setupMsg = {
         setup: {
-          model: 'models/gemini-3.1-flash-live-preview',
+          model: 'models/gemini-2.0-flash-exp',
           generationConfig: {
             responseModalities: ['AUDIO'],
             speechConfig: {
