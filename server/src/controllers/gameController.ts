@@ -20,6 +20,22 @@ const PANDORA_CORE_ID = '00000000-0000-0000-0000-000000000010' // Pandora's Box
 // In-memory timer store for Anti-Cheat (time_taken validation)
 const sessionTimers = new Map<string, number>()
 
+// Periodic auto-purge for in-memory sessionTimers (every 15 mins, purge entries older than 30 mins)
+const SESSION_TIMER_TTL_MS = 30 * 60 * 1000
+setInterval(() => {
+  const now = Date.now()
+  let purgedCount = 0
+  for (const [sessionId, timestamp] of sessionTimers.entries()) {
+    if (now - timestamp > SESSION_TIMER_TTL_MS) {
+      sessionTimers.delete(sessionId)
+      purgedCount++
+    }
+  }
+  if (purgedCount > 0) {
+    console.log(`[MemoryCleanup] Auto-purged ${purgedCount} expired session timer(s) from memory. Active count: ${sessionTimers.size}`)
+  }
+}, 15 * 60 * 1000).unref?.()
+
 // ── Startup Cleanup (M-1 fix) ──────────────────────────────────────────────────
 // On server restart the sessionTimers Map is wiped. Any sessions that were 'active'
 // in the DB but never received a /timeout or /abandon call are stuck forever.

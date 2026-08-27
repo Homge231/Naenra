@@ -25,11 +25,11 @@ let phaserGame: any = null
 let cancelled = false
 
 const initPhaser = async () => {
-  if (cancelled || !phaserContainerRef.value) return
+  if (cancelled || !phaserContainerRef.value || props.vfxEnabled === false) return
 
   try {
     const Phaser = await import('phaser')
-    if (cancelled || !phaserContainerRef.value) return
+    if (cancelled || !phaserContainerRef.value || props.vfxEnabled === false) return
 
     class MagicScene extends Phaser.Scene {
       emitter: any = null
@@ -127,14 +127,14 @@ const initPhaser = async () => {
 
 watch(() => props.vfxEnabled, (newVal) => {
   try {
-    if (phaserGame && phaserGame.scene) {
-      const scene = phaserGame.scene.getScene('MagicScene')
-      if (scene) {
-        if (newVal === false) {
-          scene.scene.pause()
-        } else {
-          scene.scene.resume()
-        }
+    if (newVal === false) {
+      if (phaserGame) {
+        phaserGame.destroy(true)
+        phaserGame = null
+      }
+    } else {
+      if (!phaserGame) {
+        initPhaser()
       }
     }
   } catch (e) {}
@@ -152,14 +152,9 @@ watch(() => props.activeCoreName, (newVal) => {
 })
 
 onMounted(() => {
-  initPhaser().then(() => {
-    try {
-      if (props.vfxEnabled === false && phaserGame && phaserGame.scene) {
-        const scene = phaserGame.scene.getScene('MagicScene')
-        if (scene) scene.scene.pause()
-      }
-    } catch (e) {}
-  })
+  if (props.vfxEnabled !== false) {
+    initPhaser()
+  }
 })
 
 onUnmounted(() => {
