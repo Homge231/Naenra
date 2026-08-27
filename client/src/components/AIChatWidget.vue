@@ -180,10 +180,9 @@
         <div class="chat-footer">
           <div class="chat-input-wrap flex items-center gap-2">
 
-            <!-- 🎙️ UNIFIED PTT MIC BUTTON — Gemini Live preferred, Web STT fallback -->
-            <!-- Hold to speak → streams to Gemini Live (or Web STT if unavailable). Release to stop. -->
+            <!-- 🎙️ PUSH-TO-TALK MIC BUTTON -->
+            <!-- Hold to speak in English/Vietnamese. Release to send immediately. -->
             <button
-              v-if="!isLiveConnected"
               @mousedown.prevent.stop="unifiedMicPress"
               @touchstart.prevent.stop="unifiedMicPress"
               @mouseup.prevent.stop="unifiedMicRelease"
@@ -194,14 +193,11 @@
               class="chat-mic-btn shrink-0 relative select-none"
               :class="{
                 'chat-mic-btn--listening': isHoldingMic,
-                'opacity-60 animate-pulse': isLiveConnecting,
-                'cursor-not-allowed opacity-40': isAiSpeaking || isMicLocked
+                'opacity-60': isAiSpeaking && !isHoldingMic
               }"
-              :disabled="isAiSpeaking || isMicLocked"
-              :title="isAiSpeaking ? '🔒 Wait for AI to finish' : isLiveConnecting ? 'Connecting...' : isHoldingMic ? '🔴 Recording — release to send' : 'Hold to speak'"
+              :title="isHoldingMic ? '🔴 Recording — release to send' : isAiSpeaking ? 'AI is speaking — hold to interrupt' : 'Hold to speak'"
             >
-              <span v-if="isLiveConnecting" class="text-sm">⏳</span>
-              <span v-else-if="isHoldingMic" class="text-sm text-red-400 animate-pulse">🔴</span>
+              <span v-if="isHoldingMic" class="text-sm text-red-400 animate-pulse">🔴</span>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
@@ -209,37 +205,12 @@
               <span v-if="isHoldingMic" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
             </button>
 
-            <!-- PTT Active (Gemini Live connected): hold to stream -->
-            <button
-              v-else
-              @mousedown.prevent.stop="unifiedMicPress"
-              @touchstart.prevent.stop="unifiedMicPress"
-              @mouseup.prevent.stop="unifiedMicRelease"
-              @touchend.prevent.stop="unifiedMicRelease"
-              @click.prevent.stop
-              type="button"
-              class="chat-mic-btn shrink-0 relative select-none"
-              :class="{
-                'chat-mic-btn--listening': !isMicPaused && !isMicLocked,
-                'opacity-40 cursor-not-allowed': isMicLocked
-              }"
-              :disabled="isMicLocked"
-              :title="isMicLocked ? '🔒 AI is speaking — mic locked' : !isMicPaused ? '🎙️ Recording — release to pause' : 'Hold to speak'"
-            >
-              <span v-if="isMicLocked" class="text-sm">🔒</span>
-              <span v-else-if="!isMicPaused" class="text-sm text-red-400 animate-pulse">🔴</span>
-              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-              <span v-if="!isMicPaused && !isMicLocked" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
-            </button>
-
             <!-- Text Input Field -->
             <input
               v-model="inputText"
               @keyup.enter="sendMessage"
               type="text"
-              :placeholder="isHoldingMic ? '🔴 Recording... Release mic button to send!' : isLiveConnected ? 'Live active — speak or type...' : 'Type a question or hold mic to speak...'"
+              :placeholder="isHoldingMic ? '🔴 Listening... Release to send!' : 'Type a question or hold mic to speak...'"
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
@@ -249,7 +220,7 @@
             <!-- Send Button -->
             <button
               @click="sendMessage"
-              :disabled="!inputText.trim()"
+              :disabled="!inputText.trim() || isLoading"
               class="chat-send-btn shrink-0"
               id="ai-chat-send-btn"
               aria-label="Send"
@@ -266,11 +237,11 @@
 
           <!-- Live status + error row -->
           <div class="flex justify-between items-center mt-1.5 px-1">
-            <span v-if="liveErrorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ liveErrorMsg }}</span>
-            <span v-else-if="isMicLocked" class="text-[10px] text-orange-500 font-bold animate-pulse">🔒 AI speaking — mic locked</span>
-            <span v-else-if="isLiveConnected && !isMicPaused" class="text-[10px] text-red-400 font-bold animate-pulse">🔴 Recording — release to stop</span>
-            <span v-else-if="isLiveConnected && isMicPaused" class="text-[10px] text-gray-500 font-semibold">🎙️ Hold mic button to speak</span>
-            <span v-else class="text-[10px] text-gray-500 font-semibold">⚠️ AI can make mistakes. Please verify.</span>
+            <span v-if="errorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ errorMsg }}</span>
+            <span v-else-if="isHoldingMic" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Recording voice — release to send</span>
+            <span v-else-if="isAiSpeaking" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (Hold mic to interrupt)</span>
+            <span v-else class="text-[10px] text-gray-500 font-semibold">🎙️ Hold mic button to speak</span>
+            <span v-if="inputText.length > 0" class="text-[10px] text-gray-400 font-mono">{{ inputText.length }}/300</span>
           </div>
         </div>
       </div>
@@ -506,17 +477,25 @@ const isAiSpeaking = computed(() =>
 )
 
 // ── UNIFIED PTT PRESS handler ──────────────────────────────────────
-// Hold = start talking, release = stop.
-//   PATH A (Primary): Gemini Live real-time audio WebSocket
-//   PATH B (Fallback): Web Speech Recognition (only if Gemini Live unavailable)
+// Hold = start talking in English/Vietnamese, release = stop and send immediately.
 function unifiedMicPress() {
-  if (isAiSpeaking.value || isMicLocked.value || !isChatOpen.value) return
+  if (!isChatOpen.value) return
 
-  // Stop any existing AI voice/audio immediately
+  // 1. Immediately preempt / stop any previous AI voice TTS or streaming response
   stopSpeaking()
   geminiLive.stopAllAudio()
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
+  if (streamTickerTimer) {
+    clearInterval(streamTickerTimer)
+    streamTickerTimer = null
+  }
+  isStreaming.value = false
+  isLoading.value = false
 
-  // ── ALWAYS register global release listeners first ─────────────────
+  // 2. ALWAYS register global release listeners so releasing outside the button also works
   window.removeEventListener('mouseup', unifiedMicRelease)
   window.removeEventListener('touchend', unifiedMicRelease)
   window.addEventListener('mouseup', unifiedMicRelease, { once: true })
@@ -525,60 +504,50 @@ function unifiedMicPress() {
   isHoldingMic.value = true
   pressStartTime = Date.now()
   errorMsg.value = ''
-
-  // === PATH A: Gemini Live is already connected — just unpause the mic stream ===
-  if (isLiveConnected.value) {
-    resumeMicRecording()
-    return
-  }
-
-  // === PATH A-init: Gemini Live not yet connected — open session cleanly ===
-  // When session connects, the isLiveConnected watcher will automatically resume mic if user is still holding.
-  if (!isLiveConnecting.value) {
-    startLiveSession()
-    return
-  }
-
-  // If already connecting to Gemini Live, let the watcher handle activation on setupComplete
-  if (isLiveConnecting.value) {
-    return
-  }
-
-  // === PATH B: Fallback Web Speech Recognition (only when Gemini Live is not usable) ===
-  isListening.value = true
   recordedTranscript = ''
-  recordingTimeMs.value = 0
+  inputText.value = ''
 
-  if (recordingTimer) clearInterval(recordingTimer)
-  recordingTimer = setInterval(() => { recordingTimeMs.value += 100 }, 100)
-
+  // 3. Start high-precision native speech recognition
   if (typeof window !== 'undefined') {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (SpeechRecognition) {
       try {
-        if (recognitionInstance) recognitionInstance.abort()
+        if (recognitionInstance) {
+          try { recognitionInstance.abort() } catch {}
+          recognitionInstance = null
+        }
         recognitionInstance = new SpeechRecognition()
         recognitionInstance.continuous = true
         recognitionInstance.interimResults = true
-        recognitionInstance.lang = navigator.language || 'en-US'
+
+        // Detect user language (English / Vietnamese)
+        const isVi = navigator.language?.toLowerCase().startsWith('vi')
+        recognitionInstance.lang = isVi ? 'vi-VN' : 'en-US'
+
         recognitionInstance.onresult = (event: any) => {
           let text = ''
           for (let i = 0; i < event.results.length; i++) {
             text += event.results[i][0].transcript
           }
           recordedTranscript = text
-          if (text) inputText.value = text
+          if (text) {
+            inputText.value = text
+          }
         }
+
         recognitionInstance.onerror = (err: any) => {
           console.warn('[PTT STT Error]:', err)
           if (err.error === 'not-allowed') {
-            errorMsg.value = 'Microphone permission denied. Please allow microphone in your browser settings.'
+            errorMsg.value = 'Microphone permission denied. Please allow microphone in browser settings.'
           }
         }
+
         recognitionInstance.start()
       } catch (err) {
         console.warn('[PTT STT Start Warning]:', err)
       }
+    } else {
+      errorMsg.value = 'Voice input is not supported in this browser. Please type your message.'
     }
   }
 }
@@ -591,45 +560,32 @@ function unifiedMicRelease() {
   window.removeEventListener('touchend', unifiedMicRelease)
 
   const wasHolding = isHoldingMic.value
-
   isHoldingMic.value = false
-  isListening.value = false
 
-  // --- PATH A: Gemini Live — pause the mic stream on release ---
-  if (isLiveConnected.value) {
-    pauseMicRecording()
+  // Stop recognition and fully shut off microphone hardware immediately
+  if (recognitionInstance) {
+    try { recognitionInstance.stop() } catch {}
+    recognitionInstance = null
   }
 
-  // --- PATH B: Web STT — stop recognition and send transcript ---
   if (!wasHolding) return
 
   const pressDuration = Date.now() - pressStartTime
-
-  if (recordingTimer) {
-    clearInterval(recordingTimer)
-    recordingTimer = null
-  }
-  if (recognitionInstance) {
-    try { recognitionInstance.stop() } catch { /* skip */ }
-  }
+  const finalPrompt = (inputText.value || recordedTranscript).trim()
 
   // Too short tap with no transcript — show usage hint
-  if (pressDuration < 300 && !inputText.value.trim() && !recordedTranscript.trim()) {
-    if (!isLiveConnected.value) {
-      errorMsg.value = 'Hold mic button down to record voice, then release to send.'
-      setTimeout(() => { errorMsg.value = '' }, 3000)
-    }
+  if (pressDuration < 250 && !finalPrompt) {
+    errorMsg.value = 'Hold mic button down to speak, then release to send.'
+    setTimeout(() => {
+      if (errorMsg.value.includes('Hold mic')) errorMsg.value = ''
+    }, 3000)
     return
   }
 
-  // Gemini Live handles its transcript via onUserTranscript callback
-  // Web STT fallback: auto-send the captured transcript
-  if (!isLiveConnected.value) {
-    const finalPrompt = (inputText.value || recordedTranscript).trim()
-    if (finalPrompt) {
-      inputText.value = finalPrompt
-      sendMessage()
-    }
+  // Auto-send the captured voice transcript into the chat stream!
+  if (finalPrompt) {
+    inputText.value = finalPrompt
+    sendMessage()
   }
 }
 
@@ -647,15 +603,9 @@ const username = computed(() =>
 
 // Dynamic Mascot Status Text in English
 const mascotStatusText = computed(() => {
-  if (isLiveConnecting.value) return 'Connecting to Gemini 3.1 Live...'
-  if (isLiveSpeaking.value) return 'Gemini 3.1 Live speaking...'
-  if (isLiveConnected.value) {
-    if (!isMicPaused.value && isHoldingMic.value) return '🔴 Recording voice...'
-    return '🟢 Gemini 3.1 Live Ready (Hold to speak)'
-  }
-  if (isHoldingMic.value || isListening.value) return 'Listening to your voice...'
+  if (isHoldingMic.value) return '🔴 Listening to voice (Release to send)...'
   if (isStreaming.value) return 'Streaming response in real-time...'
-  if (isLoading.value) return 'Just a moment, finding your answer...'
+  if (isLoading.value) return 'Finding your answer...'
   if (isSpeaking.value) return 'Speaking response aloud...'
   return 'Ready to guide & recommend Cores'
 })
@@ -778,12 +728,6 @@ async function sendMessage() {
   // Push user prompt bubble
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
-
-  // Route text prompt directly into active Gemini 3.1 Live session if connected
-  if (isLiveConnected.value) {
-    sendTextMessage(text)
-    return
-  }
 
   isLoading.value = true
 
