@@ -36,8 +36,9 @@ Official AI Engine & Lead AI Coding Assistant for Naenra (ARENA.ENG) — Competi
 - ELO Rank System: K-factor = 32. Custom room friend matches do NOT modify ELO ratings to prevent boosting.
 
 4. AI INTEGRATION & MODEL SPECIFICATIONS:
-- Primary Model: `gemini-3.5-flash`
-- Fallback Model: `gemini-3.1-flash-lite`
+- Primary Model: `gemini-2.5-flash` (configurable via `GEMINI_MODEL`)
+- Fallback Models: `gemini-2.0-flash`, `gemini-1.5-flash`
+- Live Voice: Gemini Multimodal Live WebSocket (`models/gemini-2.0-flash-exp` / `GEMINI_LIVE_MODEL`) + Web Speech API PTT STT
 - Core Functions:
   - `generateQuestions()`: Generates structured JSON questions with `____` placeholders, lowercase `target_word` (letters a-z only), and capitalized `hint`.
   - `generateCoachAnalysis()`: Provides personalized vocabulary performance reports.

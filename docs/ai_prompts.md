@@ -17,8 +17,9 @@ This document outlines all system prompts, schemas, rules, fallback logic, and A
 ## 1. AI Question Generator Prompt
 
 - **Source File**: [`server/src/services/aiService.ts`](file:///Users/nhgbao/Desktop/AxonProject-main/server/src/services/aiService.ts) $\rightarrow$ `generateQuestions()`
-- **Primary Model**: `gemini-3.5-flash`
-- **Fallback Model**: `gemini-3.1-flash-lite`
+- **Primary Model**: `gemini-2.5-flash` (configurable via `GEMINI_MODEL`)
+- **Fallback Models**: `gemini-2.0-flash`, `gemini-1.5-flash`
+- **Live Voice Engine**: Gemini Multimodal Live WebSocket (`models/gemini-2.0-flash-exp` / `GEMINI_LIVE_MODEL`) + Web Speech API Push-To-Talk STT
 - **Output Mime**: `application/json` (Structured JSON Schema)
 
 ### System Prompt Specification:
@@ -66,8 +67,9 @@ RULES:
 ## 2. AI Performance Coach Prompt
 
 - **Source File**: [`server/src/services/aiService.ts`](file:///Users/nhgbao/Desktop/AxonProject-main/server/src/services/aiService.ts) $\rightarrow$ `generateCoachAnalysis()`
-- **Primary Model**: `gemini-3.5-flash`
-- **Fallback Model**: `gemini-3.1-flash-lite`
+- **Primary Model**: `gemini-2.5-flash` (configurable via `GEMINI_MODEL`)
+- **Fallback Models**: `gemini-2.0-flash`, `gemini-1.5-flash`
+- **Live Voice Engine**: Gemini Multimodal Live WebSocket (`models/gemini-2.0-flash-exp` / `GEMINI_LIVE_MODEL`) + Web Speech API Push-To-Talk STT
 - **Temperature**: `0.7`
 
 ### System Context Prompt:
@@ -82,8 +84,9 @@ Vocabulary performance analytics summary:
 ## 3. AI Assistant Chat Prompt
 
 - **Source File**: [`server/src/services/aiService.ts`](file:///Users/nhgbao/Desktop/AxonProject-main/server/src/services/aiService.ts) $\rightarrow$ `generateChatResponse()`
-- **Primary Model**: `gemini-3.5-flash`
-- **Fallback Model**: `gemini-3.1-flash-lite`
+- **Primary Model**: `gemini-2.5-flash` (configurable via `GEMINI_MODEL`)
+- **Fallback Models**: `gemini-2.0-flash`, `gemini-1.5-flash`
+- **Live Voice Engine**: Gemini Multimodal Live WebSocket (`models/gemini-2.0-flash-exp` / `GEMINI_LIVE_MODEL`) + Web Speech API Push-To-Talk STT
 - **Temperature**: `0.7`
 
 ### System Context Prompt:
