@@ -514,9 +514,9 @@ const isAiSpeaking = computed(() =>
 )
 
 // ── UNIFIED PTT PRESS handler ──────────────────────────────────────
-// Hold = start talking, release = stop. Two paths:
-//   PATH A: Gemini Live WebSocket connected → resumeMic (streams PCM to server in real-time)
-//   PATH B: Web Speech Recognition fallback → captures transcript, sends on release
+// Hold = start talking, release = stop.
+//   PATH A (Primary): Gemini Live real-time audio WebSocket
+//   PATH B (Fallback): Web Speech Recognition (only if Gemini Live unavailable)
 function unifiedMicPress() {
   if (isAiSpeaking.value || isMicLocked.value || !isChatOpen.value) return
 
@@ -525,30 +525,35 @@ function unifiedMicPress() {
   geminiLive.stopAllAudio()
 
   // ── ALWAYS register global release listeners first ─────────────────
-  // This ensures releasing anywhere (outside the button) is always caught.
   window.removeEventListener('mouseup', unifiedMicRelease)
   window.removeEventListener('touchend', unifiedMicRelease)
   window.addEventListener('mouseup', unifiedMicRelease, { once: true })
   window.addEventListener('touchend', unifiedMicRelease, { once: true })
 
+  isHoldingMic.value = true
+  pressStartTime = Date.now()
+  errorMsg.value = ''
+
   // === PATH A: Gemini Live is already connected — just unpause the mic stream ===
   if (isLiveConnected.value) {
-    isHoldingMic.value = true
     resumeMicRecording()
     return
   }
 
-  // === PATH A-init: Gemini Live not yet connected — open session ===
-  // (mic starts paused inside startLiveSession, user holding button will unpause on setupComplete)
+  // === PATH A-init: Gemini Live not yet connected — open session cleanly ===
+  // When session connects, the isLiveConnected watcher will automatically resume mic if user is still holding.
   if (!isLiveConnecting.value) {
     startLiveSession()
+    return
   }
 
-  // === PATH B: Web Speech Recognition fallback (transcript → input box → sendMessage on release) ===
-  pressStartTime = Date.now()
-  isHoldingMic.value = true
+  // If already connecting to Gemini Live, let the watcher handle activation on setupComplete
+  if (isLiveConnecting.value) {
+    return
+  }
+
+  // === PATH B: Fallback Web Speech Recognition (only when Gemini Live is not usable) ===
   isListening.value = true
-  errorMsg.value = ''
   recordedTranscript = ''
   recordingTimeMs.value = 0
 
@@ -574,8 +579,8 @@ function unifiedMicPress() {
         }
         recognitionInstance.onerror = (err: any) => {
           console.warn('[PTT STT Error]:', err)
-          if (err.error !== 'aborted' && err.error !== 'no-speech') {
-            errorMsg.value = 'Microphone issue. Please check permissions.'
+          if (err.error === 'not-allowed') {
+            errorMsg.value = 'Microphone permission denied. Please allow microphone in your browser settings.'
           }
         }
         recognitionInstance.start()
@@ -589,7 +594,7 @@ function unifiedMicPress() {
 // ── UNIFIED PTT RELEASE handler ────────────────────────────────────
 // Called whenever user lifts finger/mouse — regardless of where on screen.
 function unifiedMicRelease() {
-  // Remove global listeners (in case this was triggered by the button's own event)
+  // Remove global listeners
   window.removeEventListener('mouseup', unifiedMicRelease)
   window.removeEventListener('touchend', unifiedMicRelease)
 
