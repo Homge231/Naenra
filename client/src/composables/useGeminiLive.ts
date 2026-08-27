@@ -80,35 +80,7 @@ export function useGeminiLive() {
         await audioCtx.resume()
       }
 
-      // 2. Request Microphone Access optionally (audio playback works even if mic is denied or unavailable)
-      // Issue #8: Enforce noise/echo suppression + mono channel to filter mechanical keyboard noise
-      try {
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            channelCount: 1,               // Mono reduces noise floor (Issue #8)
-            suppressLocalAudioPlayback: true // Prevent AI speaker output bleeding into mic (Issue #8)
-          } as MediaTrackConstraints & { suppressLocalAudioPlayback?: boolean }
-        })
-      } catch {
-        // Fallback to standard noise suppression constraints if advanced WebRTC flags aren't supported
-        try {
-          micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-          })
-        } catch (micErr) {
-          console.warn('[Gemini Live]: Microphone not available or denied. Proceeding with audio output playback mode.', micErr)
-          micStream = null
-        }
-      }
-
-      // 3. Connect WebSocket
+      // 2. Connect WebSocket
       const wsUrl = getWsUrl()
       ws = new WebSocket(wsUrl)
 
@@ -143,91 +115,131 @@ export function useGeminiLive() {
     }
   }
 
+  // Acquire microphone stream on-demand when PTT button is pressed
+  async function acquireMicStream(): Promise<boolean> {
+    if (micStream && micStream.active) return true
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          suppressLocalAudioPlayback: true
+        } as MediaTrackConstraints & { suppressLocalAudioPlayback?: boolean }
+      })
+      return true
+    } catch {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        })
+        return true
+      } catch (micErr) {
+        console.warn('[Gemini Live]: Microphone not available or denied.', micErr)
+        micStream = null
+        errorMsg.value = 'Microphone permission denied. Please allow microphone in your browser.'
+        return false
+      }
+    }
+  }
+
+  // Fully stop hardware tracks so OS/browser microphone indicator turns off immediately
+  function releaseMicStream() {
+    if (scriptNode) {
+      try { scriptNode.disconnect() } catch {}
+      scriptNode = null
+    }
+    if (micStream) {
+      try {
+        micStream.getTracks().forEach((track) => track.stop())
+      } catch {}
+      micStream = null
+    }
+  }
+
   // Start Mic Recording & Stream PCM Chunks with proper 16kHz downsampling
   function startMicRecording() {
     if (!micStream || !audioCtx) return
 
-    // Ensure audio tracks are disabled initially if mic is paused (PTT default)
-    micStream.getAudioTracks().forEach(track => {
-      track.enabled = !isMicPaused.value
-    })
+    try {
+      const source = audioCtx.createMediaStreamSource(micStream)
+      scriptNode = audioCtx.createScriptProcessor(2048, 1, 1)
 
-    const source = audioCtx.createMediaStreamSource(micStream)
-    scriptNode = audioCtx.createScriptProcessor(2048, 1, 1)
+      // Silent gain node to prevent microphone feedback echo
+      const silenceGain = audioCtx.createGain()
+      silenceGain.gain.value = 0
 
-    // Silent gain node to prevent microphone feedback echo
-    const silenceGain = audioCtx.createGain()
-    silenceGain.gain.value = 0
+      let chunkBuffer: Float32Array[] = []
+      let chunkSamples = 0
+      const TARGET_SAMPLES = audioCtx.sampleRate * 0.15 // ~150ms chunks
 
-    let chunkBuffer: Float32Array[] = []
-    let chunkSamples = 0
-    const TARGET_SAMPLES = audioCtx.sampleRate * 0.15 // ~150ms chunks
-
-    scriptNode.onaudioprocess = (e) => {
-      // Issue #6: Skip if PTT is released (mic paused)
-      // Issue #7: Skip if AI is currently speaking (mic locked to prevent echo)
-      if (!isLiveConnected.value || !ws || ws.readyState !== WebSocket.OPEN) return
-      if (isMicPaused.value || isMicLocked.value) {
-        chunkBuffer = []
-        chunkSamples = 0
-        return
-      }
-      const inputData = e.inputBuffer.getChannelData(0)
-      chunkBuffer.push(new Float32Array(inputData))
-      chunkSamples += inputData.length
-
-      if (chunkSamples >= TARGET_SAMPLES) {
-        const merged = new Float32Array(chunkSamples)
-        let offset = 0
-        for (const buf of chunkBuffer) {
-          merged.set(buf, offset)
-          offset += buf.length
+      scriptNode.onaudioprocess = (e) => {
+        // Skip if PTT is released or AI is currently speaking
+        if (!isLiveConnected.value || !ws || ws.readyState !== WebSocket.OPEN) return
+        if (isMicPaused.value || isMicLocked.value) {
+          chunkBuffer = []
+          chunkSamples = 0
+          return
         }
-        chunkBuffer = []
-        chunkSamples = 0
+        const inputData = e.inputBuffer.getChannelData(0)
+        chunkBuffer.push(new Float32Array(inputData))
+        chunkSamples += inputData.length
 
-        // Downsample from browser audioCtx.sampleRate to 16000Hz for Gemini Live
-        const downsampled = downsampleTo16k(merged, audioCtx!.sampleRate)
-        const pcmBuffer = floatTo16BitPCM(downsampled)
-        const base64Audio = arrayBufferToBase64(pcmBuffer)
+        if (chunkSamples >= TARGET_SAMPLES) {
+          const merged = new Float32Array(chunkSamples)
+          let offset = 0
+          for (const buf of chunkBuffer) {
+            merged.set(buf, offset)
+            offset += buf.length
+          }
+          chunkBuffer = []
+          chunkSamples = 0
 
-        const mediaChunk = {
-          realtimeInput: {
-            audio: {
-              mimeType: 'audio/pcm;rate=16000',
-              data: base64Audio
+          // Downsample from browser audioCtx.sampleRate to 16000Hz for Gemini Live
+          const downsampled = downsampleTo16k(merged, audioCtx!.sampleRate)
+          const pcmBuffer = floatTo16BitPCM(downsampled)
+          const base64Audio = arrayBufferToBase64(pcmBuffer)
+
+          const mediaChunk = {
+            realtimeInput: {
+              audio: {
+                mimeType: 'audio/pcm;rate=16000',
+                data: base64Audio
+              }
             }
           }
+          ws!.send(JSON.stringify(mediaChunk))
         }
-        ws!.send(JSON.stringify(mediaChunk))
       }
-    }
 
-    source.connect(scriptNode)
-    scriptNode.connect(silenceGain)
-    silenceGain.connect(audioCtx.destination)
+      source.connect(scriptNode)
+      scriptNode.connect(silenceGain)
+      silenceGain.connect(audioCtx.destination)
+    } catch (e) {
+      console.warn('[Gemini Live] startMicRecording error:', e)
+    }
   }
 
-  // Issue #6: Push-to-Talk — pause mic streaming without closing WebSocket session
+  // Push-to-Talk — pause mic and release hardware device immediately
   function pauseMicRecording() {
     isMicPaused.value = true
     isRecording.value = false
-    if (micStream) {
-      micStream.getAudioTracks().forEach(track => {
-        track.enabled = false
-      })
-    }
+    releaseMicStream()
   }
 
-  // Issue #6: Push-to-Talk — resume mic streaming on button press
-  function resumeMicRecording() {
-    if (isMicLocked.value) return // Issue #7: don't resume if AI is speaking
+  // Push-to-Talk — acquire mic and start streaming on button press
+  async function resumeMicRecording() {
+    if (isMicLocked.value) return // Don't resume if AI is speaking
     isMicPaused.value = false
     isRecording.value = true
-    if (micStream) {
-      micStream.getAudioTracks().forEach(track => {
-        track.enabled = true
-      })
+    const acquired = await acquireMicStream()
+    if (acquired && !isMicPaused.value) {
+      startMicRecording()
     }
   }
 
