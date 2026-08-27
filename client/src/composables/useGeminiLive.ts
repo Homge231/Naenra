@@ -225,11 +225,26 @@ export function useGeminiLive() {
     }
   }
 
-  // Push-to-Talk — pause mic and release hardware device immediately
+  // Push-to-Talk — pause mic and release hardware device immediately, signalling turnComplete
   function pauseMicRecording() {
     isMicPaused.value = true
     isRecording.value = false
     releaseMicStream()
+
+    // Send end of user turn signal so Gemini Live produces audio response immediately
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        const turnCompleteMsg = {
+          clientContent: {
+            turns: [],
+            turnComplete: true
+          }
+        }
+        ws.send(JSON.stringify(turnCompleteMsg))
+      } catch (err) {
+        console.warn('[Gemini Live] Failed to send turnComplete signal:', err)
+      }
+    }
   }
 
   // Push-to-Talk — acquire mic and start streaming on button press

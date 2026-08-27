@@ -477,11 +477,11 @@ const isAiSpeaking = computed(() =>
 )
 
 // ── UNIFIED PTT PRESS handler ──────────────────────────────────────
-// Hold = start talking in English/Vietnamese, release = stop and send immediately.
+// Hold = stream voice PCM audio to Gemini Live (Puck voice), release = stop and answer.
 function unifiedMicPress() {
-  if (!isChatOpen.value) return
+  if (!isChatOpen.value || isMicLocked.value) return
 
-  // 1. Immediately preempt / stop any previous AI voice TTS or streaming response
+  // 1. Immediately preempt / stop any previous AI voice or audio playback
   stopSpeaking()
   geminiLive.stopAllAudio()
   if (currentAbortController) {
@@ -504,51 +504,12 @@ function unifiedMicPress() {
   isHoldingMic.value = true
   pressStartTime = Date.now()
   errorMsg.value = ''
-  recordedTranscript = ''
-  inputText.value = ''
 
-  // 3. Start high-precision native speech recognition
-  if (typeof window !== 'undefined') {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (SpeechRecognition) {
-      try {
-        if (recognitionInstance) {
-          try { recognitionInstance.abort() } catch {}
-          recognitionInstance = null
-        }
-        recognitionInstance = new SpeechRecognition()
-        recognitionInstance.continuous = true
-        recognitionInstance.interimResults = true
-
-        // Detect user language (English / Vietnamese)
-        const isVi = navigator.language?.toLowerCase().startsWith('vi')
-        recognitionInstance.lang = isVi ? 'vi-VN' : 'en-US'
-
-        recognitionInstance.onresult = (event: any) => {
-          let text = ''
-          for (let i = 0; i < event.results.length; i++) {
-            text += event.results[i][0].transcript
-          }
-          recordedTranscript = text
-          if (text) {
-            inputText.value = text
-          }
-        }
-
-        recognitionInstance.onerror = (err: any) => {
-          console.warn('[PTT STT Error]:', err)
-          if (err.error === 'not-allowed') {
-            errorMsg.value = 'Microphone permission denied. Please allow microphone in browser settings.'
-          }
-        }
-
-        recognitionInstance.start()
-      } catch (err) {
-        console.warn('[PTT STT Start Warning]:', err)
-      }
-    } else {
-      errorMsg.value = 'Voice input is not supported in this browser. Please type your message.'
-    }
+  // 3. Connect to Gemini Live if not connected, or resume mic streaming
+  if (isLiveConnected.value) {
+    resumeMicRecording()
+  } else if (!isLiveConnecting.value) {
+    startLiveSession()
   }
 }
 
@@ -562,30 +523,21 @@ function unifiedMicRelease() {
   const wasHolding = isHoldingMic.value
   isHoldingMic.value = false
 
-  // Stop recognition and fully shut off microphone hardware immediately
-  if (recognitionInstance) {
-    try { recognitionInstance.stop() } catch {}
-    recognitionInstance = null
-  }
-
   if (!wasHolding) return
 
   const pressDuration = Date.now() - pressStartTime
-  const finalPrompt = (inputText.value || recordedTranscript).trim()
 
-  // Too short tap with no transcript — show usage hint
-  if (pressDuration < 250 && !finalPrompt) {
-    errorMsg.value = 'Hold mic button down to speak, then release to send.'
+  // Send turnComplete and release hardware mic immediately
+  if (isLiveConnected.value) {
+    pauseMicRecording()
+  }
+
+  // Too short tap — show usage hint
+  if (pressDuration < 250) {
+    errorMsg.value = 'Hold mic button down to speak, then release when finished.'
     setTimeout(() => {
       if (errorMsg.value.includes('Hold mic')) errorMsg.value = ''
     }, 3000)
-    return
-  }
-
-  // Auto-send the captured voice transcript into the chat stream!
-  if (finalPrompt) {
-    inputText.value = finalPrompt
-    sendMessage()
   }
 }
 
@@ -652,6 +604,9 @@ function toggleChat() {
   if (isChatOpen.value) {
     if (!authStore.profile) {
       void authStore.fetchProfile()
+    }
+    if (!isLiveConnected.value && !isLiveConnecting.value) {
+      startLiveSession()
     }
     nextTick(() => scrollToBottom())
   } else {
