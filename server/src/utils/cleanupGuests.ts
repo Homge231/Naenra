@@ -6,22 +6,48 @@ import { supabase } from '../config/supabase'
  */
 export async function cleanupOldGuestAccounts(daysOlderThan = 1): Promise<{ deletedCount: number }> {
   try {
-    const cutoffDate = new Date(Date.now() - daysOlderThan * 24 * 60 * 60 * 1000).toISOString()
+    const cutoffMs = Date.now() - daysOlderThan * 24 * 60 * 60 * 1000
 
-    // 1. Fetch guest accounts created before the cutoff date
-    const { data: oldGuests, error: fetchErr } = await supabase
+    // 1. Fetch all guest accounts from players table
+    const { data: allGuests, error: fetchErr } = await supabase
       .from('players')
-      .select('id, email, username')
+      .select('id, email, username, created_at')
       .ilike('email', '%@guest.naenra.xyz')
-      .lt('created_at', cutoffDate)
 
     if (fetchErr) {
-      console.error('[CleanupGuests] Error fetching old guests:', fetchErr)
+      console.error('[CleanupGuests] Error fetching guests:', fetchErr)
       throw fetchErr
     }
 
-    if (!oldGuests || oldGuests.length === 0) {
-      console.log('[CleanupGuests] No old guest accounts to clean up.')
+    if (!allGuests || allGuests.length === 0) {
+      console.log('[CleanupGuests] No guest accounts found in database.')
+      return { deletedCount: 0 }
+    }
+
+    // Filter guests created before cutoff date using email timestamp or created_at column
+    const oldGuests = allGuests.filter((guest: any) => {
+      // 1. Extract millisecond timestamp from guest email: guest_<timestamp>_<rand>@guest.naenra.xyz
+      const match = guest.email?.match(/^guest_(\d+)_/i)
+      if (match && match[1]) {
+        const timestamp = parseInt(match[1], 10)
+        if (!isNaN(timestamp)) {
+          return timestamp < cutoffMs
+        }
+      }
+
+      // 2. Fallback to DB created_at column if present
+      if (guest.created_at) {
+        const dbTime = new Date(guest.created_at).getTime()
+        if (!isNaN(dbTime)) {
+          return dbTime < cutoffMs
+        }
+      }
+
+      return false
+    })
+
+    if (oldGuests.length === 0) {
+      console.log(`[CleanupGuests] No guest accounts older than ${daysOlderThan} day(s) to clean up. (Found ${allGuests.length} active guest(s) within retention window).`)
       return { deletedCount: 0 }
     }
 
