@@ -209,38 +209,30 @@
               <span v-if="isHoldingMic" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
             </button>
 
-            <!-- PTT Active (Gemini Live connected): hold to stream + disconnect button -->
-            <div v-else class="flex items-center gap-1 shrink-0">
-              <button
-                @mousedown.prevent.stop="unifiedMicPress"
-                @touchstart.prevent.stop="unifiedMicPress"
-                @mouseup.prevent.stop="unifiedMicRelease"
-                @touchend.prevent.stop="unifiedMicRelease"
-                @click.prevent.stop
-                type="button"
-                class="chat-mic-btn relative select-none"
-                :class="{
-                  'chat-mic-btn--listening': !isMicPaused && !isMicLocked,
-                  'opacity-40 cursor-not-allowed': isMicLocked
-                }"
-                :disabled="isMicLocked"
-                :title="isMicLocked ? '🔒 AI is speaking — mic locked' : !isMicPaused ? '🎙️ Recording — release to pause' : 'Hold to speak'"
-              >
-                <span v-if="isMicLocked" class="text-sm">🔒</span>
-                <span v-else-if="!isMicPaused" class="text-sm text-red-400 animate-pulse">🔴</span>
-                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-                <span v-if="!isMicPaused && !isMicLocked" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
-              </button>
-              <!-- Disconnect session button -->
-              <button
-                @click="toggleLiveSession"
-                type="button"
-                class="text-[9px] font-bold px-1.5 py-1 rounded-md bg-red-50 hover:bg-red-100 text-red-500 border border-red-200 cursor-pointer transition-colors"
-                title="Stop Live session"
-              >✕</button>
-            </div>
+            <!-- PTT Active (Gemini Live connected): hold to stream -->
+            <button
+              v-else
+              @mousedown.prevent.stop="unifiedMicPress"
+              @touchstart.prevent.stop="unifiedMicPress"
+              @mouseup.prevent.stop="unifiedMicRelease"
+              @touchend.prevent.stop="unifiedMicRelease"
+              @click.prevent.stop
+              type="button"
+              class="chat-mic-btn shrink-0 relative select-none"
+              :class="{
+                'chat-mic-btn--listening': !isMicPaused && !isMicLocked,
+                'opacity-40 cursor-not-allowed': isMicLocked
+              }"
+              :disabled="isMicLocked"
+              :title="isMicLocked ? '🔒 AI is speaking — mic locked' : !isMicPaused ? '🎙️ Recording — release to pause' : 'Hold to speak'"
+            >
+              <span v-if="isMicLocked" class="text-sm">🔒</span>
+              <span v-else-if="!isMicPaused" class="text-sm text-red-400 animate-pulse">🔴</span>
+              <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+              <span v-if="!isMicPaused && !isMicLocked" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+            </button>
 
             <!-- Text Input Field -->
             <input
