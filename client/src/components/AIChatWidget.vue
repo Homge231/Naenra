@@ -186,6 +186,8 @@
               v-if="!isLiveConnected"
               @mousedown.prevent.stop="unifiedMicPress"
               @touchstart.prevent.stop="unifiedMicPress"
+              @mouseup.prevent.stop="unifiedMicRelease"
+              @touchend.prevent.stop="unifiedMicRelease"
               @click.prevent.stop
               type="button"
               id="ai-chat-mic-btn"
@@ -212,6 +214,8 @@
               <button
                 @mousedown.prevent.stop="unifiedMicPress"
                 @touchstart.prevent.stop="unifiedMicPress"
+                @mouseup.prevent.stop="unifiedMicRelease"
+                @touchend.prevent.stop="unifiedMicRelease"
                 @click.prevent.stop
                 type="button"
                 class="chat-mic-btn relative select-none"
@@ -436,11 +440,18 @@ onTurnComplete(() => {
   lastUserTranscript = ''
 })
 
-watch(isLiveConnected, (connected) => {
+watch(isLiveConnected, (connected, wasConnected) => {
   if (!connected) {
     currentAiLiveMsgIdx.value = -1
     currentUserLiveMsgIdx.value = -1
     lastUserTranscript = ''
+    isHoldingMic.value = false
+  } else if (connected && !wasConnected) {
+    // Gemini Live just finished connecting (setupComplete received).
+    // If user is still holding the mic button, start streaming immediately.
+    if (isHoldingMic.value) {
+      resumeMicRecording()
+    }
   }
 })
 
@@ -501,32 +512,38 @@ const isAiSpeaking = computed(() =>
   isLoading.value
 )
 
-// ── UNIFIED PTT PRESS handler (HF-1: merges both implementations) ──
-// Gemini Live takes priority. Web Speech Recognition is fallback.
+// ── UNIFIED PTT PRESS handler ──────────────────────────────────────
+// Hold = start talking, release = stop. Two paths:
+//   PATH A: Gemini Live WebSocket connected → resumeMic (streams PCM to server in real-time)
+//   PATH B: Web Speech Recognition fallback → captures transcript, sends on release
 function unifiedMicPress() {
   if (isAiSpeaking.value || isMicLocked.value || !isChatOpen.value) return
 
+  // Stop any existing AI voice/audio immediately
   stopSpeaking()
   geminiLive.stopAllAudio()
 
-  // Register global safety-net mouseup/touchend (HF-2: catches release outside button)
+  // ── ALWAYS register global release listeners first ─────────────────
+  // This ensures releasing anywhere (outside the button) is always caught.
+  window.removeEventListener('mouseup', unifiedMicRelease)
+  window.removeEventListener('touchend', unifiedMicRelease)
   window.addEventListener('mouseup', unifiedMicRelease, { once: true })
   window.addEventListener('touchend', unifiedMicRelease, { once: true })
 
-  // === PATH A: Gemini Live WebSocket (preferred) ===
+  // === PATH A: Gemini Live is already connected — just unpause the mic stream ===
   if (isLiveConnected.value) {
-    // Already connected — just resume the audio stream
+    isHoldingMic.value = true
     resumeMicRecording()
     return
   }
 
-  if (!isLiveConnected.value && !isLiveConnecting.value) {
-    // Not connected — open a Gemini Live session (mic starts paused via setupComplete)
+  // === PATH A-init: Gemini Live not yet connected — open session ===
+  // (mic starts paused inside startLiveSession, user holding button will unpause on setupComplete)
+  if (!isLiveConnecting.value) {
     startLiveSession()
-    // Also start Web STT simultaneously as a transcript fallback for the input box
   }
 
-  // === PATH B: Web Speech Recognition fallback (transcript → input box → sendMessage) ===
+  // === PATH B: Web Speech Recognition fallback (transcript → input box → sendMessage on release) ===
   pressStartTime = Date.now()
   isHoldingMic.value = true
   isListening.value = true
@@ -556,7 +573,6 @@ function unifiedMicPress() {
         }
         recognitionInstance.onerror = (err: any) => {
           console.warn('[PTT STT Error]:', err)
-          // HF-3: use local errorMsg ref (liveErrorMsg is readonly from composable)
           if (err.error !== 'aborted' && err.error !== 'no-speech') {
             errorMsg.value = 'Microphone issue. Please check permissions.'
           }
@@ -570,22 +586,26 @@ function unifiedMicPress() {
 }
 
 // ── UNIFIED PTT RELEASE handler ────────────────────────────────────
+// Called whenever user lifts finger/mouse — regardless of where on screen.
 function unifiedMicRelease() {
-  // Clean up global safety-net listeners
+  // Remove global listeners (in case this was triggered by the button's own event)
   window.removeEventListener('mouseup', unifiedMicRelease)
   window.removeEventListener('touchend', unifiedMicRelease)
 
-  // --- Gemini Live path: pause mic stream ---
+  const wasHolding = isHoldingMic.value
+
+  isHoldingMic.value = false
+  isListening.value = false
+
+  // --- PATH A: Gemini Live — pause the mic stream on release ---
   if (isLiveConnected.value) {
     pauseMicRecording()
   }
 
-  // --- Web STT path: stop recognition, send transcript ---
-  if (!isHoldingMic.value) return
+  // --- PATH B: Web STT — stop recognition and send transcript ---
+  if (!wasHolding) return
 
   const pressDuration = Date.now() - pressStartTime
-  isHoldingMic.value = false
-  isListening.value = false
 
   if (recordingTimer) {
     clearInterval(recordingTimer)
@@ -595,7 +615,7 @@ function unifiedMicRelease() {
     try { recognitionInstance.stop() } catch { /* skip */ }
   }
 
-  // Too short tap without any transcript — show hint
+  // Too short tap with no transcript — show usage hint
   if (pressDuration < 300 && !inputText.value.trim() && !recordedTranscript.trim()) {
     if (!isLiveConnected.value) {
       errorMsg.value = 'Hold mic button down to record voice, then release to send.'
@@ -604,8 +624,8 @@ function unifiedMicRelease() {
     return
   }
 
-  // If Gemini Live is active, it handles its own transcript via onUserTranscript
-  // For Web STT fallback: auto-send the captured transcript
+  // Gemini Live handles its transcript via onUserTranscript callback
+  // Web STT fallback: auto-send the captured transcript
   if (!isLiveConnected.value) {
     const finalPrompt = (inputText.value || recordedTranscript).trim()
     if (finalPrompt) {
