@@ -12,7 +12,7 @@ Naenra is a high-speed, competitive vocabulary typing game where players compete
 - **65 Support Cores across 10 Families**: Tactical abilities integrated via the Strategy Pattern (Combo, Speedster, Argus Eyes / Oracle, Aegis Shield, Mission, Pandora, Phoenix Rebirth, High Roller, Power, Balanced).
 - **Levenshtein Penalty & Anti-Cheat Engine**: Proportional score deductions based on character edit distance ($\ge 80\%$ similarity $\rightarrow$ typo penalty, $<80\%$ $\rightarrow$ wrong penalty). Server-side `time_taken` and `active_core_id` anti-cheat verification.
 - **1v1 Colyseus Multiplayer & Race Mode**: Automated matchmaking via `QueueRoom` and 4-round matches in `MatchRoom` (Rounds 1–3 Core Mode, Round 4 Race Mode with 12s fast timeouts).
-- **Gemini AI Assistant & Coach**: Integrated AI powered by `gemini-2.5-flash` (fallback `gemini-2.0-flash`, `gemini-1.5-flash`) providing custom question generation, player performance analytics, real-time live voice WebSocket, and 2-phase in-game chat streaming.
+- **Gemini AI Assistant & Coach**: Integrated AI powered by `gemini-3.5-flash` (fallback `gemini-3.1-flash-lite`, `gemini-2.5-flash`, `gemini-2.0-flash`) providing custom question generation, player performance analytics, Gemini 3.1 Flash Live voice WebSocket, and 2-phase in-game chat streaming.
 - **Cross-Device & Cyber Virtual Keyboard**: Fully responsive UI supporting desktop keyboard play as well as mobile/tablet touch devices via an interactive Cyberpunk Virtual Keyboard (`VirtualKeyboard.vue`).
 
 ---
@@ -27,7 +27,7 @@ Naenra is a high-speed, competitive vocabulary typing game where players compete
 | **Backend Runtime** | Node.js, Express 5, TypeScript |
 | **Multiplayer Engine** | Colyseus 0.17+ (WebSockets) |
 | **Database & Auth** | Supabase (PostgreSQL, Service Role, Auth, Realtime) |
-| **AI Integration** | Google GenAI SDK (`@google/genai` — Gemini 2.5 Flash & Multimodal Live) |
+| **AI Integration** | Google GenAI SDK (`@google/genai` — Gemini 3.5 Flash & Gemini 3.1 Flash Live) |
 
 ---
 

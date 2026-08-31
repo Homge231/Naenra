@@ -66,7 +66,7 @@ export function setupAiLiveGateway(): WebSocketServer {
     const pendingClientMessages: (Buffer | string)[] = []
 
     geminiWs.on('open', () => {
-      const liveModel = process.env.GEMINI_LIVE_MODEL || 'models/gemini-2.0-flash-exp'
+      const liveModel = process.env.GEMINI_LIVE_MODEL || 'models/gemini-3.1-flash-live-preview'
       const setupMsg = {
         setup: {
           model: liveModel,

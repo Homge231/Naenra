@@ -10,9 +10,11 @@ import { kickUserClients } from '../utils/activeClients'
 let ai: GoogleGenAI | null = null;
 
 // Configurable Primary and Fallback Models
-const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash'
 const FALLBACK_MODELS: string[] = Array.from(new Set([
   process.env.GEMINI_MODEL,
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',
@@ -1315,7 +1317,7 @@ export async function generateChatResponseStream(
 
   if (!aiClient) {
     console.log('GEMINI_API_KEY not configured, streaming instant smart fallback response...')
-    const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
+    const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory, isAdmin)
     const words = fallbackReply.split(' ')
     for (let i = 0; i < words.length; i += 2) {
       if (isClientDisconnected) break
@@ -1416,7 +1418,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     // If API stream didn't yield any text, use generateChatResponse (with Smart Fallback Engine)
     if (emittedChars === 0 && !isClientDisconnected) {
       console.log('Gemini stream emitted 0 chars, fetching full response from generateChatResponse...')
-      const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
+      const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory, isAdmin)
       // Stream fallback response word-by-word with small delay for smooth typing animation
       const words = fallbackReply.split(' ')
       for (let i = 0; i < words.length; i += 2) {

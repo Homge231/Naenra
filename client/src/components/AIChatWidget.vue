@@ -495,15 +495,17 @@ async function sendMessage() {
         }
 
         const backlog = incomingBuffer.length - displayedText.length
-        const step = backlog > 80 ? 5 : backlog > 30 ? 3 : backlog > 12 ? 2 : 1
+        const step = backlog > 80 ? 6 : backlog > 30 ? 4 : backlog > 12 ? 2 : 1
         displayedText += incomingBuffer.slice(displayedText.length, displayedText.length + step)
 
         if (targetIdx >= 0 && targetIdx < messages.value.length) {
           messages.value[targetIdx] = { role: 'model', content: displayedText }
         }
         scrollToBottom()
-      } else if (isStreamClosed) {
-        // Stream completed and buffer fully rendered!
+      }
+
+      // Complete only after all characters in buffer are rendered
+      if (isStreamClosed && displayedText.length >= incomingBuffer.length) {
         clearInterval(streamTickerTimer)
         streamTickerTimer = null
         isStreaming.value = false
@@ -512,8 +514,15 @@ async function sendMessage() {
 
         if (displayedText.trim() && isChatOpen.value && thisSessionId === sessionSeq) {
           speakText(displayedText, isChatOpen.value)
-        } else {
-          // If no content ever arrived, remove empty placeholder
+        } else if (!displayedText.trim() && incomingBuffer.trim()) {
+          displayedText = incomingBuffer
+          if (targetIdx >= 0 && targetIdx < messages.value.length) {
+            messages.value[targetIdx] = { role: 'model', content: displayedText }
+          }
+          if (isChatOpen.value && thisSessionId === sessionSeq) {
+            speakText(displayedText, isChatOpen.value)
+          }
+        } else if (!displayedText.trim() && !incomingBuffer.trim()) {
           if (targetIdx >= 0 && targetIdx < messages.value.length && !messages.value[targetIdx].content) {
             messages.value.splice(targetIdx, 1)
             errorMsg.value = isVi ? 'Không nhận được phản hồi từ AI. Vui lòng thử lại.' : 'No response from AI. Please try again.'

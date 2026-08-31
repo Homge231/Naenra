@@ -97,9 +97,9 @@ Timer hits 0 → POST /api/game/timeout → status = 'timeout', session score lo
    - **Round 4 (Race Mode)**: Coreless fast-paced round. 5 questions total, 12s server-enforced timeout per question. First to complete wins max points. Real-time broadcasting via `MatchRoom`.
 
 ## AI Services Architecture (`server/src/services/aiService.ts`)
-- **Primary Model**: `gemini-2.5-flash` (configurable via `GEMINI_MODEL`)
-- **Fallback Models**: `gemini-2.0-flash`, `gemini-1.5-flash` (dynamic automatic fallback chain)
-- **Live Voice Engine**: Gemini Multimodal Live WebSocket (`models/gemini-2.0-flash-exp` / `GEMINI_LIVE_MODEL`) + Web Speech API PTT STT
+- **Primary Model**: `gemini-3.5-flash` (configurable via `GEMINI_MODEL`)
+- **Fallback Models**: `gemini-3.1-flash-lite`, `gemini-2.5-flash`, `gemini-2.0-flash`, `gemini-1.5-flash` (dynamic automatic fallback chain)
+- **Live Voice Engine**: Gemini 3.1 Flash Live Multimodal WebSocket (`models/gemini-3.1-flash-live-preview` / `GEMINI_LIVE_MODEL`) + Web Speech API PTT STT
 - **Functions**:
   1. `generateQuestions(topic, level, count)`: Generates structured JSON fill-in-the-blank questions with `____` placeholders, lowercase `target_word` (a-z letters only), and capitalized hints.
   2. `generateCoachAnalysis(username, analyticsData)`: Generates personalized performance advice based on topic accuracy and weakest words.
