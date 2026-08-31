@@ -124,16 +124,33 @@ Key Game Facts:
 
     // 2. Relay messages from Client -> Gemini Live (Buffered until setup completes)
     clientWs.on('message', (message: Buffer | string) => {
-      // Issue #7: Drop incoming mic audio while AI is streaming (prevents echo loop)
-      if (isSetupComplete && isAiStreaming) {
-        try {
-          const parsed = JSON.parse(message.toString())
-          if (parsed.realtimeInput?.audio) {
-            // Silently drop audio chunk — AI is currently speaking
-            return
+      try {
+        const parsed = JSON.parse(message.toString())
+
+        // ── TEXT QUERY from chat widget ─────────────────────────────────────
+        // Client sends { type: 'textQuery', text: '...' } for text chat
+        if (parsed.type === 'textQuery' && parsed.text) {
+          const textMsg = {
+            clientContent: {
+              turns: [{ role: 'user', parts: [{ text: parsed.text }] }],
+              turnComplete: true
+            }
           }
-        } catch { /* non-JSON, relay as-is */ }
-      }
+          if (isSetupComplete && geminiWs.readyState === WebSocket.OPEN) {
+            geminiWs.send(JSON.stringify(textMsg))
+          } else {
+            pendingClientMessages.push(JSON.stringify(textMsg))
+          }
+          return
+        }
+
+        // Issue #7: Drop incoming mic audio while AI is streaming (prevents echo loop)
+        if (isSetupComplete && isAiStreaming) {
+          if (parsed.realtimeInput?.audio) {
+            return // Silently drop audio chunk — AI is currently speaking
+          }
+        }
+      } catch { /* non-JSON, relay as-is */ }
 
       if (isSetupComplete && geminiWs.readyState === WebSocket.OPEN) {
         geminiWs.send(message.toString())
@@ -160,22 +177,36 @@ Key Game Facts:
         // Ignore non-JSON parsing errors for setupComplete check
       }
 
-      // HF-4: Separate try/catch for isAiStreaming tracking
-      // Ensures binary audio frames cannot silently prevent turnComplete from unlocking mic
+      // Parse and forward text responses + audio lock tracking
       try {
         const msg = JSON.parse(data.toString())
         const parts = msg?.serverContent?.modelTurn?.parts || []
+
+        // Audio tracking
         if (parts.some((p: any) => p.inlineData?.mimeType?.startsWith('audio/'))) {
-          isAiStreaming = true  // AI is sending audio — lock mic
+          isAiStreaming = true
         }
         if (msg?.serverContent?.turnComplete || msg?.serverContent?.interrupted || msg?.serverContent?.generationComplete) {
-          isAiStreaming = false  // AI finished speaking — unlock mic
+          isAiStreaming = false
+        }
+
+        // ── Forward TEXT chunks to client as structured events ──────────────
+        const textParts = parts.filter((p: any) => typeof p.text === 'string' && p.text)
+        if (textParts.length > 0 && clientWs.readyState === WebSocket.OPEN) {
+          for (const tp of textParts) {
+            clientWs.send(JSON.stringify({ type: 'textChunk', chunk: tp.text }))
+          }
+        }
+
+        // Forward turn complete signal
+        if (msg?.serverContent?.turnComplete && clientWs.readyState === WebSocket.OPEN) {
+          clientWs.send(JSON.stringify({ type: 'textDone' }))
         }
       } catch {
-        // Binary audio frames are not JSON — this is normal, ignore silently
-        // isAiStreaming state is NOT modified here, preserving last known value
+        // Binary audio frames are not JSON — normal, ignore silently
       }
 
+      // Always relay raw data (for audio and other protocol messages)
       if (clientWs.readyState === WebSocket.OPEN) {
         clientWs.send(data)
       }

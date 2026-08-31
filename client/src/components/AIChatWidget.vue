@@ -310,6 +310,12 @@ let sessionSeq = 0
 let streamTickerTimer: any = null
 let currentAbortController: AbortController | null = null
 
+// ── Gemini Live WebSocket (gemini-3.1-flash-live-preview) ───────────
+let liveWs: WebSocket | null = null
+let liveWsReady = false
+let liveAnswerMsgIdx = -1
+let liveIncomingBuffer = ''
+
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
 
@@ -429,7 +435,91 @@ async function unifiedMicRelease() {
   }
 }
 
-// ── Send message with Typewriter Streaming & Voice TTS ─────────────
+// ── Connect to Gemini Live WebSocket (gemini-3.1-flash-live-preview) ──
+function getApiBase(): string {
+  let base = import.meta.env.VITE_SERVER_URL || ''
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      base = 'http://localhost:3000'
+    } else if (!base) {
+      base = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
+    }
+  }
+  return base || 'http://localhost:3000'
+}
+
+let activeLiveChunkHandler: ((chunk: string) => void) | null = null
+let activeLiveDoneHandler: (() => void) | null = null
+
+function connectLiveWs(): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    if (liveWs && liveWs.readyState === WebSocket.OPEN && liveWsReady) {
+      resolve(liveWs)
+      return
+    }
+
+    if (liveWs) {
+      try { liveWs.close() } catch {}
+      liveWs = null
+    }
+
+    const token = localStorage.getItem('arena_token') || ''
+    const base = getApiBase()
+    const wsBase = base.replace(/^http/, 'ws')
+    const url = `${wsBase}/api/ai/live?token=${encodeURIComponent(token)}`
+
+    liveWs = new WebSocket(url)
+    liveWsReady = false
+
+    let resolved = false
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        reject(new Error('Live WS connection timeout'))
+      }
+    }, 4000)
+
+    liveWs.onmessage = (event) => {
+      try {
+        const raw = event.data.toString()
+
+        // Setup complete from Gemini Live
+        if (raw.includes('setupComplete')) {
+          liveWsReady = true
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeout)
+            resolve(liveWs!)
+          }
+          return
+        }
+
+        const msg = JSON.parse(raw)
+        if (msg.type === 'textChunk' && msg.chunk) {
+          if (activeLiveChunkHandler) activeLiveChunkHandler(msg.chunk)
+        } else if (msg.type === 'textDone') {
+          if (activeLiveDoneHandler) activeLiveDoneHandler()
+        }
+      } catch { /* binary audio data */ }
+    }
+
+    liveWs.onerror = (err) => {
+      liveWsReady = false
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timeout)
+        reject(err)
+      }
+    }
+
+    liveWs.onclose = () => {
+      liveWsReady = false
+      liveWs = null
+    }
+  })
+}
+
+// ── Send message via Gemini Live WebSocket ────────────────────────────
 async function sendMessage(overridePrompt?: string) {
   if (!isChatOpen.value) return
 
@@ -603,6 +693,56 @@ async function sendMessage(overridePrompt?: string) {
     }
     apiBase = apiBase || 'http://localhost:3000'
 
+    // Reuse ACK bubble as the answer bubble — clear its ack text and start streaming into it
+    answerMsgIdx = ackMsgIdx
+    if (answerMsgIdx >= 0 && answerMsgIdx < messages.value.length) {
+      messages.value[answerMsgIdx] = { role: 'model', content: '' }
+    }
+
+    // Launch incremental typewriter loop
+    startTypewriterLoop(answerMsgIdx)
+
+    // ── Method 1: Try Gemini 3.1 Flash Live over WebSocket (Fastest, Native Live Model) ──
+    let usedLiveWs = false
+    try {
+      const ws = await connectLiveWs()
+      if (ws && ws.readyState === WebSocket.OPEN && liveWsReady) {
+        usedLiveWs = true
+
+        activeLiveChunkHandler = (chunk: string) => {
+          if (thisSessionId === sessionSeq) {
+            incomingBuffer += chunk
+            resetWatchdog()
+          }
+        }
+        activeLiveDoneHandler = () => {
+          if (thisSessionId === sessionSeq) {
+            isStreamClosed = true
+          }
+        }
+
+        resetWatchdog()
+        ws.send(JSON.stringify({ type: 'textQuery', text }))
+
+        // Wait until stream completes or gets cancelled
+        await new Promise<void>((resolve) => {
+          const checkInterval = setInterval(() => {
+            if (isStreamClosed || thisSessionId !== sessionSeq || !isChatOpen.value) {
+              clearInterval(checkInterval)
+              resolve()
+            }
+          }, 50)
+        })
+
+        if (thisSessionId === sessionSeq && isStreamClosed) {
+          return
+        }
+      }
+    } catch (wsErr) {
+      console.warn('[AIChatWidget] Gemini Live WS unavailable, falling back to SSE stream:', wsErr)
+    }
+
+    // ── Method 2: Fallback to HTTP SSE Stream ──────────────────────────
     const res = await fetch(`${apiBase}/api/ai/chat/stream`, {
       method: 'POST',
       headers: {
@@ -626,15 +766,6 @@ async function sendMessage(overridePrompt?: string) {
       const err = await res.json().catch(() => ({}))
       throw new Error(err.message || (isVi ? 'Không thể kết nối đến AI Assistant' : 'Failed to connect to AI Assistant'))
     }
-
-    // Reuse ACK bubble as the answer bubble — clear its ack text and start streaming into it
-    answerMsgIdx = ackMsgIdx
-    if (answerMsgIdx >= 0 && answerMsgIdx < messages.value.length) {
-      messages.value[answerMsgIdx] = { role: 'model', content: '' }
-    }
-
-    // Launch incremental typewriter loop
-    startTypewriterLoop(answerMsgIdx)
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -696,6 +827,8 @@ async function sendMessage(overridePrompt?: string) {
       streamingMsgIdx.value = -1
     }
   } finally {
+    activeLiveChunkHandler = null
+    activeLiveDoneHandler = null
     if (timeoutId) clearTimeout(timeoutId)
     if (thisSessionId === sessionSeq) {
       currentAbortController = null
@@ -722,6 +855,7 @@ watch(isChatOpen, (open) => {
     streamingMsgIdx.value = -1
     isLoading.value = false
   } else {
+    connectLiveWs().catch(() => {})
     nextTick(() => scrollToBottom())
   }
 })
