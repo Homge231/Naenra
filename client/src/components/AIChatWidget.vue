@@ -355,10 +355,23 @@ function getApiBase(): string {
 }
 
 // ── WebSocket Connection ──────────────────────────────────────────
+let connectPromise: Promise<void> | null = null
+
 function connectLiveWs(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (liveWs && liveWs.readyState === WebSocket.OPEN && liveWsReady) { resolve(); return }
-    if (liveWs) { try { liveWs.close() } catch {} liveWs = null }
+  if (liveWs && liveWs.readyState === WebSocket.OPEN && liveWsReady) {
+    return Promise.resolve()
+  }
+  if (connectPromise) {
+    return connectPromise
+  }
+
+  connectPromise = new Promise((resolve, reject) => {
+    if (liveWs && liveWs.readyState === WebSocket.OPEN) {
+      liveWsReady = true
+      connectPromise = null
+      resolve()
+      return
+    }
 
     const token = localStorage.getItem('arena_token') || ''
     const base = getApiBase()
@@ -367,30 +380,65 @@ function connectLiveWs(): Promise<void> {
     liveWsReady = false
 
     let resolved = false
-    const timer = setTimeout(() => { if (!resolved) { resolved = true; reject(new Error('WS timeout')) } }, 6000)
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        connectPromise = null
+        reject(new Error('WS timeout'))
+      }
+    }, 8000)
 
     liveWs.onmessage = (event) => {
       try {
         const raw = event.data.toString()
         if (raw.includes('setupComplete')) {
           liveWsReady = true
-          if (!resolved) { resolved = true; clearTimeout(timer); resolve() }
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timer)
+            connectPromise = null
+            resolve()
+          }
           return
         }
         const msg = JSON.parse(raw)
         if (msg.type === 'textChunk' && msg.chunk && activeLiveChunkHandler) activeLiveChunkHandler(msg.chunk)
         if (msg.type === 'textDone' && activeLiveDoneHandler) activeLiveDoneHandler()
         if (msg.type === 'inputTranscript' && msg.text && activeLiveTranscriptHandler) activeLiveTranscriptHandler(msg.text)
-        if (msg.error) { errorMsg.value = msg.error; isLoading.value = false; isStreaming.value = false }
+        if (msg.error) {
+          errorMsg.value = msg.error
+          isLoading.value = false
+          isStreaming.value = false
+        }
       } catch { /* binary/non-JSON */ }
     }
-    liveWs.onerror = () => { liveWsReady = false; if (!resolved) { resolved = true; clearTimeout(timer); reject(new Error('WS error')) } }
-    liveWs.onclose = () => { liveWsReady = false; liveWs = null }
+
+    liveWs.onerror = () => {
+      liveWsReady = false
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timer)
+        connectPromise = null
+        reject(new Error('WS error'))
+      }
+    }
+
+    liveWs.onclose = () => {
+      liveWsReady = false
+      liveWs = null
+      connectPromise = null
+    }
   })
+
+  return connectPromise
 }
 
 function disconnectLiveWs() {
-  if (liveWs) { try { liveWs.close() } catch {} liveWs = null }
+  connectPromise = null
+  if (liveWs) {
+    try { liveWs.close() } catch {}
+    liveWs = null
+  }
   liveWsReady = false
 }
 
