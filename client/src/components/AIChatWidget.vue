@@ -400,44 +400,47 @@ async function unifiedMicRelease() {
 
   const pressDuration = Date.now() - pressStartTime
 
-  // Stop recording and retrieve recognized voice text + recorded audio fallback
+  // Stop recording — get transcript + audio fallback
   const speechResult = await speechRec.stopListening()
-  const textPrompt = (speechResult.text || inputText.value).trim()
+
+  // Priority 1: Use Web Speech recognized text
+  const textFromSpeech = (speechResult.text || '').trim()
+  // Priority 2: Use whatever was live-typed in the input box
+  const textFromInput = inputText.value.trim()
+  const finalText = textFromSpeech || textFromInput
 
   if (speechRec.errorMsg.value) {
     errorMsg.value = speechRec.errorMsg.value
+    inputText.value = ''
     return
   }
 
-  if (textPrompt) {
+  if (finalText) {
+    // We have real recognized text — send as text prompt (fast, reliable)
     inputText.value = ''
-    await sendMessage(textPrompt)
-  } else if (speechResult.audioData) {
-    // If WebSpeech didn't produce text, but audio was recorded by microphone:
-    inputText.value = ''
-    await sendMessage('🎙️ Transcribing voice...', {
-      data: speechResult.audioData,
-      mimeType: speechResult.mimeType || 'audio/webm'
-    })
+    await sendMessage(finalText)
   } else {
-    // Too short tap or no voice detected - do NOT send empty prompt to AI!
+    // No text recognized at all — do NOT send empty prompt
+    inputText.value = ''
     if (pressDuration < 300) {
       errorMsg.value = 'Hold mic button down to speak, then release when finished.'
     } else {
-      errorMsg.value = 'No voice detected. Please hold mic and speak clearly.'
+      errorMsg.value = 'No voice detected. Please speak clearly and try again.'
     }
     setTimeout(() => {
-      if (errorMsg.value.includes('mic') || errorMsg.value.includes('voice')) errorMsg.value = ''
+      if (errorMsg.value.includes('mic') || errorMsg.value.includes('voice') || errorMsg.value.includes('speak')) {
+        errorMsg.value = ''
+      }
     }, 3500)
   }
 }
 
 // ── Send message with Typewriter Streaming & Voice TTS ─────────────
-async function sendMessage(overridePrompt?: string, audioPayload?: { data: string; mimeType: string }) {
+async function sendMessage(overridePrompt?: string) {
   if (!isChatOpen.value) return
 
   const text = (overridePrompt !== undefined ? overridePrompt : inputText.value).trim()
-  if (!text && !audioPayload?.data) return
+  if (!text) return
 
   inputText.value = ''
   errorMsg.value = ''
@@ -469,18 +472,27 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
   isLoading.value = false
 
   // Push user prompt bubble
-  messages.value.push({ role: 'user', content: text || '🎙️ Transcribing voice...' })
+  messages.value.push({ role: 'user', content: text })
+  scrollToBottom()
+
+  // ── Instant ACK bubble ────────────────────────────────────────────
+  // Push an immediate acknowledgement so user knows AI received the message
+  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
+  const ackText = isVi ? '⏳ Chờ mình một chút nhé…' : '⏳ Hold on a moment…'
+  messages.value.push({ role: 'model', content: ackText })
+  const ackMsgIdx = messages.value.length - 1
   scrollToBottom()
 
   isLoading.value = true
+
+  // Small delay so ACK renders before fetch starts
+  await new Promise(r => setTimeout(r, 120))
 
   let incomingBuffer = ''
   let displayedText = ''
   let isStreamClosed = false
   let timeoutId: any = null
   let answerMsgIdx = -1
-
-  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
 
   // Helper to start incremental typewriter effect for response bubble
   const startTypewriterLoop = (targetIdx: number) => {
@@ -604,9 +616,7 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        prompt: text || 'Voice Query',
-        audioData: audioPayload?.data,
-        mimeType: audioPayload?.mimeType,
+        prompt: text,
         history,
         playerHistory
       }),
@@ -623,9 +633,11 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
       throw new Error(err.message || (isVi ? 'Không thể kết nối đến AI Assistant' : 'Failed to connect to AI Assistant'))
     }
 
-    // Push placeholder message for AI answer
-    messages.value.push({ role: 'model', content: '' })
-    answerMsgIdx = messages.value.length - 1
+    // Reuse ACK bubble as the answer bubble — clear its ack text and start streaming into it
+    answerMsgIdx = ackMsgIdx
+    if (answerMsgIdx >= 0 && answerMsgIdx < messages.value.length) {
+      messages.value[answerMsgIdx] = { role: 'model', content: '' }
+    }
 
     // Launch incremental typewriter loop
     startTypewriterLoop(answerMsgIdx)
@@ -665,12 +677,6 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
         }
         try {
           const parsed = JSON.parse(payload)
-          if (parsed.userTranscript && thisSessionId === sessionSeq) {
-            const userMsgIdx = answerMsgIdx - 1
-            if (userMsgIdx >= 0 && messages.value[userMsgIdx].role === 'user') {
-              messages.value[userMsgIdx].content = parsed.userTranscript
-            }
-          }
           if (parsed.chunk && thisSessionId === sessionSeq) {
             incomingBuffer += parsed.chunk
           }
@@ -682,21 +688,22 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
   } catch (err: any) {
     isStreamClosed = true
 
-    // If stream failed before any text arrived, clean up placeholder
+
+    // If stream failed before any text arrived — replace ACK bubble with error message
     if (thisSessionId === sessionSeq && incomingBuffer.length === 0) {
       if (streamTickerTimer) {
         clearInterval(streamTickerTimer)
         streamTickerTimer = null
       }
-      if (answerMsgIdx >= 0 && messages.value[answerMsgIdx]?.content === '') {
-        messages.value.splice(answerMsgIdx, 1)
-      }
-      if (err.name === 'AbortError') {
-        if (thisSessionId === sessionSeq && !isHoldingMic.value) {
-          errorMsg.value = isVi ? 'Kết nối AI bị gián đoạn hoặc quá thời gian. Vui lòng thử lại.' : 'AI connection timed out. Please try again.'
+      const errText = err.name === 'AbortError' && !isHoldingMic.value
+        ? (isVi ? '⚠️ Kết nối AI bị gián đoạn. Vui lòng thử lại.' : '⚠️ AI connection timed out. Please try again.')
+        : (err.message || (isVi ? '⚠️ Đã xảy ra lỗi. Vui lòng thử lại.' : '⚠️ An error occurred. Please try again.'))
+      if (err.name !== 'AbortError' || !isHoldingMic.value) {
+        errorMsg.value = errText
+        // Replace ACK bubble with error hint or remove it
+        if (answerMsgIdx >= 0 && answerMsgIdx < messages.value.length) {
+          messages.value.splice(answerMsgIdx, 1)
         }
-      } else {
-        errorMsg.value = err.message || (isVi ? 'Đã xảy ra lỗi. Vui lòng thử lại.' : 'An error occurred. Please try again.')
       }
       isLoading.value = false
       isStreaming.value = false

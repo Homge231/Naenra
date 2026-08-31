@@ -51,9 +51,9 @@
         <span class="signal-bar bar-7" :style="dynamicBarStyle(6, 3, 8)"></span>
       </div>
 
-      <!-- 2. When Listening to User Mic: Red Radio Receiver Waves (Reacts to Voice Amplitude) -->
+      <!-- 2. When Listening to User Mic: Radio Receiver Waves ONLY when voice detected -->
       <div v-else-if="isListening || isLiveConnected" class="radio-listening-mouth flex items-center justify-center h-3.5 w-full">
-        <!-- Voice detected (> 0.05 amplitude): Dynamic radio altitude bars -->
+        <!-- Voice detected (> 0.05 amplitude): Dynamic radio altitude bars only -->
         <div v-if="(audioAmplitude || 0) >= 0.05" class="flex items-center justify-center gap-[2px] h-3.5">
           <span class="listening-bar lbar-1" :style="listeningBarStyle(0, 3, 8)"></span>
           <span class="listening-bar lbar-2" :style="listeningBarStyle(1, 4, 12)"></span>
@@ -61,8 +61,7 @@
           <span class="listening-bar lbar-4" :style="listeningBarStyle(3, 4, 12)"></span>
           <span class="listening-bar lbar-5" :style="listeningBarStyle(4, 3, 8)"></span>
         </div>
-        <!-- Silence / listening standby: Flat calm resting red carrier line -->
-        <div v-else class="listening-idle-line w-4 h-[2px] bg-red-500/80 rounded-full shadow-[0_0_6px_rgba(239,68,68,0.7)] animate-pulse"></div>
+        <!-- Silence / no voice detected: show NOTHING (invisible) -->
       </div>
 
       <!-- 3. When Thinking / Loading: Radar Frequency Scanner Line -->
