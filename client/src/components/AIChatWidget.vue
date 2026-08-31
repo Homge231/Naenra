@@ -375,7 +375,6 @@ async function unifiedMicPress() {
   errorMsg.value = ''
   inputText.value = ''
 
-  // 3. Connect real-time transcript updates into the input box
   speechRec.onTranscriptUpdate((text: string) => {
     if (isHoldingMic.value && text) {
       inputText.value = text
@@ -401,18 +400,25 @@ async function unifiedMicRelease() {
 
   const pressDuration = Date.now() - pressStartTime
 
-  // Stop recording and retrieve recognized voice text
-  const capturedText = await speechRec.stopListening()
-  const finalPrompt = (capturedText || inputText.value).trim()
+  // Stop recording and retrieve recognized voice text + recorded audio fallback
+  const speechResult = await speechRec.stopListening()
+  const textPrompt = (speechResult.text || inputText.value).trim()
 
   if (speechRec.errorMsg.value) {
     errorMsg.value = speechRec.errorMsg.value
     return
   }
 
-  if (finalPrompt) {
-    inputText.value = finalPrompt
-    await sendMessage()
+  if (textPrompt) {
+    inputText.value = ''
+    await sendMessage(textPrompt)
+  } else if (speechResult.audioData) {
+    // If WebSpeech didn't produce text, but audio was recorded by microphone:
+    inputText.value = ''
+    await sendMessage('🎙️ Voice Message', {
+      data: speechResult.audioData,
+      mimeType: speechResult.mimeType || 'audio/webm'
+    })
   } else {
     // Too short tap or no voice detected - do NOT send empty prompt to AI!
     if (pressDuration < 300) {
@@ -427,11 +433,11 @@ async function unifiedMicRelease() {
 }
 
 // ── Send message with Typewriter Streaming & Voice TTS ─────────────
-async function sendMessage() {
+async function sendMessage(overridePrompt?: string, audioPayload?: { data: string; mimeType: string }) {
   if (!isChatOpen.value) return
 
-  const text = inputText.value.trim()
-  if (!text) return
+  const text = (overridePrompt !== undefined ? overridePrompt : inputText.value).trim()
+  if (!text && !audioPayload?.data) return
 
   inputText.value = ''
   errorMsg.value = ''
@@ -463,7 +469,7 @@ async function sendMessage() {
   isLoading.value = false
 
   // Push user prompt bubble
-  messages.value.push({ role: 'user', content: text })
+  messages.value.push({ role: 'user', content: text || '🎙️ Voice Message' })
   scrollToBottom()
 
   isLoading.value = true
@@ -548,15 +554,16 @@ async function sendMessage() {
     const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
 
     const playerHistory = {
-      username: authStore.profile?.username || username.value,
+      username: username.value,
       elo: authStore.profile?.elo ?? 1000,
-      rank: authStore.profile?.rank || 'Novice',
+      rank: authStore.profile?.rank || 'Bronze',
       wins,
       losses,
       totalMatches,
       winRate,
       unlockedCores: authStore.profile?.unlocked_core_ids || [],
-      activeCoreName: gameStore.activeCoreName || 'None',
+      activeCoreId: gameStore.activeCoreId || '',
+      activeCoreName: gameStore.activeCoreId ? 'Equipped Core' : 'None',
       coreHistory: gameStore.coreHistory || [],
       score: gameStore.score || 0
     }
@@ -596,7 +603,13 @@ async function sendMessage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ prompt: text, history, playerHistory }),
+      body: JSON.stringify({
+        prompt: text || 'Voice Query',
+        audioData: audioPayload?.data,
+        mimeType: audioPayload?.mimeType,
+        history,
+        playerHistory
+      }),
       signal: currentAbortController.signal
     })
 

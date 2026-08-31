@@ -6,6 +6,13 @@ export interface SpeechRecognitionOptions {
   interimResults?: boolean
 }
 
+export interface SpeechResult {
+  text: string
+  audioData?: string
+  mimeType?: string
+  hasVoice: boolean
+}
+
 export function useSpeechRecognition() {
   const isListening = ref(false)
   const isSupported = ref(false)
@@ -23,6 +30,9 @@ export function useSpeechRecognition() {
   let onResultCallback: ((fullText: string, isFinal: boolean) => void) | null = null
   let finalAccumulated = ''
   let isRecordingActive = false
+  let maxRecordedAmplitude = 0
+  let mediaRecorder: MediaRecorder | null = null
+  let recordedAudioChunks: Blob[] = []
 
   if (typeof window !== 'undefined') {
     const SpeechRecognitionClass =
@@ -43,17 +53,13 @@ export function useSpeechRecognition() {
       (window as any).mozSpeechRecognition ||
       (window as any).msSpeechRecognition
 
-    if (!SpeechRecognitionClass) {
-      errorMsg.value = 'Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.'
-      return null
-    }
+    if (!SpeechRecognitionClass) return null
 
     const instance = new SpeechRecognitionClass()
     instance.continuous = options?.continuous ?? true
     instance.interimResults = options?.interimResults ?? true
     instance.maxAlternatives = 1
 
-    // Detect language: default to Vietnamese if Vietnamese characters or locale, else en-US
     const browserLang = navigator.language || 'en-US'
     instance.lang = options?.lang || (browserLang.startsWith('vi') ? 'vi-VN' : 'en-US')
 
@@ -91,12 +97,9 @@ export function useSpeechRecognition() {
 
     instance.onerror = (event: any) => {
       const err = event.error
-      if (err === 'no-speech') {
-        // Normal when user holds mic without talking
-        return
-      }
+      if (err === 'no-speech') return
       if (err === 'not-allowed' || err === 'service-not-allowed') {
-        errorMsg.value = 'Microphone permission denied. Please allow microphone access in your browser settings.'
+        errorMsg.value = 'Microphone permission denied. Please allow microphone access in browser settings.'
       } else if (err !== 'aborted') {
         console.warn('[SpeechRecognition Error]:', err)
       }
@@ -104,7 +107,6 @@ export function useSpeechRecognition() {
 
     instance.onend = () => {
       if (isRecordingActive) {
-        // Restart recognition instance if browser automatically cycled during hold
         try {
           if (recognition) {
             recognition.start()
@@ -147,15 +149,16 @@ export function useSpeechRecognition() {
           sum += dataArray[i]
         }
         const avg = sum / bufferLength
-        // Apply noise gate: background noise (< 10) yields 0
-        if (avg < 10) {
+        if (avg < 8) {
           audioAmplitude.value = 0
           isVoiceDetected.value = false
         } else {
-          // Normalized altitude / amplitude: 0.1 to 1.0
-          const normalized = Math.min(1, Math.max(0.1, (avg - 10) / 70))
+          const normalized = Math.min(1, Math.max(0.1, (avg - 8) / 65))
           audioAmplitude.value = normalized
           isVoiceDetected.value = true
+          if (normalized > maxRecordedAmplitude) {
+            maxRecordedAmplitude = normalized
+          }
         }
 
         animFrameId = requestAnimationFrame(sampleLoop)
@@ -183,6 +186,64 @@ export function useSpeechRecognition() {
     isVoiceDetected.value = false
   }
 
+  function startMediaRecorder(stream: MediaStream) {
+    recordedAudioChunks = []
+    if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') return
+    try {
+      let mimeType = 'audio/webm;codecs=opus'
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = MediaRecorder.isTypeSupported('audio/webm')
+          ? 'audio/webm'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : ''
+      }
+
+      mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedAudioChunks.push(e.data)
+        }
+      }
+      mediaRecorder.start(100)
+    } catch (e) {
+      console.warn('[useSpeechRecognition] MediaRecorder init error:', e)
+    }
+  }
+
+  function stopMediaRecorder(): Promise<{ base64: string; mimeType: string } | null> {
+    return new Promise((resolve) => {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        resolve(null)
+        return
+      }
+
+      mediaRecorder.onstop = async () => {
+        try {
+          const mimeType = mediaRecorder?.mimeType || 'audio/webm'
+          const blob = new Blob(recordedAudioChunks, { type: mimeType })
+          recordedAudioChunks = []
+          const arrayBuf = await blob.arrayBuffer()
+          let binary = ''
+          const bytes = new Uint8Array(arrayBuf)
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i])
+          }
+          const base64 = window.btoa(binary)
+          resolve({ base64, mimeType })
+        } catch {
+          resolve(null)
+        }
+      }
+
+      try {
+        mediaRecorder.stop()
+      } catch {
+        resolve(null)
+      }
+    })
+  }
+
   async function acquireMicHardware(): Promise<boolean> {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return true
     try {
@@ -194,6 +255,7 @@ export function useSpeechRecognition() {
         }
       })
       startAudioAnalyser(micMediaStream)
+      startMediaRecorder(micMediaStream)
       return true
     } catch (err: any) {
       console.warn('[useSpeechRecognition] Microphone permission error:', err)
@@ -216,15 +278,11 @@ export function useSpeechRecognition() {
     abortListening()
 
     isRecordingActive = true
+    maxRecordedAmplitude = 0
     finalAccumulated = ''
     transcript.value = ''
     interimTranscript.value = ''
     errorMsg.value = null
-
-    if (!isSupported.value) {
-      errorMsg.value = 'Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.'
-      return false
-    }
 
     const hasMic = await acquireMicHardware()
     if (!hasMic) {
@@ -234,31 +292,35 @@ export function useSpeechRecognition() {
 
     try {
       recognition = setupRecognitionInstance(options)
-      if (!recognition) {
-        isRecordingActive = false
-        releaseMicHardware()
-        return false
+      if (recognition) {
+        recognition.start()
       }
-      recognition.start()
       isListening.value = true
       return true
     } catch (err: any) {
-      console.warn('[useSpeechRecognition] Failed to start recognition:', err)
-      isRecordingActive = false
-      releaseMicHardware()
-      return false
+      console.warn('[useSpeechRecognition] WebSpeech start warning (MediaRecorder active):', err)
+      isListening.value = true
+      return true
     }
   }
 
-  function stopListening(): Promise<string> {
+  async function stopListening(): Promise<SpeechResult> {
     isRecordingActive = false
+    const audioResult = await stopMediaRecorder()
+
     return new Promise((resolve) => {
       const finishAndResolve = () => {
-        const full = (transcript.value.trim() || interimTranscript.value.trim())
+        const fullText = (transcript.value.trim() || interimTranscript.value.trim())
         interimTranscript.value = ''
         releaseMicHardware()
         isListening.value = false
-        resolve(full)
+
+        resolve({
+          text: fullText,
+          audioData: audioResult?.base64,
+          mimeType: audioResult?.mimeType,
+          hasVoice: maxRecordedAmplitude > 0.05 || !!fullText
+        })
       }
 
       if (!recognition) {
@@ -275,10 +337,9 @@ export function useSpeechRecognition() {
         finishAndResolve()
       }
 
-      // Safeguard timeout in case browser hangs on onend
       setTimeout(() => {
         finishAndResolve()
-      }, 250)
+      }, 200)
     })
   }
 
@@ -286,6 +347,10 @@ export function useSpeechRecognition() {
     isRecordingActive = false
     isListening.value = false
     interimTranscript.value = ''
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      try { mediaRecorder.stop() } catch {}
+    }
+    recordedAudioChunks = []
     if (recognition) {
       try {
         recognition.onend = null

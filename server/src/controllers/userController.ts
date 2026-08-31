@@ -251,15 +251,24 @@ export const getAiChatResponse = async (req: AuthRequest, res: Response): Promis
 
 export const getAiChatResponseStream = async (req: AuthRequest, res: Response): Promise<any> => {
   try {
-    const { prompt, history, playerHistory } = req.body
+    const { prompt, audioData, mimeType, history, playerHistory } = req.body
 
-    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
-      return res.status(400).json({ error: 'prompt is required' })
+    const cleanPrompt = (typeof prompt === 'string' ? prompt.trim() : '') || (audioData ? 'Voice Query' : '')
+    if (!cleanPrompt && !audioData) {
+      return res.status(400).json({ error: 'prompt or audioData is required' })
     }
 
     const { username, enrichedStats, isAdmin } = await getPlayerContext(req, playerHistory)
     // generateChatResponseStream manages SSE headers and response lifecycle internally
-    await generateChatResponseStream(username, prompt.trim(), res, history, enrichedStats, isAdmin)
+    await generateChatResponseStream(
+      username,
+      cleanPrompt,
+      res,
+      history,
+      enrichedStats,
+      isAdmin,
+      audioData ? { data: audioData, mimeType: mimeType || 'audio/webm' } : undefined
+    )
   } catch (error: any) {
     console.error('getAiChatResponseStream error:', error)
     if (!res.headersSent) {

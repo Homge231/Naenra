@@ -1283,7 +1283,8 @@ export async function generateChatResponseStream(
   res: import('express').Response,
   history?: { role: 'user' | 'model'; message: string }[],
   playerHistory?: PlayerGameStats,
-  isAdmin?: boolean
+  isAdmin?: boolean,
+  audioData?: { data: string; mimeType: string }
 ): Promise<void> {
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
@@ -1348,8 +1349,20 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     }
     fullPrompt += `\n\n${username}: ${prompt}\nAI Assistant:`
 
-    // If caller is an Admin, check if prompt triggers an administrative tool action
-    if (isAdmin) {
+    const streamContents: any = audioData?.data
+      ? [
+          {
+            inlineData: {
+              mimeType: audioData.mimeType || 'audio/webm',
+              data: audioData.data
+            }
+          },
+          fullPrompt + "\nListen to the player's voice message in the audio above, transcribe it, and answer directly as Naenra AI Assistant."
+        ]
+      : fullPrompt
+
+    // If caller is an Admin and no audioData, check if prompt triggers an administrative tool action
+    if (isAdmin && !audioData?.data) {
       try {
         const adminCheck = await generateContentWithFallback(aiClient, {
           contents: fullPrompt,
@@ -1392,7 +1405,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     let streamResult: any = null
     try {
       streamResult = await generateContentStreamWithFallback(aiClient, {
-        contents: fullPrompt,
+        contents: streamContents,
         config: { temperature: aiCfg.temperature }
       })
     } catch (streamErr) {
