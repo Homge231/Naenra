@@ -28,9 +28,9 @@
 - Custom room ELO locking to prevent boosting.
 
 ### AI Integration, Voice & Real-time Streaming (US-95 & US-96 Completed)
-- AI Question Generator (`generateQuestions`) using `gemini-3.5-flash` with structured JSON schema (`____` blanks, lowercase `target_word`), live database deduplication (`questions` table exclusion list), and sub-topic context focusing.
+- AI Question Generator (`generateQuestions`) using `gemini-2.5-flash` (fallback `gemini-2.0-flash`, `gemini-1.5-flash`) with structured JSON schema (`____` blanks, lowercase `target_word`), live database deduplication (`questions` table exclusion list), and sub-topic context focusing.
 - AI Performance Coach (`generateCoachAnalysis`) for personalized vocabulary analytics reports.
-- AI Assistant (`generateChatResponse` & `generateChatResponseStream`) using injected knowledge base (`naenra_knowledge_base.md`), offline multi-lingual fallback NLP engine, and Gemini 3.1 Flash Live Voice WebSocket integration.
+- AI Assistant (`generateChatResponse` & `generateChatResponseStream`) using injected knowledge base (`naenra_knowledge_base.md`), offline multi-lingual fallback NLP engine, and Gemini Multimodal Live Voice WebSocket integration (`models/gemini-2.0-flash-exp`).
 - **Dynamic AI Persona & Root Admin Function Calling**: Server-side tool execution suite (`deduplicateQuestions`, `getQuestionBankStats`, `listQuestions`, `bulkDeleteQuestions`, `createQuestion`, `updateQuestion`, `deleteQuestion`, `banPlayer`, `unbanPlayer`, `setPlayerAdmin`, `searchDatabase`) and configurable persona engine (`Naenra Coach`, `Cyber Operator`, `Puck Mascot`, `Telemetry Core`, `Custom`).
 - **Instant Preemption & Voice Interruption**: Non-blocking input with instant abort of in-flight HTTP SSE streams, typewriter timers, and Web Speech Synthesis (`window.speechSynthesis.cancel()`) upon receiving new text or microphone voice triggers.
 

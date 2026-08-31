@@ -15,7 +15,7 @@
               AI Question Quality Auditor
             </h3>
             <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
-              GEMINI 3.5 FLASH
+              GEMINI 2.5 FLASH
             </span>
           </div>
           <p class="text-xs text-slate-400">

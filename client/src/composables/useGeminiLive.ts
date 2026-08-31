@@ -22,7 +22,9 @@ export function useGeminiLive() {
 
   function getWsUrl(): string {
     let envUrl = import.meta.env.VITE_SERVER_URL
-    if (!envUrl && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      envUrl = 'http://localhost:3000'
+    } else if (!envUrl && typeof window !== 'undefined') {
       envUrl = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
     }
     envUrl = envUrl || 'http://localhost:3000'

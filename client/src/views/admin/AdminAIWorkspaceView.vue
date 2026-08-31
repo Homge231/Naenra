@@ -78,12 +78,12 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="p-5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">
         <p class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mb-2">Primary Model</p>
-        <p class="text-base font-bold text-white font-mono">gemini-3.5-flash</p>
+        <p class="text-base font-bold text-white font-mono">gemini-2.5-flash</p>
         <p class="text-xs text-slate-400 mt-1">Chat · Questions · Coach</p>
       </div>
       <div class="p-5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">
         <p class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mb-2">Fallback Model</p>
-        <p class="text-base font-bold text-slate-300 font-mono">gemini-3.1-flash-lite</p>
+        <p class="text-base font-bold text-slate-300 font-mono">gemini-2.0-flash</p>
         <p class="text-xs text-slate-400 mt-1">Auto-activated on primary fail</p>
       </div>
       <div class="p-5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">

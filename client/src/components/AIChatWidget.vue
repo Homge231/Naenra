@@ -549,7 +549,7 @@ async function sendMessage() {
       score: gameStore.score || 0
     }
 
-    // ── Setup SSE Request with Connection Timeout (15s TTFB) ──────────
+    // ── Setup SSE Request with Connection Timeout (25s TTFB) ──────────
     currentAbortController = new AbortController()
     const resetWatchdog = () => {
       if (timeoutId) clearTimeout(timeoutId)
@@ -557,7 +557,7 @@ async function sendMessage() {
         if (currentAbortController && thisSessionId === sessionSeq) {
           currentAbortController.abort()
         }
-      }, 15000)
+      }, 25000)
     }
 
     resetWatchdog()
@@ -571,7 +571,9 @@ async function sendMessage() {
     }
 
     let apiBase = import.meta.env.VITE_SERVER_URL
-    if (!apiBase && typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      apiBase = 'http://localhost:3000'
+    } else if (!apiBase && typeof window !== 'undefined') {
       apiBase = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
     }
     apiBase = apiBase || 'http://localhost:3000'
@@ -625,6 +627,11 @@ async function sendMessage() {
       buffer = lines.pop() || ''
 
       for (const line of lines) {
+        if (line.startsWith(':')) {
+          // SSE comment/handshake line (e.g. : connected) — resets activity watchdog
+          resetWatchdog()
+          continue
+        }
         if (!line.startsWith('data: ')) continue
         const payload = line.slice(6).trim()
         if (payload === '[DONE]') {

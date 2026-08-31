@@ -9,6 +9,77 @@ import { kickUserClients } from '../utils/activeClients'
 // We instantiate it dynamically inside the function to ensure dotenv is loaded
 let ai: GoogleGenAI | null = null;
 
+// Configurable Primary and Fallback Models
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const FALLBACK_MODELS: string[] = Array.from(new Set([
+  process.env.GEMINI_MODEL,
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b'
+].filter(Boolean))) as string[]
+
+let preferredModel: string = PRIMARY_MODEL
+
+export function getAiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+  if (!apiKey) return null
+  if (!ai) {
+    ai = new GoogleGenAI({ apiKey })
+  }
+  return ai
+}
+
+export async function generateContentWithFallback(
+  aiClient: GoogleGenAI,
+  params: { contents: string; config?: any }
+): Promise<any> {
+  const candidateModels = Array.from(new Set([preferredModel, ...FALLBACK_MODELS]))
+  let lastError: any = null
+
+  for (const model of candidateModels) {
+    try {
+      const response = await aiClient.models.generateContent({
+        model,
+        contents: params.contents,
+        config: params.config
+      })
+      preferredModel = model
+      return response
+    } catch (err: any) {
+      lastError = err
+      console.warn(`[AI Service] generateContent failed with model "${model}": ${err.message || err}. Trying fallback...`)
+    }
+  }
+
+  throw lastError || new Error('All candidate Gemini models failed')
+}
+
+export async function generateContentStreamWithFallback(
+  aiClient: GoogleGenAI,
+  params: { contents: string; config?: any }
+): Promise<any> {
+  const candidateModels = Array.from(new Set([preferredModel, ...FALLBACK_MODELS]))
+  let lastError: any = null
+
+  for (const model of candidateModels) {
+    try {
+      const stream = await aiClient.models.generateContentStream({
+        model,
+        contents: params.contents,
+        config: params.config
+      })
+      preferredModel = model
+      return stream
+    } catch (err: any) {
+      lastError = err
+      console.warn(`[AI Service] generateContentStream failed with model "${model}": ${err.message || err}. Trying fallback...`)
+    }
+  }
+
+  throw lastError || new Error('All candidate Gemini models failed')
+}
+
 // Load knowledge base JSON and Markdown
 let gameKnowledgeBase: any = null
 let gameKnowledgeBaseMd: string = ''
@@ -604,61 +675,19 @@ RULES:
 `
 
   try {
-    if (!ai) {
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error("GEMINI_API_KEY is not set in environment variables");
-      }
-      ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+    const aiClient = getAiClient()
+    if (!aiClient) {
+      throw new Error("GEMINI_API_KEY is not set in environment variables");
     }
 
-    let response;
-    try {
-      response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: questionSchema,
-          temperature: 0.8,
-        }
-      })
-    } catch (e) {
-      console.warn("Primary model gemini-3.5-flash failed, trying gemini-3.1-flash-lite fallback:", e)
-      try {
-        response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: questionSchema,
-            temperature: 0.8,
-          }
-        })
-      } catch (e2) {
-        console.warn("Secondary model gemini-3.1-flash-lite failed, trying gemini-2.5-flash fallback:", e2)
-        try {
-          response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: questionSchema,
-              temperature: 0.8,
-            }
-          })
-        } catch (e3) {
-          response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema: questionSchema,
-              temperature: 0.8,
-            }
-          })
-        }
+    const response = await generateContentWithFallback(aiClient, {
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: questionSchema,
+        temperature: 0.8,
       }
-    }
+    })
 
     if (!response.text) {
       throw new Error("AI returned empty response")
@@ -751,13 +780,9 @@ export async function auditQuestionsWithAi(questions: any[]): Promise<QuestionAu
   }
 
   // Use Gemini to fix questions with issues
-  const apiKey = process.env.GEMINI_API_KEY
-  if (apiKey) {
+  const aiClient = getAiClient()
+  if (aiClient) {
     try {
-      if (!ai) {
-        ai = new GoogleGenAI({ apiKey })
-      }
-
       const prompt = `You are the Lead English Lexicographer and Question Quality Auditor for Naenra Arena.
 Analyze the following vocabulary questions that have quality issues and provide precise, high-quality corrections.
 CRITICAL RULES:
@@ -792,8 +817,7 @@ ${JSON.stringify(questionsNeedingAi.map(q => ({
         }
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+      const response = await generateContentWithFallback(aiClient, {
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -860,12 +884,9 @@ export async function generateCoachAnalysis(
   userMessage?: string,
   history?: { role: 'user' | 'model'; message: string }[]
 ): Promise<string> {
-  if (process.env.GEMINI_API_KEY) {
+  const aiClient = getAiClient()
+  if (aiClient) {
     try {
-      if (!ai) {
-        ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-      }
-
       const analyticsSummary = analyticsData.map(item => ({
         topic: item.topic,
         accuracy: item.accuracy + '%',
@@ -894,28 +915,10 @@ CORE GUIDELINES:
         prompt += `\n\nProvide an initial comprehensive analysis and personalized 3-step learning plan for ${username}:`
       }
 
-      let response;
-      try {
-        response = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
-          contents: prompt,
-          config: { temperature: 0.7 }
-        })
-      } catch (e) {
-        try {
-          response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
-            contents: prompt,
-            config: { temperature: 0.7 }
-          })
-        } catch (e2) {
-          response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: { temperature: 0.7 }
-          })
-        }
-      }
+      const response = await generateContentWithFallback(aiClient, {
+        contents: prompt,
+        config: { temperature: 0.7 }
+      })
 
       if (response.text) {
         return response.text
@@ -1047,12 +1050,10 @@ export async function generateChatResponse(
   const totalMatches = playerHistory?.totalMatches ?? (playerWins + playerLosses)
   const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
 
-  if (apiKey) {
-    try {
-      if (!ai) {
-        ai = new GoogleGenAI({ apiKey })
-      }
+  const aiClient = getAiClient()
 
+  if (aiClient) {
+    try {
       const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
       let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
 
@@ -1074,8 +1075,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
 
       if (isAdmin) {
         try {
-          const adminCheck = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
+          const adminCheck = await generateContentWithFallback(aiClient, {
             contents: fullPrompt,
             config: {
               temperature: aiCfg.temperature,
@@ -1112,37 +1112,13 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
 
       let responseText = ''
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+        const response = await generateContentWithFallback(aiClient, {
           contents: fullPrompt,
           config: { temperature: aiCfg.temperature }
         })
         responseText = response.text || ''
-      } catch (err2) {
-        try {
-          const response2 = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-lite',
-            contents: fullPrompt,
-            config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
-          })
-          responseText = response2.text || ''
-        } catch (err3) {
-          try {
-            const response3 = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: fullPrompt,
-              config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
-            })
-            responseText = response3.text || ''
-          } catch (err4) {
-            const response4 = await ai.models.generateContent({
-              model: 'gemini-2.0-flash',
-              contents: fullPrompt,
-              config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
-            })
-            responseText = response4.text || ''
-          }
-        }
+      } catch (err) {
+        console.warn('Gemini chat failed, trying fallback model with reduced temp:', err)
       }
 
       if (responseText.trim()) return responseText.trim()
@@ -1307,8 +1283,6 @@ export async function generateChatResponseStream(
   playerHistory?: PlayerGameStats,
   isAdmin?: boolean
 ): Promise<void> {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
-
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
   res.setHeader('Cache-Control', 'no-cache, no-transform')
@@ -1334,7 +1308,12 @@ export async function generateChatResponseStream(
     }
   }
 
-  if (!apiKey) {
+  // Immediate handshake to acknowledge connection instantly and prevent client TTFB timeouts
+  safeWrite(': connected\n\n')
+
+  const aiClient = getAiClient()
+
+  if (!aiClient) {
     console.log('GEMINI_API_KEY not configured, streaming instant smart fallback response...')
     const fallbackReply = await generateChatResponse(username, prompt, history, playerHistory)
     const words = fallbackReply.split(' ')
@@ -1350,8 +1329,6 @@ export async function generateChatResponseStream(
   }
 
   try {
-    if (!ai) ai = new GoogleGenAI({ apiKey })
-
     const aiCfg = getAiBehaviorConfig()
     const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
     let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
@@ -1372,8 +1349,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     // If caller is an Admin, check if prompt triggers an administrative tool action
     if (isAdmin) {
       try {
-        const adminCheck = await ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+        const adminCheck = await generateContentWithFallback(aiClient, {
           contents: fullPrompt,
           config: {
             temperature: aiCfg.temperature,
@@ -1413,39 +1389,12 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
 
     let streamResult: any = null
     try {
-      streamResult = await ai.models.generateContentStream({
-        model: 'gemini-3.5-flash',
+      streamResult = await generateContentStreamWithFallback(aiClient, {
         contents: fullPrompt,
         config: { temperature: aiCfg.temperature }
       })
-    } catch (primaryErr) {
-      console.warn('gemini-3.5-flash stream failed, falling back to gemini-3.1-flash-lite:', primaryErr)
-      try {
-        streamResult = await ai.models.generateContentStream({
-          model: 'gemini-3.1-flash-lite',
-          contents: fullPrompt,
-          config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
-        })
-      } catch (backupErr) {
-        console.warn('gemini-3.1-flash-lite stream failed, trying gemini-2.5-flash:', backupErr)
-        try {
-          streamResult = await ai.models.generateContentStream({
-            model: 'gemini-2.5-flash',
-            contents: fullPrompt,
-            config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
-          })
-        } catch (backup2Err) {
-          try {
-            streamResult = await ai.models.generateContentStream({
-              model: 'gemini-2.0-flash',
-              contents: fullPrompt,
-              config: { temperature: Math.max(0.2, aiCfg.temperature - 0.2) }
-            })
-          } catch (finalErr) {
-            console.warn('All Gemini streams failed, using intelligent rule-based coach fallback stream:', finalErr)
-          }
-        }
-      }
+    } catch (streamErr) {
+      console.warn('Gemini stream failed, falling back to instant smart rule-based coach stream:', streamErr)
     }
 
     let emittedChars = 0
