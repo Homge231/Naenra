@@ -72,7 +72,6 @@ export function setupAiLiveGateway(): WebSocketServer {
           model: liveModel,
           generationConfig: {
             responseModalities: ['TEXT'],
-            inputAudioTranscription: {},
             thinkingConfig: {
               thinkingLevel: 'MINIMAL'
             }
@@ -139,7 +138,7 @@ Key Game Facts:
 
         // Issue #7: Drop incoming mic audio while AI is streaming (prevents echo loop)
         if (isSetupComplete && isAiStreaming) {
-          if (parsed.realtimeInput?.audio) {
+          if (parsed.realtimeInput?.mediaChunks || parsed.realtimeInput?.audio) {
             return // Silently drop audio chunk — AI is currently speaking
           }
         }

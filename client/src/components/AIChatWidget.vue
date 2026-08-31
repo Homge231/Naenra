@@ -416,7 +416,16 @@ async function startMicCapture(): Promise<boolean> {
       let bin = ''; for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
       const b64 = btoa(bin)
       if (liveWs && liveWs.readyState === WebSocket.OPEN) {
-        liveWs.send(JSON.stringify({ realtimeInput: { audio: { data: b64, mimeType: 'audio/pcm;rate=16000' } } }))
+        liveWs.send(JSON.stringify({
+          realtimeInput: {
+            mediaChunks: [
+              {
+                mimeType: 'audio/pcm;rate=16000',
+                data: b64
+              }
+            ]
+          }
+        }))
       }
     }
 
@@ -490,6 +499,11 @@ async function unifiedMicRelease() {
     errorMsg.value = 'Connection lost. Please try again.'
     if (userBubbleIdx >= 0) messages.value.splice(userBubbleIdx, 1)
     return
+  }
+
+  // Update bubble from "Listening..." to "Voice Message" upon release
+  if (userBubbleIdx >= 0 && messages.value[userBubbleIdx]?.role === 'user') {
+    messages.value[userBubbleIdx].content = '🎙️ Voice Message'
   }
 
   // Signal end of user turn to Gemini Live
