@@ -98,120 +98,7 @@ try {
   console.warn('Failed to load knowledge base files:', e)
 }
 
-export interface AiBehaviorConfig {
-  persona: 'default' | 'cyberpunk' | 'mascot' | 'strict' | 'custom'
-  customPersonaPrompt?: string
-  temperature: number
-  maxWords: number
-  autoLanguageMatch: boolean
-  enableEmojis: boolean
-  strictKnowledge: boolean
-  customRules?: string
-}
 
-export const DEFAULT_AI_CONFIG: AiBehaviorConfig = {
-  persona: 'default',
-  customPersonaPrompt: '',
-  temperature: 0.7,
-  maxWords: 60,
-  autoLanguageMatch: true,
-  enableEmojis: true,
-  strictKnowledge: true,
-  customRules: ''
-}
-
-const CONFIG_FILE_PATHS = [
-  path.join(process.cwd(), 'src/data/ai_config.json'),
-  path.join(process.cwd(), 'data/ai_config.json'),
-  path.join(__dirname, '../data/ai_config.json'),
-  path.join(__dirname, '../../src/data/ai_config.json'),
-]
-
-let inMemoryAiConfig: AiBehaviorConfig = { ...DEFAULT_AI_CONFIG }
-
-// Load from disk on startup
-for (const p of CONFIG_FILE_PATHS) {
-  try {
-    if (fs.existsSync(p)) {
-      const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
-      inMemoryAiConfig = { ...DEFAULT_AI_CONFIG, ...data }
-      break
-    }
-  } catch {}
-}
-
-export function getAiBehaviorConfig(): AiBehaviorConfig {
-  return { ...inMemoryAiConfig }
-}
-
-export function saveAiBehaviorConfig(newConfig: Partial<AiBehaviorConfig>): AiBehaviorConfig {
-  inMemoryAiConfig = { ...inMemoryAiConfig, ...newConfig }
-  for (const p of CONFIG_FILE_PATHS) {
-    try {
-      const dir = path.dirname(p)
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true })
-      }
-      fs.writeFileSync(p, JSON.stringify(inMemoryAiConfig, null, 2), 'utf-8')
-    } catch (e) {
-      console.warn(`Could not save config to ${p}:`, e)
-    }
-  }
-  return { ...inMemoryAiConfig }
-}
-
-export function resetAiBehaviorConfig(): AiBehaviorConfig {
-  inMemoryAiConfig = { ...DEFAULT_AI_CONFIG }
-  for (const p of CONFIG_FILE_PATHS) {
-    try {
-      const dir = path.dirname(p)
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true })
-      }
-      fs.writeFileSync(p, JSON.stringify(DEFAULT_AI_CONFIG, null, 2), 'utf-8')
-    } catch {}
-  }
-  return { ...DEFAULT_AI_CONFIG }
-}
-
-export function buildPersonaContext(cfg: AiBehaviorConfig): string {
-  switch (cfg.persona) {
-    case 'cyberpunk':
-      return `### ⚡ CORE IDENTITY & VOICE — CYBER ARENA OPERATOR:
-You are NAENRA NEURAL OPERATOR, a futuristic cyberpunk tactical combat AI from the neon undergrid.
-- Voice & Tone: Razor-sharp, cybernetic, assertive, high-tech neon slang.
-- Salutation: Address the user as "Operator", "Contender", or "Cyber Runner".
-- Vocabulary: Use cyber terms (e.g. "Grid", "Overclock", "Core Protocol", "Neural Link", "Data Stream", "Combat Sub-routine").
-- Tone Rule: Never sound like a generic teacher. Sound like an elite tactical HUD assistant in a sci-fi arena.
-- Example Style: "Operator. Initializing diagnostic on grid sector: ELO 1000 detected. Tactical recommendation: Engage Aegis Core protocol to deploy defensive shielding against penalty latency."`
-
-    case 'mascot':
-      return `### 🤖 CORE IDENTITY & VOICE — PUCK THE MASCOT:
-You are Puck, the energetic, cute, bubbly, and cheerful companion mascot of Naenra!
-- Voice & Tone: Extremely cute, warm, cheering, playful, and super enthusiastic!
-- Salutation: Friendly and cute ("Chào bạn nha nèee! ✨", "Yay!", "Cố lên nào!").
-- Tone Rule: Make vocabulary typing and Core strategies feel like a fun game adventure. Use expressive cheering.`
-
-    case 'strict':
-      return `### 🧠 CORE IDENTITY & VOICE — TELEMETRY ANALYTICAL ENGINE:
-You are NAENRA TELEMETRY ENGINE — a cold, ultra-precise analytical combat telemetry computer.
-- Voice & Tone: 100% Robotic, purely factual, objective telemetry data.
-- NEVER use greetings ("Hello", "Xin chào").
-- NEVER use friendly phrases or cheerleading ("cố lên", "nhé", "nha", "chúc mừng", "Coach", "bạn ơi", "Ready for your next move?").
-- NEVER address the user as "Coach" or "Friend".
-- Output Format: Present findings strictly as structured telemetry readouts using tags like [SYSTEM STATUS], [TELEMETRY DATA], [TACTICAL RECOMMENDATION], [OPERATION EXECUTED].
-- Example Style: "[SYSTEM STATUS]: ELO 1000 | Rank: Novice | Win Rate: 20%. [TELEMETRY DATA]: High error penalty vulnerability. [TACTICAL PROTOCOL]: Equip Aegis Core."`
-
-    case 'custom':
-      return cfg.customPersonaPrompt?.trim()
-        ? `### ✍️ CUSTOM AI IDENTITY & SYSTEM DIRECTIVES:\n${cfg.customPersonaPrompt.trim()}`
-        : `### 🎯 CORE IDENTITY & VOICE:\nYou are Naenra AI Assistant, expert tactical guide for the competitive timed typing arena.`
-
-    default:
-      return `### 🎯 CORE IDENTITY & VOICE — NAENRA AI COACH:
-You are Naenra AI Coach, the official in-game coach and tactical mentor for Naenra. Helpful, sharp, tactical, encouraging, and focused on ELO progression.`
-  }
-}
 
 export const adminTools: any = [
   {
@@ -968,10 +855,8 @@ export interface PlayerGameStats {
 export function buildFullSystemPrompt(
   username: string,
   playerHistory?: PlayerGameStats,
-  knowledgeString?: string,
-  cfg?: AiBehaviorConfig
+  knowledgeString?: string
 ): string {
-  const activeCfg = cfg || getAiBehaviorConfig()
   const totalCoresCount = 65
   const unlockedList = playerHistory?.unlockedCores || []
   const unlockedCount = unlockedList.length > 0 ? unlockedList.length : 10
@@ -983,22 +868,13 @@ export function buildFullSystemPrompt(
   const totalMatches = playerHistory?.totalMatches ?? (playerWins + playerLosses)
   const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
 
-  const personaSection = buildPersonaContext(activeCfg)
-  const langRule = activeCfg.autoLanguageMatch
-    ? `1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!`
-    : `1. LANGUAGE: Respond primarily in English unless explicitly asked otherwise.`
-  const lengthRule = activeCfg.maxWords && activeCfg.maxWords > 0
-    ? `5. STRICT LENGTH LIMIT: You MUST keep your entire response under ${activeCfg.maxWords} words. Be concise and impactful.`
-    : `5. LENGTH: Keep responses concise, clear, and engaging for in-game reading.`
-  const emojiRule = activeCfg.enableEmojis
-    ? `6. EMOJIS: Permitted. Use fitting emojis where appropriate to reinforce tone.`
-    : `6. ABSOLUTE NEGATIVE CONSTRAINT — NO EMOJIS: Do NOT output ANY emojis or unicode symbols (e.g. no 🚀, 🏆, 🛡️, ⚖️, 💪, ✨). Output plain alphanumeric text only.`
-  const knowledgeRule = activeCfg.strictKnowledge
-    ? `7. FACTUAL ACCURACY & REAL DATA ONLY: Strictly adhere to the 65 Support Cores and official rules in the knowledge base. NEVER invent fake Support Cores, fake question IDs, or fake database actions. Call the appropriate admin tool to perform real actions.`
-    : `7. STRATEGIC GUIDANCE: Provide helpful tactical advice and creative core synergies.`
-  const customRulesSection = activeCfg.customRules?.trim()
-    ? `\nSPECIAL ADMIN CUSTOM DIRECTIVES:\n${activeCfg.customRules.trim()}\n`
-    : ''
+  const personaSection = `### 🎯 CORE IDENTITY & VOICE — NAENRA AI COACH:
+You are Naenra AI Coach, the official in-game coach and tactical mentor for Naenra. Helpful, sharp, tactical, encouraging, and focused on ELO progression.`
+
+  const langRule = `1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!`
+  const lengthRule = `5. LENGTH: Keep responses concise, clear, and engaging for in-game reading.`
+  const emojiRule = `6. EMOJIS: Permitted. Use fitting emojis where appropriate to reinforce tone.`
+  const knowledgeRule = `7. FACTUAL ACCURACY & REAL DATA ONLY: Strictly adhere to the 65 Support Cores and official rules in the knowledge base. NEVER invent fake Support Cores, fake question IDs, or fake database actions. Call the appropriate admin tool to perform real actions.`
 
   return `${personaSection}
 
@@ -1029,7 +905,7 @@ ${langRule}
 4. USER IDENTITY & STATS AUTHORIZATION: If the player asks about their username or stats, provide their exact in-game info ("${playerHistory?.username || username}", ELO: ${playerElo}, Rank: ${playerRank}).
 ${lengthRule}
 ${emojiRule}
-${knowledgeRule}${customRulesSection}`
+${knowledgeRule}`
 }
 
 export async function generateChatResponse(
@@ -1040,7 +916,6 @@ export async function generateChatResponse(
   isAdmin?: boolean
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
-  const aiCfg = getAiBehaviorConfig()
 
   const totalCoresCount = 65
   const unlockedList = playerHistory?.unlockedCores || []
@@ -1057,7 +932,7 @@ export async function generateChatResponse(
   if (aiClient) {
     try {
       const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-      let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
+      let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString)
 
       if (isAdmin) {
         systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS & DATABASE TOOLS ACTIVE:
@@ -1080,7 +955,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
           const adminCheck = await generateContentWithFallback(aiClient, {
             contents: fullPrompt,
             config: {
-              temperature: aiCfg.temperature,
+              temperature: 0.7,
               tools: adminTools
             }
           })
@@ -1090,18 +965,10 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
             for (const call of adminCheck.functionCalls) {
               const toolName = call.name || ''
               const result = await executeAdminTool(toolName, call.args)
-              if (aiCfg.persona === 'strict') {
-                if (result.success) {
-                  reports.push(`[STATUS]: 200 OK\n[OPERATION EXECUTED]: \`${toolName}\`\n[TELEMETRY DETAILS]: ${result.message || JSON.stringify(result)}`)
-                } else {
-                  reports.push(`[STATUS]: ERROR\n[OPERATION FAILED]: \`${toolName}\`\n[ERROR DETAILS]: ${result.error}`)
-                }
+              if (result.success) {
+                reports.push(`⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}`)
               } else {
-                if (result.success) {
-                  reports.push(`⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}`)
-                } else {
-                  reports.push(`⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}`)
-                }
+                reports.push(`⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}`)
               }
             }
             return reports.join('\n\n')
@@ -1116,7 +983,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
       try {
         const response = await generateContentWithFallback(aiClient, {
           contents: fullPrompt,
-          config: { temperature: aiCfg.temperature }
+          config: { temperature: 0.7 }
         })
         responseText = response.text || ''
       } catch (err) {
@@ -1332,9 +1199,8 @@ export async function generateChatResponseStream(
   }
 
   try {
-    const aiCfg = getAiBehaviorConfig()
     const knowledgeString = gameKnowledgeBaseMd || (gameKnowledgeBase ? JSON.stringify(gameKnowledgeBase, null, 2) : 'Full Naenra Core Knowledge')
-    let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString, aiCfg)
+    let systemContext = buildFullSystemPrompt(username, playerHistory, knowledgeString)
 
     if (isAdmin) {
       systemContext = `### 🛡️ FULL ROOT ADMINISTRATIVE ACCESS & DATABASE TOOLS ACTIVE:
@@ -1367,7 +1233,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
         const adminCheck = await generateContentWithFallback(aiClient, {
           contents: fullPrompt,
           config: {
-            temperature: aiCfg.temperature,
+            temperature: 0.7,
             tools: adminTools
           }
         })
@@ -1378,18 +1244,10 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
             const toolName = call.name || ''
             const result = await executeAdminTool(toolName, call.args)
             let report = ''
-            if (aiCfg.persona === 'strict') {
-              if (result.success) {
-                report = `[STATUS]: 200 OK\n[OPERATION EXECUTED]: \`${toolName}\`\n[TELEMETRY DETAILS]: ${result.message || JSON.stringify(result)}\n`
-              } else {
-                report = `[STATUS]: ERROR\n[OPERATION FAILED]: \`${toolName}\`\n[ERROR DETAILS]: ${result.error}\n`
-              }
+            if (result.success) {
+              report = `⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}\n`
             } else {
-              if (result.success) {
-                report = `⚡ **[THỰC HIỆN ADMIN THÀNH CÔNG]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết**: ${result.message || JSON.stringify(result)}\n`
-              } else {
-                report = `⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}\n`
-              }
+              report = `⚠️ **[LỖI THỰC HIỆN ADMIN]**\n- **Thao tác**: \`${toolName}\`\n- **Chi tiết lỗi**: ${result.error}\n`
             }
             safeWrite(`data: ${JSON.stringify({ chunk: report })}\n\n`)
           }
@@ -1406,7 +1264,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     try {
       streamResult = await generateContentStreamWithFallback(aiClient, {
         contents: streamContents,
-        config: { temperature: aiCfg.temperature }
+        config: { temperature: 0.7 }
       })
     } catch (streamErr) {
       console.warn('Gemini stream failed, falling back to instant smart rule-based coach stream:', streamErr)

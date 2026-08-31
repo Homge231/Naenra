@@ -24,9 +24,6 @@ import {
   getLiveMatchMetrics,
   getMatchHistory,
   generateAiQuestions,
-  getAiConfigController,
-  updateAiConfigController,
-  resetAiConfigController,
   getAntiCheatAnomalies,
   handleAntiCheatAction,
   getCoreMetaAnalytics,
@@ -108,8 +105,5 @@ router.get('/matches/history', authMiddleware, requireAdmin, getMatchHistory)
 
 // Protected AI Operations endpoints (US-96)
 router.post('/ai/generate-questions', authMiddleware, requireAdmin, generateAiQuestions)
-router.get('/ai/config', authMiddleware, requireAdmin, getAiConfigController)
-router.put('/ai/config', authMiddleware, requireAdmin, updateAiConfigController)
-router.post('/ai/config/reset', authMiddleware, requireAdmin, resetAiConfigController)
 
 export default router

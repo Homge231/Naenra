@@ -74,34 +74,6 @@
       </div>
     </Transition>
 
-    <!-- MODEL STATUS CARDS ROW -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="p-5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">
-        <p class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mb-2">Primary Model</p>
-        <p class="text-base font-bold text-white font-mono">gemini-3.5-flash</p>
-        <p class="text-xs text-slate-400 mt-1">Chat · Questions · Coach</p>
-      </div>
-      <div class="p-5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">
-        <p class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mb-2">Fallback Model</p>
-        <p class="text-base font-bold text-slate-300 font-mono">gemini-3.1-flash-lite</p>
-        <p class="text-xs text-slate-400 mt-1">Auto-activated on primary fail</p>
-      </div>
-      <div class="p-5 bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl">
-        <p class="text-[11px] font-mono text-slate-500 uppercase tracking-wider mb-2">Active Persona</p>
-        <p class="text-base font-bold text-violet-400 font-mono capitalize">{{ aiConfig.persona }}</p>
-        <p class="text-xs text-slate-400 mt-1">Temp: {{ aiConfig.temperature }} · {{ aiConfig.maxWords }} words max</p>
-      </div>
-    </div>
-
-    <!-- 🎭 AI PERSONA & BEHAVIOR CONFIGURATION ENGINE -->
-    <AiPersonaConfigCard
-      v-model="aiConfig"
-      :is-loading="isLoadingConfig"
-      :is-saving="isSavingConfig"
-      @save="saveAiConfig"
-      @reset="resetConfigToDefault"
-    />
-
     <!-- TWO-COLUMN MAIN PANEL: CHAT CONSOLE + QUESTION GENERATOR -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
@@ -210,7 +182,6 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
 import { fetchWithAuth } from '../../services/api'
-import AiPersonaConfigCard, { type AiConfig } from '../../components/admin/ai/AiPersonaConfigCard.vue'
 import AiQuestionGeneratorCard, { type GeneratedQuestion, type GenConfig } from '../../components/admin/ai/AiQuestionGeneratorCard.vue'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -228,20 +199,6 @@ interface Toast {
 // ── State ────────────────────────────────────────────────────────────────────
 
 const modelStatus = ref<'checking' | 'online' | 'offline'>('online')
-
-// AI Persona & Behavior Config
-const aiConfig = ref<AiConfig>({
-  persona: 'default',
-  customPersonaPrompt: '',
-  temperature: 0.7,
-  maxWords: 60,
-  autoLanguageMatch: true,
-  enableEmojis: true,
-  strictKnowledge: true,
-  customRules: ''
-})
-const isLoadingConfig = ref(false)
-const isSavingConfig = ref(false)
 
 // Chat console
 const chatBodyRef = ref<HTMLElement | null>(null)
@@ -303,65 +260,6 @@ function renderMarkdown(raw: string): string {
   html = html.replace(/`([^`]+)`/g, '<code class="bg-slate-700/60 px-1 py-0.5 rounded text-xs font-mono">$1</code>')
   html = html.replace(/\n/g, '<br/>')
   return html
-}
-
-// ── AI Behavior Configuration Functions ─────────────────────────────────────
-
-async function fetchAiConfig() {
-  isLoadingConfig.value = true
-  try {
-    const res = await fetchWithAuth('/api/admin/ai/config')
-    if (res.ok) {
-      const result = await res.json()
-      if (result.success && result.data) {
-        aiConfig.value = { ...aiConfig.value, ...result.data }
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch AI configuration:', err)
-  } finally {
-    isLoadingConfig.value = false
-  }
-}
-
-async function saveAiConfig() {
-  isSavingConfig.value = true
-  try {
-    const res = await fetchWithAuth('/api/admin/ai/config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(aiConfig.value)
-    })
-    if (res.ok) {
-      showToast('✅ AI Persona & Behavior configuration saved! Live in-game immediately.')
-    } else {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.message || 'Failed to save configuration')
-    }
-  } catch (err: any) {
-    showToast(`Failed to save AI config: ${err.message}`, 'error')
-  } finally {
-    isSavingConfig.value = false
-  }
-}
-
-async function resetConfigToDefault() {
-  if (isSavingConfig.value) return
-  isSavingConfig.value = true
-  try {
-    const res = await fetchWithAuth('/api/admin/ai/config/reset', { method: 'POST' })
-    if (res.ok) {
-      const result = await res.json()
-      if (result.data) {
-        aiConfig.value = result.data
-      }
-      showToast('🔄 AI behavior reset to factory defaults.')
-    }
-  } catch (err: any) {
-    showToast(`Reset failed: ${err.message}`, 'error')
-  } finally {
-    isSavingConfig.value = false
-  }
 }
 
 // ── Model Status ─────────────────────────────────────────────────────────────
