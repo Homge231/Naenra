@@ -12,9 +12,14 @@ export function useSpeechRecognition() {
   const transcript = ref('')
   const interimTranscript = ref('')
   const errorMsg = ref<string | null>(null)
+  const audioAmplitude = ref(0)
+  const isVoiceDetected = ref(false)
 
   let recognition: any = null
   let micMediaStream: MediaStream | null = null
+  let audioContext: AudioContext | null = null
+  let analyserNode: AnalyserNode | null = null
+  let animFrameId: number | null = null
   let onResultCallback: ((fullText: string, isFinal: boolean) => void) | null = null
   let finalAccumulated = ''
 
@@ -105,6 +110,70 @@ export function useSpeechRecognition() {
     return instance
   }
 
+  function startAudioAnalyser(stream: MediaStream) {
+    stopAudioAnalyser()
+    if (typeof window === 'undefined') return
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioCtx) return
+      audioContext = new AudioCtx()
+      const source = audioContext.createMediaStreamSource(stream)
+      analyserNode = audioContext.createAnalyser()
+      analyserNode.fftSize = 256
+      analyserNode.smoothingTimeConstant = 0.4
+      source.connect(analyserNode)
+
+      const bufferLength = analyserNode.frequencyBinCount
+      const dataArray = new Uint8Array(bufferLength)
+
+      const sampleLoop = () => {
+        if (!analyserNode || !isListening.value) {
+          audioAmplitude.value = 0
+          isVoiceDetected.value = false
+          return
+        }
+        analyserNode.getByteFrequencyData(dataArray)
+        let sum = 0
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i]
+        }
+        const avg = sum / bufferLength
+        // Apply noise gate: background noise (< 10) yields 0
+        if (avg < 10) {
+          audioAmplitude.value = 0
+          isVoiceDetected.value = false
+        } else {
+          // Normalized altitude / amplitude: 0.1 to 1.0
+          const normalized = Math.min(1, Math.max(0.1, (avg - 10) / 70))
+          audioAmplitude.value = normalized
+          isVoiceDetected.value = true
+        }
+
+        animFrameId = requestAnimationFrame(sampleLoop)
+      }
+
+      sampleLoop()
+    } catch (e) {
+      console.warn('[useSpeechRecognition] AudioContext analyser init error:', e)
+    }
+  }
+
+  function stopAudioAnalyser() {
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId)
+      animFrameId = null
+    }
+    if (audioContext) {
+      try {
+        audioContext.close()
+      } catch {}
+      audioContext = null
+    }
+    analyserNode = null
+    audioAmplitude.value = 0
+    isVoiceDetected.value = false
+  }
+
   async function acquireMicHardware(): Promise<boolean> {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return true
     try {
@@ -115,6 +184,7 @@ export function useSpeechRecognition() {
           autoGainControl: true
         }
       })
+      startAudioAnalyser(micMediaStream)
       return true
     } catch (err: any) {
       console.warn('[useSpeechRecognition] Microphone permission error:', err)
@@ -124,6 +194,7 @@ export function useSpeechRecognition() {
   }
 
   function releaseMicHardware() {
+    stopAudioAnalyser()
     if (micMediaStream) {
       try {
         micMediaStream.getTracks().forEach(track => track.stop())
@@ -221,6 +292,8 @@ export function useSpeechRecognition() {
     transcript,
     interimTranscript,
     errorMsg,
+    audioAmplitude,
+    isVoiceDetected,
     startListening,
     stopListening,
     abortListening,

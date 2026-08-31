@@ -23,6 +23,7 @@
               :is-loading="isLoading"
               :is-streaming="isStreaming"
               :is-speaking="isSpeaking"
+              :audio-amplitude="speechRec.audioAmplitude.value"
             />
 
             <div>
