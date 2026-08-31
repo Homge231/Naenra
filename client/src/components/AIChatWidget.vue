@@ -415,7 +415,7 @@ async function unifiedMicRelease() {
   } else if (speechResult.audioData) {
     // If WebSpeech didn't produce text, but audio was recorded by microphone:
     inputText.value = ''
-    await sendMessage('🎙️ Voice Message', {
+    await sendMessage('🎙️ Transcribing voice...', {
       data: speechResult.audioData,
       mimeType: speechResult.mimeType || 'audio/webm'
     })
@@ -469,7 +469,7 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
   isLoading.value = false
 
   // Push user prompt bubble
-  messages.value.push({ role: 'user', content: text || '🎙️ Voice Message' })
+  messages.value.push({ role: 'user', content: text || '🎙️ Transcribing voice...' })
   scrollToBottom()
 
   isLoading.value = true
@@ -568,7 +568,7 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
       score: gameStore.score || 0
     }
 
-    // ── Setup SSE Request with Connection Timeout (25s TTFB) ──────────
+    // ── Setup SSE Request with Connection Timeout (45s TTFB) ──────────
     currentAbortController = new AbortController()
     const resetWatchdog = () => {
       if (timeoutId) clearTimeout(timeoutId)
@@ -576,7 +576,7 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
         if (currentAbortController && thisSessionId === sessionSeq) {
           currentAbortController.abort()
         }
-      }, 25000)
+      }, 45000)
     }
 
     resetWatchdog()
@@ -665,6 +665,12 @@ async function sendMessage(overridePrompt?: string, audioPayload?: { data: strin
         }
         try {
           const parsed = JSON.parse(payload)
+          if (parsed.userTranscript && thisSessionId === sessionSeq) {
+            const userMsgIdx = answerMsgIdx - 1
+            if (userMsgIdx >= 0 && messages.value[userMsgIdx].role === 'user') {
+              messages.value[userMsgIdx].content = parsed.userTranscript
+            }
+          }
           if (parsed.chunk && thisSessionId === sessionSeq) {
             incomingBuffer += parsed.chunk
           }

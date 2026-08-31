@@ -1223,7 +1223,7 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
               data: audioData.data
             }
           },
-          fullPrompt + "\nListen to the player's voice message in the audio above, transcribe it, and answer directly as Naenra AI Assistant."
+          fullPrompt + "\n\nCRITICAL INSTRUCTION: The user provided a voice message in the audio file above. FIRST, you MUST transcribe their exact words inside <transcript>YOUR TRANSCRIPT</transcript> tags. THEN, provide your normal answer outside the tags as Naenra AI Assistant."
         ]
       : fullPrompt
 
@@ -1273,12 +1273,54 @@ NEVER pretend you deleted questions or invent fake question IDs (e.g. Q5, Q18, Q
     let emittedChars = 0
     if (streamResult) {
       try {
+        let buffer = ''
+        let hasFoundTranscript = !audioData?.data
+
         for await (const chunk of streamResult) {
           if (isClientDisconnected) break
           const text = chunk.text
           if (text) {
-            emittedChars += text.length
-            safeWrite(`data: ${JSON.stringify({ chunk: text })}\n\n`)
+            buffer += text
+            
+            if (!hasFoundTranscript) {
+              const startMatch = buffer.match(/<transcript>([\s\S]*?)<\/transcript>/i)
+              if (startMatch) {
+                const transcriptText = startMatch[1].trim()
+                if (transcriptText) {
+                  safeWrite(`data: ${JSON.stringify({ userTranscript: transcriptText })}\n\n`)
+                }
+                buffer = buffer.replace(startMatch[0], '').trimStart()
+                hasFoundTranscript = true
+                emittedChars += transcriptText.length
+                if (buffer) {
+                  safeWrite(`data: ${JSON.stringify({ chunk: buffer })}\n\n`)
+                  emittedChars += buffer.length
+                  buffer = ''
+                }
+              } else if (!buffer.toLowerCase().includes('<transcript') && buffer.length > 50) {
+                // Not emitting a transcript block, just give up and stream
+                hasFoundTranscript = true
+                safeWrite(`data: ${JSON.stringify({ chunk: buffer })}\n\n`)
+                emittedChars += buffer.length
+                buffer = ''
+              } else if (buffer.length > 300) {
+                // Buffer too long, likely malformed transcript
+                hasFoundTranscript = true
+                const cleanBuffer = buffer.replace(/<transcript>/ig, '').replace(/<\/transcript>/ig, '')
+                safeWrite(`data: ${JSON.stringify({ chunk: cleanBuffer })}\n\n`)
+                emittedChars += cleanBuffer.length
+                buffer = ''
+              }
+            } else {
+              emittedChars += text.length
+              if (buffer) {
+                const cleanBuffer = buffer.replace(/<transcript>/ig, '').replace(/<\/transcript>/ig, '')
+                if (cleanBuffer) {
+                  safeWrite(`data: ${JSON.stringify({ chunk: cleanBuffer })}\n\n`)
+                }
+                buffer = ''
+              }
+            }
           }
         }
       } catch (streamErr) {
