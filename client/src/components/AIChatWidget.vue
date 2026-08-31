@@ -400,12 +400,12 @@ async function unifiedMicRelease() {
 
   const pressDuration = Date.now() - pressStartTime
 
-  // Stop recording — get transcript + audio fallback
+  // Stop recording — get transcript text + raw audio data
   const speechResult = await speechRec.stopListening()
 
-  // Priority 1: Use Web Speech recognized text
+  // Priority 1: Web Speech recognized text
   const textFromSpeech = (speechResult.text || '').trim()
-  // Priority 2: Use whatever was live-typed in the input box
+  // Priority 2: Whatever was live-typed in the input box (from interim STT)
   const textFromInput = inputText.value.trim()
   const finalText = textFromSpeech || textFromInput
 
@@ -416,11 +416,20 @@ async function unifiedMicRelease() {
   }
 
   if (finalText) {
-    // We have real recognized text — send as text prompt (fast, reliable)
+    // Best path: real recognized text → send as text prompt (fast, no audio upload needed)
     inputText.value = ''
     await sendMessage(finalText)
+  } else if (speechResult.audioData && speechResult.hasVoice) {
+    // Fallback: Web Speech produced no text, but microphone DID capture audio.
+    // Send audio blob to Gemini for transcription — server will echo back the transcript
+    // via `userTranscript` SSE event so the user bubble gets updated with real words.
+    inputText.value = ''
+    await sendMessage(undefined, {
+      data: speechResult.audioData,
+      mimeType: speechResult.mimeType || 'audio/webm'
+    })
   } else {
-    // No text recognized at all — do NOT send empty prompt
+    // No text and no audio detected at all
     inputText.value = ''
     if (pressDuration < 300) {
       errorMsg.value = 'Hold mic button down to speak, then release when finished.'
@@ -436,11 +445,12 @@ async function unifiedMicRelease() {
 }
 
 // ── Send message with Typewriter Streaming & Voice TTS ─────────────
-async function sendMessage(overridePrompt?: string) {
+async function sendMessage(overridePrompt?: string, audioPayload?: { data: string; mimeType: string }) {
   if (!isChatOpen.value) return
 
   const text = (overridePrompt !== undefined ? overridePrompt : inputText.value).trim()
-  if (!text) return
+  // Allow sending if we have text OR audio payload
+  if (!text && !audioPayload?.data) return
 
   inputText.value = ''
   errorMsg.value = ''
@@ -471,13 +481,14 @@ async function sendMessage(overridePrompt?: string) {
   streamingMsgIdx.value = -1
   isLoading.value = false
 
-  // Push user prompt bubble
-  messages.value.push({ role: 'user', content: text })
+  // User bubble: show text if available, or placeholder for audio transcription
+  const userBubbleText = text || '🎙️ Transcribing...'
+  messages.value.push({ role: 'user', content: userBubbleText })
+  const userMsgIdx = messages.value.length - 1
   scrollToBottom()
 
   // ── Instant ACK bubble ────────────────────────────────────────────
-  // Push an immediate acknowledgement so user knows AI received the message
-  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
+  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text || '')
   const ackText = isVi ? '⏳ Chờ mình một chút nhé…' : '⏳ Hold on a moment…'
   messages.value.push({ role: 'model', content: ackText })
   const ackMsgIdx = messages.value.length - 1
@@ -616,7 +627,9 @@ async function sendMessage(overridePrompt?: string) {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        prompt: text,
+        prompt: text || 'Voice Query',
+        audioData: audioPayload?.data,
+        mimeType: audioPayload?.mimeType,
         history,
         playerHistory
       }),
@@ -677,6 +690,12 @@ async function sendMessage(overridePrompt?: string) {
         }
         try {
           const parsed = JSON.parse(payload)
+          // Update user bubble with real transcript from audio
+          if (parsed.userTranscript && thisSessionId === sessionSeq) {
+            if (userMsgIdx >= 0 && messages.value[userMsgIdx]?.role === 'user') {
+              messages.value[userMsgIdx].content = parsed.userTranscript
+            }
+          }
           if (parsed.chunk && thisSessionId === sessionSeq) {
             incomingBuffer += parsed.chunk
           }
