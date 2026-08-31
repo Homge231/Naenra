@@ -414,13 +414,15 @@ async function unifiedMicRelease() {
     inputText.value = finalPrompt
     await sendMessage()
   } else {
-    // Too short tap or no voice detected
-    if (pressDuration < 250) {
+    // Too short tap or no voice detected - do NOT send empty prompt to AI!
+    if (pressDuration < 300) {
       errorMsg.value = 'Hold mic button down to speak, then release when finished.'
-      setTimeout(() => {
-        if (errorMsg.value.includes('Hold mic')) errorMsg.value = ''
-      }, 3000)
+    } else {
+      errorMsg.value = 'No voice detected. Please hold mic and speak clearly.'
     }
+    setTimeout(() => {
+      if (errorMsg.value.includes('mic') || errorMsg.value.includes('voice')) errorMsg.value = ''
+    }, 3500)
   }
 }
 

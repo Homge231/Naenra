@@ -22,6 +22,7 @@ export function useSpeechRecognition() {
   let animFrameId: number | null = null
   let onResultCallback: ((fullText: string, isFinal: boolean) => void) | null = null
   let finalAccumulated = ''
+  let isRecordingActive = false
 
   if (typeof window !== 'undefined') {
     const SpeechRecognitionClass =
@@ -102,9 +103,17 @@ export function useSpeechRecognition() {
     }
 
     instance.onend = () => {
+      if (isRecordingActive) {
+        // Restart recognition instance if browser automatically cycled during hold
+        try {
+          if (recognition) {
+            recognition.start()
+            return
+          }
+        } catch {}
+      }
       isListening.value = false
       interimTranscript.value = ''
-      releaseMicHardware()
     }
 
     return instance
@@ -206,6 +215,7 @@ export function useSpeechRecognition() {
   async function startListening(options?: SpeechRecognitionOptions): Promise<boolean> {
     abortListening()
 
+    isRecordingActive = true
     finalAccumulated = ''
     transcript.value = ''
     interimTranscript.value = ''
@@ -217,39 +227,47 @@ export function useSpeechRecognition() {
     }
 
     const hasMic = await acquireMicHardware()
-    if (!hasMic) return false
+    if (!hasMic) {
+      isRecordingActive = false
+      return false
+    }
 
     try {
       recognition = setupRecognitionInstance(options)
-      if (!recognition) return false
+      if (!recognition) {
+        isRecordingActive = false
+        releaseMicHardware()
+        return false
+      }
       recognition.start()
       isListening.value = true
       return true
     } catch (err: any) {
       console.warn('[useSpeechRecognition] Failed to start recognition:', err)
+      isRecordingActive = false
       releaseMicHardware()
       return false
     }
   }
 
   function stopListening(): Promise<string> {
+    isRecordingActive = false
     return new Promise((resolve) => {
-      if (!recognition || !isListening.value) {
+      const finishAndResolve = () => {
+        const full = (transcript.value.trim() || interimTranscript.value.trim())
+        interimTranscript.value = ''
         releaseMicHardware()
-        resolve(transcript.value.trim())
-        return
+        isListening.value = false
+        resolve(full)
       }
 
-      const finishAndResolve = () => {
-        const full = transcript.value.trim()
-        releaseMicHardware()
-        resolve(full)
+      if (!recognition) {
+        finishAndResolve()
+        return
       }
 
       try {
         recognition.onend = () => {
-          isListening.value = false
-          interimTranscript.value = ''
           finishAndResolve()
         }
         recognition.stop()
@@ -260,11 +278,12 @@ export function useSpeechRecognition() {
       // Safeguard timeout in case browser hangs on onend
       setTimeout(() => {
         finishAndResolve()
-      }, 400)
+      }, 250)
     })
   }
 
   function abortListening() {
+    isRecordingActive = false
     isListening.value = false
     interimTranscript.value = ''
     if (recognition) {
@@ -273,7 +292,7 @@ export function useSpeechRecognition() {
         recognition.onerror = null
         recognition.abort()
       } catch {}
-        recognition = null
+      recognition = null
     }
     releaseMicHardware()
   }
