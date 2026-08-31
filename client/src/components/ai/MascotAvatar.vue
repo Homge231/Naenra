@@ -1,12 +1,12 @@
 <template>
-  <!-- 🤖 INTERACTIVE AI MASCOT AVATAR (Glowing Eyes + Lip-Synced Mouth) -->
+  <!-- 🤖 INTERACTIVE AI MASCOT AVATAR (Glowing Eyes + Radio Signal Audio Waveform Mouth) -->
   <div 
     class="ai-mascot-box relative flex flex-col items-center justify-center cursor-pointer select-none transition-all duration-300 group"
     @click="handleMascotClick"
     :class="{
       'mascot-pulse-listening': isListening,
       'mascot-glow-thinking': isLoading && !isStreaming,
-      'mascot-talk-speaking': isSpeaking || isStreaming,
+      'mascot-talk-speaking': isSpeaking || isStreaming || isLiveSpeaking,
       'mascot-interactive-click': isInteracting
     }"
     title="Click to interact with AI Mascot!"
@@ -19,6 +19,7 @@
           'eye-blink': isBlinking, 
           'eye-wide': isListening, 
           'eye-happy': isInteracting,
+          'eye-speak': isSpeaking || isStreaming || isLiveSpeaking,
           'eye-think': isLoading && !isStreaming 
         }"
       ></div>
@@ -28,25 +29,49 @@
           'eye-blink': isBlinking, 
           'eye-wide': isListening, 
           'eye-happy': isInteracting,
+          'eye-speak': isSpeaking || isStreaming || isLiveSpeaking,
           'eye-think': isLoading && !isStreaming 
         }"
       ></div>
     </div>
 
-    <!-- Animated Talking Mouth (Lip Sync to Speech Readout, Audio & Real-time Text Streaming) -->
-    <div class="ai-mouth mt-1 z-10 flex items-center justify-center h-3.5">
-      <!-- When Speaking or Streaming: Animated Real-Time Mouth Bars (Lip Sync) -->
-      <div v-if="isSpeaking || isLiveSpeaking || isStreaming" class="talking-mouth flex items-center gap-0.5 h-3">
-        <span class="mouth-bar bar-1 bg-amber-400 w-1 rounded-full animate-lip-1 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
-        <span class="mouth-bar bar-2 bg-amber-400 w-1 rounded-full animate-lip-2 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(6, audioAmplitude * 16)}px` } : {}"></span>
-        <span class="mouth-bar bar-3 bg-amber-400 w-1 rounded-full animate-lip-3 shadow-xs" :style="isLiveSpeaking ? { height: `${Math.max(4, audioAmplitude * 14)}px` } : {}"></span>
+    <!-- 📻 Radio Signal Audio Waveform Mouth -->
+    <div class="ai-mouth mt-1.5 z-10 flex items-center justify-center h-4 w-full px-2">
+      <!-- 1. When Speaking / TTS / Streaming / Live Voice: Dynamic Radio Signal Oscilloscope Waves -->
+      <div 
+        v-if="isSpeaking || isLiveSpeaking || isStreaming" 
+        class="radio-signal-mouth flex items-center justify-center gap-[2px] h-3.5"
+      >
+        <span class="signal-bar bar-1" :style="dynamicBarStyle(0, 3, 8)"></span>
+        <span class="signal-bar bar-2" :style="dynamicBarStyle(1, 4, 11)"></span>
+        <span class="signal-bar bar-3" :style="dynamicBarStyle(2, 5, 14)"></span>
+        <span class="signal-bar bar-4" :style="dynamicBarStyle(3, 6, 16)"></span>
+        <span class="signal-bar bar-5" :style="dynamicBarStyle(4, 5, 14)"></span>
+        <span class="signal-bar bar-6" :style="dynamicBarStyle(5, 4, 11)"></span>
+        <span class="signal-bar bar-7" :style="dynamicBarStyle(6, 3, 8)"></span>
       </div>
-      <!-- When Listening / Live Active: Pulsing O Mouth -->
-      <div v-else-if="isListening || isLiveConnected" class="listening-mouth w-2.5 h-2.5 rounded-full border-2 border-red-500 bg-red-900/50 animate-ping"></div>
-      <!-- When Interacting / Happy: Curved Smile -->
-      <div v-else-if="isInteracting" class="smile-mouth w-4 h-2 border-b-2 border-amber-400 rounded-b-full shadow-xs"></div>
-      <!-- Idle Gold Straight Mouth Line -->
-      <div v-else class="idle-mouth w-3.5 h-[2px] bg-amber-400 rounded-full group-hover:w-4.5 transition-all shadow-xs"></div>
+
+      <!-- 2. When Listening to User Mic: Red Pulsing Radio Receiver Waves -->
+      <div v-else-if="isListening || isLiveConnected" class="radio-listening-mouth flex items-center justify-center gap-[2px] h-3.5">
+        <span class="listening-bar lbar-1"></span>
+        <span class="listening-bar lbar-2"></span>
+        <span class="listening-bar lbar-3"></span>
+        <span class="listening-bar lbar-4"></span>
+        <span class="listening-bar lbar-5"></span>
+      </div>
+
+      <!-- 3. When Thinking / Loading: Radar Frequency Scanner Line -->
+      <div v-else-if="isLoading" class="radio-scanning-mouth w-5 h-[2.5px] rounded-full overflow-hidden relative bg-amber-950/60 border border-amber-500/40">
+        <div class="radar-scan-beam"></div>
+      </div>
+
+      <!-- 4. When Interacting / Clicked: Curved Radio Smile Arc -->
+      <div v-else-if="isInteracting" class="smile-mouth w-4.5 h-2 border-b-2 border-amber-400 rounded-b-full shadow-[0_0_8px_#f59e0b]"></div>
+
+      <!-- 5. Idle: Sleek Glowing Radio Signal Carrier Baseline -->
+      <div v-else class="idle-radio-mouth flex items-center justify-center">
+        <div class="idle-carrier-line w-4 h-[2px] bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.8)] group-hover:w-5.5 group-hover:shadow-[0_0_12px_rgba(251,191,36,1)] transition-all duration-300"></div>
+      </div>
     </div>
 
     <!-- AI Aura Glow Ring -->
@@ -81,6 +106,14 @@ const props = withDefaults(
 const isBlinking = ref(false)
 const isInteracting = ref(false)
 let blinkInterval: ReturnType<typeof setInterval> | null = null
+
+function dynamicBarStyle(index: number, minH: number, maxH: number) {
+  if (props.isLiveSpeaking && props.audioAmplitude > 0) {
+    const height = Math.min(16, Math.max(minH, props.audioAmplitude * maxH * 1.5))
+    return { height: `${height}px` }
+  }
+  return {}
+}
 
 function handleMascotClick() {
   isInteracting.value = true
@@ -145,6 +178,10 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 14px #ef4444 !important;
 }
 
+.eye-speak {
+  box-shadow: 0 0 10px #fbbf24, 0 0 16px #f97316 !important;
+}
+
 .eye-happy {
   width: 10px !important;
   height: 5px !important;
@@ -160,19 +197,76 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 12px #f59e0b !important;
 }
 
-.animate-lip-1 {
-  animation: lipMove 0.4s ease-in-out infinite alternate;
-}
-.animate-lip-2 {
-  animation: lipMove 0.4s ease-in-out infinite alternate 0.15s;
-}
-.animate-lip-3 {
-  animation: lipMove 0.4s ease-in-out infinite alternate 0.3s;
+/* 📻 Radio Signal Oscilloscope Bars */
+.signal-bar {
+  width: 2px;
+  min-height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fef08a 0%, #fbbf24 40%, #f97316 100%);
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.9), 0 0 10px rgba(249, 115, 22, 0.6);
+  transform-origin: center;
 }
 
-@keyframes lipMove {
-  0% { height: 2px; }
-  100% { height: 10px; }
+.bar-1 { animation: radioWave 0.45s ease-in-out infinite alternate; max-height: 8px; }
+.bar-2 { animation: radioWave 0.38s ease-in-out infinite alternate 0.08s; max-height: 11px; }
+.bar-3 { animation: radioWave 0.52s ease-in-out infinite alternate 0.16s; max-height: 14px; }
+.bar-4 { animation: radioWave 0.34s ease-in-out infinite alternate 0.04s; max-height: 16px; }
+.bar-5 { animation: radioWave 0.48s ease-in-out infinite alternate 0.12s; max-height: 14px; }
+.bar-6 { animation: radioWave 0.41s ease-in-out infinite alternate 0.2s; max-height: 11px; }
+.bar-7 { animation: radioWave 0.46s ease-in-out infinite alternate 0.06s; max-height: 8px; }
+
+@keyframes radioWave {
+  0% {
+    height: 3px;
+    opacity: 0.7;
+    filter: brightness(0.9);
+  }
+  50% {
+    height: 14px;
+    opacity: 1;
+    filter: brightness(1.3);
+    box-shadow: 0 0 8px rgba(254, 240, 138, 1), 0 0 14px rgba(249, 115, 22, 0.8);
+  }
+  100% {
+    height: 5px;
+    opacity: 0.85;
+    filter: brightness(1.1);
+  }
+}
+
+/* 🎙️ Listening Mic Input Radio Waves */
+.listening-bar {
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fca5a5 0%, #ef4444 100%);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.95);
+  animation: listenRadioWave 0.3s ease-in-out infinite alternate;
+}
+.lbar-1 { animation-delay: 0s; max-height: 8px; }
+.lbar-2 { animation-delay: 0.08s; max-height: 12px; }
+.lbar-3 { animation-delay: 0.16s; max-height: 15px; }
+.lbar-4 { animation-delay: 0.05s; max-height: 12px; }
+.lbar-5 { animation-delay: 0.12s; max-height: 8px; }
+
+@keyframes listenRadioWave {
+  0% { height: 3px; opacity: 0.6; }
+  100% { height: 13px; opacity: 1; box-shadow: 0 0 12px rgba(239, 68, 68, 1); }
+}
+
+/* 📡 Radar scanning beam for thinking state */
+.radar-scan-beam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: linear-gradient(90deg, transparent, #fbbf24, transparent);
+  box-shadow: 0 0 8px #fbbf24;
+  animation: radarSweep 0.9s linear infinite;
+}
+
+@keyframes radarSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
 }
 
 .mascot-pulse-listening {
@@ -187,8 +281,8 @@ onBeforeUnmount(() => {
 }
 
 .mascot-talk-speaking {
-  border-color: #10b981 !important;
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.8) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.85), 0 0 35px rgba(249, 115, 22, 0.4) !important;
 }
 
 .mascot-interactive-click {
