@@ -19,11 +19,11 @@
             
             <!-- 🤖 INTERACTIVE AI MASCOT AVATAR (Glowing Eyes + Lip-Synced Mouth) -->
             <MascotAvatar
-              :is-listening="isHoldingMic || speechRec.isListening.value"
+              :is-listening="isHoldingMicRef || isLiveListening"
               :is-loading="isLoading"
               :is-streaming="isStreaming"
               :is-speaking="isSpeaking"
-              :audio-amplitude="speechRec.audioAmplitude.value"
+              :audio-amplitude="liveAmplitude"
             />
 
             <div>
@@ -146,11 +146,11 @@
         </div>
 
         <!-- Voice Live Wavebar Visualizer & Active Push-to-Talk Recording Banner -->
-        <div v-if="isHoldingMic || speechRec.isListening.value || isSpeaking" class="voice-wave-bar flex items-center justify-between">
+        <div v-if="isHoldingMicRef || isLiveListening || isSpeaking" class="voice-wave-bar flex items-center justify-between">
           <div class="voice-status-info flex items-center gap-2">
-            <span class="pulse-dot" :class="{ 'pulse-dot--active': isHoldingMic || speechRec.isListening.value || isSpeaking }"></span>
+            <span class="pulse-dot" :class="{ 'pulse-dot--active': isHoldingMicRef || isLiveListening || isSpeaking }"></span>
             <span class="voice-status-text font-bold text-xs">
-              <span v-if="isHoldingMic || speechRec.isListening.value" class="text-red-600 animate-pulse">🔴 Listening to your voice... (Release mic to send)</span>
+              <span v-if="isHoldingMicRef || isLiveListening" class="text-red-600 animate-pulse">🔴 Listening to your voice... (Release mic to send)</span>
               <span v-else>🔊 Speaking response aloud...</span>
             </span>
           </div>
@@ -163,7 +163,7 @@
             >
               ⏹ Stop
             </button>
-            <div class="waveform-anim" :class="{ 'waveform-anim--active': isHoldingMic || speechRec.isListening.value || isSpeaking }">
+            <div class="waveform-anim" :class="{ 'waveform-anim--active': isHoldingMicRef || isLiveListening || isSpeaking }">
               <span class="wave-bar"></span>
               <span class="wave-bar"></span>
               <span class="wave-bar"></span>
@@ -189,25 +189,25 @@
               id="ai-chat-mic-btn"
               class="chat-mic-btn shrink-0 relative select-none"
               :class="{
-                'chat-mic-btn--listening': isHoldingMic || speechRec.isListening.value,
-                'opacity-80': isAiSpeaking && !isHoldingMic
+                'chat-mic-btn--listening': isHoldingMicRef || isLiveListening,
+                'opacity-80': isAiSpeaking && !isHoldingMicRef
               }"
-              :title="isHoldingMic ? '🔴 Recording — release to send' : isAiSpeaking ? '🔊 AI is answering — hold mic to interrupt' : '🎙️ Hold mic to speak'"
+              :title="isHoldingMicRef ? '🔴 Recording — release to send' : isAiSpeaking ? '🔊 AI is answering — hold mic to interrupt' : '🎙️ Hold mic to speak'"
             >
-              <span v-if="isHoldingMic || speechRec.isListening.value" class="text-sm text-red-400 animate-pulse">🔴</span>
+              <span v-if="isHoldingMicRef || isLiveListening" class="text-sm text-red-400 animate-pulse">🔴</span>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
               <!-- Active ping indicator when recording -->
-              <span v-if="isHoldingMic || speechRec.isListening.value" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              <span v-if="isHoldingMicRef || isLiveListening" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
             </button>
 
             <!-- Text Input Field -->
             <input
               v-model="inputText"
-              @keyup.enter="sendMessage"
+              @keyup.enter="sendMessage()"
               type="text"
-              :placeholder="isHoldingMic ? '🔴 Listening... Release to send!' : 'Type a question or hold mic to speak...'"
+              :placeholder="isHoldingMicRef ? '🔴 Listening... Release to send!' : 'Type a question or hold mic to speak...'"
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
@@ -216,7 +216,7 @@
 
             <!-- Send Button -->
             <button
-              @click="sendMessage"
+              @click="sendMessage()"
               :disabled="!inputText.trim() || isLoading"
               class="chat-send-btn shrink-0"
               id="ai-chat-send-btn"
@@ -235,7 +235,7 @@
           <!-- Live status + error row -->
           <div class="flex justify-between items-center mt-1.5 px-1">
             <span v-if="errorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ errorMsg }}</span>
-            <span v-else-if="isHoldingMic || speechRec.isListening.value" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Recording voice — release to send</span>
+            <span v-else-if="isHoldingMicRef || isLiveListening" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Recording voice — release to send</span>
             <span v-else-if="isAiSpeaking" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (Hold mic to interrupt)</span>
             <span v-else class="text-[10px] text-gray-500 font-semibold">🎙️ Hold mic button to speak</span>
             <span v-if="inputText.length > 0" class="text-[10px] text-gray-400 font-mono">{{ inputText.length }}/300</span>
@@ -278,21 +278,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useGameStore } from '../stores/gameStore'
-import { useSpeechRecognition } from '../composables/useSpeechRecognition'
 import { useVoiceSynthesis } from '../composables/useVoiceSynthesis'
 import MascotAvatar from './ai/MascotAvatar.vue'
 
-interface ChatMessage {
-  role: 'user' | 'model'
-  content: string
-}
+interface ChatMessage { role: 'user' | 'model'; content: string }
 
 const authStore = useAuthStore()
 const gameStore = useGameStore()
-const speechRec = useSpeechRecognition()
 const { isSpeaking, isVoiceOutputEnabled, toggleVoiceOutput, speakText, stopSpeaking } = useVoiceSynthesis()
 
 const isChatOpen = ref(false)
@@ -302,40 +297,40 @@ const isLoading = ref(false)
 const isStreaming = ref(false)
 const streamingMsgIdx = ref(-1)
 const errorMsg = ref('')
+const isLiveListening = ref(false)
+const liveAmplitude = ref(0)
 
-// ── Push-To-Talk State & Session Isolation ─────────────────────────
-const isHoldingMic = ref(false)
-let pressStartTime = 0
 let sessionSeq = 0
 let streamTickerTimer: any = null
-let currentAbortController: AbortController | null = null
 
-// ── Gemini Live WebSocket (gemini-3.1-flash-live-preview) ───────────
+// ── Gemini Live WebSocket ─────────────────────────────────────────
 let liveWs: WebSocket | null = null
 let liveWsReady = false
-let liveAnswerMsgIdx = -1
-let liveIncomingBuffer = ''
+let activeLiveChunkHandler: ((c: string) => void) | null = null
+let activeLiveDoneHandler: (() => void) | null = null
+let activeLiveTranscriptHandler: ((t: string) => void) | null = null
+
+// ── PCM16 Mic Audio State ─────────────────────────────────────────
+let micStream: MediaStream | null = null
+let audioCtx: AudioContext | null = null
+let micSource: MediaStreamAudioSourceNode | null = null
+let scriptProcessor: ScriptProcessorNode | null = null
+let isHoldingMic = false  // use plain var for performance in audio loop
 
 const chatBodyRef = ref<HTMLElement | null>(null)
 const rootRef = ref<HTMLElement | null>(null)
 
-// Unified indicator of whether AI is processing, streaming, or speaking
-const isAiSpeaking = computed(() =>
-  isSpeaking.value ||
-  isStreaming.value ||
-  isLoading.value
-)
+const isAiSpeaking = computed(() => isSpeaking.value || isStreaming.value || isLoading.value)
+const isHoldingMicRef = ref(false)  // reactive version for template
 
-// Dynamic Mascot Status Text
 const mascotStatusText = computed(() => {
-  if (isHoldingMic.value || speechRec.isListening.value) return '🔴 Listening to voice (Release to send)...'
-  if (isStreaming.value) return 'Streaming response in real-time...'
-  if (isLoading.value) return 'Finding your answer...'
-  if (isSpeaking.value) return 'Speaking response aloud...'
-  return 'Ready to guide & recommend Cores'
+  if (isLiveListening.value) return '🔴 Listening to your voice...'
+  if (isStreaming.value) return 'Streaming response...'
+  if (isLoading.value) return 'Thinking...'
+  if (isSpeaking.value) return 'Speaking...'
+  return 'Ready — Ask me anything!'
 })
 
-// Quick Action Hints in English
 const quickHints = [
   '📊 What are my player stats & rank?',
   '🎯 Which Support Core fits me best?',
@@ -350,514 +345,364 @@ const username = computed(() =>
   'Player'
 )
 
-// ── UNIFIED PTT PRESS handler ──────────────────────────────────────
-// Press & hold = start capturing speech with Web Speech API.
-// Automatically preempts & cancels any previous AI speech, text stream, or session.
-async function unifiedMicPress() {
-  if (!isChatOpen.value) return
-
-  // 1. Immediately abort active stream, clear interval, and stop TTS audio from previous turn
-  sessionSeq++
-  stopSpeaking()
-  if (currentAbortController) {
-    currentAbortController.abort()
-    currentAbortController = null
-  }
-  if (streamTickerTimer) {
-    clearInterval(streamTickerTimer)
-    streamTickerTimer = null
-  }
-  isStreaming.value = false
-  isLoading.value = false
-
-  // 2. Register global release listeners so releasing outside button also works
-  window.removeEventListener('mouseup', unifiedMicRelease)
-  window.removeEventListener('touchend', unifiedMicRelease)
-  window.addEventListener('mouseup', unifiedMicRelease, { once: true })
-  window.addEventListener('touchend', unifiedMicRelease, { once: true })
-
-  isHoldingMic.value = true
-  pressStartTime = Date.now()
-  errorMsg.value = ''
-  inputText.value = ''
-
-  speechRec.onTranscriptUpdate((text: string) => {
-    if (isHoldingMic.value && text) {
-      inputText.value = text
-    }
-  })
-
-  const started = await speechRec.startListening()
-  if (!started && speechRec.errorMsg.value) {
-    errorMsg.value = speechRec.errorMsg.value
-  }
-}
-
-// ── UNIFIED PTT RELEASE handler ────────────────────────────────────
-async function unifiedMicRelease() {
-  window.removeEventListener('mouseup', unifiedMicRelease)
-  window.removeEventListener('touchend', unifiedMicRelease)
-
-  const wasHolding = isHoldingMic.value
-  isHoldingMic.value = false
-
-  if (!wasHolding) return
-
-  const pressDuration = Date.now() - pressStartTime
-
-  // Stop recording — only care about the recognized text
-  const speechResult = await speechRec.stopListening()
-
-  // Priority 1: Web Speech API recognized text
-  const textFromSpeech = (speechResult.text || '').trim()
-  // Priority 2: Whatever was interim-typed into input box during speech
-  const textFromInput = inputText.value.trim()
-  const finalText = textFromSpeech || textFromInput
-
-  inputText.value = ''
-
-  if (speechRec.errorMsg.value) {
-    errorMsg.value = speechRec.errorMsg.value
-    return
-  }
-
-  if (finalText) {
-    // Real recognized text → send as text prompt (accurate, fast)
-    await sendMessage(finalText)
-  } else {
-    // Browser couldn't recognize voice — show friendly error, don't send anything
-    if (pressDuration < 400) {
-      errorMsg.value = 'Hold mic longer and speak clearly.'
-    } else {
-      errorMsg.value = 'Could not recognize speech. Try speaking more clearly, or type your question.'
-    }
-    setTimeout(() => { errorMsg.value = '' }, 4000)
-  }
-}
-
-// ── Connect to Gemini Live WebSocket (gemini-3.1-flash-live-preview) ──
 function getApiBase(): string {
   let base = import.meta.env.VITE_SERVER_URL || ''
   if (typeof window !== 'undefined') {
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      base = 'http://localhost:3000'
-    } else if (!base) {
-      base = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
-    }
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return 'http://localhost:3000'
+    if (!base) base = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
   }
   return base || 'http://localhost:3000'
 }
 
-let activeLiveChunkHandler: ((chunk: string) => void) | null = null
-let activeLiveDoneHandler: (() => void) | null = null
-
-function connectLiveWs(): Promise<WebSocket> {
+// ── WebSocket Connection ──────────────────────────────────────────
+function connectLiveWs(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (liveWs && liveWs.readyState === WebSocket.OPEN && liveWsReady) {
-      resolve(liveWs)
-      return
-    }
-
-    if (liveWs) {
-      try { liveWs.close() } catch {}
-      liveWs = null
-    }
+    if (liveWs && liveWs.readyState === WebSocket.OPEN && liveWsReady) { resolve(); return }
+    if (liveWs) { try { liveWs.close() } catch {} liveWs = null }
 
     const token = localStorage.getItem('arena_token') || ''
     const base = getApiBase()
     const wsBase = base.replace(/^http/, 'ws')
-    const url = `${wsBase}/api/ai/live?token=${encodeURIComponent(token)}`
-
-    liveWs = new WebSocket(url)
+    liveWs = new WebSocket(`${wsBase}/api/ai/live?token=${encodeURIComponent(token)}`)
     liveWsReady = false
 
     let resolved = false
-    const timeout = setTimeout(() => {
-      if (!resolved) {
-        resolved = true
-        reject(new Error('Live WS connection timeout'))
-      }
-    }, 4000)
+    const timer = setTimeout(() => { if (!resolved) { resolved = true; reject(new Error('WS timeout')) } }, 6000)
 
     liveWs.onmessage = (event) => {
       try {
         const raw = event.data.toString()
-
-        // Setup complete from Gemini Live
         if (raw.includes('setupComplete')) {
           liveWsReady = true
-          if (!resolved) {
-            resolved = true
-            clearTimeout(timeout)
-            resolve(liveWs!)
-          }
+          if (!resolved) { resolved = true; clearTimeout(timer); resolve() }
           return
         }
-
         const msg = JSON.parse(raw)
-        if (msg.type === 'textChunk' && msg.chunk) {
-          if (activeLiveChunkHandler) activeLiveChunkHandler(msg.chunk)
-        } else if (msg.type === 'textDone') {
-          if (activeLiveDoneHandler) activeLiveDoneHandler()
-        }
-      } catch { /* binary audio data */ }
+        if (msg.type === 'textChunk' && msg.chunk && activeLiveChunkHandler) activeLiveChunkHandler(msg.chunk)
+        if (msg.type === 'textDone' && activeLiveDoneHandler) activeLiveDoneHandler()
+        if (msg.type === 'inputTranscript' && msg.text && activeLiveTranscriptHandler) activeLiveTranscriptHandler(msg.text)
+        if (msg.error) { errorMsg.value = msg.error; isLoading.value = false; isStreaming.value = false }
+      } catch { /* binary/non-JSON */ }
     }
-
-    liveWs.onerror = (err) => {
-      liveWsReady = false
-      if (!resolved) {
-        resolved = true
-        clearTimeout(timeout)
-        reject(err)
-      }
-    }
-
-    liveWs.onclose = () => {
-      liveWsReady = false
-      liveWs = null
-    }
+    liveWs.onerror = () => { liveWsReady = false; if (!resolved) { resolved = true; clearTimeout(timer); reject(new Error('WS error')) } }
+    liveWs.onclose = () => { liveWsReady = false; liveWs = null }
   })
 }
 
-// ── Send message via Gemini Live WebSocket ────────────────────────────
-async function sendMessage(overridePrompt?: string) {
+function disconnectLiveWs() {
+  if (liveWs) { try { liveWs.close() } catch {} liveWs = null }
+  liveWsReady = false
+}
+
+// ── PCM16 Mic Capture ────────────────────────────────────────────
+async function startMicCapture(): Promise<boolean> {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }, video: false })
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 })
+    micSource = audioCtx.createMediaStreamSource(micStream)
+    scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1)
+
+    scriptProcessor.onaudioprocess = (e: AudioProcessingEvent) => {
+      if (!isHoldingMic) return
+      const f32 = e.inputBuffer.getChannelData(0)
+      // RMS amplitude for mascot visualizer
+      let sumSq = 0
+      for (let i = 0; i < f32.length; i++) sumSq += f32[i] * f32[i]
+      liveAmplitude.value = Math.min(1, Math.sqrt(sumSq / f32.length) * 8)
+      // PCM16 encode
+      const i16 = new Int16Array(f32.length)
+      for (let i = 0; i < f32.length; i++) i16[i] = Math.max(-32768, Math.min(32767, Math.round(f32[i] * 32767)))
+      const bytes = new Uint8Array(i16.buffer)
+      let bin = ''; for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+      const b64 = btoa(bin)
+      if (liveWs && liveWs.readyState === WebSocket.OPEN) {
+        liveWs.send(JSON.stringify({ realtimeInput: { audio: { data: b64, mimeType: 'audio/pcm;rate=16000' } } }))
+      }
+    }
+
+    micSource.connect(scriptProcessor)
+    scriptProcessor.connect(audioCtx.destination)
+    return true
+  } catch (err: any) {
+    errorMsg.value = err?.name === 'NotAllowedError' ? 'Microphone permission denied.' : `Mic error: ${err?.message || 'unknown'}`
+    return false
+  }
+}
+
+function stopMicCapture() {
+  isHoldingMic = false
+  isHoldingMicRef.value = false
+  isLiveListening.value = false
+  liveAmplitude.value = 0
+  try { scriptProcessor?.disconnect() } catch {}
+  try { micSource?.disconnect() } catch {}
+  try { audioCtx?.close() } catch {}
+  micStream?.getTracks().forEach(t => t.stop())
+  micStream = null; audioCtx = null; micSource = null; scriptProcessor = null
+}
+
+// ── Push-To-Talk Handlers ─────────────────────────────────────────
+async function unifiedMicPress() {
   if (!isChatOpen.value) return
 
+  sessionSeq++
+  stopSpeaking()
+  if (streamTickerTimer) { clearInterval(streamTickerTimer); streamTickerTimer = null }
+  isStreaming.value = false
+  isLoading.value = false
+  errorMsg.value = ''
+  inputText.value = ''
+
+  window.addEventListener('mouseup', unifiedMicRelease, { once: true })
+  window.addEventListener('touchend', unifiedMicRelease, { once: true })
+
+  try {
+    await connectLiveWs()
+  } catch {
+    errorMsg.value = 'Could not connect to AI. Please try again.'
+    return
+  }
+
+  const started = await startMicCapture()
+  if (!started) return
+
+  isHoldingMic = true
+  isHoldingMicRef.value = true
+  isLiveListening.value = true
+
+  // Push user bubble immediately showing listening state
+  messages.value.push({ role: 'user', content: '🎙️ Listening...' })
+  scrollToBottom()
+}
+
+async function unifiedMicRelease() {
+  window.removeEventListener('mouseup', unifiedMicRelease)
+  window.removeEventListener('touchend', unifiedMicRelease)
+
+  if (!isHoldingMic) return
+
+  const userBubbleIdx = messages.value.length - 1
+
+  // Stop audio capture
+  stopMicCapture()
+
+  if (!liveWs || liveWs.readyState !== WebSocket.OPEN) {
+    errorMsg.value = 'Connection lost. Please try again.'
+    if (userBubbleIdx >= 0) messages.value.splice(userBubbleIdx, 1)
+    return
+  }
+
+  // Signal end of user turn to Gemini Live
+  liveWs.send(JSON.stringify({ clientContent: { turns: [], turnComplete: true } }))
+
+  // Show ACK bubble and wait for streaming response
+  const thisSessionId = ++sessionSeq
+  messages.value.push({ role: 'model', content: '⏳ Hold on a moment…' })
+  const ackMsgIdx = messages.value.length - 1
+  scrollToBottom()
+  isLoading.value = true
+
+  let incomingBuffer = ''
+  let displayedText = ''
+  let isStreamClosed = false
+
+  // Set up handlers for this session
+  activeLiveTranscriptHandler = (text: string) => {
+    if (thisSessionId !== sessionSeq) return
+    // Update user bubble with real transcribed text from Gemini
+    if (userBubbleIdx >= 0 && messages.value[userBubbleIdx]?.role === 'user') {
+      messages.value[userBubbleIdx].content = text
+    }
+  }
+
+  activeLiveChunkHandler = (chunk: string) => {
+    if (thisSessionId !== sessionSeq) return
+    incomingBuffer += chunk
+  }
+
+  activeLiveDoneHandler = () => {
+    if (thisSessionId !== sessionSeq) return
+    isStreamClosed = true
+  }
+
+  // Clear ACK bubble and start typewriter
+  messages.value[ackMsgIdx] = { role: 'model', content: '' }
+  startTypewriterLoop(ackMsgIdx, thisSessionId, () => incomingBuffer, () => { displayedText = incomingBuffer }, () => isStreamClosed, (v) => { displayedText = v }, () => displayedText)
+
+  // Wait for completion
+  await waitForStreamDone(() => isStreamClosed, thisSessionId, ackMsgIdx)
+}
+
+// ── Scroll helper ─────────────────────────────────────────────────
+function scrollToBottom() {
+  nextTick(() => { if (chatBodyRef.value) chatBodyRef.value.scrollTop = chatBodyRef.value.scrollHeight })
+}
+
+// ── Typewriter loop ───────────────────────────────────────────────
+function startTypewriterLoop(
+  targetIdx: number,
+  thisSessionId: number,
+  getBuffer: () => string,
+  syncDisplayed: () => void,
+  getStreamClosed: () => boolean,
+  setDisplayed: (v: string) => void,
+  getDisplayed: () => string
+) {
+  if (streamTickerTimer) clearInterval(streamTickerTimer)
+  streamTickerTimer = setInterval(() => {
+    if (!isChatOpen.value || thisSessionId !== sessionSeq) {
+      clearInterval(streamTickerTimer); streamTickerTimer = null
+      isStreaming.value = false; streamingMsgIdx.value = -1; isLoading.value = false
+      return
+    }
+    const buf = getBuffer()
+    const disp = getDisplayed()
+    if (disp.length < buf.length) {
+      if (!isStreaming.value) { isStreaming.value = true; streamingMsgIdx.value = targetIdx }
+      const backlog = buf.length - disp.length
+      const step = backlog > 80 ? 6 : backlog > 30 ? 4 : backlog > 12 ? 2 : 1
+      const next = buf.slice(0, disp.length + step)
+      setDisplayed(next)
+      if (targetIdx >= 0 && targetIdx < messages.value.length) messages.value[targetIdx] = { role: 'model', content: next }
+      scrollToBottom()
+    }
+    if (getStreamClosed() && getDisplayed().length >= getBuffer().length) {
+      clearInterval(streamTickerTimer); streamTickerTimer = null
+      isStreaming.value = false; streamingMsgIdx.value = -1; isLoading.value = false
+      const final = getDisplayed() || getBuffer()
+      if (targetIdx >= 0 && targetIdx < messages.value.length) messages.value[targetIdx] = { role: 'model', content: final }
+      if (final.trim() && isChatOpen.value && thisSessionId === sessionSeq) speakText(final, isChatOpen.value)
+      if (!final.trim()) {
+        if (targetIdx >= 0 && targetIdx < messages.value.length) messages.value.splice(targetIdx, 1)
+        errorMsg.value = 'No response from AI. Please try again.'
+      }
+      scrollToBottom()
+    }
+  }, 14)
+}
+
+async function waitForStreamDone(getStreamClosed: () => boolean, thisSessionId: number, ackMsgIdx: number) {
+  // Just wait — the typewriter loop handles everything. Clean up after 45s timeout.
+  const TIMEOUT = 45000
+  const start = Date.now()
+  await new Promise<void>(resolve => {
+    const check = setInterval(() => {
+      if (getStreamClosed() || thisSessionId !== sessionSeq || Date.now() - start > TIMEOUT) {
+        clearInterval(check)
+        if (Date.now() - start > TIMEOUT && !getStreamClosed()) {
+          errorMsg.value = 'Response timed out. Please try again.'
+          if (ackMsgIdx >= 0 && ackMsgIdx < messages.value.length) messages.value.splice(ackMsgIdx, 1)
+          isLoading.value = false; isStreaming.value = false
+        }
+        resolve()
+      }
+    }, 100)
+  })
+  activeLiveChunkHandler = null
+  activeLiveDoneHandler = null
+  activeLiveTranscriptHandler = null
+}
+
+// ── Send Text Message ─────────────────────────────────────────────
+async function sendMessage(overridePrompt?: string) {
+  if (!isChatOpen.value) return
   const text = (overridePrompt !== undefined ? overridePrompt : inputText.value).trim()
   if (!text) return
 
   inputText.value = ''
   errorMsg.value = ''
-
-  // Increment session sequence ID — cancels and invalidates any previous session
   const thisSessionId = ++sessionSeq
 
-  // 1. Immediately abort active stream, clear interval, and stop TTS audio
   stopSpeaking()
-  if (streamTickerTimer) {
-    clearInterval(streamTickerTimer)
-    streamTickerTimer = null
-  }
-  if (currentAbortController) {
-    currentAbortController.abort()
-    currentAbortController = null
-  }
+  if (streamTickerTimer) { clearInterval(streamTickerTimer); streamTickerTimer = null }
+  isStreaming.value = false; streamingMsgIdx.value = -1; isLoading.value = false
 
-  // 2. Finalize previous AI message if it was still typing (remove empty placeholder if no content arrived)
-  if (streamingMsgIdx.value >= 0 && streamingMsgIdx.value < messages.value.length) {
-    const prevMsg = messages.value[streamingMsgIdx.value]
-    if (prevMsg && !prevMsg.content.trim()) {
-      messages.value.splice(streamingMsgIdx.value, 1)
-    }
-  }
-
-  isStreaming.value = false
-  streamingMsgIdx.value = -1
-  isLoading.value = false
-
-  // User bubble always shows the actual recognized text
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
-
-  // ── Instant ACK bubble ────────────────────────────────────────────
+  
   const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
-  const ackText = isVi ? '⏳ Chờ mình một chút nhé…' : '⏳ Hold on a moment…'
-  messages.value.push({ role: 'model', content: ackText })
+  messages.value.push({ role: 'model', content: isVi ? '⏳ Chờ mình một chút nhé…' : '⏳ Hold on a moment…' })
   const ackMsgIdx = messages.value.length - 1
   scrollToBottom()
-
   isLoading.value = true
 
-  // Small delay so ACK renders before fetch starts
-  await new Promise(r => setTimeout(r, 120))
+  // Ensure WS is connected
+  try {
+    await connectLiveWs()
+  } catch {
+    errorMsg.value = 'Could not connect to AI. Please try again.'
+    if (ackMsgIdx >= 0 && ackMsgIdx < messages.value.length) messages.value.splice(ackMsgIdx, 1)
+    isLoading.value = false
+    return
+  }
+
+  if (!liveWs || liveWs.readyState !== WebSocket.OPEN) {
+    errorMsg.value = 'Connection lost. Please try again.'
+    if (ackMsgIdx >= 0 && ackMsgIdx < messages.value.length) messages.value.splice(ackMsgIdx, 1)
+    isLoading.value = false
+    return
+  }
 
   let incomingBuffer = ''
   let displayedText = ''
   let isStreamClosed = false
-  let timeoutId: any = null
-  let answerMsgIdx = -1
 
+  activeLiveChunkHandler = (chunk: string) => { if (thisSessionId === sessionSeq) incomingBuffer += chunk }
+  activeLiveDoneHandler = () => { if (thisSessionId === sessionSeq) isStreamClosed = true }
+  activeLiveTranscriptHandler = null
 
-  // Helper to start incremental typewriter effect for response bubble
-  const startTypewriterLoop = (targetIdx: number) => {
-    if (streamTickerTimer) clearInterval(streamTickerTimer)
+  // Clear ACK and start typewriter
+  messages.value[ackMsgIdx] = { role: 'model', content: '' }
+  startTypewriterLoop(ackMsgIdx, thisSessionId, () => incomingBuffer, () => { displayedText = incomingBuffer }, () => isStreamClosed, (v) => { displayedText = v }, () => displayedText)
 
-    streamTickerTimer = setInterval(() => {
-      // Abort immediately if chat was closed or a new session preempted this one
-      if (!isChatOpen.value || thisSessionId !== sessionSeq) {
-        if (streamTickerTimer) clearInterval(streamTickerTimer)
-        streamTickerTimer = null
-        isStreaming.value = false
-        streamingMsgIdx.value = -1
-        isLoading.value = false
-        return
-      }
+  // Send text via WebSocket
+  liveWs.send(JSON.stringify({ type: 'textQuery', text }))
 
-      if (displayedText.length < incomingBuffer.length) {
-        if (!isStreaming.value) {
-          isStreaming.value = true
-          streamingMsgIdx.value = targetIdx
-        }
-
-        const backlog = incomingBuffer.length - displayedText.length
-        const step = backlog > 80 ? 6 : backlog > 30 ? 4 : backlog > 12 ? 2 : 1
-        displayedText += incomingBuffer.slice(displayedText.length, displayedText.length + step)
-
-        if (targetIdx >= 0 && targetIdx < messages.value.length) {
-          messages.value[targetIdx] = { role: 'model', content: displayedText }
-        }
-        scrollToBottom()
-      }
-
-      // Complete only after all characters in buffer are rendered
-      if (isStreamClosed && displayedText.length >= incomingBuffer.length) {
-        clearInterval(streamTickerTimer)
-        streamTickerTimer = null
-        isStreaming.value = false
-        streamingMsgIdx.value = -1
-        isLoading.value = false
-
-        if (displayedText.trim() && isChatOpen.value && thisSessionId === sessionSeq) {
-          speakText(displayedText, isChatOpen.value)
-        } else if (!displayedText.trim() && incomingBuffer.trim()) {
-          displayedText = incomingBuffer
-          if (targetIdx >= 0 && targetIdx < messages.value.length) {
-            messages.value[targetIdx] = { role: 'model', content: displayedText }
-          }
-          if (isChatOpen.value && thisSessionId === sessionSeq) {
-            speakText(displayedText, isChatOpen.value)
-          }
-        } else if (!displayedText.trim() && !incomingBuffer.trim()) {
-          if (targetIdx >= 0 && targetIdx < messages.value.length && !messages.value[targetIdx].content) {
-            messages.value.splice(targetIdx, 1)
-            errorMsg.value = isVi ? 'Không nhận được phản hồi từ AI. Vui lòng thử lại.' : 'No response from AI. Please try again.'
-          }
-        }
-        scrollToBottom()
-      }
-    }, 14)
-  }
-
-  try {
-    const history = messages.value
-      .slice(0, -1)
-      .slice(-10)
-      .map(m => ({ role: m.role, message: m.content }))
-
-    const wins = authStore.profile?.wins ?? 0
-    const losses = authStore.profile?.losses ?? 0
-    const totalMatches = authStore.profile?.total_matches ?? (wins + losses)
-    const winRate = totalMatches > 0 ? `${Math.round((wins / totalMatches) * 100)}%` : '0%'
-
-    const playerHistory = {
-      username: username.value,
-      elo: authStore.profile?.elo ?? 1000,
-      rank: authStore.profile?.rank || 'Bronze',
-      wins,
-      losses,
-      totalMatches,
-      winRate,
-      unlockedCores: authStore.profile?.unlocked_core_ids || [],
-      activeCoreId: gameStore.activeCoreId || '',
-      activeCoreName: gameStore.activeCoreId ? 'Equipped Core' : 'None',
-      coreHistory: gameStore.coreHistory || [],
-      score: gameStore.score || 0
-    }
-
-    // ── Setup SSE Request with Connection Timeout (45s TTFB) ──────────
-    currentAbortController = new AbortController()
-    const resetWatchdog = () => {
-      if (timeoutId) clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => {
-        if (currentAbortController && thisSessionId === sessionSeq) {
-          currentAbortController.abort()
-        }
-      }, 45000)
-    }
-
-    resetWatchdog()
-
-    let token = localStorage.getItem('arena_token') || ''
-    if (!token && !authStore.isLoggedIn) {
-      try {
-        await authStore.fetchGuestToken()
-        token = localStorage.getItem('arena_token') || ''
-      } catch {}
-    }
-
-    let apiBase = import.meta.env.VITE_SERVER_URL
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      apiBase = 'http://localhost:3000'
-    } else if (!apiBase && typeof window !== 'undefined') {
-      apiBase = window.location.protocol === 'https:' ? 'https://api.naenra.xyz' : `http://${window.location.hostname}:3000`
-    }
-    apiBase = apiBase || 'http://localhost:3000'
-
-    // Reuse ACK bubble as the answer bubble — clear its ack text and start streaming into it
-    answerMsgIdx = ackMsgIdx
-    if (answerMsgIdx >= 0 && answerMsgIdx < messages.value.length) {
-      messages.value[answerMsgIdx] = { role: 'model', content: '' }
-    }
-
-    // Launch incremental typewriter loop
-    startTypewriterLoop(answerMsgIdx)
-
-    // ── Method 1: Try Gemini 3.1 Flash Live over WebSocket (Fastest, Native Live Model) ──
-    let usedLiveWs = false
-    try {
-      const ws = await connectLiveWs()
-      if (ws && ws.readyState === WebSocket.OPEN && liveWsReady) {
-        usedLiveWs = true
-
-        activeLiveChunkHandler = (chunk: string) => {
-          if (thisSessionId === sessionSeq) {
-            incomingBuffer += chunk
-            resetWatchdog()
-          }
-        }
-        activeLiveDoneHandler = () => {
-          if (thisSessionId === sessionSeq) {
-            isStreamClosed = true
-          }
-        }
-
-        resetWatchdog()
-        ws.send(JSON.stringify({ type: 'textQuery', text }))
-
-        // Wait until stream completes or gets cancelled
-        await new Promise<void>((resolve) => {
-          const checkInterval = setInterval(() => {
-            if (isStreamClosed || thisSessionId !== sessionSeq || !isChatOpen.value) {
-              clearInterval(checkInterval)
-              resolve()
-            }
-          }, 50)
-        })
-
-        if (thisSessionId === sessionSeq && isStreamClosed) {
-          return
-        }
-      }
-    } catch (wsErr) {
-      console.warn('[AIChatWidget] Gemini Live WS unavailable, falling back to SSE stream:', wsErr)
-    }
-
-    // ── Method 2: Fallback to HTTP SSE Stream ──────────────────────────
-    const res = await fetch(`${apiBase}/api/ai/chat/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        prompt: text,
-        history,
-        playerHistory
-      }),
-      signal: currentAbortController.signal
-    })
-
-    // Reset watchdog now that server connection has responded
-    resetWatchdog()
-
-    if (thisSessionId !== sessionSeq) return
-
-    if (!res.ok || !res.body) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.message || (isVi ? 'Không thể kết nối đến AI Assistant' : 'Failed to connect to AI Assistant'))
-    }
-
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      if (!isChatOpen.value || thisSessionId !== sessionSeq) {
-        reader.cancel().catch(() => {})
-        isStreamClosed = true
-        break
-      }
-
-      const { done, value } = await reader.read()
-      if (done) break
-
-      resetWatchdog()
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith(':')) { resetWatchdog(); continue }
-        if (!line.startsWith('data: ')) continue
-        const payload = line.slice(6).trim()
-        if (payload === '[DONE]') { isStreamClosed = true; break }
-        try {
-          const parsed = JSON.parse(payload)
-          if (parsed.chunk && thisSessionId === sessionSeq) {
-            incomingBuffer += parsed.chunk
-          }
-        } catch { /* skip malformed chunk */ }
-      }
-    }
-
-    isStreamClosed = true
-  } catch (err: any) {
-    isStreamClosed = true
-
-
-    // If stream failed before any text arrived — replace ACK bubble with error message
-    if (thisSessionId === sessionSeq && incomingBuffer.length === 0) {
-      if (streamTickerTimer) {
-        clearInterval(streamTickerTimer)
-        streamTickerTimer = null
-      }
-      const errText = err.name === 'AbortError' && !isHoldingMic.value
-        ? (isVi ? '⚠️ Kết nối AI bị gián đoạn. Vui lòng thử lại.' : '⚠️ AI connection timed out. Please try again.')
-        : (err.message || (isVi ? '⚠️ Đã xảy ra lỗi. Vui lòng thử lại.' : '⚠️ An error occurred. Please try again.'))
-      if (err.name !== 'AbortError' || !isHoldingMic.value) {
-        errorMsg.value = errText
-        // Replace ACK bubble with error hint or remove it
-        if (answerMsgIdx >= 0 && answerMsgIdx < messages.value.length) {
-          messages.value.splice(answerMsgIdx, 1)
-        }
-      }
-      isLoading.value = false
-      isStreaming.value = false
-      streamingMsgIdx.value = -1
-    }
-  } finally {
-    activeLiveChunkHandler = null
-    activeLiveDoneHandler = null
-    if (timeoutId) clearTimeout(timeoutId)
-    if (thisSessionId === sessionSeq) {
-      currentAbortController = null
-    }
-    scrollToBottom()
-  }
+  await waitForStreamDone(() => isStreamClosed, thisSessionId, ackMsgIdx)
 }
 
-// ── Lifecycle & Close Handlers ─────────────────────────────────────
+// ── Markdown Utils ────────────────────────────────────────────────
+function renderMarkdown(text: string): string {
+  if (!text) return ''
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
+  html = html.replace(/`(.*?)`/g, '<code class="bg-orange-100 text-orange-800 px-1 py-0.5 rounded text-sm">$1</code>')
+  html = html.replace(/\n/g, '<br>')
+
+  return html
+}
+
+function sendQuick(hint: string) {
+  sendMessage(hint)
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────
 watch(isChatOpen, (open) => {
   if (!open) {
     stopSpeaking()
-    speechRec.abortListening()
-    isHoldingMic.value = false
-    if (currentAbortController) {
-      currentAbortController.abort()
-      currentAbortController = null
-    }
-    if (streamTickerTimer) {
-      clearInterval(streamTickerTimer)
-      streamTickerTimer = null
-    }
-    isStreaming.value = false
-    streamingMsgIdx.value = -1
-    isLoading.value = false
+    stopMicCapture()
+    window.removeEventListener('mouseup', unifiedMicRelease)
+    window.removeEventListener('touchend', unifiedMicRelease)
+    if (streamTickerTimer) { clearInterval(streamTickerTimer); streamTickerTimer = null }
+    activeLiveChunkHandler = null; activeLiveDoneHandler = null; activeLiveTranscriptHandler = null
+    isStreaming.value = false; streamingMsgIdx.value = -1; isLoading.value = false
+    disconnectLiveWs()
   } else {
+    if (!authStore.profile) void authStore.fetchProfile()
     connectLiveWs().catch(() => {})
     nextTick(() => scrollToBottom())
   }
+})
+
+onBeforeUnmount(() => {
+  stopMicCapture()
+  disconnectLiveWs()
+  if (streamTickerTimer) clearInterval(streamTickerTimer)
 })
 
 function toggleChat() {
@@ -875,61 +720,8 @@ function toggleChat() {
 function closeChat() {
   isChatOpen.value = false
   stopSpeaking()
-  speechRec.abortListening()
-  isHoldingMic.value = false
-}
-
-function scrollToBottom() {
-  nextTick(() => {
-    if (chatBodyRef.value) {
-      chatBodyRef.value.scrollTop = chatBodyRef.value.scrollHeight
-    }
-  })
-}
-
-function sendQuick(text: string) {
-  if (!isChatOpen.value) return
-  inputText.value = text
-  sendMessage()
-}
-
-function handleClickOutside(e: MouseEvent) {
-  if (!isChatOpen.value || isHoldingMic.value) return
-  const target = e.target as Node | null
-  if (!target) return
-  if ('isConnected' in target && !target.isConnected) return
-  if (rootRef.value && !rootRef.value.contains(target)) {
-    isChatOpen.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', handleClickOutside)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', handleClickOutside)
-  if (streamTickerTimer) clearInterval(streamTickerTimer)
-  if (currentAbortController) {
-    currentAbortController.abort()
-    currentAbortController = null
-  }
-  stopSpeaking()
-  speechRec.abortListening()
-})
-
-// ── Simple Markdown renderer ─────────────────────────────────────────
-function renderMarkdown(raw: string): string {
-  if (!raw) return ''
-  let html = raw
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
-  html = html.replace(/\n/g, '<br/>')
-  return html
+  stopMicCapture()
+  disconnectLiveWs()
 }
 </script>
 

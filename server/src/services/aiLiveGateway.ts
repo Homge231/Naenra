@@ -71,14 +71,8 @@ export function setupAiLiveGateway(): WebSocketServer {
         setup: {
           model: liveModel,
           generationConfig: {
-            responseModalities: ['AUDIO', 'TEXT'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: {
-                  voiceName: 'Puck'
-                }
-              }
-            },
+            responseModalities: ['TEXT'],
+            inputAudioTranscription: {},
             thinkingConfig: {
               thinkingLevel: 'MINIMAL'
             }
@@ -86,15 +80,14 @@ export function setupAiLiveGateway(): WebSocketServer {
           systemInstruction: {
             parts: [
               {
-                text: `You are Naenra AI Coach, the official energetic, friendly real-time voice AI guide in Naenra typing game (live at naenra.xyz).
-You talk directly to the player via real-time audio.
+                text: `You are Naenra AI Coach, the official energetic, friendly AI guide in Naenra typing game (live at naenra.xyz).
+You assist players via text chat and voice input.
 
 LANGUAGE RULES:
 - Primary Languages: English and Vietnamese only.
-- When the player speaks English (such as "Hello", "Hi", "Hey", "How do I play?", "What is my rank?"), ALWAYS understand in English and reply directly in energetic, natural English.
-- When the player speaks Vietnamese, understand and reply directly in fluent Vietnamese.
+- When the player speaks or writes in English, ALWAYS reply directly in energetic, natural English.
+- When the player speaks or writes in Vietnamese, reply directly in fluent Vietnamese.
 - NEVER interpret English phonemes into Chinese characters, Japanese kana, or any other Asian scripts.
-- Keep voice responses compact (under 35 words) for fast, natural in-game audio listening.
 
 CURRENT PLAYER IDENTITY & LIVE STATS:
 - In-Game Player Name / Username: "${playerName}"
@@ -198,9 +191,19 @@ Key Game Facts:
           }
         }
 
+        // Forward user speech transcription to client
+        if (msg?.serverContent?.inputTranscription?.text && clientWs.readyState === WebSocket.OPEN) {
+          clientWs.send(JSON.stringify({ type: 'inputTranscript', text: msg.serverContent.inputTranscription.text }))
+        }
+
         // Forward turn complete signal
-        if (msg?.serverContent?.turnComplete && clientWs.readyState === WebSocket.OPEN) {
+        if ((msg?.serverContent?.turnComplete || msg?.serverContent?.generationComplete) && clientWs.readyState === WebSocket.OPEN) {
           clientWs.send(JSON.stringify({ type: 'textDone' }))
+        }
+
+        // Forward interrupted signal
+        if (msg?.serverContent?.interrupted && clientWs.readyState === WebSocket.OPEN) {
+          clientWs.send(JSON.stringify({ type: 'interrupted' }))
         }
       } catch {
         // Binary audio frames are not JSON — normal, ignore silently
