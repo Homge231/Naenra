@@ -149,11 +149,11 @@ export function useSpeechRecognition() {
           sum += dataArray[i]
         }
         const avg = sum / bufferLength
-        if (avg < 8) {
+        if (avg < 4) {
           audioAmplitude.value = 0
           isVoiceDetected.value = false
         } else {
-          const normalized = Math.min(1, Math.max(0.1, (avg - 8) / 65))
+          const normalized = Math.min(1, Math.max(0.1, (avg - 4) / 60))
           audioAmplitude.value = normalized
           isVoiceDetected.value = true
           if (normalized > maxRecordedAmplitude) {

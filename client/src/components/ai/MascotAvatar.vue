@@ -53,8 +53,8 @@
 
       <!-- 2. When Listening to User Mic: Radio Receiver Waves ONLY when voice detected -->
       <div v-else-if="isListening || isLiveConnected" class="radio-listening-mouth flex items-center justify-center h-3.5 w-full">
-        <!-- Voice detected (> 0.05 amplitude): Dynamic radio altitude bars only -->
-        <div v-if="(audioAmplitude || 0) >= 0.05" class="flex items-center justify-center gap-[2px] h-3.5">
+        <!-- Voice detected (> 0.03 amplitude): Dynamic radio altitude bars only -->
+        <div v-if="(audioAmplitude || 0) >= 0.03" class="flex items-center justify-center gap-[2px] h-3.5">
           <span class="listening-bar lbar-1" :style="listeningBarStyle(0, 3, 8)"></span>
           <span class="listening-bar lbar-2" :style="listeningBarStyle(1, 4, 12)"></span>
           <span class="listening-bar lbar-3" :style="listeningBarStyle(2, 5, 16)"></span>

@@ -419,10 +419,10 @@ async function unifiedMicRelease() {
     // Best path: real recognized text → send as text prompt (fast, no audio upload needed)
     inputText.value = ''
     await sendMessage(finalText)
-  } else if (speechResult.audioData && speechResult.hasVoice) {
+  } else if (speechResult.audioData) {
     // Fallback: Web Speech produced no text, but microphone DID capture audio.
-    // Send audio blob to Gemini for transcription — server will echo back the transcript
-    // via `userTranscript` SSE event so the user bubble gets updated with real words.
+    // Send audio blob to Gemini for transcription — works even when amplitude is low (Edge/Safari).
+    // Server will echo back the transcript via `userTranscript` SSE event.
     inputText.value = ''
     await sendMessage(undefined, {
       data: speechResult.audioData,
