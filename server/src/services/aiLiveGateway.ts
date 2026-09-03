@@ -146,6 +146,18 @@ Key Game Facts:
             return // Silently drop audio chunk — AI is currently speaking
           }
         }
+
+        // Compatibility transformer: convert legacy mediaChunks to audio format per Gemini Live API requirement
+        if (parsed.realtimeInput?.mediaChunks?.[0]) {
+          const chunk = parsed.realtimeInput.mediaChunks[0]
+          parsed.realtimeInput = {
+            audio: {
+              data: chunk.data,
+              mimeType: chunk.mimeType || 'audio/pcm;rate=16000'
+            }
+          }
+          message = JSON.stringify(parsed)
+        }
       } catch { /* non-JSON, relay as-is */ }
 
       if (isSetupComplete && geminiWs.readyState === WebSocket.OPEN) {

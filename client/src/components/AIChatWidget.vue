@@ -75,7 +75,7 @@
             </div>
             <p class="text-xs text-gray-700 font-medium leading-relaxed">
               Welcome <strong class="chat-username text-orange-600 font-extrabold">{{ username }}</strong> to **Naenra AI Assistant**!<br/>
-              Select a quick prompt below or hold **Microphone 🎙️** to speak hands-free!
+              Select a quick prompt below or click **Microphone 🎙️** to speak hands-free!
             </p>
             
             <!-- Quick Action Hints in English -->
@@ -151,7 +151,7 @@
           <div class="voice-status-info flex items-center gap-2">
             <span class="pulse-dot" :class="{ 'pulse-dot--active': isHoldingMicRef || isLiveListening || isSpeaking }"></span>
             <span class="voice-status-text font-bold text-xs">
-              <span v-if="isHoldingMicRef || isLiveListening" class="text-red-600 animate-pulse">🔴 Listening to your voice... (Release mic to send)</span>
+              <span v-if="isHoldingMicRef || isLiveListening" class="text-red-600 animate-pulse">🔴 Listening to your voice... (Click mic when done)</span>
               <span v-else>🔊 Speaking response aloud...</span>
             </span>
           </div>
@@ -174,26 +174,22 @@
           </div>
         </div>
 
-        <!-- Footer: Text Input + Hold-to-Talk Mic Button -->
+        <!-- Footer: Text Input + Click-to-Talk Mic Button -->
         <div class="chat-footer">
           <div class="chat-input-wrap flex items-center gap-2">
 
-            <!-- 🎙️ PUSH-TO-TALK MIC BUTTON -->
-            <!-- Hold to speak. Release to send immediately. Pressing while AI is speaking will interrupt instantly. -->
+            <!-- 🎙️ CLICK-TO-TALK MIC BUTTON -->
+            <!-- Click once to start speaking. Click again to finish and send. -->
             <button
-              @mousedown.prevent.stop="unifiedMicPress"
-              @touchstart.prevent.stop="unifiedMicPress"
-              @mouseup.prevent.stop="unifiedMicRelease"
-              @touchend.prevent.stop="unifiedMicRelease"
-              @click.prevent.stop
+              @click.prevent.stop="toggleMicRecording"
               type="button"
               id="ai-chat-mic-btn"
-              class="chat-mic-btn shrink-0 relative select-none"
+              class="chat-mic-btn shrink-0 relative select-none cursor-pointer"
               :class="{
                 'chat-mic-btn--listening': isHoldingMicRef || isLiveListening,
                 'opacity-80': isAiSpeaking && !isHoldingMicRef
               }"
-              :title="isHoldingMicRef ? '🔴 Recording — release to send' : isAiSpeaking ? '🔊 AI is answering — hold mic to interrupt' : '🎙️ Hold mic to speak'"
+              :title="isHoldingMicRef ? '🔴 Recording — click to finish & send' : isAiSpeaking ? '🔊 AI is answering — click mic to interrupt' : '🎙️ Click to speak'"
             >
               <span v-if="isHoldingMicRef || isLiveListening" class="text-sm text-red-400 animate-pulse">🔴</span>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -208,7 +204,7 @@
               v-model="inputText"
               @keyup.enter="sendMessage()"
               type="text"
-              :placeholder="isHoldingMicRef ? '🔴 Listening... Release to send!' : 'Type a question or hold mic to speak...'"
+              :placeholder="isHoldingMicRef ? '🔴 Listening... Click mic again to send!' : 'Type a question or click mic to speak...'"
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
@@ -236,9 +232,9 @@
           <!-- Live status + error row -->
           <div class="flex justify-between items-center mt-1.5 px-1">
             <span v-if="errorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ errorMsg }}</span>
-            <span v-else-if="isHoldingMicRef || isLiveListening" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Recording voice — release to send</span>
-            <span v-else-if="isAiSpeaking" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (Hold mic to interrupt)</span>
-            <span v-else class="text-[10px] text-gray-500 font-semibold">🎙️ Hold mic button to speak</span>
+            <span v-else-if="isHoldingMicRef || isLiveListening" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Listening to your voice... (Click mic when done)</span>
+            <span v-else-if="isAiSpeaking" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (Click mic to interrupt)</span>
+            <span v-else class="text-[10px] text-gray-500 font-semibold">🎙️ Click mic button to speak</span>
             <span v-if="inputText.length > 0" class="text-[10px] text-gray-400 font-mono">{{ inputText.length }}/300</span>
           </div>
         </div>
@@ -467,12 +463,10 @@ async function startMicCapture(): Promise<boolean> {
       if (liveWs && liveWs.readyState === WebSocket.OPEN) {
         liveWs.send(JSON.stringify({
           realtimeInput: {
-            mediaChunks: [
-              {
-                mimeType: 'audio/pcm;rate=16000',
-                data: b64
-              }
-            ]
+            audio: {
+              data: b64,
+              mimeType: 'audio/pcm;rate=16000'
+            }
           }
         }))
       }
@@ -488,6 +482,15 @@ async function startMicCapture(): Promise<boolean> {
 }
 
 function stopMicCapture() {
+  if (liveWs && liveWs.readyState === WebSocket.OPEN) {
+    try {
+      liveWs.send(JSON.stringify({
+        realtimeInput: {
+          audioStreamEnd: true
+        }
+      }))
+    } catch {}
+  }
   isHoldingMic = false
   isHoldingMicRef.value = false
   isLiveListening.value = false
@@ -499,8 +502,18 @@ function stopMicCapture() {
   micStream = null; audioCtx = null; micSource = null; scriptProcessor = null
 }
 
-// ── Push-To-Talk Handlers ─────────────────────────────────────────
-async function unifiedMicPress() {
+// ── Voice Input Handlers (Click to Talk Toggle) ────────────────────
+async function toggleMicRecording() {
+  if (!isChatOpen.value) return
+
+  if (isHoldingMicRef.value) {
+    await stopVoiceRecording()
+  } else {
+    await startVoiceRecording()
+  }
+}
+
+async function startVoiceRecording() {
   if (!isChatOpen.value) return
 
   sessionSeq++
@@ -510,9 +523,6 @@ async function unifiedMicPress() {
   isLoading.value = false
   errorMsg.value = ''
   inputText.value = ''
-
-  window.addEventListener('mouseup', unifiedMicRelease, { once: true })
-  window.addEventListener('touchend', unifiedMicRelease, { once: true })
 
   try {
     await connectLiveWs()
@@ -529,15 +539,12 @@ async function unifiedMicPress() {
   isLiveListening.value = true
 
   // Push user bubble immediately showing listening state
-  messages.value.push({ role: 'user', content: '🎙️ Listening...' })
+  messages.value.push({ role: 'user', content: '🎙️ Listening to your voice... (Click mic when done)' })
   scrollToBottom()
 }
 
-async function unifiedMicRelease() {
-  window.removeEventListener('mouseup', unifiedMicRelease)
-  window.removeEventListener('touchend', unifiedMicRelease)
-
-  if (!isHoldingMic) return
+async function stopVoiceRecording() {
+  if (!isHoldingMicRef.value) return
 
   const userBubbleIdx = messages.value.length - 1
 
@@ -546,11 +553,13 @@ async function unifiedMicRelease() {
 
   if (!liveWs || liveWs.readyState !== WebSocket.OPEN) {
     errorMsg.value = 'Connection lost. Please try again.'
-    if (userBubbleIdx >= 0) messages.value.splice(userBubbleIdx, 1)
+    if (userBubbleIdx >= 0 && messages.value[userBubbleIdx]?.content.includes('Listening')) {
+      messages.value.splice(userBubbleIdx, 1)
+    }
     return
   }
 
-  // Update bubble from "Listening..." to "Voice Message" upon release
+  // Update bubble to "Voice Message"
   if (userBubbleIdx >= 0 && messages.value[userBubbleIdx]?.role === 'user') {
     messages.value[userBubbleIdx].content = '🎙️ Voice Message'
   }
@@ -560,7 +569,7 @@ async function unifiedMicRelease() {
 
   // Show ACK bubble and wait for streaming response
   const thisSessionId = ++sessionSeq
-  messages.value.push({ role: 'model', content: '⏳ Hold on a moment…' })
+  messages.value.push({ role: 'model', content: '⏳ Processing your voice…' })
   const ackMsgIdx = messages.value.length - 1
   scrollToBottom()
   isLoading.value = true
@@ -595,6 +604,9 @@ async function unifiedMicRelease() {
   // Wait for completion
   await waitForStreamDone(() => isStreamClosed, thisSessionId, ackMsgIdx)
 }
+
+const unifiedMicPress = startVoiceRecording
+const unifiedMicRelease = stopVoiceRecording
 
 // ── Scroll helper ─────────────────────────────────────────────────
 function scrollToBottom() {
