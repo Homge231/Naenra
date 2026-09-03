@@ -266,7 +266,7 @@ router.post('/verify-otp', async (req: Request, res: Response) => {
           wins: 0,
           losses: 0,
           total_matches: 0,
-          session_version: 0
+          session_version: 1
         })
         .eq('id', userId)
         .select('session_version')

@@ -107,11 +107,8 @@ export class MatchRoom extends Room<{ state: MatchState }> {
 
     this.onMessage("update_score", (client, message: { score: number }) => {
       const player = this.state.players.get(client.sessionId);
-      if (player) {
-        player.score = message.score;
-        console.log(`Updated player ${player.name} score to ${player.score}`);
-      } else {
-        console.warn(`[MatchRoom] player not found for sessionId: ${client.sessionId}`);
+      if (player && typeof message?.score === 'number' && Number.isFinite(message.score)) {
+        player.score = Math.max(0, Math.floor(message.score));
       }
     });
 
@@ -514,7 +511,7 @@ export class MatchRoom extends Room<{ state: MatchState }> {
       const tokenVersion = decoded.sessionVersion ?? 0;
       const dbVersion = profile.session_version ?? 0;
 
-      if (dbVersion !== 0 && tokenVersion !== dbVersion) {
+      if (!decoded.isGuest && tokenVersion !== dbVersion) {
         throw new Error("Session expired due to login elsewhere");
       }
 

@@ -84,6 +84,7 @@
                 v-for="hint in quickHints"
                 :key="hint"
                 class="chat-quick-btn"
+                :disabled="isLoading || isStreaming"
                 @click="sendQuick(hint)"
               >
                 {{ hint }}
@@ -719,6 +720,9 @@ async function sendMessage(overridePrompt?: string) {
     })
 
     if (!resp.ok || !resp.body) {
+      if (resp.status === 401) {
+        throw new Error('AUTH_EXPIRED')
+      }
       throw new Error(`SSE request failed: ${resp.status}`)
     }
 
@@ -747,7 +751,11 @@ async function sendMessage(overridePrompt?: string) {
     isStreamClosed = true
   } catch (err: any) {
     if (thisSessionId === sessionSeq) {
-      errorMsg.value = 'Connection error. Please try again.'
+      if (err?.message === 'AUTH_EXPIRED') {
+        errorMsg.value = 'Session expired. Please log in again.'
+      } else {
+        errorMsg.value = 'Connection error. Please try again.'
+      }
       if (ackMsgIdx >= 0 && ackMsgIdx < messages.value.length) messages.value.splice(ackMsgIdx, 1)
       isLoading.value = false
       isStreaming.value = false
@@ -772,6 +780,7 @@ function renderMarkdown(text: string): string {
 }
 
 function sendQuick(hint: string) {
+  if (isLoading.value || isStreaming.value) return
   sendMessage(hint)
 }
 
@@ -967,11 +976,17 @@ function closeChat() {
   cursor: pointer;
   transition: all 0.15s;
 }
-.chat-quick-btn:hover {
+.chat-quick-btn:hover:not(:disabled) {
   background: #ffedd5;
   border-color: #f97316;
   color: #9a3412;
   transform: translateX(2px);
+}
+.chat-quick-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  border-color: #fed7aa;
 }
 
 /* ── Message Bubbles ─────────────────────────── */

@@ -41,7 +41,7 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
       return {
         id: decoded.id,
-        elo: profile.elo ?? 1000
+        elo: profile.elo ?? (decoded.isGuest ? 0 : 1000)
       };
     } catch (e) {
       console.error("[QueueRoom] onAuth Error", e);
@@ -51,7 +51,7 @@ export class QueueRoom extends Room<{ state: QueueState }> {
 
   onJoin(client: Client, options: any) {
     console.log(`[QueueRoom] ${client.sessionId} joined queue.`);
-    const elo = client.auth?.elo ?? 1000;
+    const elo = client.auth?.elo ?? 0;
     const userId = client.auth?.id || client.sessionId;
     client.userData = { userId };
     addActiveClient(userId, client);
@@ -61,9 +61,6 @@ export class QueueRoom extends Room<{ state: QueueState }> {
   async matchmakingLoop() {
     const players = Array.from(this.state.players.values()) as QueuePlayer[];
     if (players.length === 0) return;
-
-    // Log current matchmaking state
-    console.log(`[QueueRoom] Tick: ${players.length} players in queue. Elos:`, players.map(p => p.elo));
 
     const matched = new Set<string>();
 
@@ -118,6 +115,13 @@ export class QueueRoom extends Room<{ state: QueueState }> {
               console.log(`[QueueRoom] Matched ${p1.userId} and ${p2.userId} in room ${matchRoom.roomId} (Elo diff: ${eloDiff})`)
             } catch (e) {
               console.error("[QueueRoom] Failed to create match room", e);
+              // Recovery: re-add players to queue if their connections are still active
+              matched.delete(p1.sessionId);
+              matched.delete(p2.sessionId);
+              const c1 = this.clients.find(c => c.sessionId === p1.sessionId || c.userData?.userId === p1.userId);
+              const c2 = this.clients.find(c => c.sessionId === p2.sessionId || c.userData?.userId === p2.userId);
+              if (c1) this.state.players.set(p1.sessionId, p1);
+              if (c2) this.state.players.set(p2.sessionId, p2);
             }
             break;
           }
@@ -131,7 +135,6 @@ export class QueueRoom extends Room<{ state: QueueState }> {
       if (matched.has(p.sessionId)) continue;
 
       const waitTimeMs = Date.now() - p.joinedAt;
-      console.log(`[QueueRoom] Player ${p.userId} waiting: ${Math.round(waitTimeMs/1000)}s / 30s`);
 
       if (waitTimeMs >= 30000) {
         // Trigger Bot Match Fallback after 30 seconds
@@ -162,6 +165,10 @@ export class QueueRoom extends Room<{ state: QueueState }> {
           console.log(`[QueueRoom] Matched human ${p.userId} with Bot ${botProfile.name} in room ${matchRoom.roomId}`);
         } catch (e) {
           console.error("[QueueRoom] Failed to create bot match room", e);
+          // Recovery: re-add player to queue if still connected
+          matched.delete(p.sessionId);
+          const c = this.clients.find(client => client.sessionId === p.sessionId || client.userData?.userId === p.userId);
+          if (c) this.state.players.set(p.sessionId, p);
         }
       }
     }

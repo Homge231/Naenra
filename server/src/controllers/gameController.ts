@@ -115,6 +115,18 @@ export function normalizeAnswer(value: unknown): string {
 }
 
 /**
+ * Fisher-Yates (Knuth) unbiased array shuffle.
+ */
+export function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr]
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[result[i], result[j]] = [result[j], result[i]]
+  }
+  return result
+}
+
+/**
  * Classic Levenshtein edit-distance (insert/delete/substitute), O(m*n).
  * Used to measure how close `typed` is to `target`.
  */
@@ -297,7 +309,7 @@ export async function getQuestions(req: AuthRequest, res: Response): Promise<voi
       filtered = qData // Fallback if no exact match
     }
 
-    const shuffled = [...filtered].sort(() => Math.random() - 0.5).slice(0, BATCH_SIZE)
+    const shuffled = shuffleArray(filtered).slice(0, BATCH_SIZE)
     const pickedIds = shuffled.map((r: { id: string }) => r.id)
 
     const { data: questions, error: qError } = await supabase
@@ -318,7 +330,7 @@ export async function getQuestions(req: AuthRequest, res: Response): Promise<voi
       }
     })
     
-    const shuffledQuestions = maskedQuestions.sort(() => Math.random() - 0.5)
+    const shuffledQuestions = shuffleArray(maskedQuestions)
     res.status(200).json({ questions: shuffledQuestions })
   } catch (err) {
     console.error('getQuestions error:', err)
@@ -398,8 +410,8 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
         const unlockedInFamily = sameFamilyPool.filter(isCoreUnlocked)
         const lockedInFamily = sameFamilyPool.filter(c => !isCoreUnlocked(c))
 
-        const shuffledUnlocked = [...unlockedInFamily].sort(() => 0.5 - Math.random())
-        const shuffledLocked = [...lockedInFamily].sort(() => 0.5 - Math.random())
+        const shuffledUnlocked = shuffleArray(unlockedInFamily)
+        const shuffledLocked = shuffleArray(lockedInFamily)
 
         // Always prioritize unlocked upgrades first so the player is never trapped
         const combined = [...shuffledUnlocked, ...shuffledLocked]
@@ -416,7 +428,7 @@ export async function getCores(req: AuthRequest, res: Response): Promise<void> {
       }
       let pool = tier1Cores.filter(c => c.id !== previous_core_id)
       if (pool.length === 0) pool = tier1Cores
-      const shuffledPool = [...pool].sort(() => 0.5 - Math.random())
+      const shuffledPool = shuffleArray(pool)
       if (synergyCore) {
         offeredCores = [synergyCore, shuffledPool[0]]
       } else {
@@ -581,7 +593,7 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     // ── 2. Fetch session (verify ownership & status) ──────────────────────────
     const { data: session, error: sessErr } = await supabase
       .from('game_sessions')
-      .select('id, status, score, questions_answered, active_core_id, cores:active_core_id(name)')
+      .select('id, status, score, questions_answered, active_core_id, started_at, updated_at, cores:active_core_id(name)')
       .eq('id', session_id)
       .eq('player_id', playerId)
       .single()
@@ -773,7 +785,11 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
     
     // Anti-Cheat: Validate time_taken against actual server-side time
     const now = Date.now()
-    const lastTime = sessionTimers.get(session_id) || now
+    const sessionAny = session as any
+    const lastTime = sessionTimers.get(session_id)
+      || (sessionAny.updated_at ? new Date(sessionAny.updated_at).getTime() : 0)
+      || (sessionAny.started_at ? new Date(sessionAny.started_at).getTime() : 0)
+      || now
     const actualTimeTaken = Math.max(0, now - lastTime)
     
     let serverTimeTaken = typeof time_taken === 'number' && time_taken >= 0 ? Math.floor(time_taken) : 0
@@ -931,8 +947,11 @@ export async function submitAnswer(req: AuthRequest, res: Response): Promise<voi
       }
     }
 
-    // Apply Difficulty Multiplier
-    const difficulty = req.body.difficulty as string || 'Standard'
+    // Apply Difficulty Multiplier — whitelist to known valid values only.
+    // Any unrecognised value from the client body silently falls back to Standard (1.0x).
+    const VALID_DIFFICULTIES = new Set(['Standard', 'Veteran', 'Master'])
+    const rawDifficulty = typeof req.body.difficulty === 'string' ? req.body.difficulty : 'Standard'
+    const difficulty = VALID_DIFFICULTIES.has(rawDifficulty) ? rawDifficulty : 'Standard'
     let difficultyMultiplier = 1.0
     if (difficulty === 'Veteran') difficultyMultiplier = 1.5
     if (difficulty === 'Master') difficultyMultiplier = 2.0
@@ -1157,8 +1176,10 @@ export async function timeoutSession(req: AuthRequest, res: Response): Promise<v
           let oppElo = 1000
           
           if (typeof opponent_id === 'string' && opponent_id.startsWith('bot_')) {
-            // For AI bot match, bot Elo is matched close to player's current Elo
-            oppElo = req.body.opponent_elo || (currentElo > 0 ? (currentElo + Math.floor(Math.random() * 50) - 25) : 1000)
+            // Server-side derivation only — never trust client-supplied opponent_elo.
+            // Bot ELO is generated by generateBotProfile as playerElo ± [0,50].
+            // We reproduce the same bound here: currentElo ± up to 50, min 0.
+            oppElo = currentElo > 0 ? Math.max(0, currentElo + Math.floor(Math.random() * 101) - 50) : 1000
           } else {
             const { data: oppProfile } = await supabase.from('players').select('elo').eq('id', opponent_id).single()
             oppElo = oppProfile?.elo ?? (currentElo > 0 ? currentElo : 1000)
