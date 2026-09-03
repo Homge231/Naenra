@@ -147,11 +147,12 @@
         </div>
 
         <!-- Voice Live Wavebar Visualizer & Active Push-to-Talk Recording Banner -->
+        <!-- Voice Live Wavebar Visualizer & Active Push-to-Talk Recording Banner -->
         <div v-if="isHoldingMicRef || isLiveListening || isSpeaking" class="voice-wave-bar flex items-center justify-between">
           <div class="voice-status-info flex items-center gap-2">
             <span class="pulse-dot" :class="{ 'pulse-dot--active': isHoldingMicRef || isLiveListening || isSpeaking }"></span>
             <span class="voice-status-text font-bold text-xs">
-              <span v-if="isHoldingMicRef || isLiveListening" class="text-red-600 animate-pulse">🔴 Listening to your voice... (Click mic when done)</span>
+              <span v-if="isHoldingMicRef || isLiveListening" class="text-red-600 animate-pulse">🔴 Listening to your voice... (Click mic to stop)</span>
               <span v-else>🔊 Speaking response aloud...</span>
             </span>
           </div>
@@ -179,7 +180,6 @@
           <div class="chat-input-wrap flex items-center gap-2">
 
             <!-- 🎙️ CLICK-TO-TALK MIC BUTTON -->
-            <!-- Click once to start speaking. Click again to finish and send. -->
             <button
               @click.prevent.stop="toggleMicRecording"
               type="button"
@@ -189,7 +189,7 @@
                 'chat-mic-btn--listening': isHoldingMicRef || isLiveListening,
                 'opacity-80': isAiSpeaking && !isHoldingMicRef
               }"
-              :title="isHoldingMicRef ? '🔴 Recording — click to finish & send' : isAiSpeaking ? '🔊 AI is answering — click mic to interrupt' : '🎙️ Click to speak'"
+              :title="isContinuousVoiceMode ? '🔴 Continuous Voice Active — click mic to stop' : isAiSpeaking ? '🔊 AI is answering — click mic to interrupt' : '🎙️ Click to speak'"
             >
               <span v-if="isHoldingMicRef || isLiveListening" class="text-sm text-red-400 animate-pulse">🔴</span>
               <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -204,7 +204,7 @@
               v-model="inputText"
               @keyup.enter="sendMessage()"
               type="text"
-              :placeholder="isContinuousVoiceMode && isHoldingMicRef ? '🔴 Đang nghe... (transcript hiện ở đây)' : isContinuousVoiceMode ? '⏳ AI đang trả lời...' : 'Type a question or click mic to speak...'"
+              :placeholder="isContinuousVoiceMode && isHoldingMicRef ? '🔴 Listening... (speech appears here)' : isContinuousVoiceMode ? '⏳ AI is answering...' : 'Type a question or click mic to speak...'"
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
@@ -233,8 +233,8 @@
           <!-- Live status + error row -->
           <div class="flex justify-between items-center mt-1.5 px-1">
             <span v-if="errorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ errorMsg }}</span>
-            <span v-else-if="isContinuousVoiceMode && isHoldingMicRef" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Đang nghe... Click mic để tắt</span>
-            <span v-else-if="isContinuousVoiceMode && !isHoldingMicRef" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI đang trả lời... (mic sẽ tự bật lại)</span>
+            <span v-else-if="isContinuousVoiceMode && isHoldingMicRef" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Listening... Click mic to stop</span>
+            <span v-else-if="isContinuousVoiceMode && !isHoldingMicRef" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (mic will resume)</span>
             <span v-else-if="isAiSpeaking" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (Click mic to interrupt)</span>
             <span v-else class="text-[10px] text-gray-500 font-semibold">🎙️ Click mic button to speak</span>
             <span v-if="inputText.length > 0 && !isContinuousVoiceMode" class="text-[10px] text-gray-400 font-mono">{{ inputText.length }}/300</span>
@@ -774,8 +774,7 @@ async function sendMessage(overridePrompt?: string) {
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
 
-  const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
-  messages.value.push({ role: 'model', content: isVi ? '⏳ Chờ mình một chút nhé…' : '⏳ Hold on a moment…' })
+  messages.value.push({ role: 'model', content: '⏳ Hold on a moment…' })
   const ackMsgIdx = messages.value.length - 1
   scrollToBottom()
   isLoading.value = true

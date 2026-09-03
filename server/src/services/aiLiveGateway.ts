@@ -87,9 +87,9 @@ export function setupAiLiveGateway(): WebSocketServer {
 You assist players via text chat and voice input.
 
 LANGUAGE RULES:
-- Primary Languages: English and Vietnamese only.
+- Primary Default Language: English. Default to English for all speech and responses.
 - When the player speaks or writes in English, ALWAYS reply directly in energetic, natural English.
-- When the player speaks or writes in Vietnamese, reply directly in fluent Vietnamese.
+- If the player explicitly speaks or writes in Vietnamese, reply directly in fluent Vietnamese.
 - NEVER interpret English phonemes into Chinese characters, Japanese kana, or any other Asian scripts.
 
 CURRENT PLAYER IDENTITY & LIVE STATS:
