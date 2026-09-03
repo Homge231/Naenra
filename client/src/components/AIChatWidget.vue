@@ -403,7 +403,9 @@ function connectLiveWs(): Promise<void> {
         if (msg.type === 'textDone' && activeLiveDoneHandler) activeLiveDoneHandler()
         if (msg.type === 'inputTranscript' && msg.text && activeLiveTranscriptHandler) activeLiveTranscriptHandler(msg.text)
         if (msg.error) {
-          errorMsg.value = msg.error
+          if (!msg.error.toLowerCase().includes('aborted')) {
+            errorMsg.value = msg.error
+          }
           isLoading.value = false
           isStreaming.value = false
         }
@@ -564,9 +566,6 @@ async function stopVoiceRecording() {
     messages.value[userBubbleIdx].content = '🎙️ Voice Message'
   }
 
-  // Signal end of user turn to Gemini Live
-  liveWs.send(JSON.stringify({ clientContent: { turns: [], turnComplete: true } }))
-
   // Show ACK bubble and wait for streaming response
   const thisSessionId = ++sessionSeq
   messages.value.push({ role: 'model', content: '⏳ Processing your voice…' })
@@ -681,6 +680,9 @@ async function waitForStreamDone(getStreamClosed: () => boolean, thisSessionId: 
 // ── Send Text Message (via SSE — Gemini 3.5 Flash backup) ────────
 async function sendMessage(overridePrompt?: string) {
   if (!isChatOpen.value) return
+  if (isHoldingMicRef.value) {
+    stopMicCapture()
+  }
   const text = (overridePrompt !== undefined ? overridePrompt : inputText.value).trim()
   if (!text) return
 

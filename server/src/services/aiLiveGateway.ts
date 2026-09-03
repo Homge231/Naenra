@@ -158,6 +158,11 @@ Key Game Facts:
           }
           message = JSON.stringify(parsed)
         }
+
+        // Drop empty clientContent turns to prevent Gemini 1008 aborted errors
+        if (parsed.clientContent && (!Array.isArray(parsed.clientContent.turns) || parsed.clientContent.turns.length === 0)) {
+          return
+        }
       } catch { /* non-JSON, relay as-is */ }
 
       if (isSetupComplete && geminiWs.readyState === WebSocket.OPEN) {
@@ -248,7 +253,7 @@ Key Game Facts:
       const reasonStr = reason ? reason.toString() : ''
       console.log(`[GeminiLiveProxy Close]: Code ${code}, Reason: ${reasonStr}`)
       if (clientWs.readyState === WebSocket.OPEN) {
-        if (code !== 1000 && reasonStr) {
+        if (code !== 1000 && reasonStr && !reasonStr.toLowerCase().includes('aborted')) {
           try {
             clientWs.send(JSON.stringify({ error: `Gemini Live error (${code}): ${reasonStr}` }))
           } catch { /* ignore */ }
