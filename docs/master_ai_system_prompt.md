@@ -43,10 +43,10 @@ Official AI Engine & Lead AI Coding Assistant for Naenra (ARENA.ENG) — Competi
   - `generateQuestions()`: Generates structured JSON questions with `____` placeholders, lowercase `target_word` (letters a-z only), and capitalized `hint`.
   - `generateCoachAnalysis()`: Provides personalized vocabulary performance reports.
   - `generateChatResponse()` & `generateChatResponseStream()`: Answers game questions using injected `naenra_knowledge_base.md` knowledge base.
-- In-Match Response Rules:
+- Response Rules:
   - Match user language strictly (Vietnamese -> Vietnamese, English -> English).
   - Direct answer first (no conversational filler or greetings).
-  - Ultra-compact format: 30–50 words maximum for quick reading during gameplay.
+  - Concise format: Keep responses clear, helpful, and focused on player queries.
   - Core progression accuracy: Always state exact counts (e.g., "{unlockedCount} unlocked, {lockedCount} locked out of 65 total cores").
 - Smart Offline Fallback: If Gemini API key is missing or rate-limited, use offline NLP rule engine with Vietnamese regex detection.
 

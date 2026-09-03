@@ -665,7 +665,7 @@ async function waitForStreamDone(getStreamClosed: () => boolean, thisSessionId: 
   activeLiveTranscriptHandler = null
 }
 
-// ── Send Text Message ─────────────────────────────────────────────
+// ── Send Text Message (via SSE — Gemini 3.5 Flash backup) ────────
 async function sendMessage(overridePrompt?: string) {
   if (!isChatOpen.value) return
   const text = (overridePrompt !== undefined ? overridePrompt : inputText.value).trim()
@@ -681,46 +681,78 @@ async function sendMessage(overridePrompt?: string) {
 
   messages.value.push({ role: 'user', content: text })
   scrollToBottom()
-  
+
   const isVi = /[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text)
   messages.value.push({ role: 'model', content: isVi ? '⏳ Chờ mình một chút nhé…' : '⏳ Hold on a moment…' })
   const ackMsgIdx = messages.value.length - 1
   scrollToBottom()
   isLoading.value = true
 
-  // Ensure WS is connected
-  try {
-    await connectLiveWs()
-  } catch {
-    errorMsg.value = 'Could not connect to AI. Please try again.'
-    if (ackMsgIdx >= 0 && ackMsgIdx < messages.value.length) messages.value.splice(ackMsgIdx, 1)
-    isLoading.value = false
-    return
-  }
-
-  if (!liveWs || liveWs.readyState !== WebSocket.OPEN) {
-    errorMsg.value = 'Connection lost. Please try again.'
-    if (ackMsgIdx >= 0 && ackMsgIdx < messages.value.length) messages.value.splice(ackMsgIdx, 1)
-    isLoading.value = false
-    return
-  }
-
+  // ── Stream via SSE HTTP endpoint (Gemini 3.5 Flash) ──────────────
   let incomingBuffer = ''
   let displayedText = ''
   let isStreamClosed = false
 
-  activeLiveChunkHandler = (chunk: string) => { if (thisSessionId === sessionSeq) incomingBuffer += chunk }
-  activeLiveDoneHandler = () => { if (thisSessionId === sessionSeq) isStreamClosed = true }
-  activeLiveTranscriptHandler = null
-
-  // Clear ACK and start typewriter
+  // Clear ACK and start typewriter immediately
   messages.value[ackMsgIdx] = { role: 'model', content: '' }
-  startTypewriterLoop(ackMsgIdx, thisSessionId, () => incomingBuffer, () => { displayedText = incomingBuffer }, () => isStreamClosed, (v) => { displayedText = v }, () => displayedText)
+  startTypewriterLoop(
+    ackMsgIdx, thisSessionId,
+    () => incomingBuffer,
+    () => { displayedText = incomingBuffer },
+    () => isStreamClosed,
+    (v) => { displayedText = v },
+    () => displayedText
+  )
 
-  // Send text via WebSocket
-  liveWs.send(JSON.stringify({ type: 'textQuery', text }))
+  try {
+    const base = getApiBase()
+    const token = localStorage.getItem('arena_token') || ''
+    const url = `${base}/api/ai/chat/stream`
 
-  await waitForStreamDone(() => isStreamClosed, thisSessionId, ackMsgIdx)
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ prompt: text })
+    })
+
+    if (!resp.ok || !resp.body) {
+      throw new Error(`SSE request failed: ${resp.status}`)
+    }
+
+    const reader = resp.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      if (thisSessionId !== sessionSeq) break // preempted
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const payload = line.slice(6).trim()
+        if (payload === '[DONE]') { isStreamClosed = true; break }
+        try {
+          const parsed = JSON.parse(payload)
+          if (parsed.chunk) incomingBuffer += parsed.chunk
+        } catch { /* skip */ }
+      }
+      if (isStreamClosed) break
+    }
+    isStreamClosed = true
+  } catch (err: any) {
+    if (thisSessionId === sessionSeq) {
+      errorMsg.value = 'Connection error. Please try again.'
+      if (ackMsgIdx >= 0 && ackMsgIdx < messages.value.length) messages.value.splice(ackMsgIdx, 1)
+      isLoading.value = false
+      isStreaming.value = false
+    }
+  }
 }
 
 // ── Markdown Utils ────────────────────────────────────────────────
@@ -755,8 +787,11 @@ watch(isChatOpen, (open) => {
     isStreaming.value = false; streamingMsgIdx.value = -1; isLoading.value = false
     disconnectLiveWs()
   } else {
+    // Fetch profile for player context in SSE calls
     if (!authStore.profile) void authStore.fetchProfile()
-    connectLiveWs().catch(() => {})
+    // NOTE: Do NOT auto-connect Live WebSocket here.
+    // Gemini Live (3.1-flash-live-preview) only supports AUDIO output.
+    // WebSocket is connected lazily on mic PTT press only.
     nextTick(() => scrollToBottom())
   }
 })

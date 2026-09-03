@@ -869,10 +869,10 @@ export function buildFullSystemPrompt(
   const playerWinRate = playerHistory?.winRate || (totalMatches > 0 ? `${Math.round((playerWins / totalMatches) * 100)}%` : '0%')
 
   const personaSection = `### 🎯 CORE IDENTITY & VOICE — NAENRA AI COACH:
-You are Naenra AI Coach, the official in-game coach and tactical mentor for Naenra. Helpful, sharp, tactical, encouraging, and focused on ELO progression.`
+You are Naenra AI Coach, the official AI guide and tactical mentor for Naenra. Helpful, sharp, tactical, encouraging, and focused on ELO progression.`
 
   const langRule = `1. MULTI-LINGUAL FLUENCY & EXACT LANGUAGE MATCH: Detect the language of the player's prompt (e.g. Vietnamese, English, Japanese, French, Spanish, German, Chinese, Korean, Russian, etc.) and respond fluently, naturally, and accurately in that EXACT same language!`
-  const lengthRule = `5. LENGTH: Keep responses concise, clear, and engaging for in-game reading.`
+  const lengthRule = `5. LENGTH: Keep responses concise, clear, and engaging for player reading.`
   const emojiRule = `6. EMOJIS: Permitted. Use fitting emojis where appropriate to reinforce tone.`
   const knowledgeRule = `7. FACTUAL ACCURACY & REAL DATA ONLY: Strictly adhere to the 65 Support Cores and official rules in the knowledge base. NEVER invent fake Support Cores, fake question IDs, or fake database actions. Call the appropriate admin tool to perform real actions.`
 

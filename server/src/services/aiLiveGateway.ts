@@ -71,9 +71,12 @@ export function setupAiLiveGateway(): WebSocketServer {
         setup: {
           model: liveModel,
           generationConfig: {
-            responseModalities: ['TEXT'],
-            thinkingConfig: {
-              thinkingLevel: 'MINIMAL'
+            responseModalities: ['AUDIO'],
+            outputAudioTranscription: {},
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Aoede' }
+              }
             }
           },
           systemInstruction: {
@@ -169,12 +172,12 @@ Key Game Facts:
         // Ignore non-JSON parsing errors for setupComplete check
       }
 
-      // Parse and forward text responses + audio lock tracking
+      // Parse and forward transcription + audio lock tracking
       try {
         const msg = JSON.parse(data.toString())
         const parts = msg?.serverContent?.modelTurn?.parts || []
 
-        // Audio tracking
+        // Audio tracking — model now returns audio inlineData
         if (parts.some((p: any) => p.inlineData?.mimeType?.startsWith('audio/'))) {
           isAiStreaming = true
         }
@@ -182,15 +185,15 @@ Key Game Facts:
           isAiStreaming = false
         }
 
-        // ── Forward TEXT chunks to client as structured events ──────────────
-        const textParts = parts.filter((p: any) => typeof p.text === 'string' && p.text)
-        if (textParts.length > 0 && clientWs.readyState === WebSocket.OPEN) {
-          for (const tp of textParts) {
-            clientWs.send(JSON.stringify({ type: 'textChunk', chunk: tp.text }))
-          }
+        // ── Forward OUTPUT AUDIO TRANSCRIPTION as text chunks to client ──────
+        // With responseModalities: ['AUDIO'], Gemini Live sends outputTranscription
+        // instead of text parts. We forward this as textChunk for the typewriter UI.
+        const outputTranscript = msg?.serverContent?.outputTranscription?.text
+        if (outputTranscript && clientWs.readyState === WebSocket.OPEN) {
+          clientWs.send(JSON.stringify({ type: 'textChunk', chunk: outputTranscript }))
         }
 
-        // Forward user speech transcription to client
+        // Forward user speech (INPUT) transcription to client for user bubble display
         if (msg?.serverContent?.inputTranscription?.text && clientWs.readyState === WebSocket.OPEN) {
           clientWs.send(JSON.stringify({ type: 'inputTranscript', text: msg.serverContent.inputTranscription.text }))
         }
@@ -208,7 +211,7 @@ Key Game Facts:
         // Binary audio frames are not JSON — normal, ignore silently
       }
 
-      // Always relay raw data (for audio and other protocol messages)
+      // Relay raw data for audio playback (browser can play audio in future)
       if (clientWs.readyState === WebSocket.OPEN) {
         clientWs.send(data)
       }
