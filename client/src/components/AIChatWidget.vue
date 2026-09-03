@@ -204,17 +204,18 @@
               v-model="inputText"
               @keyup.enter="sendMessage()"
               type="text"
-              :placeholder="isHoldingMicRef ? '🔴 Listening... Click mic again to send!' : 'Type a question or click mic to speak...'"
+              :placeholder="isContinuousVoiceMode && isHoldingMicRef ? '🔴 Đang nghe... (transcript hiện ở đây)' : isContinuousVoiceMode ? '⏳ AI đang trả lời...' : 'Type a question or click mic to speak...'"
               class="chat-input flex-1"
               id="ai-chat-input"
               autocomplete="off"
               maxlength="300"
+              :readonly="isContinuousVoiceMode"
             />
 
             <!-- Send Button -->
             <button
               @click="sendMessage()"
-              :disabled="!inputText.trim() || isLoading"
+              :disabled="!inputText.trim() || isLoading || isContinuousVoiceMode"
               class="chat-send-btn shrink-0"
               id="ai-chat-send-btn"
               aria-label="Send"
@@ -232,10 +233,11 @@
           <!-- Live status + error row -->
           <div class="flex justify-between items-center mt-1.5 px-1">
             <span v-if="errorMsg" class="text-[10px] text-red-400 font-semibold truncate">⚠️ {{ errorMsg }}</span>
-            <span v-else-if="isHoldingMicRef || isLiveListening" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Listening to your voice... (Click mic when done)</span>
+            <span v-else-if="isContinuousVoiceMode && isHoldingMicRef" class="text-[10px] text-red-500 font-bold animate-pulse">🔴 Đang nghe... Click mic để tắt</span>
+            <span v-else-if="isContinuousVoiceMode && !isHoldingMicRef" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI đang trả lời... (mic sẽ tự bật lại)</span>
             <span v-else-if="isAiSpeaking" class="text-[10px] text-orange-500 font-semibold animate-pulse">🔊 AI is answering... (Click mic to interrupt)</span>
             <span v-else class="text-[10px] text-gray-500 font-semibold">🎙️ Click mic button to speak</span>
-            <span v-if="inputText.length > 0" class="text-[10px] text-gray-400 font-mono">{{ inputText.length }}/300</span>
+            <span v-if="inputText.length > 0 && !isContinuousVoiceMode" class="text-[10px] text-gray-400 font-mono">{{ inputText.length }}/300</span>
           </div>
         </div>
       </div>
@@ -505,19 +507,27 @@ function stopMicCapture() {
 }
 
 // ── Voice Input Handlers (Click to Talk Toggle) ────────────────────
+// isContinuousVoiceMode: true when user has toggled mic ON for continuous chat session
+const isContinuousVoiceMode = ref(false)
+
 async function toggleMicRecording() {
   if (!isChatOpen.value) return
 
-  if (isHoldingMicRef.value) {
-    await stopVoiceRecording()
+  if (isContinuousVoiceMode.value) {
+    // User clicked to END the voice session
+    isContinuousVoiceMode.value = false
+    stopMicCapture()
+    inputText.value = ''
   } else {
-    await startVoiceRecording()
+    // User clicked to START continuous voice session
+    await startContinuousVoiceSession()
   }
 }
 
-async function startVoiceRecording() {
+async function startContinuousVoiceSession() {
   if (!isChatOpen.value) return
 
+  isContinuousVoiceMode.value = true
   sessionSeq++
   stopSpeaking()
   if (streamTickerTimer) { clearInterval(streamTickerTimer); streamTickerTimer = null }
@@ -530,78 +540,145 @@ async function startVoiceRecording() {
     await connectLiveWs()
   } catch {
     errorMsg.value = 'Could not connect to AI. Please try again.'
+    isContinuousVoiceMode.value = false
     return
   }
 
+  await startMicListenLoop()
+}
+
+// Internal: Start mic + listen for transcript/response, then loop back if still in continuous mode
+async function startMicListenLoop() {
+  if (!isContinuousVoiceMode.value || !isChatOpen.value) return
+
   const started = await startMicCapture()
-  if (!started) return
+  if (!started) {
+    isContinuousVoiceMode.value = false
+    return
+  }
 
   isHoldingMic = true
   isHoldingMicRef.value = true
   isLiveListening.value = true
+  inputText.value = ''
 
-  // Push user bubble immediately showing listening state
-  messages.value.push({ role: 'user', content: '🎙️ Listening to your voice... (Click mic when done)' })
-  scrollToBottom()
-}
-
-async function stopVoiceRecording() {
-  if (!isHoldingMicRef.value) return
-
-  const userBubbleIdx = messages.value.length - 1
-
-  // Stop audio capture
-  stopMicCapture()
-
-  if (!liveWs || liveWs.readyState !== WebSocket.OPEN) {
-    errorMsg.value = 'Connection lost. Please try again.'
-    if (userBubbleIdx >= 0 && messages.value[userBubbleIdx]?.content.includes('Listening')) {
-      messages.value.splice(userBubbleIdx, 1)
-    }
-    return
+  // Listen for transcript from Gemini → show in input field
+  const captureSessionId = sessionSeq
+  activeLiveTranscriptHandler = (text: string) => {
+    if (captureSessionId !== sessionSeq) return
+    inputText.value = text
   }
 
-  // Update bubble to "Voice Message"
-  if (userBubbleIdx >= 0 && messages.value[userBubbleIdx]?.role === 'user') {
-    messages.value[userBubbleIdx].content = '🎙️ Voice Message'
-  }
-
-  // Show ACK bubble and wait for streaming response
-  const thisSessionId = ++sessionSeq
-  messages.value.push({ role: 'model', content: '⏳ Processing your voice…' })
-  const ackMsgIdx = messages.value.length - 1
-  scrollToBottom()
-  isLoading.value = true
+  // When user says something, Gemini sends audioStreamEnd signal back and we get textChunk/textDone
+  // We wait in listening mode. When AI sends a response (textDone), we:
+  //  1. Add user bubble (with transcript from inputText)
+  //  2. Add AI bubble with the response
+  //  3. If still in continuous mode, restart mic loop
 
   let incomingBuffer = ''
-  let displayedText = ''
   let isStreamClosed = false
 
-  // Set up handlers for this session
-  activeLiveTranscriptHandler = (text: string) => {
-    if (thisSessionId !== sessionSeq) return
-    // Update user bubble with real transcribed text from Gemini
-    if (userBubbleIdx >= 0 && messages.value[userBubbleIdx]?.role === 'user') {
-      messages.value[userBubbleIdx].content = text
-    }
-  }
-
   activeLiveChunkHandler = (chunk: string) => {
-    if (thisSessionId !== sessionSeq) return
+    if (captureSessionId !== sessionSeq) return
     incomingBuffer += chunk
   }
 
   activeLiveDoneHandler = () => {
-    if (thisSessionId !== sessionSeq) return
+    if (captureSessionId !== sessionSeq) return
     isStreamClosed = true
   }
 
-  // Clear ACK bubble and start typewriter
-  messages.value[ackMsgIdx] = { role: 'model', content: '' }
-  startTypewriterLoop(ackMsgIdx, thisSessionId, () => incomingBuffer, () => { displayedText = incomingBuffer }, () => isStreamClosed, (v) => { displayedText = v }, () => displayedText)
+  // Wait for Gemini to detect speech end and respond (stream done)
+  const TIMEOUT = 45000
+  const start = Date.now()
+  await new Promise<void>(resolve => {
+    const check = setInterval(() => {
+      // If user turned off voice mode, exit
+      if (!isContinuousVoiceMode.value || captureSessionId !== sessionSeq) {
+        clearInterval(check)
+        resolve()
+        return
+      }
+      if (isStreamClosed || Date.now() - start > TIMEOUT) {
+        clearInterval(check)
+        resolve()
+      }
+    }, 100)
+  })
 
-  // Wait for completion
-  await waitForStreamDone(() => isStreamClosed, thisSessionId, ackMsgIdx)
+  // Stop mic capture for this turn
+  stopMicCapture()
+
+  if (!isContinuousVoiceMode.value || captureSessionId !== sessionSeq) {
+    inputText.value = ''
+    return
+  }
+
+  const transcribedText = inputText.value.trim()
+  inputText.value = ''
+
+  if (transcribedText) {
+    messages.value.push({ role: 'user', content: transcribedText })
+  }
+
+  if (incomingBuffer.trim()) {
+    const thisSessionId = ++sessionSeq
+    let displayedText = ''
+    const capturedBuffer = incomingBuffer
+    let localClosed = true
+
+    messages.value.push({ role: 'model', content: '' })
+    const aiMsgIdx = messages.value.length - 1
+    scrollToBottom()
+
+    isLoading.value = true
+    startTypewriterLoop(
+      aiMsgIdx, thisSessionId,
+      () => capturedBuffer,
+      () => { displayedText = capturedBuffer },
+      () => localClosed,
+      (v) => { displayedText = v },
+      () => displayedText
+    )
+
+    // Wait for typewriter to finish
+    await new Promise<void>(resolve => {
+      const check = setInterval(() => {
+        if (!isStreaming.value && !isLoading.value) { clearInterval(check); resolve() }
+        else if (thisSessionId !== sessionSeq) { clearInterval(check); resolve() }
+      }, 100)
+    })
+  }
+
+  activeLiveChunkHandler = null
+  activeLiveDoneHandler = null
+  activeLiveTranscriptHandler = null
+
+  // If still in continuous mode, restart mic listen loop
+  if (isContinuousVoiceMode.value && isChatOpen.value) {
+    // Reconnect if WS dropped
+    if (!liveWs || liveWs.readyState !== WebSocket.OPEN) {
+      try { await connectLiveWs() } catch {
+        isContinuousVoiceMode.value = false
+        isHoldingMicRef.value = false
+        return
+      }
+    }
+    await startMicListenLoop()
+  } else {
+    isHoldingMicRef.value = false
+    isLiveListening.value = false
+  }
+}
+
+async function startVoiceRecording() {
+  await startContinuousVoiceSession()
+}
+
+async function stopVoiceRecording() {
+  isContinuousVoiceMode.value = false
+  stopMicCapture()
+  inputText.value = ''
 }
 
 const unifiedMicPress = startVoiceRecording
@@ -801,6 +878,7 @@ function sendQuick(hint: string) {
 // ── Lifecycle ─────────────────────────────────────────────────────
 watch(isChatOpen, (open) => {
   if (!open) {
+    isContinuousVoiceMode.value = false
     stopSpeaking()
     stopMicCapture()
     window.removeEventListener('mouseup', unifiedMicRelease)
@@ -808,6 +886,7 @@ watch(isChatOpen, (open) => {
     if (streamTickerTimer) { clearInterval(streamTickerTimer); streamTickerTimer = null }
     activeLiveChunkHandler = null; activeLiveDoneHandler = null; activeLiveTranscriptHandler = null
     isStreaming.value = false; streamingMsgIdx.value = -1; isLoading.value = false
+    inputText.value = ''
     disconnectLiveWs()
   } else {
     // Fetch profile for player context in SSE calls
@@ -839,8 +918,10 @@ function toggleChat() {
 
 function closeChat() {
   isChatOpen.value = false
+  isContinuousVoiceMode.value = false
   stopSpeaking()
   stopMicCapture()
+  inputText.value = ''
   disconnectLiveWs()
 }
 </script>
